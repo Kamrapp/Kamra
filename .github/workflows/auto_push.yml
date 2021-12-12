@@ -36,8 +36,8 @@ jobs:
           labels: |
             report
             automated pr
-          assignees: Bot
-          reviewers: Bot
+          assignees: gyrz
+          reviewers: gyrz
           team-reviewers: |
             owners
             maintainers
