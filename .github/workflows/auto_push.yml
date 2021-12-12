@@ -19,12 +19,12 @@ jobs:
         id: cpr
         uses: peter-evans/create-pull-request@v3
         with:
-          token: ${{ secrets.PAT }}
+          #token: ${{ secrets.PAT }}
           commit-message: Update report
           committer: GitHub <noreply@github.com>
           author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
           signoff: false
-          branch: temp_master
+          branch: temp
           delete-branch: true
           title: 'Please check out'
           body: |
@@ -36,8 +36,8 @@ jobs:
           labels: |
             report
             automated pr
-          assignees: gyrz
-          reviewers: gyrz
+          assignees: bot
+          reviewers: bot
           team-reviewers: |
             owners
             maintainers
