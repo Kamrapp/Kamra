@@ -1,0 +1,43 @@
+name: Auto push
+
+on:
+  push:
+    branches: [ master_dev_gyr ]
+  #pull_request:
+    #branches: [ master ]
+
+jobs:
+  createPullRequest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Make changes to pull request
+        run: date +%s > report.txt
+
+      - name: Create Pull Request
+        id: cpr
+        uses: peter-evans/create-pull-request@v3
+        with:
+          #token: ${{ secrets.PAT }}
+          commit-message: Created a new commit on dev branch
+          committer: GitHub <noreply@github.com>
+          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+          signoff: true
+          branch: master
+          delete-branch: false
+          title: 'Please check out my commit'
+          body: |
+            Update report
+            - Updated with *today's* date
+
+          labels: |
+            report
+            automated pr
+          assignees: gyrz
+          reviewers: gyrz
+          team-reviewers: |
+            owners
+            maintainers
+          milestone: 1
+          draft: false
