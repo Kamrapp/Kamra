@@ -17,6 +17,6 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           pr_label: "[GYR]"
           pr_template: ".github/pr_templ.md"
-          pr_assignee: "gyrz"                  
+          pr_assignee: "gb"                  
           pr_allow_empty: false
           pr_title: ${{ github.event.head_commit.message }}
