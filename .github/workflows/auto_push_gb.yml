@@ -1,4 +1,4 @@
-name: Pull Request Action
+name: Pull Request Action GB
 on:
   push:
     branches:
@@ -13,7 +13,7 @@ jobs:
       - name: pull-request
         uses: repo-sync/pull-request@v2
         with:
-          destination_branch: "master"
+          destination_branch: "master_dev"
           github_token: ${{ secrets.GITHUB_TOKEN }}
           pr_label: "[GYR]"
           pr_template: ".github/pr_templ.md"

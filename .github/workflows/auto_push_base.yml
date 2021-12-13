@@ -1,8 +1,10 @@
-name: Pull Request Action GYR
+name: Pull Request Action Base
 on:
   push:
     branches:
-      - master_dev_gyr
+      - master_dev
+    tags:
+      - "v*"
 
 jobs:
   create-pull-request:
@@ -13,10 +15,9 @@ jobs:
       - name: pull-request
         uses: repo-sync/pull-request@v2
         with:
-          destination_branch: "master_dev"
+          destination_branch: "master"
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          pr_label: "[GB]"
-          pr_template: ".github/pr_templ.md"
-          pr_assignee: "gyrz"                  
+          pr_label: "[GB][GYR]"
+          pr_template: ".github/pr_templ.md"                
           pr_allow_empty: false
           pr_title: ${{ github.event.head_commit.message }}
