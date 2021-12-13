@@ -15,5 +15,8 @@ jobs:
         with:
           destination_branch: "master"
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          pr_label: ${{ github.event.head_commit.message }}
-          pr_title: "[GB]Automated Pull Request From GYR Branch"
+          pr_label: "[GB]"
+          pr_template: ".github/pr_templ.md"
+          pr_assignee: "gyrz"                  
+          pr_allow_empty: false
+          pr_title: ${{ github.event.head_commit.message }}
