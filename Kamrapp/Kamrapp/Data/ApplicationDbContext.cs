@@ -1,8 +1,20 @@
 ﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 
+
+
 using Microsoft.EntityFrameworkCore;
 
+
+
+
+
+
+
 using Kamrapp.Model;
+
+
+
+
 
 
 
@@ -292,5 +304,7 @@ namespace Kamrapp.Data
 
 
     }
+
+
 
 }
