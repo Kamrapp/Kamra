@@ -1,8 +1,8 @@
 name: Pull Request Action Base
 on:
   push:
-    branches:
-      - master_dev
+    #branches:
+      #- master_dev
     tags:
       - "v*"
 
