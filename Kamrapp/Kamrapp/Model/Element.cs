@@ -9,6 +9,9 @@ namespace Kamrapp.Model
             Components = new List<Component>();
             ParentComponents = new List<Component>();
             Element2Tags = new List<Element2Tag>();
+            Stocks = new List<Stock>();
+
+            TagList = string.Empty;
         }
 
         [Key]
@@ -21,7 +24,7 @@ namespace Kamrapp.Model
         public int GTIN { get; set; }
 
         //TODO: Needs proper class
-        public string Manufacturer { get; set; }
+        public string? Manufacturer { get; set; }
 
         // Element2Element are parts of the Element with a certain Ratio
         public ICollection<Component> Components { get; set; }
@@ -32,6 +35,9 @@ namespace Kamrapp.Model
 
         // All Tags and PropertyValues are stored here redundantly for faster inquisition
         public string TagList { get; set; }
+
+
+        public ICollection<Stock> Stocks { get; set; }
     }
 
 

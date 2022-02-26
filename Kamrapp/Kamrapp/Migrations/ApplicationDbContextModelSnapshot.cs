@@ -17,7 +17,7 @@ namespace Kamrapp.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "6.0.1")
+                .HasAnnotation("ProductVersion", "6.0.2")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder, 1L, 1);
@@ -56,7 +56,6 @@ namespace Kamrapp.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Manufacturer")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("TagList")
@@ -84,6 +83,23 @@ namespace Kamrapp.Migrations
                     b.HasIndex("TagId");
 
                     b.ToTable("Element2Tags");
+                });
+
+            modelBuilder.Entity("Kamrapp.Model.Household", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Households");
                 });
 
             modelBuilder.Entity("Kamrapp.Model.Property", b =>
@@ -153,6 +169,41 @@ namespace Kamrapp.Migrations
                     b.HasIndex("Tag2TagParentTagId", "Tag2TagChildTagId");
 
                     b.ToTable("PropertyValues");
+                });
+
+            modelBuilder.Entity("Kamrapp.Model.Stock", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ElementId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("HouseholdId")
+                        .HasColumnType("int");
+
+                    b.Property<double>("Quantity")
+                        .HasColumnType("float");
+
+                    b.Property<DateTime>("ValidFrom")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("ValidTill")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ElementId");
+
+                    b.HasIndex("HouseholdId");
+
+                    b.ToTable("Stocks");
                 });
 
             modelBuilder.Entity("Kamrapp.Model.Tag", b =>
@@ -456,6 +507,25 @@ namespace Kamrapp.Migrations
                     b.Navigation("Property");
                 });
 
+            modelBuilder.Entity("Kamrapp.Model.Stock", b =>
+                {
+                    b.HasOne("Kamrapp.Model.Element", "Element")
+                        .WithMany("Stocks")
+                        .HasForeignKey("ElementId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Kamrapp.Model.Household", "Household")
+                        .WithMany("Stocks")
+                        .HasForeignKey("HouseholdId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Element");
+
+                    b.Navigation("Household");
+                });
+
             modelBuilder.Entity("Kamrapp.Model.Tag2Tag", b =>
                 {
                     b.HasOne("Kamrapp.Model.Tag", "ChildTag")
@@ -533,11 +603,18 @@ namespace Kamrapp.Migrations
                     b.Navigation("Element2Tags");
 
                     b.Navigation("ParentComponents");
+
+                    b.Navigation("Stocks");
                 });
 
             modelBuilder.Entity("Kamrapp.Model.Element2Tag", b =>
                 {
                     b.Navigation("PropertyValues");
+                });
+
+            modelBuilder.Entity("Kamrapp.Model.Household", b =>
+                {
+                    b.Navigation("Stocks");
                 });
 
             modelBuilder.Entity("Kamrapp.Model.Property", b =>
