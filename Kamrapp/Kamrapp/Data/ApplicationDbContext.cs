@@ -1,8 +1,7 @@
-﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+﻿using Kamrapp.Model;
 
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-
-using Kamrapp.Model;
 
 
 
@@ -111,11 +110,15 @@ namespace Kamrapp.Data
 
 
 
-                .HasKey(c => new { c.ParentElementId
+                .HasKey(c => new
+                {
+                    c.ParentElementId
 
 
 
-                                 , c.ChildElementId });
+                                 ,
+                    c.ChildElementId
+                });
 
 
 
@@ -127,11 +130,15 @@ namespace Kamrapp.Data
 
 
 
-                .HasKey(t2t => new { t2t.ParentTagId
+                .HasKey(t2t => new
+                {
+                    t2t.ParentTagId
 
 
 
-                                   , t2t.ChildTagId });
+                                   ,
+                    t2t.ChildTagId
+                });
 
 
 
@@ -143,11 +150,15 @@ namespace Kamrapp.Data
 
 
 
-                .HasKey(e2t => new { e2t.ElementId
+                .HasKey(e2t => new
+                {
+                    e2t.ElementId
 
 
 
-                                   , e2t.TagId });
+                                   ,
+                    e2t.TagId
+                });
 
 
 
@@ -159,23 +170,30 @@ namespace Kamrapp.Data
 
 
 
-                .HasKey(pv => new { pv.PropertyId
+                .HasKey(pv => new
+                {
+                    pv.PropertyId
 
 
 
-                                  , pv.Bool
+                                  ,
+                    pv.Bool
 
 
 
-                                  , pv.String
+                                  ,
+                    pv.String
 
 
 
-                                  , pv.Double
+                                  ,
+                    pv.Double
 
 
 
-                                  , pv.Int });
+                                  ,
+                    pv.Int
+                });
 
 
 
@@ -199,7 +217,7 @@ namespace Kamrapp.Data
 
 
 
-                .WithOne(p =>p.ParentElement)
+                .WithOne(p => p.ParentElement)
 
 
 

@@ -23,7 +23,7 @@ namespace Kamrapp.Model
         [Range(-10000, 10000,
         ErrorMessage = "Value for {0} must be between {1} and {2}.")]
         public double Weight { get; set; }
-      
+
         // PropertyValues Reference the Properties inherited from Tags and their respective Values as well...
         public ICollection<PropertyValue> PropertyValues { get; set; }
     }
