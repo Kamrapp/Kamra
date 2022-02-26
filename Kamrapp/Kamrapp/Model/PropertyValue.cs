@@ -21,7 +21,7 @@ namespace Kamrapp.Model
         [Required]
         [ForeignKey(nameof(Property))]
         public int PropertyId { get; set; }
-        public virtual Property Property { get; set; }
+        public virtual Property? Property { get; set; }
 
 
         public EType Type
