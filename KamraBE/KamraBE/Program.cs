@@ -1,5 +1,6 @@
 using DataAccess.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace KamraBE
 {
@@ -12,14 +13,11 @@ namespace KamraBE
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
-            // Release!
-            //var connectionString = builder.Configuration.GetConnectionString("Default");
 
-            // #Todo: Barna connection string insert please :)
-            //var connectionString = "#TODO: BARNA connection stringje"
+            var connectionString = builder.Configuration.GetConnectionString("default");
 
-            // Ricsi connection string
-            var connectionString = "Data Source=DESKTOP-KT33QNU\\SQLDEVELOPER;Initial Catalog=Kamra;Integrated Security=True";
+            // Use dotnet Secret to overwrite connectionString "below" AppSettings data with your own value!
+            //var connectionString = "Data Source=DESKTOP-KT33QNU\\SQLDEVELOPER;Initial Catalog=Kamra;Integrated Security=True";
 
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(connectionString));
