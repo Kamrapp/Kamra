@@ -1,5 +1,4 @@
-﻿namespace Shared.Utils.MongoDbConnector;
-#nullable disable
+﻿namespace MongoDbConnector;
 public class MongoDbSecrets
 {
     public string Password { get; set; }

@@ -11,10 +11,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BusinessLogicService", "Bus
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Shared", "Shared\Shared.csproj", "{BFEF1EB6-A2CF-411A-9906-08C07AB85F11}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Crawl", "Crawl", "{C553819F-93D8-404E-AF7A-C10EDE7E7E30}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DbLoader", "DbLoader\DbLoader.csproj", "{CAEB065C-2351-4FDF-AD43-1AD7ED5D4C83}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -37,16 +33,9 @@ Global
 		{BFEF1EB6-A2CF-411A-9906-08C07AB85F11}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BFEF1EB6-A2CF-411A-9906-08C07AB85F11}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BFEF1EB6-A2CF-411A-9906-08C07AB85F11}.Release|Any CPU.Build.0 = Release|Any CPU
-		{CAEB065C-2351-4FDF-AD43-1AD7ED5D4C83}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{CAEB065C-2351-4FDF-AD43-1AD7ED5D4C83}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{CAEB065C-2351-4FDF-AD43-1AD7ED5D4C83}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{CAEB065C-2351-4FDF-AD43-1AD7ED5D4C83}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(NestedProjects) = preSolution
-		{CAEB065C-2351-4FDF-AD43-1AD7ED5D4C83} = {C553819F-93D8-404E-AF7A-C10EDE7E7E30}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {3E9D171A-D1A2-49E7-A792-6A102D58F5CB}

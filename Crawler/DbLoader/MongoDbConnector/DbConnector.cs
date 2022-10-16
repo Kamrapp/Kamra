@@ -2,7 +2,7 @@
 
 using MongoDB.Driver;
 
-namespace Shared.Utils.MongoDbConnector;
+namespace MongoDbConnector;
 
 public static class DbConnector
 {

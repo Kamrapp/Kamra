@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 
-using Shared.Utils.MongoDbConnector;
+using MongoDbConnector;
 
 namespace MongoDBConnector;
 public class Program
