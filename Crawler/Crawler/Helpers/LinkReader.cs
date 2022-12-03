@@ -63,7 +63,7 @@ namespace Crawler.Downloader
 
                 return linkList;
             }
-            catch (Exception exception)
+            catch (Exception)
             {
                 return Enumerable.Empty<string>();
             }

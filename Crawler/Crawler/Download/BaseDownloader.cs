@@ -86,7 +86,7 @@ namespace Crawler.Download
                 htmlDocument.Load(fullPath);
                 return htmlDocument;
             }
-            catch (Exception exception)
+            catch (Exception)
             {
             }
             return null;
