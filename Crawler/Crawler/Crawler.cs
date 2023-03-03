@@ -55,12 +55,11 @@ namespace Crawler
 
         public async Task Crawl()
         {
-            var linkReader = new LinkReader(Request);
-            var links = await linkReader.GetLinks(Request.Url, 0);
+            var links = await LinkReader.GetLinks(Request.Url);
 
             foreach (var url in links)
             {
-                var document = await Downloader.Download($"https://www.lidl.hu/{url}");
+                var document = await Downloader.Download($"{Request.Url}{url}");
                 var entity = await Processor.Process(document);
                 await Pipeline.Run(entity);
             }

@@ -2,8 +2,8 @@
 {
     public interface IRequest
     {
-        string Url { get; set; }
-        string Regex { get; set; }
-        long TimeOut { get; set; }
+        string Url { get; }
+        string Regex { get; }
+        int TimeOut { get; }
     }
 }

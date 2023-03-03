@@ -4,6 +4,6 @@
     {
         public string Url { get; set; }
         public string Regex { get; set; }
-        public long TimeOut { get; set; }
+        public int TimeOut { get; set; }
     }
 }
