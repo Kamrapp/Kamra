@@ -58,16 +58,12 @@ namespace Crawler
             var linkReader = new LinkReader(Request);
             var links = await linkReader.GetLinks(Request.Url, 0);
 
-            bool allfinished = false;
-
             foreach (var url in links)
             {
                 var document = await Downloader.Download($"https://www.lidl.hu/{url}");
                 var entity = await Processor.Process(document);
                 await Pipeline.Run(entity);
             }
-
-            allfinished = true;
         }
     }
 }
