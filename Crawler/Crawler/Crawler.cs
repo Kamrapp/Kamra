@@ -10,6 +10,8 @@ using System.Threading.Tasks;
 using Microsoft.Playwright;
 using System.Linq;
 using System.Collections.Generic;
+using HtmlAgilityPack;
+using System.IO;
 
 namespace Crawler
 {
@@ -74,8 +76,15 @@ namespace Crawler
             var downloader = new Downloader(Page, Selector.UrlBase);
             foreach (var url in links)
             {
-                var document = await downloader.Download(url);
-                var entity = await Processor.Process(document);
+                //var document = await downloader.Download(url);
+
+                // DEBUG
+                var content = File.ReadAllText("C:\\code\\master\\Kamra\\Crawler\\Crawler\\bin\\Debug\\net6.0\\product1.txt");
+
+                var document = new HtmlDocument();
+                document.LoadHtml(content);
+
+                var entity = Processor.Process(document);
                 await Pipeline.Run(entity);
             }
 
@@ -98,8 +107,8 @@ namespace Crawler
 
             Page = await Browser.NewPageAsync();
 
-            await Page.GotoAsync(Selector.UrlBase);
-            await DeclineCookie();
+            //await Page.GotoAsync(Selector.UrlBase);
+            //await DeclineCookie();
         }
 
         private async Task WrapUpCrawl()

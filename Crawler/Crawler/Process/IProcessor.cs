@@ -9,6 +9,6 @@ namespace Crawler.Process
 {
     public interface IProcessor<TEntity> where TEntity : class, IEntity
     {
-        Task<IEnumerable<TEntity>> Process(HtmlDocument document);
+        IEnumerable<TEntity> Process(HtmlDocument document);
     }
 }

@@ -17,4 +17,13 @@
         Decimal,
         String
     }
+
+    public enum ValueSource
+    {
+        InnerText_Clean,
+        InnerText,
+        InnerText_LidlScriptValues,
+        InnerHtml,
+        Attribute
+    }
 }

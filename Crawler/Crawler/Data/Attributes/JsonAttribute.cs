@@ -2,7 +2,7 @@
 
 namespace Crawler.Data.Attributes
 {
-    public class EntityAttribute : Attribute, IClassAttribute
+    public class JsonAttribute : Attribute, IClassAttribute
     {
         public string XPath { get; set; }
     }

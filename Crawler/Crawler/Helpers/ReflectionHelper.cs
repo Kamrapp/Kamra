@@ -9,28 +9,30 @@ namespace Crawler.Helpers
 {
     public class ReflectionHelper
     {
-        internal static string GetEntityExpression<TEntity>()
+        internal static string GetEntityAttributes<TEntity, TAttribute>()
+            where TAttribute : Attribute, IClassAttribute
         {
-            var entityAttribute = typeof(TEntity).GetCustomAttribute<EntityAttribute>();
-            if (entityAttribute == null || string.IsNullOrWhiteSpace(entityAttribute.XPath))
+            var attribute = typeof(TEntity).GetCustomAttribute<TAttribute>();
+            if (attribute == null || string.IsNullOrWhiteSpace(attribute.XPath))
                 throw new Exception("This entity should be xpath");
 
-            return entityAttribute.XPath;
+            return attribute.XPath;
         }
 
-        public static Dictionary<string, Tuple<SelectorType, AttributeValueType, string>> GetPropertyAttributes<TEntity>()
+        public static Dictionary<string, TAttribute> GetPropertyAttributes<TEntity, TAttribute>()
+            where TAttribute: Attribute, IPropertyAttribute
         {
-            var attributeDictionary = new Dictionary<string, Tuple<SelectorType, AttributeValueType, string>>();
+            var attributeDictionary = new Dictionary<string, TAttribute>();
 
             PropertyInfo[] props = typeof(TEntity).GetProperties();
             var propList = props.Where(p => p.CustomAttributes.Count() > 0);
 
             foreach (PropertyInfo prop in propList)
             {
-                var attr = prop.GetCustomAttribute<FieldAttribute>();
+                var attr = prop.GetCustomAttribute<TAttribute>();
                 if (attr != null)
                 {
-                    attributeDictionary.Add(prop.Name, Tuple.Create(attr.SelectorType, attr.ValueType, attr.Expression));
+                    attributeDictionary.Add(prop.Name, attr);
                 }
             }
             return attributeDictionary;

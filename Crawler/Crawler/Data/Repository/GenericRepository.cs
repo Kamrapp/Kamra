@@ -9,11 +9,11 @@ namespace Crawler.Data.Repository
 {
     public class GenericRepository<TEntity> : IGenericRepository<TEntity> where TEntity : class, IEntity
     {
-        private readonly MicrosofteShopOnWebCatalogDbContext _dbContext;
+        private readonly LidlContext _dbContext;
 
         public GenericRepository()
         {
-            _dbContext = new MicrosofteShopOnWebCatalogDbContext();
+            _dbContext = new LidlContext();
         }
 
         public IQueryable<TEntity> GetAll()

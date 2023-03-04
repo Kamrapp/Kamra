@@ -15,10 +15,10 @@ namespace Crawler.Sample
             // run this once at to install PlayWright
             //var exitCode = Microsoft.Playwright.Program.Main(new[] { "install" });
 
-            var crawler = new Crawler<Catalog>()
+            var crawler = new Crawler<LidlProduct>()
                                  .AddSelector(new LidlSelector())
-                                 .AddProcessor(new BaseProcessor<Catalog> { })
-                                 .AddPipeline(new BasePipeline<Catalog> { });
+                                 .AddProcessor(new JsonProcessor<LidlProduct> { })
+                                 .AddPipeline(new BasePipeline<LidlProduct> { });
 
             await crawler.Crawl();
         }
