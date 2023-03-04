@@ -1,6 +1,7 @@
 ﻿using Crawler.Data.Attributes;
 using Crawler.Data.Repository;
-using Crawler.Processor;
+using Crawler.Helpers;
+using Crawler.Process;
 
 using HtmlAgilityPack;
 using HtmlAgilityPack.CssSelectors.NetCore;
@@ -9,7 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Crawler.Processor
+namespace Crawler.Process
 {
     public class BaseProcessor<TEntity> : IProcessor<TEntity> where TEntity : class, IEntity
     {

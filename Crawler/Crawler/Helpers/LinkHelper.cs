@@ -1,5 +1,4 @@
 ﻿using Microsoft.Playwright;
-using System.Linq;
 using System.Threading.Tasks;
 using System;
 
@@ -9,17 +8,17 @@ namespace Crawler.Helpers
     {
         public static async Task<string> GetElementLink(IElementHandle elementHandle)
         {
-            string href = "";
+            string href;
             try
             {
                 href = await elementHandle.GetAttributeAsync("href");
             }
             catch (Exception)
             {
-                //should handle
+                return null;
             }
 
-            if (!href.Any())
+            if (string.IsNullOrEmpty(href))
                 return null;
 
             var cleanHref = href[..href.IndexOf("?")];

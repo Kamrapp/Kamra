@@ -5,7 +5,7 @@ using HtmlAgilityPack;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Crawler.Processor
+namespace Crawler.Process
 {
     public interface IProcessor<TEntity> where TEntity : class, IEntity
     {

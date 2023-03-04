@@ -1,9 +1,10 @@
-﻿using Crawler.Downloader;
+﻿using Crawler.Select;
+using Crawler.Read;
+using Crawler.Download;
+using Crawler.Process;
 using Crawler.Data.Models;
 using Crawler.Pipeline;
-using Crawler.Processor;
 using System.Threading.Tasks;
-using Crawler.Reader;
 
 namespace Crawler.Sample
 {
@@ -14,12 +15,8 @@ namespace Crawler.Sample
             // run this once at to install PlayWright
             //var exitCode = Microsoft.Playwright.Program.Main(new[] { "install" });
 
-            var urlBase = "https://www.lidl.hu";
-
-            var crawler = new Crawler<Catalog>(urlBase)
-                                 .AddReader(new Reader.Reader(new LidlSelector()))
-                                 //@".*itm/.+"
-                                 .AddDownloader(new LidlDownloader())
+            var crawler = new Crawler<Catalog>()
+                                 .AddSelector(new LidlSelector())
                                  .AddProcessor(new BaseProcessor<Catalog> { })
                                  .AddPipeline(new BasePipeline<Catalog> { });
 

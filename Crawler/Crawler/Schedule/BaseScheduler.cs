@@ -2,7 +2,7 @@
 using System;
 using System.Threading.Tasks;
 
-namespace Crawler.Scheduler
+namespace Crawler.Schedule
 {
     public class BaseScheduler : IScheduler
     {

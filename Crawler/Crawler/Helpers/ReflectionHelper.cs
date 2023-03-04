@@ -5,13 +5,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
-namespace Crawler.Processor
+namespace Crawler.Helpers
 {
     public class ReflectionHelper
     {
         internal static string GetEntityExpression<TEntity>()
         {
-            var entityAttribute = (typeof(TEntity)).GetCustomAttribute<EntityAttribute>();
+            var entityAttribute = typeof(TEntity).GetCustomAttribute<EntityAttribute>();
             if (entityAttribute == null || string.IsNullOrWhiteSpace(entityAttribute.XPath))
                 throw new Exception("This entity should be xpath");
 

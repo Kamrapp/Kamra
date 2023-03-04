@@ -1,7 +1,6 @@
-﻿
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 
-namespace Crawler.Scheduler
+namespace Crawler.Schedule
 {
     public interface IScheduler
     {

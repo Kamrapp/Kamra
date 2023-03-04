@@ -1,59 +1,57 @@
 ﻿using Crawler.Helpers;
+using Crawler.Select;
+using Shared.Extensions;
 
 using Microsoft.Playwright;
 
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Crawler.Reader
+namespace Crawler.Read
 {
     public class Reader : IReader
     {
         public IPage Page { get; set; }
+        public int MaxItems { get; set; }
         public ISelector Selector { get; set; }
-        public Reader(ISelector selector)
+        public Reader(IPage page, ISelector selector, int maxItems = -1)
         {
+            Page = page;
             Selector = selector;
+            MaxItems = maxItems;
         }
 
         public async Task<IEnumerable<string>> GetLinks()
         {
             await Page.GotoAsync(Selector.UrlBase);
-            await DeclineCookie();
 
             return await GetProductLinks();
         }
 
-        private async Task DeclineCookie()
-        {
-            var cookieDeclineButton = await Page.QuerySelectorAsync(Selector.CookieSelector);
-            if (cookieDeclineButton != null)
-            {
-                await cookieDeclineButton.ClickAsync();
-            }
-        }
-
         private async Task<IEnumerable<string>> GetProductLinks()
         {
-            var items = new List<string>();
+            var productLinks = new List<string>();
 
             await foreach (var offerCard in CollectOfferCards())
             {
                 await foreach (var offer in CollectOffers(offerCard))
                 {
-                    if (!items.Contains(offer))
-                        items.Add(offer.ToString());
+                    productLinks.AddIfNotExists(offer);
+
+                    // Limit collection for debug purposes
+                    if(0 <= MaxItems && MaxItems <= productLinks.Count)
+                    {
+                        return productLinks;
+                    }
                 }
             }
 
-            return items;
+            return productLinks;
         }
 
         private async IAsyncEnumerable<string> CollectOfferCards()
         {
             var cards = await Page.QuerySelectorAllAsync(Selector.CardSelector);
-
             foreach (var card in cards)
             {
                 yield return await LinkHelper.GetElementLink(card);
@@ -68,23 +66,27 @@ namespace Crawler.Reader
             var candidates = await Page.QuerySelectorAllAsync(Selector.CandidateSelector);
             foreach (var candidate in candidates)
             {
-                if (await FilterProductData(candidate))
+                if (!await MatchProductData(candidate))
                     continue;
 
-                yield return await ReadProductReference(candidate);
+                var productReference = await ReadProductReference(candidate);
+                if (string.IsNullOrEmpty(productReference))
+                    continue;
+
+                yield return productReference;
             }
         }
 
-        protected async Task<bool> FilterProductData(IElementHandle candidate)
+        protected async Task<bool> MatchProductData(IElementHandle candidate)
         {
             try
             {
                 var dataSelector = await candidate.GetAttributeAsync(Selector.DataAttribute);
-                return Selector.ProductDataFilter(dataSelector);
+                return Selector.ProductDataMatcher(dataSelector);
             }
-            catch (Exception)
+            catch
             {
-                return true;
+                return false;
             }
         }
 
@@ -94,16 +96,14 @@ namespace Crawler.Reader
             {
                 var productReference = await productData.GetAttributeAsync(Selector.ReferenceAttribute);
 
-                if (Selector.ProductReferenceFilter(productReference))
-                    return "";
+                if (!Selector.ProductReferenceMatcher(productReference))
+                    return null;
 
-                Console.WriteLine($"Adding {productReference} to the item list");
                 return productReference;
             }
-            catch (Exception)
+            catch
             {
-                //href not there, most probably wrong child
-                return "";
+                return null;
             }
         }
     }

@@ -1,38 +1,36 @@
-﻿using Crawler.Downloader;
+﻿using Crawler.Select;
+using Crawler.Read;
+using Crawler.Download;
+using Crawler.Process;
 using Crawler.Pipeline;
-using Crawler.Processor;
-using Crawler.Scheduler;
+using Crawler.Schedule;
 using Crawler.Data.Repository;
 
 using System.Threading.Tasks;
-using Crawler.Reader;
 using Microsoft.Playwright;
+using System.Linq;
+using System.Collections.Generic;
 
 namespace Crawler
 {
     public class Crawler<TEntity> : ICrawler where TEntity : class, IEntity
     {
-        public IReader Reader { get; private set; }
-        public IDownloader Downloader { get; private set; }
+        public ISelector Selector { get; private set; }
         public IProcessor<TEntity> Processor { get; private set; }
         public IScheduler Scheduler { get; private set; }
         public IPipeline<TEntity> Pipeline { get; private set; }
-        public string UrlBase { get; private set; }
 
-        public Crawler(string urlBase)
+        private IPlaywright PlaywrightInstance { get; set; }
+        private IBrowser Browser { get; set; }
+        private IPage Page { get; set; }
+
+        public Crawler()
         {
-            UrlBase = urlBase;
         }
 
-        public Crawler<TEntity> AddReader(IReader reader)
+        public Crawler<TEntity> AddSelector(ISelector selector)
         {
-            Reader = reader;
-            return this;
-        }
-
-        public Crawler<TEntity> AddDownloader(IDownloader downloader)
-        {
-            Downloader = downloader;
+            Selector = selector;
             return this;
         }
 
@@ -54,20 +52,60 @@ namespace Crawler
             return this;
         }
 
+
         public async Task Crawl()
         {
-            using var pw = await Playwright.CreateAsync();
-            await using var browser = await pw.Chromium.LaunchAsync();
+            await InitCrawl();
 
-            Reader.Page = await browser.NewPageAsync();
-            var links = await Reader.GetLinks();
+            var reader = new Reader(Page, Selector, 3);
 
+            //var links = await reader.GetLinks();
+
+            // DEBUG
+            var links = new List<string>
+            { 
+                "/p/furdoszobaszekreny/p499363",
+                "/p/keskeny-furdoszobaszekreny/p499331" 
+            };
+
+            if (!links.Any())
+                return;
+
+            var downloader = new Downloader(Page, Selector.UrlBase);
             foreach (var url in links)
             {
-                var document = await Downloader.Download(url);
+                var document = await downloader.Download(url);
                 var entity = await Processor.Process(document);
                 await Pipeline.Run(entity);
             }
+
+            await WrapUpCrawl();
+        }
+
+        private async Task DeclineCookie()
+        {
+            var cookieDeclineButton = await Page.QuerySelectorAsync(Selector.CookieSelector);
+            if (cookieDeclineButton != null)
+            {
+                await cookieDeclineButton.ClickAsync();
+            }
+        }
+
+        private async Task InitCrawl()
+        {
+            PlaywrightInstance = await Playwright.CreateAsync();
+            Browser = await PlaywrightInstance.Chromium.LaunchAsync();
+
+            Page = await Browser.NewPageAsync();
+
+            await Page.GotoAsync(Selector.UrlBase);
+            await DeclineCookie();
+        }
+
+        private async Task WrapUpCrawl()
+        {
+            await Browser.DisposeAsync();
+            PlaywrightInstance.Dispose();
         }
     }
 }

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Crawler.Reader
+namespace Crawler.Read
 {
     public interface IReader
     {
