@@ -1,10 +1,9 @@
-﻿using Crawler.Download;
+﻿using Crawler.Downloader;
 using Crawler.Data.Models;
 using Crawler.Pipeline;
 using Crawler.Processor;
-using Crawler.Request;
 using System.Threading.Tasks;
-using Crawler.Downloader;
+using Crawler.Reader;
 
 namespace Crawler.Sample
 {
@@ -15,12 +14,12 @@ namespace Crawler.Sample
             // run this once at to install PlayWright
             //var exitCode = Microsoft.Playwright.Program.Main(new[] { "install" });
 
-            //var links = await LinkReader.GetLinks("https://www.lidl.hu");
+            var urlBase = "https://www.lidl.hu";
 
-            var crawler = new Crawler<Catalog>()
-                                 .AddRequest(new BaseRequest { Url = "https://www.lidl.hu", Regex = @"/p/.*/p.+", TimeOut = 5000 })
+            var crawler = new Crawler<Catalog>(urlBase)
+                                 .AddReader(new Reader.Reader(new LidlSelector()))
                                  //@".*itm/.+"
-                                 .AddDownloader(new BaseDownloader { DownloaderType = DownloaderType.FromWeb, DownloadPath = @"C:\Users\Koala\Downloads\CrawlerSampleData\download\" })
+                                 .AddDownloader(new LidlDownloader())
                                  .AddProcessor(new BaseProcessor<Catalog> { })
                                  .AddPipeline(new BasePipeline<Catalog> { });
 

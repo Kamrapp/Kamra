@@ -1,4 +1,4 @@
-﻿namespace Crawler.Download
+﻿namespace Crawler.Downloader
 {
     /// <summary>
     /// Type of the downloaders when crawler download source web

@@ -1,15 +1,19 @@
 ﻿
 using HtmlAgilityPack;
 
+using Microsoft.Playwright;
+
 using System;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 
-namespace Crawler.Download
+namespace Crawler.Downloader
 {
-    public class BaseDownloader : IDownloader
+    public abstract class BaseDownloader : IDownloader
     {
+        protected abstract string UrlBase { get; }
+        public IPage Page { get; set; }
         public DownloaderType DownloaderType { get; set; }
         public string DownloadPath { get; set; }
         private string _localFilePath;
