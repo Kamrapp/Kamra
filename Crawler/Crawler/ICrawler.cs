@@ -1,9 +1,5 @@
-﻿using System.Threading.Tasks;
-
-namespace Crawler
+﻿namespace Crawler;
+public interface ICrawler
 {
-    public interface ICrawler
-    {
-        Task Crawl();
-    }
+    Task Crawl();
 }
