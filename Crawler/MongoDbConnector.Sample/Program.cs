@@ -1,11 +1,17 @@
-﻿namespace MongoDbConnector.Sample;
+﻿using LidlCrawler.Instance;
+
+namespace MongoDbConnector.Sample;
 
 class Program
 {
     static async Task Main(string[] args)
     {
         var mongoDatabase = MongoDbConnector.InitDatabase();
-        var mongoClient = MongoDbConnector.TestConnection(mongoDatabase);
+
+        if(!MongoDbConnector.TestConnection(mongoDatabase))
+            throw new Exception("Test connection could not be initiated");
+
+        MongoDbConnector.CleanCollection<LidlProduct>(mongoDatabase, "LidlCollection");
     }
 
 }

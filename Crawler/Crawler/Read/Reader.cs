@@ -3,13 +3,13 @@
 public class Reader : IReader
 {
     public IPage Page { get; set; }
-    public int MaxItems { get; set; }
+
+    public const int MaxItems = -1;
     public ISelector Selector { get; set; }
-    public Reader(IPage page, ISelector selector, int maxItems = -1)
+    public Reader(IPage page, ISelector selector)
     {
         Page = page;
         Selector = selector;
-        MaxItems = maxItems;
     }
 
     public async Task<IEnumerable<string>> GetLinks()

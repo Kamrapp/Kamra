@@ -1,6 +1,8 @@
-﻿namespace Crawler.Pipeline;
+﻿using System.Runtime.InteropServices;
 
-public class MongoDbPipeline<TEntity> : IPipeline<TEntity> where TEntity : class, IDbRecord
+namespace Crawler.Pipeline;
+
+public class MongoDbPipeline<TEntity> : IPipeline<TEntity> where TEntity : BaseEntity
 {
     private IGenericService<TEntity> _service;
 
@@ -24,14 +26,19 @@ public class MongoDbPipeline<TEntity> : IPipeline<TEntity> where TEntity : class
             var existingEntity = _service.Get(entity.Key);
             if (existingEntity != null)
             {
-                Console.WriteLine($"Item with key <{entity.Key}> already exists with id <{existingEntity.Id}>. Skipping...");
+                (bool changed, TEntity newEntity) = existingEntity.UpdateValues(entity);
 
-                //TODO update item or set new price
+                if (!changed)
+                    continue;
+
+                _service.Update(entity.Key, newEntity);
                 continue;
             }
 
             _service.Create(entity);
             Console.WriteLine($"Item with key {entity.Key} successfully scraped.");
         }
+
+
     }
 }

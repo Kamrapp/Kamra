@@ -1,6 +1,6 @@
 ﻿namespace Crawler.Pipeline;
 
-public interface IPipeline<TEntity> where TEntity : class, IDbRecord
+public interface IPipeline<TEntity> where TEntity : BaseEntity
 {
     void Run(IEnumerable<TEntity> entities);
 }

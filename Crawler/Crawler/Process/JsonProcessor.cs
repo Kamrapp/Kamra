@@ -3,7 +3,7 @@
 namespace Crawler.Process;
 
 public class JsonProcessor<TEntity> : BaseProcessor<TEntity, JsonAttribute, JsonValueAttribute>
-    where TEntity : class, IDbRecord
+    where TEntity : BaseEntity
 {
     private JObject JsonData;
     protected override void SetValueObject(HtmlNode jsonNode)

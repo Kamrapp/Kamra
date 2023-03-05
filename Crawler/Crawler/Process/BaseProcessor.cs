@@ -1,7 +1,7 @@
 ﻿namespace Crawler.Process;
 
 public abstract class BaseProcessor<TEntity, TClassAttribute, TPropertyAttribute> : IProcessor<TEntity> 
-    where TEntity : class, IDbRecord
+    where TEntity : BaseEntity
     where TClassAttribute : BaseClassAttribute
     where TPropertyAttribute : BasePropertyAttribute
 

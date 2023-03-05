@@ -1,5 +1,5 @@
 ﻿namespace Crawler;
-public class Crawler<TEntity> : ICrawler where TEntity : class, IDbRecord
+public class Crawler<TEntity> : ICrawler where TEntity : BaseEntity
 {
     public ISelector Selector { get; private set; }
     public List<IProcessor<TEntity>> Processors { get; private set; }
@@ -23,7 +23,6 @@ public class Crawler<TEntity> : ICrawler where TEntity : class, IDbRecord
 
     public Crawler()
     {
-        Processors = new List<IProcessor<TEntity>>();
     }
 
     public Crawler<TEntity> AddSelector(ISelector selector)
@@ -34,6 +33,8 @@ public class Crawler<TEntity> : ICrawler where TEntity : class, IDbRecord
 
     public Crawler<TEntity> AddProcessor(IProcessor<TEntity> processor)
     {
+        Processors ??= new List<IProcessor<TEntity>>();
+
         Processors.Add(processor);
         return this;
     }
@@ -54,16 +55,16 @@ public class Crawler<TEntity> : ICrawler where TEntity : class, IDbRecord
     {
         await InitCrawl();
 
-        var reader = new Reader(Page, Selector, 3);
+        var reader = new Reader(Page, Selector);
 
-        //var links = await reader.GetLinks();
+        var links = await reader.GetLinks();
 
         // DEBUG
-        var links = new List<string>
-            {
-                "/p/furdoszobaszekreny/p499363",
-                "/p/keskeny-furdoszobaszekreny/p499331"
-            };
+        //var links = new List<string>
+        //    {
+        //        "/p/furdoszobaszekreny/p499363",
+        //        "/p/keskeny-furdoszobaszekreny/p499331"
+        //    };
 
         if (!links.Any())
             return;
@@ -73,13 +74,12 @@ public class Crawler<TEntity> : ICrawler where TEntity : class, IDbRecord
         var entities = new List<TEntity>();
         foreach (var url in links)
         {
-            //var document = await downloader.Download(url);
+            var document = await downloader.Download(url);
 
             // DEBUG
-            var content = File.ReadAllText("C:\\code\\master\\Kamra\\Crawler\\Crawler\\bin\\Debug\\net6.0\\product1.txt");
-
-            var document = new HtmlDocument();
-            document.LoadHtml(content);
+            // var content = File.ReadAllText("C:\\code\\master\\Kamra\\Crawler\\Crawler\\bin\\Debug\\net6.0\\product1.txt");
+            //var document = new HtmlDocument();
+            //document.LoadHtml(content);
 
             TEntity entity = null;
             foreach (var processor in Processors)
@@ -89,7 +89,7 @@ public class Crawler<TEntity> : ICrawler where TEntity : class, IDbRecord
 
             if (entities.Any(entity => entity.Id == entity.Id))
             {
-                Console.WriteLine($"Entity of type <{typeof(TEntity).Name}> with ID <{entity.Id}> is already collected.");
+                //Console.WriteLine($"Entity of type <{typeof(TEntity).Name}> with ID <{entity.Id}> is already collected.");
                 continue;
             }
 
@@ -116,8 +116,8 @@ public class Crawler<TEntity> : ICrawler where TEntity : class, IDbRecord
 
         Page = await Browser.NewPageAsync();
 
-        //await Page.GotoAsync(Selector.UrlBase);
-        //await DeclineCookie();
+        await Page.GotoAsync(Selector.UrlBase);
+        await DeclineCookie();
     }
 
     private async Task WrapUpCrawl()

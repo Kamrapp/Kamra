@@ -1,7 +1,7 @@
 ﻿namespace Crawler.Process;
 
 public class HtmlProcessor<TEntity> : BaseProcessor<TEntity, EntityAttribute, FieldAttribute>
-    where TEntity : class, IDbRecord
+    where TEntity : BaseEntity
 {
     private HtmlNode EntityNode;
     protected override void SetValueObject(HtmlNode entityNode)

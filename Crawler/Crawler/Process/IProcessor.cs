@@ -1,6 +1,6 @@
 ﻿namespace Crawler.Process;
 
-public interface IProcessor<TEntity> where TEntity : class, IDbRecord
+public interface IProcessor<TEntity> where TEntity : BaseEntity
 {
     TEntity Process(HtmlDocument document, TEntity entity);
 }

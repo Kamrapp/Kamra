@@ -6,11 +6,11 @@ public static class MongoDbConnector
     {
         BuildDatabaseSettings();
 
-        var settings = MongoClientSettings.FromConnectionString(databaseSettings.ConnectionString);
+        var settings = MongoClientSettings.FromConnectionString(DatabaseSettings.ConnectionString);
         settings.ServerApi = new ServerApi(ServerApiVersion.V1);
         var client = new MongoClient(settings);
 
-        return client.GetDatabase(databaseSettings.DatabaseName);
+        return client.GetDatabase(DatabaseSettings.DatabaseName);
     }
 
     public static bool TestConnection(IMongoDatabase database)
@@ -18,22 +18,45 @@ public static class MongoDbConnector
         // test connection
         try
         {
-            var collection = database.GetCollection<TestEntity>(databaseSettings.CollectionName);
+            Console.WriteLine($"Testing DB connection...");
+            var collection = database.GetCollection<TestEntity>(DatabaseSettings.CollectionName);
             foreach (var item in collection.Find(item => true).ToList())
             {
-                Console.WriteLine(item.value);
+                Console.WriteLine(item.Value);
             }
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"DB connection test FAILED with Exception:");
             Console.WriteLine(ex.ToString());
             return false;
         }
 
+        Console.WriteLine($"DB connection test SUCCESSFUL");
         return true;
     }
 
-    private static DatabaseSettings databaseSettings { get; set; }
+    public static bool CleanCollection<TEntity>(IMongoDatabase database, string collectionName)
+        where TEntity : BaseEntity
+    {
+        try
+        {
+            Console.WriteLine($"Cleaning DB collection <{collectionName}>...");
+            var collection = database.GetCollection<TEntity>(collectionName);
+            collection.DeleteMany(item => true);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"DB collection clearing FAILED with Exception:");
+            Console.WriteLine(ex.ToString());
+            return false;
+        }
+
+        Console.WriteLine($"DB collection cleared SUCCESSFULLY");
+        return true;
+    }
+
+    private static DatabaseSettings DatabaseSettings { get; set; }
 
     private static DatabaseSettings BuildDatabaseSettings()
     {
@@ -48,13 +71,13 @@ public static class MongoDbConnector
         Console.WriteLine($"MongoDB: Initiating login as {secrets.Username}");
         var connectionString = $"mongodb+srv://{secrets.ConnectionData}.mongodb.net/?retryWrites=true&w=majority";
 
-        databaseSettings = new DatabaseSettings
+        DatabaseSettings = new DatabaseSettings
         {
             ConnectionString = connectionString,
             DatabaseName = secrets.DatabaseName,
             CollectionName = secrets.CollectionName
         };
 
-        return databaseSettings;
+        return DatabaseSettings;
     }
 }

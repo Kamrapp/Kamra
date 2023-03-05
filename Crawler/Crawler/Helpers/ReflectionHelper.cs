@@ -2,7 +2,7 @@
 
 namespace Crawler.Helpers;
 
-public class ReflectionHelper
+public static class ReflectionHelper
 {
     internal static string GetClassAttributes<TEntity, TAttribute>()
         where TAttribute : BaseClassAttribute
@@ -33,13 +33,31 @@ public class ReflectionHelper
         return attributeDictionary;
     }
 
+    public static List<PropertyInfo> GetPropertiesToUpdate<TEntity>()
+    {
+        var propertyList = new List<PropertyInfo>();
+
+        PropertyInfo[] props = typeof(TEntity).GetProperties();
+        var propList = props.Where(p => p.CustomAttributes.Any());
+
+        foreach (PropertyInfo prop in propList)
+        {
+            var attr = prop.GetCustomAttribute<UpdateAttribute>();
+            if (attr != null)
+            {
+                propertyList.Add(prop);
+            }
+        }
+        return propertyList;
+    }
+
     internal static object CreateNewEntity<TEntity>()
     {
         object instance = Activator.CreateInstance(typeof(TEntity));
         return instance;
     }
 
-    internal static void TrySetProperty(object obj, string property, object value)
+    internal static void TrySetProperty(object obj, string property, object value, bool overWrite = false)
     {
         if (value == null)
             return;
@@ -58,17 +76,20 @@ public class ReflectionHelper
 
         if (prop.PropertyType == typeof(string) && currentValue != null)
         {
-            Console.WriteLine();
-            Console.WriteLine($"Value already set for property <{prop.Name}> of type <{prop.PropertyType.Name}> in object type <{obj.GetType().Name}>.");
-            Console.WriteLine("Keeping current value...");
-            Console.WriteLine("Current value:");
-            Console.WriteLine(currentValue);
-            Console.WriteLine("New value:");
-            Console.WriteLine(value);
-            Console.WriteLine();
-            Console.WriteLine();
-            Console.WriteLine();
-            return;
+            if(!overWrite)
+            {
+                //Console.WriteLine();
+                //Console.WriteLine($"Value already set for property <{prop.Name}> of type <{prop.PropertyType.Name}> in object type <{obj.GetType().Name}>.");
+                //Console.WriteLine("Keeping current value...");
+                //Console.WriteLine("Current value:");
+                //Console.WriteLine(currentValue);
+                //Console.WriteLine("New value:");
+                //Console.WriteLine(value);
+                //Console.WriteLine();
+                //Console.WriteLine();
+                //Console.WriteLine();
+                return;
+            }
         }
 
         try
@@ -79,5 +100,33 @@ public class ReflectionHelper
         { 
             Console.WriteLine(ex.ToString() );
         }
+    }
+
+    public static (bool, TEntity) UpdateValues<TEntity>(this TEntity currentEntity, TEntity entityToUpdate)
+        where TEntity : BaseEntity
+    {
+        bool anythingUpdated = false;
+
+        var properties = GetPropertiesToUpdate<TEntity>();
+        foreach (var property in properties)
+        {
+            var valueToUpdate = property.GetValue(entityToUpdate);
+
+            // Let's not delete data just because the shop removed it
+            if (valueToUpdate == null)
+                continue;
+
+            var currentValue = property.GetValue(currentEntity);
+
+            if (valueToUpdate.Equals(currentValue))
+                continue;
+
+            property.SetValue(currentEntity, valueToUpdate);
+
+            if (!anythingUpdated)
+                anythingUpdated = true;
+        }
+
+        return (anythingUpdated, currentEntity);
     }
 }
