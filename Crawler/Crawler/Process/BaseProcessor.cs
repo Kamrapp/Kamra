@@ -1,28 +1,40 @@
 ﻿namespace Crawler.Process;
 
-public abstract class BaseProcessor<TEntity, TClassAttribute, TPropertyAttribute> : IProcessor<TEntity> 
-    where TEntity : BaseEntity
+public abstract class BaseProcessor<TProductEntity, TOfferEntity, TClassAttribute, TPropertyAttribute> : IProcessor<TProductEntity, TOfferEntity> 
+    where TProductEntity : BaseProduct
+    where TOfferEntity : BaseOffer
     where TClassAttribute : BaseClassAttribute
     where TPropertyAttribute : BasePropertyAttribute
 
 {
-    public TEntity Process(HtmlDocument document, TEntity entity)
+    public (TProductEntity, TOfferEntity) Process(HtmlDocument document, TProductEntity product, TOfferEntity offer)
     {
-        entity ??= ReflectionHelper.CreateNewEntity<TEntity>() as TEntity;
+        product ??= ReflectionHelper.CreateNewEntity<TProductEntity>() as TProductEntity;
 
-        var nameValueDictionary = GetColumnNameValuePairsFromHtml(document);
-        foreach (var pair in nameValueDictionary)
+        var productNameValueDictionary = GetColumnNameValuePairsFromHtml<TProductEntity>(document);
+        foreach (var pair in productNameValueDictionary)
         {
-            ReflectionHelper.TrySetProperty(entity, pair.Key, pair.Value);
+            ReflectionHelper.TrySetProperty(product, pair.Key, pair.Value);
         }
 
-        return entity;
+        offer ??= ReflectionHelper.CreateNewEntity<TOfferEntity>() as TOfferEntity;
+
+        var offerNameValueDictionary = GetColumnNameValuePairsFromHtml<TOfferEntity>(document);
+        foreach (var pair in offerNameValueDictionary)
+        {
+            ReflectionHelper.TrySetProperty(offer, pair.Key, pair.Value);
+        }
+
+        // Very important!
+        offer.CalculateValidity();
+
+        return (product, offer);
     }
 
     protected abstract void SetValueObject(HtmlNode node);
     protected abstract object GetValueObject(TPropertyAttribute propertyAttribute);
 
-    protected Dictionary<string, object> GetColumnNameValuePairsFromHtml(HtmlDocument document)
+    protected Dictionary<string, object> GetColumnNameValuePairsFromHtml<TEntity>(HtmlDocument document)
     {
         var columnNameValueDictionary = new Dictionary<string, object>();
 

@@ -25,14 +25,21 @@ public class Reader : IReader
         var productLinks = new List<string>();
 
         var offerCards = await CollectOfferCards();
+        int maxWidth = offerCards.Max(offer => offer.Length) + 4;
+
+        //int whichOne = 0;
         foreach (var offerCard in offerCards)
         {
+            // DEBUG
+            //if (++whichOne != 4)
+            //    continue;
+
             if (offerCard == null)
                 continue;
 
             var previousCount = productLinks.Count;
 
-            Console.WriteLine($"===== Collecting links from {offerCard}...");
+            Console.Write($"- {(offerCard+ "...").PadRight(maxWidth)}");
             {
                 var offers = await CollectOffers(offerCard);
                 foreach (var offer in offers)
@@ -49,8 +56,7 @@ public class Reader : IReader
                     }
                 }
             }
-            Console.WriteLine($"===== Collected {productLinks.Count - previousCount} link(s).");
-            Console.WriteLine();
+            Console.WriteLine($" Collected {productLinks.Count - previousCount,8}.");
         }
 
         return productLinks;

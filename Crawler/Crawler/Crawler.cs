@@ -1,55 +1,59 @@
-﻿using System.Runtime.CompilerServices;
-
-namespace Crawler;
-public class Crawler<TEntity> : ICrawler where TEntity : BaseEntity
+﻿namespace Crawler;
+public class Crawler<TProductEntity, TOfferEntity> : ICrawler 
+    where TProductEntity : BaseProduct
+    where TOfferEntity : BaseOffer
 {
     public ISelector Selector { get; private set; }
-    public List<IProcessor<TEntity>> Processors { get; private set; }
+    public List<IProcessor<TProductEntity, TOfferEntity>> Processors { get; private set; }
+    public IPipeline<TProductEntity, TOfferEntity> Pipeline { get; private set; }
+
     public IScheduler Scheduler { get; private set; }
-    public IPipeline<TEntity> Pipeline { get; private set; }
 
     private IPlaywright PlaywrightInstance { get; set; }
     private IBrowser Browser { get; set; }
     private IPage Page { get; set; }
 
-    public Crawler(ISelector selector, string collectionName)
+    public Crawler(ISelector selector, string productCollectionName, string offerCollectionName)
         : base()
     {
         AddSelector(selector)
-            .AddProcessor(new JsonProcessor<TEntity> { })
-            .AddProcessor(new HtmlProcessor<TEntity> { })
-            .AddPipeline(new MongoDbPipeline<TEntity>()
-                .WithService(new GenericService<TEntity>(collectionName))
-                );
+            .AddProcessor(new JsonProcessor<TProductEntity, TOfferEntity> { })
+            .AddProcessor(new HtmlProcessor<TProductEntity, TOfferEntity> { })
+            .AddPipeline(new MongoDbPipeline<TProductEntity, TOfferEntity>()
+                .WithServices(
+                new ProductService<TProductEntity>(productCollectionName),
+                new OfferService<TOfferEntity>(offerCollectionName)
+                )
+            );
     }
 
     public Crawler()
     {
     }
 
-    public Crawler<TEntity> AddSelector(ISelector selector)
+    public Crawler<TProductEntity, TOfferEntity> AddSelector(ISelector selector)
     {
         Selector = selector;
         return this;
     }
 
-    public Crawler<TEntity> AddProcessor(IProcessor<TEntity> processor)
+    public Crawler<TProductEntity, TOfferEntity> AddProcessor(IProcessor<TProductEntity, TOfferEntity> processor)
     {
-        Processors ??= new List<IProcessor<TEntity>>();
+        Processors ??= new List<IProcessor<TProductEntity, TOfferEntity>>();
 
         Processors.Add(processor);
         return this;
     }
 
-    public Crawler<TEntity> AddScheduler(IScheduler scheduler)
+    public Crawler<TProductEntity, TOfferEntity> AddPipeline(IPipeline<TProductEntity, TOfferEntity> pipeline)
     {
-        Scheduler = scheduler;
+        Pipeline = pipeline;
         return this;
     }
 
-    public Crawler<TEntity> AddPipeline(IPipeline<TEntity> pipeline)
+    public Crawler<TProductEntity, TOfferEntity> AddScheduler(IScheduler scheduler)
     {
-        Pipeline = pipeline;
+        Scheduler = scheduler;
         return this;
     }
 
@@ -57,16 +61,16 @@ public class Crawler<TEntity> : ICrawler where TEntity : BaseEntity
 
     public async Task Crawl()
     {
-        Console.WriteLine();
         Console.WriteLine($"========================================================");
         Console.WriteLine($"      Crawling started at:  {DateTime.UtcNow           }");
         Console.WriteLine($"========================================================");
         Console.WriteLine();
 
-        Console.WriteLine($"Initializing Crawler for <{typeof(TEntity).Name}>...");
-        await InitCrawl();
-        Console.WriteLine($"Crawler initialized.");
-        Console.WriteLine();
+        Console.Write($"Initializing Crawler for <{typeof(TProductEntity).Name}>...");
+        {
+            await InitCrawl();
+        }
+        Console.WriteLine($" initialized.");
 
         IEnumerable<string> links;
         Console.WriteLine($"Collecting links...");
@@ -75,8 +79,7 @@ public class Crawler<TEntity> : ICrawler where TEntity : BaseEntity
 
             links = await reader.GetLinks();
         }
-        Console.WriteLine($"Collected {links.Count()} link(s).");
-        Console.WriteLine();
+        Console.WriteLine($"Collected {links.Count()}.");
 
         // DEBUG
         //var links = new List<string>
@@ -88,7 +91,8 @@ public class Crawler<TEntity> : ICrawler where TEntity : BaseEntity
         if (!links.Any())
             return;
 
-        var entities = new List<TEntity>();
+        var products = new List<TProductEntity>();
+        var offers = new List<TOfferEntity>();
         Console.WriteLine($"Processing product pages...");
         {
             var downloader = new Downloader(Page, Selector.UrlBase, Selector.CookieSelector);
@@ -104,7 +108,7 @@ public class Crawler<TEntity> : ICrawler where TEntity : BaseEntity
                 var percentile = 100 * processedLinks / allLinks;
                 if (percentile > lastProcessPercentile + PercentileSteps)
                 {
-                    Console.WriteLine($"===== Processed {processedLinks.ToString().PadRight(width)} out of {allLinks} pages.");
+                    Console.Write($"█");
                     lastProcessPercentile += PercentileSteps;
                 }
 
@@ -115,37 +119,41 @@ public class Crawler<TEntity> : ICrawler where TEntity : BaseEntity
                 //var document = new HtmlDocument();
                 //document.LoadHtml(content);
 
-                TEntity entity = null;
+                TProductEntity product = null;
+                TOfferEntity offer = null;
                 foreach (var processor in Processors)
                 {
-                    entity = processor.Process(document, entity);
+                    (product, offer) = processor.Process(document, product, offer);
                 }
 
-                if (entities.Any(addedEntity => addedEntity.Key == entity.Key))
+                if (!products.Any(addedEntity => addedEntity.Key == product.Key))
                 {
-                    //Console.WriteLine($"Entity of type <{typeof(TEntity).Name}> with ID <{entity.Id}> is already collected.");
-                    continue;
+                    products.Add(product);
                 }
 
-                entities.Add(entity);
+                if (!offers.Any(addedOffer => addedOffer.ProductKey == offer.ProductKey && 
+                    addedOffer.ValidFrom == offer.ValidFrom && 
+                    addedOffer.ValidTo == offer.ValidTo))
+                {
+                    offers.Add(offer);
+                }
+
             }
         }
-        Console.WriteLine($"Processed {entities.Count()} product(s).");
-        Console.WriteLine();
+        Console.WriteLine($" Processed {products.Count} product(s).");
+        Console.WriteLine($" Processed {offers.Count} offer(s).");
 
-        Console.WriteLine($"Updating products in database...");
+        Console.Write($"Updating products in database...");
         {
-            Pipeline.Run(entities);
+            Pipeline.Run(products, offers);
         }
-        Console.WriteLine($"Updated products.");
-        Console.WriteLine();
+        Console.WriteLine($" Updated.");
 
         await WrapUpCrawl();
         Console.WriteLine();
         Console.WriteLine($"========================================================");
         Console.WriteLine($"      Crawling finished at: {DateTime.UtcNow           }");
         Console.WriteLine($"========================================================");
-        Console.WriteLine();
     }
 
     private async Task InitCrawl()
