@@ -40,7 +40,7 @@ public class MongoDbPipeline<TProductEntity, TOfferEntity> : IPipeline<TProductE
             }
 
             _productService.Create(product);
-            Console.WriteLine($"Product with key {product.Key} successfully scraped.");
+            //Console.WriteLine($"Product with key {product.Key} successfully scraped.");
         }
 
         foreach (var offer in offerList)
@@ -61,7 +61,7 @@ public class MongoDbPipeline<TProductEntity, TOfferEntity> : IPipeline<TProductE
             }
 
             _offerService.Create(offer);
-            Console.WriteLine($"Offer for product {offer.ProductKey} successfully scraped.");
+            //Console.WriteLine($"Offer for product {offer.ProductKey} successfully scraped.");
         }
     }
 }
