@@ -1,5 +1,5 @@
 ﻿namespace Crawler;
-public class Crawler<TProductEntity, TOfferEntity> : ICrawler 
+public class Crawler<TProductEntity, TOfferEntity> : ICrawler
     where TProductEntity : BaseProduct
     where TOfferEntity : BaseOffer
 {
@@ -62,7 +62,7 @@ public class Crawler<TProductEntity, TOfferEntity> : ICrawler
     public async Task Crawl()
     {
         Console.WriteLine($"========================================================");
-        Console.WriteLine($"      Crawling started at:  {DateTime.UtcNow           }");
+        Console.WriteLine($"      Crawling started at:  {DateTime.UtcNow}");
         Console.WriteLine($"========================================================");
         Console.WriteLine();
 
@@ -131,8 +131,8 @@ public class Crawler<TProductEntity, TOfferEntity> : ICrawler
                     products.Add(product);
                 }
 
-                if (!offers.Any(addedOffer => addedOffer.ProductKey == offer.ProductKey && 
-                    addedOffer.ValidFrom == offer.ValidFrom && 
+                if (!offers.Any(addedOffer => addedOffer.ProductKey == offer.ProductKey &&
+                    addedOffer.ValidFrom == offer.ValidFrom &&
                     addedOffer.ValidTo == offer.ValidTo))
                 {
                     offers.Add(offer);
@@ -152,7 +152,7 @@ public class Crawler<TProductEntity, TOfferEntity> : ICrawler
         await WrapUpCrawl();
         Console.WriteLine();
         Console.WriteLine($"========================================================");
-        Console.WriteLine($"      Crawling finished at: {DateTime.UtcNow           }");
+        Console.WriteLine($"      Crawling finished at: {DateTime.UtcNow}");
         Console.WriteLine($"========================================================");
     }
 

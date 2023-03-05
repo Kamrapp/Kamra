@@ -5,8 +5,8 @@ public class ProductService<TEntity> : GenericService<TEntity>, IProductService<
 {
     public ProductService(string collectionName)
         : base(collectionName)
-        {
-        }
+    {
+    }
 
     public TEntity Get(string key) => _items.Find(item => item.Key == key).FirstOrDefault();
 

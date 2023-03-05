@@ -56,10 +56,10 @@ public static class AttributeHelpers
             //}
             //else
             //{
-                subToken = jToken[jsonValueAttribute.Expression];
+            subToken = jToken[jsonValueAttribute.Expression];
             //}
         }
-        catch {}
+        catch { }
 
         if (subToken == null)
             return null;

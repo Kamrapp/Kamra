@@ -1,6 +1,6 @@
 ﻿namespace Crawler.Process;
 
-public abstract class BaseProcessor<TProductEntity, TOfferEntity, TClassAttribute, TPropertyAttribute> : IProcessor<TProductEntity, TOfferEntity> 
+public abstract class BaseProcessor<TProductEntity, TOfferEntity, TClassAttribute, TPropertyAttribute> : IProcessor<TProductEntity, TOfferEntity>
     where TProductEntity : BaseProduct
     where TOfferEntity : BaseOffer
     where TClassAttribute : BaseClassAttribute

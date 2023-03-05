@@ -1,6 +1,4 @@
-﻿using LidlCrawler.Instance;
-
-namespace MongoDbConnector.Sample;
+﻿namespace MongoDbConnector.Sample;
 
 class Program
 {

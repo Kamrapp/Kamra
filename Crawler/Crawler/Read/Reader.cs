@@ -39,7 +39,7 @@ public class Reader : IReader
 
             var previousCount = productLinks.Count;
 
-            Console.Write($"- {(offerCard+ "...").PadRight(maxWidth)}");
+            Console.Write($"- {(offerCard + "...").PadRight(maxWidth)}");
             {
                 var offers = await CollectOffers(offerCard);
                 foreach (var offer in offers)
@@ -50,7 +50,7 @@ public class Reader : IReader
                     productLinks.AddIfNotContains(offer);
 
                     // Limit collection for debug purposes
-                    if(0 <= MaxItems && MaxItems <= productLinks.Count)
+                    if (0 <= MaxItems && MaxItems <= productLinks.Count)
                     {
                         return productLinks;
                     }

@@ -1,8 +1,6 @@
-﻿using MongoDB.Driver;
+﻿namespace Crawler.Pipeline;
 
-namespace Crawler.Pipeline;
-
-public class MongoDbPipeline<TProductEntity, TOfferEntity> : IPipeline<TProductEntity, TOfferEntity> 
+public class MongoDbPipeline<TProductEntity, TOfferEntity> : IPipeline<TProductEntity, TOfferEntity>
     where TProductEntity : BaseProduct
     where TOfferEntity : BaseOffer
 {
@@ -18,7 +16,7 @@ public class MongoDbPipeline<TProductEntity, TOfferEntity> : IPipeline<TProductE
         _productService = productService;
         _offerService = offerService;
         return this;
-    } 
+    }
 
     public void Run(IEnumerable<TProductEntity> productList, IEnumerable<TOfferEntity> offerList)
     {

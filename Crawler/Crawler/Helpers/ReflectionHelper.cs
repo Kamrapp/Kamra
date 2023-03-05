@@ -15,7 +15,7 @@ public static class ReflectionHelper
     }
 
     public static Dictionary<string, TAttribute> GetPropertyAttributes<TEntity, TAttribute>()
-        where TAttribute: BasePropertyAttribute
+        where TAttribute : BasePropertyAttribute
     {
         var attributeDictionary = new Dictionary<string, TAttribute>();
 
@@ -76,7 +76,7 @@ public static class ReflectionHelper
 
         if (prop.PropertyType == typeof(string) && currentValue != null)
         {
-            if(!overWrite)
+            if (!overWrite)
             {
                 //Console.WriteLine();
                 //Console.WriteLine($"Value already set for property <{prop.Name}> of type <{prop.PropertyType.Name}> in object type <{obj.GetType().Name}>.");
@@ -96,9 +96,9 @@ public static class ReflectionHelper
         {
             prop.SetValue(obj, value, null);
         }
-        catch(Exception ex)
-        { 
-            Console.WriteLine(ex.ToString() );
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.ToString());
         }
     }
 
