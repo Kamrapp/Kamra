@@ -1,9 +1,8 @@
-﻿namespace Shared.Utils
+﻿namespace Shared.Utils;
+
+public enum ObjectValueType
 {
-    public enum ObjectValueType
-    {
-        Int32,
-        Decimal,
-        String
-    }
+    Int32,
+    Decimal,
+    String
 }

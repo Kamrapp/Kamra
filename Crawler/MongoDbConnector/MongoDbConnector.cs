@@ -1,44 +1,60 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿namespace MongoDbConnector;
 
-using MongoDB.Driver;
-
-namespace MongoDbConnector;
-
-public class MongoDbConnector
+public static class MongoDbConnector
 {
-    public static MongoClient Init()
+    public static IMongoDatabase InitDatabase()
     {
-        var config = new ConfigurationBuilder()
-            .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-            .AddJsonFile("appsettings.json")
-            .AddUserSecrets<MongoDbConnector>()
-            .Build();
+        BuildDatabaseSettings();
 
-        return Connect(config);
-    }
-
-    private static MongoClient Connect(IConfigurationRoot config)
-    {
-        var secrets = config.GetSection(nameof(MongoDbSecrets)).Get<MongoDbSecrets>();
-
-        Console.WriteLine($"MongoDB: Initiating login as {secrets.Username}");
-
-        //var loginString = $"{secrets.Username}:{secrets.Password}@{secrets.Database}";
-        var loginString = $"Barna:Kanklakikon42@kamrapp";
-
-        var settings = MongoClientSettings.FromConnectionString($"mongodb+srv://{loginString}.mgkp1ms.mongodb.net/?retryWrites=true&w=majority");
+        var settings = MongoClientSettings.FromConnectionString(databaseSettings.ConnectionString);
         settings.ServerApi = new ServerApi(ServerApiVersion.V1);
         var client = new MongoClient(settings);
 
-        var database = client.GetDatabase("test");
-        var dbList = client.ListDatabases().ToList();
+        return client.GetDatabase(databaseSettings.DatabaseName);
+    }
 
-        Console.WriteLine("The list of databases on this server is: ");
-        foreach (var db in dbList)
+    public static bool TestConnection(IMongoDatabase database)
+    {
+        // test connection
+        try
         {
-            Console.WriteLine(db);
+            var collection = database.GetCollection<TestEntity>(databaseSettings.CollectionName);
+            foreach (var item in collection.Find(item => true).ToList())
+            {
+                Console.WriteLine(item.value);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.ToString());
+            return false;
         }
 
-        return client;
+        return true;
+    }
+
+    private static DatabaseSettings databaseSettings { get; set; }
+
+    private static DatabaseSettings BuildDatabaseSettings()
+    {
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
+            .AddJsonFile("appsettings.json")
+            .AddUserSecrets<MongoDbSecrets>()
+            .Build();
+
+        var secrets = configuration.GetSection(nameof(MongoDbSecrets)).Get<MongoDbSecrets>();
+
+        Console.WriteLine($"MongoDB: Initiating login as {secrets.Username}");
+        var connectionString = $"mongodb+srv://{secrets.ConnectionData}.mongodb.net/?retryWrites=true&w=majority";
+
+        databaseSettings = new DatabaseSettings
+        {
+            ConnectionString = connectionString,
+            DatabaseName = secrets.DatabaseName,
+            CollectionName = secrets.CollectionName
+        };
+
+        return databaseSettings;
     }
 }

@@ -1,110 +1,100 @@
-﻿using Crawler.Helpers;
-using Crawler.Select;
-using Shared.Extensions;
+﻿namespace Crawler.Read;
 
-using Microsoft.Playwright;
-
-using System.Collections.Generic;
-using System.Threading.Tasks;
-
-namespace Crawler.Read
+public class Reader : IReader
 {
-    public class Reader : IReader
+    public IPage Page { get; set; }
+    public int MaxItems { get; set; }
+    public ISelector Selector { get; set; }
+    public Reader(IPage page, ISelector selector, int maxItems = -1)
     {
-        public IPage Page { get; set; }
-        public int MaxItems { get; set; }
-        public ISelector Selector { get; set; }
-        public Reader(IPage page, ISelector selector, int maxItems = -1)
+        Page = page;
+        Selector = selector;
+        MaxItems = maxItems;
+    }
+
+    public async Task<IEnumerable<string>> GetLinks()
+    {
+        await Page.GotoAsync(Selector.UrlBase);
+
+        return await GetProductLinks();
+    }
+
+    private async Task<IEnumerable<string>> GetProductLinks()
+    {
+        var productLinks = new List<string>();
+
+        await foreach (var offerCard in CollectOfferCards())
         {
-            Page = page;
-            Selector = selector;
-            MaxItems = maxItems;
-        }
-
-        public async Task<IEnumerable<string>> GetLinks()
-        {
-            await Page.GotoAsync(Selector.UrlBase);
-
-            return await GetProductLinks();
-        }
-
-        private async Task<IEnumerable<string>> GetProductLinks()
-        {
-            var productLinks = new List<string>();
-
-            await foreach (var offerCard in CollectOfferCards())
+            await foreach (var offer in CollectOffers(offerCard))
             {
-                await foreach (var offer in CollectOffers(offerCard))
-                {
-                    productLinks.AddIfNotExists(offer);
+                productLinks.AddIfNotExists(offer);
 
-                    // Limit collection for debug purposes
-                    if(0 <= MaxItems && MaxItems <= productLinks.Count)
-                    {
-                        return productLinks;
-                    }
+                // Limit collection for debug purposes
+                if(0 <= MaxItems && MaxItems <= productLinks.Count)
+                {
+                    return productLinks;
                 }
             }
-
-            return productLinks;
         }
 
-        private async IAsyncEnumerable<string> CollectOfferCards()
+        return productLinks;
+    }
+
+    private async IAsyncEnumerable<string> CollectOfferCards()
+    {
+        var cards = await Page.QuerySelectorAllAsync(Selector.CardSelector);
+        foreach (var card in cards)
         {
-            var cards = await Page.QuerySelectorAllAsync(Selector.CardSelector);
-            foreach (var card in cards)
-            {
-                yield return await LinkHelper.GetElementLink(card);
-            }
+            yield return await LinkHelper.GetElementLink(card);
         }
+    }
 
-        private async IAsyncEnumerable<string> CollectOffers(string offerCard)
+    private async IAsyncEnumerable<string> CollectOffers(string offerCard)
+    {
+        await Page.GotoAsync($"{Selector.UrlBase}{offerCard}");
+        await Page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
+
+        var candidates = await Page.QuerySelectorAllAsync(Selector.CandidateSelector);
+        foreach (var candidate in candidates)
         {
-            await Page.GotoAsync($"{Selector.UrlBase}{offerCard}");
-            await Page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
+            if (!await MatchProductData(candidate))
+                continue;
 
-            var candidates = await Page.QuerySelectorAllAsync(Selector.CandidateSelector);
-            foreach (var candidate in candidates)
-            {
-                if (!await MatchProductData(candidate))
-                    continue;
+            var productReference = await ReadProductReference(candidate);
+            if (string.IsNullOrEmpty(productReference))
+                continue;
 
-                var productReference = await ReadProductReference(candidate);
-                if (string.IsNullOrEmpty(productReference))
-                    continue;
-
-                yield return productReference;
-            }
+            yield return productReference;
         }
+    }
 
-        protected async Task<bool> MatchProductData(IElementHandle candidate)
+    protected async Task<bool> MatchProductData(IElementHandle candidate)
+    {
+        try
         {
-            try
-            {
-                var dataSelector = await candidate.GetAttributeAsync(Selector.DataAttribute);
-                return Selector.ProductDataMatcher(dataSelector);
-            }
-            catch
-            {
-                return false;
-            }
+            var dataSelector = await candidate.GetAttributeAsync(Selector.DataAttribute);
+            return Selector.ProductDataMatcher(dataSelector);
         }
-
-        protected async Task<string> ReadProductReference(IElementHandle productData)
+        catch
         {
-            try
-            {
-                var productReference = await productData.GetAttributeAsync(Selector.ReferenceAttribute);
+            return false;
+        }
+    }
 
-                if (!Selector.ProductReferenceMatcher(productReference))
-                    return null;
+    protected async Task<string> ReadProductReference(IElementHandle productData)
+    {
+        try
+        {
+            var productReference = await productData.GetAttributeAsync(Selector.ReferenceAttribute);
 
-                return productReference;
-            }
-            catch
-            {
+            if (!Selector.ProductReferenceMatcher(productReference))
                 return null;
-            }
+
+            return productReference;
+        }
+        catch
+        {
+            return null;
         }
     }
 }

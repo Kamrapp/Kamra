@@ -1,10 +1,7 @@
-﻿using System.Threading.Tasks;
+﻿namespace Crawler.Schedule;
 
-namespace Crawler.Schedule
+public interface IScheduler
 {
-    public interface IScheduler
-    {
-        long RetryTime { get; set; }
-        Task Schedule();
-    }
+    long RetryTime { get; set; }
+    Task Schedule();
 }

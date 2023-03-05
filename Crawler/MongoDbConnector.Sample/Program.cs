@@ -1,3 +1,11 @@
-﻿// See https://aka.ms/new-console-template for more information
-Console.WriteLine("Hello, World!");
-var mongoClient = MongoDbConnector.MongoDbConnector.Init();
+﻿namespace MongoDbConnector.Sample;
+
+class Program
+{
+    static async Task Main(string[] args)
+    {
+        var mongoDatabase = MongoDbConnector.InitDatabase();
+        var mongoClient = MongoDbConnector.TestConnection(mongoDatabase);
+    }
+
+}

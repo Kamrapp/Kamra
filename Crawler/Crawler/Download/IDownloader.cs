@@ -1,14 +1,7 @@
-﻿using HtmlAgilityPack;
+﻿namespace Crawler.Download;
 
-using Microsoft.Playwright;
-
-using System.Threading.Tasks;
-
-namespace Crawler.Download
+public interface IDownloader
 {
-    public interface IDownloader
-    {
-        public IPage Page { get; set; }
-        Task<HtmlDocument> Download(string crawlUrl);
-    }
+    public IPage Page { get; set; }
+    Task<HtmlDocument> Download(string crawlUrl);
 }

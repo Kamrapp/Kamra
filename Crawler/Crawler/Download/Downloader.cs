@@ -1,32 +1,25 @@
-﻿using HtmlAgilityPack;
+﻿namespace Crawler.Download;
 
-using Microsoft.Playwright;
-
-using System.Threading.Tasks;
-
-namespace Crawler.Download
+public class Downloader : IDownloader
 {
-    public class Downloader : IDownloader
+    public IPage Page { get; set; }
+    public string UrlBase { get; set; }
+
+    public Downloader(IPage page, string urlBase)
     {
-        public IPage Page { get; set; }
-        public string UrlBase { get; set; }
+        Page = page;
+        UrlBase = urlBase;
+    }
 
-        public Downloader(IPage page, string urlBase)
-        {
-            Page = page;
-            UrlBase = urlBase;
-        }
+    public async Task<HtmlDocument> Download(string url)
+    {
+        await Page.GotoAsync($"{UrlBase}{url}");
 
-        public async Task<HtmlDocument> Download(string url)
-        {
-            await Page.GotoAsync($"{UrlBase}{url}");
+        var content = await Page.ContentAsync();
 
-            var content = await Page.ContentAsync();
+        var doc = new HtmlDocument();
+        doc.LoadHtml(content);
 
-            var doc = new HtmlDocument();
-            doc.LoadHtml(content);
-
-            return doc;
-        }
+        return doc;
     }
 }

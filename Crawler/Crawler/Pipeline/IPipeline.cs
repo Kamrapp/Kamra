@@ -1,12 +1,6 @@
-﻿using Crawler.Data.Repository;
+﻿namespace Crawler.Pipeline;
 
-using System.Collections.Generic;
-using System.Threading.Tasks;
-
-namespace Crawler.Pipeline
+public interface IPipeline<TEntity> where TEntity : class, IDbRecord
 {
-    public interface IPipeline<TEntity> where TEntity : class, IEntity
-    {
-        Task Run(IEnumerable<TEntity> entities);
-    }
+    void Run(IEnumerable<TEntity> entities);
 }

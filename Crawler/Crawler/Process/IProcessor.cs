@@ -1,11 +1,6 @@
-﻿using Crawler.Data.Repository;
+﻿namespace Crawler.Process;
 
-using HtmlAgilityPack;
-
-namespace Crawler.Process
+public interface IProcessor<TEntity> where TEntity : class, IDbRecord
 {
-    public interface IProcessor<TEntity> where TEntity : class, IEntity
-    {
-        TEntity Process(HtmlDocument document, TEntity entity);
-    }
+    TEntity Process(HtmlDocument document, TEntity entity);
 }
