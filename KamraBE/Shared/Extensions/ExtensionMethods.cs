@@ -2,12 +2,13 @@
 
 public static class EnumerationExtensions
 {
-    public static void AddIfNotExists<T>(this List<T> list, T value)
+    public static bool AddIfNotContains<T>(this List<T> list, T value)
     {
         if (list.Contains(value))
-            return;
+            return false;
 
         list.Add(value);
+        return true;
     }
 
     public static void ForEach<T>(this IEnumerable<T> source, Action<T> action)

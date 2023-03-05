@@ -1,4 +1,6 @@
-﻿namespace Crawler;
+﻿using System.Runtime.CompilerServices;
+
+namespace Crawler;
 public class Crawler<TEntity> : ICrawler where TEntity : BaseEntity
 {
     public ISelector Selector { get; private set; }
@@ -51,13 +53,30 @@ public class Crawler<TEntity> : ICrawler where TEntity : BaseEntity
         return this;
     }
 
+    private const int PercentileSteps = 10;
+
     public async Task Crawl()
     {
+        Console.WriteLine();
+        Console.WriteLine($"========================================================");
+        Console.WriteLine($"      Crawling started at:  {DateTime.UtcNow           }");
+        Console.WriteLine($"========================================================");
+        Console.WriteLine();
+
+        Console.WriteLine($"Initializing Crawler for <{typeof(TEntity).Name}>...");
         await InitCrawl();
+        Console.WriteLine($"Crawler initialized.");
+        Console.WriteLine();
 
-        var reader = new Reader(Page, Selector);
+        IEnumerable<string> links;
+        Console.WriteLine($"Collecting links...");
+        {
+            var reader = new Reader(Page, Selector);
 
-        var links = await reader.GetLinks();
+            links = await reader.GetLinks();
+        }
+        Console.WriteLine($"Collected {links.Count()} link(s).");
+        Console.WriteLine();
 
         // DEBUG
         //var links = new List<string>
@@ -69,44 +88,64 @@ public class Crawler<TEntity> : ICrawler where TEntity : BaseEntity
         if (!links.Any())
             return;
 
-        var downloader = new Downloader(Page, Selector.UrlBase);
-
         var entities = new List<TEntity>();
-        foreach (var url in links)
+        Console.WriteLine($"Processing product pages...");
         {
-            var document = await downloader.Download(url);
+            var downloader = new Downloader(Page, Selector.UrlBase, Selector.CookieSelector);
 
-            // DEBUG
-            // var content = File.ReadAllText("C:\\code\\master\\Kamra\\Crawler\\Crawler\\bin\\Debug\\net6.0\\product1.txt");
-            //var document = new HtmlDocument();
-            //document.LoadHtml(content);
+            int lastProcessPercentile = 0;
+            int processedLinks = 0;
+            int allLinks = links.Count();
+            int width = allLinks.ToString().Length + 1;
 
-            TEntity entity = null;
-            foreach (var processor in Processors)
+            foreach (var url in links)
             {
-                entity = processor.Process(document, entity);
-            }
+                processedLinks++;
+                var percentile = 100 * processedLinks / allLinks;
+                if (percentile > lastProcessPercentile + PercentileSteps)
+                {
+                    Console.WriteLine($"===== Processed {processedLinks.ToString().PadRight(width)} out of {allLinks} pages.");
+                    lastProcessPercentile += PercentileSteps;
+                }
 
-            if (entities.Any(entity => entity.Id == entity.Id))
-            {
-                //Console.WriteLine($"Entity of type <{typeof(TEntity).Name}> with ID <{entity.Id}> is already collected.");
-                continue;
-            }
+                var document = await downloader.Download(url);
 
-            entities.Add(entity);
+                // DEBUG
+                // var content = File.ReadAllText("C:\\code\\master\\Kamra\\Crawler\\Crawler\\bin\\Debug\\net6.0\\product1.txt");
+                //var document = new HtmlDocument();
+                //document.LoadHtml(content);
+
+                TEntity entity = null;
+                foreach (var processor in Processors)
+                {
+                    entity = processor.Process(document, entity);
+                }
+
+                if (entities.Any(addedEntity => addedEntity.Key == entity.Key))
+                {
+                    //Console.WriteLine($"Entity of type <{typeof(TEntity).Name}> with ID <{entity.Id}> is already collected.");
+                    continue;
+                }
+
+                entities.Add(entity);
+            }
         }
+        Console.WriteLine($"Processed {entities.Count()} product(s).");
+        Console.WriteLine();
 
-        Pipeline.Run(entities);
+        Console.WriteLine($"Updating products in database...");
+        {
+            Pipeline.Run(entities);
+        }
+        Console.WriteLine($"Updated products.");
+        Console.WriteLine();
+
         await WrapUpCrawl();
-    }
-
-    private async Task DeclineCookie()
-    {
-        var cookieDeclineButton = await Page.QuerySelectorAsync(Selector.CookieSelector);
-        if (cookieDeclineButton != null)
-        {
-            await cookieDeclineButton.ClickAsync();
-        }
+        Console.WriteLine();
+        Console.WriteLine($"========================================================");
+        Console.WriteLine($"      Crawling finished at: {DateTime.UtcNow           }");
+        Console.WriteLine($"========================================================");
+        Console.WriteLine();
     }
 
     private async Task InitCrawl()
@@ -117,7 +156,7 @@ public class Crawler<TEntity> : ICrawler where TEntity : BaseEntity
         Page = await Browser.NewPageAsync();
 
         await Page.GotoAsync(Selector.UrlBase);
-        await DeclineCookie();
+        await Page.DeclineCookie(Selector.CookieSelector);
     }
 
     private async Task WrapUpCrawl()

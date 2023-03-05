@@ -9,18 +9,19 @@ public class LidlProduct : BaseEntity
     [JsonValue(Expression = "sku", ValueType = ObjectValueType.String)]
     public override string Key { get; set; }
 
-    [Field(Expression = "//h1[@class='keyfacts__title']", ValueType = ObjectValueType.String)]
+    //[Field(Expression = "//h1[@class='keyfacts__title']", ValueType = ObjectValueType.String)]
     [JsonValue(Expression = "name", ValueType = ObjectValueType.String)]
     public string Name { get; set; }
 
     [Update]
     [Field(Expression = "//div[@class='keyfacts__supplemental-description']", ValueType = ObjectValueType.String)]
+    //this is empty in cases
     [JsonValue(Expression = "brand", ValueType = ObjectValueType.String, ValueSource = JsonValueSource.ChildValue, ChildExpression = "brand")]
     public string BrandName { get; set; }
 
     [Update]
     [Field(Expression = "//div[@class='keyfacts__description']", ValueType = ObjectValueType.String, ValueSource = NodeValueSource.InnerHtml)]
-    [JsonValue(Expression = "description", ValueType = ObjectValueType.String)]
+    //[JsonValue(Expression = "description", ValueType = ObjectValueType.String)]
     public string Description { get; set; }
 
     [Update]
@@ -40,7 +41,8 @@ public class LidlProduct : BaseEntity
     public string Unit { get; set; }
 
     [Update]
-    [Field(Expression = "//img[@class='gallery-image__img']", ValueType = ObjectValueType.String, ValueSource = NodeValueSource.Attribute, ChildExpression = "src")]
+    // both are fine
+    //[Field(Expression = "//img[@class='gallery-image__img']", ValueType = ObjectValueType.String, ValueSource = NodeValueSource.Attribute, ChildExpression = "src")]
     [JsonValue(Expression = "image", ValueType = ObjectValueType.String, ValueSource = JsonValueSource.Value_FirstItem)]
     public string PictureUri { get; set; }
 

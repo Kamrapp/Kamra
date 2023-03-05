@@ -15,6 +15,7 @@ public class Reader : IReader
     public async Task<IEnumerable<string>> GetLinks()
     {
         await Page.GotoAsync(Selector.UrlBase);
+        await Page.DeclineCookie(Selector.CookieSelector);
 
         return await GetProductLinks();
     }
@@ -23,36 +24,59 @@ public class Reader : IReader
     {
         var productLinks = new List<string>();
 
-        await foreach (var offerCard in CollectOfferCards())
+        var offerCards = await CollectOfferCards();
+        foreach (var offerCard in offerCards)
         {
-            await foreach (var offer in CollectOffers(offerCard))
-            {
-                productLinks.AddIfNotExists(offer);
+            if (offerCard == null)
+                continue;
 
-                // Limit collection for debug purposes
-                if(0 <= MaxItems && MaxItems <= productLinks.Count)
+            var previousCount = productLinks.Count;
+
+            Console.WriteLine($"===== Collecting links from {offerCard}...");
+            {
+                var offers = await CollectOffers(offerCard);
+                foreach (var offer in offers)
                 {
-                    return productLinks;
+                    if (offer == null)
+                        continue;
+
+                    productLinks.AddIfNotContains(offer);
+
+                    // Limit collection for debug purposes
+                    if(0 <= MaxItems && MaxItems <= productLinks.Count)
+                    {
+                        return productLinks;
+                    }
                 }
             }
+            Console.WriteLine($"===== Collected {productLinks.Count - previousCount} link(s).");
+            Console.WriteLine();
         }
 
         return productLinks;
     }
 
-    private async IAsyncEnumerable<string> CollectOfferCards()
+    private async Task<IEnumerable<string>> CollectOfferCards()
     {
         var cards = await Page.QuerySelectorAllAsync(Selector.CardSelector);
+
+        var offerCards = new List<string>();
         foreach (var card in cards)
         {
-            yield return await LinkHelper.GetElementLink(card);
+            var link = await LinkHelper.GetElementLink(card);
+
+            offerCards.AddIfNotContains(link);
         }
+
+        return offerCards;
     }
 
-    private async IAsyncEnumerable<string> CollectOffers(string offerCard)
+    private async Task<IEnumerable<string>> CollectOffers(string offerCard)
     {
         await Page.GotoAsync($"{Selector.UrlBase}{offerCard}");
         await Page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
+
+        var productReferences = new List<string>();
 
         var candidates = await Page.QuerySelectorAllAsync(Selector.CandidateSelector);
         foreach (var candidate in candidates)
@@ -64,8 +88,10 @@ public class Reader : IReader
             if (string.IsNullOrEmpty(productReference))
                 continue;
 
-            yield return productReference;
+            productReferences.AddIfNotContains(productReference);
         }
+
+        return productReferences;
     }
 
     protected async Task<bool> MatchProductData(IElementHandle candidate)
