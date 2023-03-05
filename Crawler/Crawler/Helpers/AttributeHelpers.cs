@@ -1,25 +1,36 @@
-﻿using Crawler.Data.Attributes;
-
+﻿using Crawler.Data.Attributes.Enums;
+using Crawler.Data.Attributes.PropertyAttributes;
 using HtmlAgilityPack;
 using HtmlAgilityPack.CssSelectors.NetCore;
+
+using Microsoft.Extensions.Primitives;
+
+using Newtonsoft.Json.Linq;
+
+using Shared.Utils;
+
+using System.Linq;
+using System.Reflection;
+using System.Text.Json.Nodes;
 
 namespace Crawler.Helpers
 {
     public static class AttributeHelpers
     {
-        public static FieldAttribute ToInnerFieldAttribute(this FieldAttribute fieldAttribute) => new FieldAttribute { Expression = fieldAttribute.ValueExpression, SelectorType = SelectorType.AttributeSelector, ValueType = fieldAttribute.ValueType };
+        public static FieldAttribute ToInnerFieldAttribute(this FieldAttribute fieldAttribute) => new FieldAttribute { Expression = fieldAttribute.ChildExpression, Selector = NodeSelector.AttributeSelector, ValueType = fieldAttribute.ValueType };
+        public static JsonValueAttribute ToInnerJsonValueAttribute(this JsonValueAttribute jsonValueAttribute) => new JsonValueAttribute { Expression = jsonValueAttribute.ChildExpression, Selector = JTokenSelector.Key, ValueType = jsonValueAttribute.ValueType };
 
         public static object GetValue(this HtmlNode node, FieldAttribute fieldAttribute)
         {
-            switch (fieldAttribute.SelectorType)
+            switch (fieldAttribute.Selector)
             {
-                case SelectorType.XPath:
+                case NodeSelector.XPath:
                     return node.GetValueByXPath(fieldAttribute);
-                case SelectorType.CssSelector:
+                case NodeSelector.CssSelector:
                     return node.GetValueByCSS(fieldAttribute);
-                case SelectorType.AttributeSelector:
+                case NodeSelector.AttributeSelector:
                     return node.GetValueByAttribute(fieldAttribute);
-                case SelectorType.FixedValue:
+                case NodeSelector.FixedValue:
                     if (int.TryParse(fieldAttribute.Expression, out var result))
                     {
                         return result;
@@ -32,36 +43,59 @@ namespace Crawler.Helpers
             return null;
         }
 
-        public static object GetValueByAttribute(this HtmlNode node, FieldAttribute fieldAttribute)
+        public static object GetValue(this JToken jToken, JsonValueAttribute jsonValueAttribute)
         {
-            object value = null;
-
-            var nodeAttribute = node.GetAttributeValue(fieldAttribute.Expression, "none_default");
-            if (nodeAttribute == null || nodeAttribute.Equals("none_default"))
-                return null;
-
-            switch (fieldAttribute.ValueType)
+            switch (jsonValueAttribute.Selector)
             {
-                case AttributeValueType.Int32:
-                    if (int.TryParse(nodeAttribute, out var result2))
-                    {
-                        value = result2;
-                    }
-                    break;
-                case AttributeValueType.Decimal:
-                    if (decimal.TryParse(nodeAttribute, out var result3))
-                    {
-                        value = result3;
-                    }
-                    break;
-                case AttributeValueType.String:
-                    value = nodeAttribute;
-                    break;
+                case JTokenSelector.Key:
+                    return GetValueByKey(jToken, jsonValueAttribute);
                 default:
                     break;
             }
 
-            return value;
+            return null;
+        }
+
+        public static object GetValueByKey(this JToken jToken, JsonValueAttribute jsonValueAttribute)
+        {
+            JToken subToken = null;
+            try
+            {
+                //if (jToken[jsonValueAttribute.Expression] is JArray subList)
+                //{
+                //    subToken = subList[0];
+                //}
+                //else
+                //{
+                    subToken = jToken[jsonValueAttribute.Expression];
+                //}
+            }
+            catch {}
+
+            if (subToken == null)
+                return null;
+
+            return SortValueBySource(subToken, jsonValueAttribute);
+        }
+
+        public static object GetValueByChildToken(this JToken jToken, JsonValueAttribute jsonValueAttribute)
+        {
+            return jToken.First.GetValue(jsonValueAttribute.ToInnerJsonValueAttribute());
+        }
+
+
+        public static object GetValueByType(string stringValue, BasePropertyAttribute propertyAttribute)
+        {
+            return StringConverter.ConvertStringToObject(stringValue, propertyAttribute.ValueType);
+        }
+
+        public static object GetValueByAttribute(this HtmlNode node, FieldAttribute fieldAttribute)
+        {
+            var nodeAttribute = node.GetAttributeValue(fieldAttribute.ChildExpression, "none_default");
+            if (nodeAttribute == null || nodeAttribute.Equals("none_default"))
+                return null;
+
+            return GetValueByType(nodeAttribute, fieldAttribute);
         }
         public static object GetValueByXPath(this HtmlNode node, FieldAttribute fieldAttribute)
         {
@@ -84,23 +118,34 @@ namespace Crawler.Helpers
         {
             switch (fieldAttribute.ValueSource)
             {
-                case ValueSource.InnerText_Clean: return CleanInnerText(node.InnerText);
-                case ValueSource.InnerText: return node.InnerText;
-                //case ValueSource.InnerText_LidlScriptValues: return node.InnerText;
-                case ValueSource.InnerHtml: return node.InnerHtml;
-                case ValueSource.Attribute: return GetValueByAttribute(node, fieldAttribute.ToInnerFieldAttribute());
+                case NodeValueSource.InnerText_Clean: return GetValueByType(CleanTextFromHtml(node.InnerText), fieldAttribute);
+                case NodeValueSource.InnerText: return GetValueByType(node.InnerText, fieldAttribute);
+                case NodeValueSource.InnerHtml: return GetValueByType(node.InnerHtml, fieldAttribute);
+                case NodeValueSource.Attribute: return node.GetValueByAttribute(fieldAttribute);
                 default: return node.InnerText;
             }
         }
 
-        private static string CleanInnerText(string innerText)
+        public static object SortValueBySource(this JToken jToken, JsonValueAttribute jsonValueAttribute)
         {
-            innerText = innerText.Replace("\n", "");
-            innerText = innerText.Replace("\r", "");
+            switch (jsonValueAttribute.ValueSource)
+            {
+                case JsonValueSource.Value_Clean: return GetValueByType(CleanTextFromHtml(jToken.Value<string>()), jsonValueAttribute);
+                case JsonValueSource.Value: return GetValueByType(jToken.Value<string>(), jsonValueAttribute);
+                case JsonValueSource.Value_FirstItem: return GetValueByType(jToken.First.Value<string>(), jsonValueAttribute);
+                case JsonValueSource.ChildValue: return jToken.GetValueByChildToken(jsonValueAttribute);
+                default: return jToken.Value<string>();
+            }
+        }
 
-            innerText = innerText.Trim();
+        private static string CleanTextFromHtml(string text)
+        {
+            text = text.Replace("\n", "");
+            text = text.Replace("\r", "");
 
-            return innerText;
+            text = text.Trim();
+
+            return text;
         }
     }
 }

@@ -1,5 +1,9 @@
-﻿using Crawler.Data.Attributes;
+﻿using Crawler.Data.Attributes.ClassAttributes;
+using Crawler.Data.Attributes.Enums;
+using Crawler.Data.Attributes.PropertyAttributes;
 using Crawler.Data.Repository;
+
+using Shared.Utils;
 
 using System.Text.Json.Nodes;
 
@@ -11,45 +15,43 @@ namespace Crawler.Data.Models
     //[CrawlerEntity(XPath = "//*[@id='productbox']")]
     public partial class LidlProduct : IEntity
     {
-        // Mapped
-        [Field(Expression = "//h1[@class='keyfacts__title']", ValueType = AttributeValueType.String)]
-        [JsonValue(Key = "name")]
+        [JsonValue(Expression = "sku", ValueType = ObjectValueType.Int32)]
+        public int Id { get; set; }
+        [Field(Expression = "//h1[@class='keyfacts__title']", ValueType = ObjectValueType.String)]
+        [JsonValue(Expression = "name", ValueType = ObjectValueType.String)]
         public string Name { get; set; }
-        [Field(Expression = "//div[@class='keyfacts__supplemental-description']", ValueType = AttributeValueType.String)]
-        [JsonValue(Key = "brand")]
+        [Field(Expression = "//div[@class='keyfacts__supplemental-description']", ValueType = ObjectValueType.String)]
+        [JsonValue(Expression = "brand", ValueType = ObjectValueType.String, ValueSource = JsonValueSource.ChildValue, ChildExpression = "brand")]
         public string BrandName { get; set; }
-        [Field(Expression = "//div[@class='keyfacts__description']", ValueType = AttributeValueType.String, ValueSource = ValueSource.InnerHtml)]
-        [JsonValue(Key = "description")]
+        [Field(Expression = "//div[@class='keyfacts__description']", ValueType = ObjectValueType.String, ValueSource = NodeValueSource.InnerHtml)]
+        [JsonValue(Expression = "description", ValueType = ObjectValueType.String)]
         public string Description { get; set; }
-        [Field(Expression = "//div[@class='m-price__price']", ValueType = AttributeValueType.Decimal)]
+        [Field(Expression = "//div[@class='m-price__price']", ValueType = ObjectValueType.Decimal)]
+        //This looks better encoded in html
+        //[JsonValue(Expression = "offers", ValueType = ObjectValueType.Decimal, ValueSource = JsonValueSource.ChildValue, ChildExpression = "price")]
         public decimal Price { get; set; }
-        [Field(Expression = "//div[@class='m-price__currency']", ValueType = AttributeValueType.String)]
+        // This is 'Ft' instead of 'HUF'
+        //[Field(Expression = "//div[@class='m-price__currency']", ValueType = ObjectValueType.String)]
+        [JsonValue(Expression = "offers", ValueType = ObjectValueType.String, ValueSource = JsonValueSource.ChildValue, ChildExpression = "priceCurrency")]
         public string Currency { get; set; }
-        [Field(Expression = "//div[@class='price-footer']", ValueType = AttributeValueType.String)]
+        [Field(Expression = "//div[@class='price-footer']", ValueType = ObjectValueType.String)]
         public string Unit { get; set; }
 
-        [Field(Expression = "//img[@class='gallery-image__img']", ValueType = AttributeValueType.String, ValueSource = ValueSource.Attribute, ValueExpression = "src")]
-        [JsonValue(Key = "image")]
+        [Field(Expression = "//img[@class='gallery-image__img']", ValueType = ObjectValueType.String, ValueSource = NodeValueSource.Attribute, ChildExpression = "src")]
+        [JsonValue(Expression = "image", ValueType = ObjectValueType.String, ValueSource = JsonValueSource.Value_FirstItem)]
         public string PictureUri { get; set; }
 
-        [Field(Expression = "//script[@data-hid='unified_datalayer_product']", ValueType = AttributeValueType.String)]
+        [Field(Expression = "//script[@data-hid='unified_datalayer_product']", ValueType = ObjectValueType.String)]
         public string ScriptContent { get; set; }
-        
-        [Field(Expression = "//script[@data-hid='json_data_product']", ValueType = AttributeValueType.String)]
-        public JsonValue JsonContent { get; set; }
 
+        [Field(Expression = "//script[@data-hid='json_data_product']", ValueType = ObjectValueType.String)]
+        public string JsonContent { get; set; }
 
-        [JsonValue(Key = "offers")]
-        public string Offers { get; set; }
-
-        [JsonValue(Key = "url")]
+        [JsonValue(Expression = "url", ValueType = ObjectValueType.String)]
         public string Url { get; set; }
 
-
         //cannot map ID but comes from the link value at the end e.g.: "p3434343"
-        //[Field(Expression = "data-id", SelectorType = SelectorType.AttributeSelector, ValueType = AttributeValueType.Int32)]
-        [JsonValue(Key = "sku")]
-        public int Id { get; set; }
+        //[Field(Expression = "data-id", NodeSelector = NodeSelector.AttributeSelector, ValueType = AttributeValueType.Int32)]
 
         public bool IsValid { get => !string.IsNullOrEmpty(Name); }
 

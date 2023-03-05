@@ -18,6 +18,7 @@ namespace Crawler.Sample
             var crawler = new Crawler<LidlProduct>()
                                  .AddSelector(new LidlSelector())
                                  .AddProcessor(new JsonProcessor<LidlProduct> { })
+                                 .AddProcessor(new HtmlProcessor<LidlProduct> { })
                                  .AddPipeline(new BasePipeline<LidlProduct> { });
 
             await crawler.Crawl();

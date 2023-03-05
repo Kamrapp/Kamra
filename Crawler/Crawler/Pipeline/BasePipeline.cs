@@ -1,5 +1,4 @@
-﻿using Crawler.Pipeline;
-using Crawler.Data.Repository;
+﻿using Crawler.Data.Repository;
 
 using System;
 using System.Collections.Generic;

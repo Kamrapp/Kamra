@@ -1,5 +1,5 @@
-﻿using Crawler.Data.Attributes;
-
+﻿using Crawler.Data.Attributes.ClassAttributes;
+using Crawler.Data.Attributes.PropertyAttributes;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,8 +9,8 @@ namespace Crawler.Helpers
 {
     public class ReflectionHelper
     {
-        internal static string GetEntityAttributes<TEntity, TAttribute>()
-            where TAttribute : Attribute, IClassAttribute
+        internal static string GetClassAttributes<TEntity, TAttribute>()
+            where TAttribute : BaseClassAttribute
         {
             var attribute = typeof(TEntity).GetCustomAttribute<TAttribute>();
             if (attribute == null || string.IsNullOrWhiteSpace(attribute.XPath))
@@ -20,7 +20,7 @@ namespace Crawler.Helpers
         }
 
         public static Dictionary<string, TAttribute> GetPropertyAttributes<TEntity, TAttribute>()
-            where TAttribute: Attribute, IPropertyAttribute
+            where TAttribute: BasePropertyAttribute
         {
             var attributeDictionary = new Dictionary<string, TAttribute>();
 
@@ -46,9 +46,44 @@ namespace Crawler.Helpers
 
         internal static void TrySetProperty(object obj, string property, object value)
         {
+            if (value == null)
+                return;
+
             var prop = obj.GetType().GetProperty(property, BindingFlags.Public | BindingFlags.Instance);
-            if (prop != null && prop.CanWrite)
+            if (prop == null)
+                return;
+
+            if (!prop.CanWrite)
+                return;
+
+            var currentValue = prop.GetValue(obj);
+
+            if (value.Equals(currentValue))
+                return;
+
+            if (prop.PropertyType == typeof(string) && currentValue != null)
+            {
+                Console.WriteLine();
+                Console.WriteLine($"Value already set for property <{prop.Name}> of type <{prop.PropertyType.Name}> in object type <{obj.GetType().Name}>.");
+                Console.WriteLine("Keeping current value...");
+                Console.WriteLine("Current value:");
+                Console.WriteLine(currentValue);
+                Console.WriteLine("New value:");
+                Console.WriteLine(value);
+                Console.WriteLine();
+                Console.WriteLine();
+                Console.WriteLine();
+                return;
+            }
+
+            try
+            {
                 prop.SetValue(obj, value, null);
+            }
+            catch(Exception ex)
+            { 
+                Console.WriteLine(ex.ToString() );
+            }
         }
     }
 }

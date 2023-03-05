@@ -12,13 +12,14 @@ using System.Linq;
 using System.Collections.Generic;
 using HtmlAgilityPack;
 using System.IO;
+using System;
 
 namespace Crawler
 {
     public class Crawler<TEntity> : ICrawler where TEntity : class, IEntity
     {
         public ISelector Selector { get; private set; }
-        public IProcessor<TEntity> Processor { get; private set; }
+        public List<IProcessor<TEntity>> Processors { get; private set; }
         public IScheduler Scheduler { get; private set; }
         public IPipeline<TEntity> Pipeline { get; private set; }
 
@@ -28,6 +29,7 @@ namespace Crawler
 
         public Crawler()
         {
+            Processors = new List<IProcessor<TEntity>>();
         }
 
         public Crawler<TEntity> AddSelector(ISelector selector)
@@ -38,7 +40,7 @@ namespace Crawler
 
         public Crawler<TEntity> AddProcessor(IProcessor<TEntity> processor)
         {
-            Processor = processor;
+            Processors.Add(processor);
             return this;
         }
 
@@ -74,6 +76,8 @@ namespace Crawler
                 return;
 
             var downloader = new Downloader(Page, Selector.UrlBase);
+
+            var entities = new List<TEntity>();
             foreach (var url in links)
             {
                 //var document = await downloader.Download(url);
@@ -84,10 +88,22 @@ namespace Crawler
                 var document = new HtmlDocument();
                 document.LoadHtml(content);
 
-                var entity = Processor.Process(document);
-                await Pipeline.Run(entity);
+                TEntity entity = null;
+                foreach(var processor in Processors)
+                {
+                    entity = processor.Process(document, entity);
+                }
+
+                if(entities.Any(entity => entity.Id == entity.Id))
+                {
+                    Console.WriteLine($"Entity of type <{typeof(TEntity).Name}> with ID <{entity.Id}> is already collected.");
+                    continue;
+                }
+
+                entities.Add(entity);
             }
 
+            await Pipeline.Run(entities);
             await WrapUpCrawl();
         }
 

@@ -1,4 +1,4 @@
-﻿namespace Crawler.Data.Attributes
+﻿namespace Crawler.Data.Attributes.PropertyAttributes
 {
     public interface IPropertyAttribute
     {

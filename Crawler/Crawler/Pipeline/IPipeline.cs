@@ -7,6 +7,6 @@ namespace Crawler.Pipeline
 {
     public interface IPipeline<TEntity> where TEntity : class, IEntity
     {
-        Task Run(IEnumerable<TEntity> entity);
+        Task Run(IEnumerable<TEntity> entities);
     }
 }
