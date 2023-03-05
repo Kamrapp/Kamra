@@ -1,6 +1,8 @@
 ﻿namespace Crawler.Pipeline;
 
-public interface IPipeline<TEntity> where TEntity : BaseEntity
+public interface IPipeline<TProductEntity, TOfferEntity> 
+    where TProductEntity : BaseProduct
+    where TOfferEntity : BaseOffer
 {
-    void Run(IEnumerable<TEntity> entities);
+    void Run(IEnumerable<TProductEntity> entities, IEnumerable<TOfferEntity> offers);
 }

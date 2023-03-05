@@ -2,9 +2,9 @@
 
 [Entity(XPath = "//article[@class='detail']")]
 [Json(XPath = "//script[@data-hid='json_data_product']")]
-public class LidlProduct : BaseEntity
+public class LidlProduct : BaseProduct
 {
-    public static new string Collection => "LidlCollection";
+    public static new string Collection => "LidlProducts";
 
     [JsonValue(Expression = "sku", ValueType = ObjectValueType.String)]
     public override string Key { get; set; }
@@ -25,22 +25,6 @@ public class LidlProduct : BaseEntity
     public string Description { get; set; }
 
     [Update]
-    [Field(Expression = "//div[@class='m-price__price']", ValueType = ObjectValueType.Decimal)]
-    //This looks better encoded in html
-    //[JsonValue(Expression = "offers", ValueType = ObjectValueType.Decimal, ValueSource = JsonValueSource.ChildValue, ChildExpression = "price")]
-    public decimal Price { get; set; }
-
-    [Update]
-    // This is 'Ft' instead of 'HUF'
-    //[Field(Expression = "//div[@class='m-price__currency']", ValueType = ObjectValueType.String)]
-    [JsonValue(Expression = "offers", ValueType = ObjectValueType.String, ValueSource = JsonValueSource.ChildValue, ChildExpression = "priceCurrency")]
-    public string Currency { get; set; }
-
-    [Update]
-    [Field(Expression = "//div[@class='price-footer']", ValueType = ObjectValueType.String)]
-    public string Unit { get; set; }
-
-    [Update]
     // both are fine
     //[Field(Expression = "//img[@class='gallery-image__img']", ValueType = ObjectValueType.String, ValueSource = NodeValueSource.Attribute, ChildExpression = "src")]
     [JsonValue(Expression = "image", ValueType = ObjectValueType.String, ValueSource = JsonValueSource.Value_FirstItem)]
@@ -58,5 +42,5 @@ public class LidlProduct : BaseEntity
     [JsonValue(Expression = "url", ValueType = ObjectValueType.String)]
     public string Url { get; set; }
 
-    public override bool IsValid { get => !string.IsNullOrEmpty(Name) && !string.IsNullOrEmpty(Key); }
+    public override bool IsValid => !string.IsNullOrEmpty(Name) && !string.IsNullOrEmpty(Key);
 }

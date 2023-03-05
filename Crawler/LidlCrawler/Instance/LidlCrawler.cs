@@ -3,12 +3,11 @@
 namespace LidlCrawler.Instance
 {
 
-    public class LidlCrawler : Crawler<LidlProduct>
+    public class LidlCrawler : Crawler<LidlProduct, LidlOffer>
     {
-        private const string CollectionName = "LidlCollection";
         private static readonly ISelector selector = new LidlSelector();
 
         public LidlCrawler()
-            : base(selector, CollectionName) { }
+            : base(selector, LidlProduct.Collection, LidlOffer.Collection) { }
     }
 }

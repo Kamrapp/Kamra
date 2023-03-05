@@ -3,8 +3,8 @@
 public interface IGenericService<TEntity> where TEntity : BaseEntity
 {
     List<TEntity> Get();
-    TEntity Get(string key);
+    TEntity Get(ObjectId id);
     TEntity Create(TEntity entity);
-    void Update(string key, TEntity entity);
-    void Delete(string key);
+    void Update(ObjectId id, TEntity entity);
+    void Delete(ObjectId id);
 }

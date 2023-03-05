@@ -20,5 +20,4 @@ public abstract class BaseEntity : IDbRecord
     public bool IsFaulted { get; set; }
 
     public abstract bool IsValid { get; }
-    public abstract string Key { get; set; }
 }

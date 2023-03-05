@@ -1,44 +1,67 @@
-﻿using System.Runtime.InteropServices;
+﻿using MongoDB.Driver;
 
 namespace Crawler.Pipeline;
 
-public class MongoDbPipeline<TEntity> : IPipeline<TEntity> where TEntity : BaseEntity
+public class MongoDbPipeline<TProductEntity, TOfferEntity> : IPipeline<TProductEntity, TOfferEntity> 
+    where TProductEntity : BaseProduct
+    where TOfferEntity : BaseOffer
 {
-    private IGenericService<TEntity> _service;
+    private IProductService<TProductEntity> _productService;
+    private IOfferService<TOfferEntity> _offerService;
 
     public MongoDbPipeline()
     {
     }
 
-    public MongoDbPipeline<TEntity> WithService(IGenericService<TEntity> service)
+    public MongoDbPipeline<TProductEntity, TOfferEntity> WithServices(IProductService<TProductEntity> productService, IOfferService<TOfferEntity> offerService)
     {
-        _service = service;
+        _productService = productService;
+        _offerService = offerService;
         return this;
     } 
 
-    public void Run(IEnumerable<TEntity> entityList)
+    public void Run(IEnumerable<TProductEntity> productList, IEnumerable<TOfferEntity> offerList)
     {
-        foreach (var entity in entityList)
+        foreach (var product in productList)
         {
-            if (!entity.IsValid)
+            if (!product.IsValid)
                 continue;
 
-            var existingEntity = _service.Get(entity.Key);
-            if (existingEntity != null)
+            var existingProduct = _productService.Get(product.Key);
+            if (existingProduct != null)
             {
-                (bool changed, TEntity newEntity) = existingEntity.UpdateValues(entity);
+                (bool changed, TProductEntity newProduct) = existingProduct.UpdateValues(product);
 
                 if (!changed)
                     continue;
 
-                _service.Update(entity.Key, newEntity);
+                _productService.Update(product.Key, newProduct);
                 continue;
             }
 
-            _service.Create(entity);
-            Console.WriteLine($"Item with key {entity.Key} successfully scraped.");
+            _productService.Create(product);
+            Console.WriteLine($"Product with key {product.Key} successfully scraped.");
         }
 
+        foreach (var offer in offerList)
+        {
+            if (!offer.IsValid)
+                continue;
 
+            var existingOffer = _offerService.Get(offer.ProductKey, offer.ValidFrom, offer.ValidTo);
+            if (existingOffer != null)
+            {
+                (bool changed, TOfferEntity newOffer) = existingOffer.UpdateValues(offer);
+
+                if (!changed)
+                    continue;
+
+                _offerService.Update(offer.ProductKey, offer.ValidFrom, offer.ValidTo, newOffer);
+                continue;
+            }
+
+            _offerService.Create(offer);
+            Console.WriteLine($"Offer for product {offer.ProductKey} successfully scraped.");
+        }
     }
 }

@@ -1,6 +1,8 @@
 ﻿namespace Crawler.Process;
 
-public interface IProcessor<TEntity> where TEntity : BaseEntity
+public interface IProcessor<TProductEntity, TOfferEntity> 
+    where TProductEntity : BaseProduct
+    where TOfferEntity : BaseOffer
 {
-    TEntity Process(HtmlDocument document, TEntity entity);
+    (TProductEntity, TOfferEntity) Process(HtmlDocument document, TProductEntity entity, TOfferEntity offer);
 }

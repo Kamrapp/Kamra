@@ -27,8 +27,13 @@ public class Reader : IReader
         var offerCards = await CollectOfferCards();
         int maxWidth = offerCards.Max(offer => offer.Length) + 4;
 
+        //int whichOne = 0;
         foreach (var offerCard in offerCards)
         {
+            // DEBUG
+            //if (++whichOne != 4)
+            //    continue;
+
             if (offerCard == null)
                 continue;
 

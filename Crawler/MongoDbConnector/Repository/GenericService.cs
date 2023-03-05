@@ -1,8 +1,8 @@
 ﻿namespace MongoDbConnector.Repository;
 
-public class GenericService<TEntity> : IGenericService<TEntity> where TEntity : BaseEntity
+public abstract class GenericService<TEntity> : IGenericService<TEntity> where TEntity : BaseEntity
 {
-    private readonly IMongoCollection<TEntity> _items;
+    protected readonly IMongoCollection<TEntity> _items;
 
     public GenericService(string collectionName)
     {
@@ -26,14 +26,4 @@ public class GenericService<TEntity> : IGenericService<TEntity> where TEntity : 
     public void Delete(TEntity itemToDelete) => _items.DeleteOne(item => item.Id == itemToDelete.Id);
 
     public void Delete(ObjectId id) => _items.DeleteOne(item => item.Id == id);
-
-    public TEntity Get(string key) => _items.Find(item => item.Key == key).FirstOrDefault();
-
-    public void Update(string key, TEntity updatedItem)
-    {
-        updatedItem.UpdatedAt = DateTime.UtcNow;
-        _items.ReplaceOne(item => item.Key == key, updatedItem);
-    }
-
-    public void Delete(string key) => _items.DeleteOne(item => item.Key == key);
 }
