@@ -8,10 +8,10 @@ class Program
     {
         var mongoDatabase = MongoDbConnector.InitDatabase();
 
-        if(!MongoDbConnector.TestConnection(mongoDatabase))
+        if (!MongoDbConnector.TestConnection(mongoDatabase))
             throw new Exception("Test connection could not be initiated");
 
-        MongoDbConnector.CleanCollection<LidlProduct>(mongoDatabase, "LidlCollection");
+        //MongoDbConnector.CleanCollection<LidlProduct>(mongoDatabase, "LidlOffers");
     }
 
 }

@@ -8,13 +8,13 @@ public class OfferService<TEntity> : GenericService<TEntity>, IOfferService<TEnt
     {
     }
 
-    public TEntity Get(string productKey, DateTime validFrom, DateTime? validTo) => _items.Find(item => item.ProductKey == productKey).FirstOrDefault();
+    public TEntity Get(string productKey, DateOnly validFrom, DateOnly? validTo) => _items.Find(item => item.ProductKey == productKey).FirstOrDefault();
 
-    public void Update(string productKey, DateTime validFrom, DateTime? validTo, TEntity updatedItem)
+    public void Update(string productKey, DateOnly validFrom, DateOnly? validTo, TEntity updatedItem)
     {
         updatedItem.UpdatedAt = DateTime.UtcNow;
         _items.ReplaceOne(item => item.ProductKey == productKey, updatedItem);
     }
 
-    public void Delete(string productKey, DateTime validFrom, DateTime? validTo) => _items.DeleteOne(item => item.ProductKey == productKey);
+    public void Delete(string productKey, DateOnly validFrom, DateOnly? validTo) => _items.DeleteOne(item => item.ProductKey == productKey);
 }

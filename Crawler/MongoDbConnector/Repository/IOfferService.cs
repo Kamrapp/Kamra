@@ -3,7 +3,7 @@
 public interface IOfferService<TEntity> : IGenericService<TEntity>
     where TEntity : BaseEntity
 {
-    TEntity Get(string productKey, DateTime validFrom, DateTime? validTo);
-    void Update(string productKey, DateTime validFrom, DateTime? validTo, TEntity entity);
-    void Delete(string productKey, DateTime validFrom, DateTime? validTo);
+    TEntity Get(string productKey, DateOnly validFrom, DateOnly? validTo);
+    void Update(string productKey, DateOnly validFrom, DateOnly? validTo, TEntity entity);
+    void Delete(string productKey, DateOnly validFrom, DateOnly? validTo);
 }

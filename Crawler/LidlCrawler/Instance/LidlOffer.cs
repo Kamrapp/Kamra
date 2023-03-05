@@ -13,9 +13,9 @@ public partial class LidlOffer : BaseOffer
     [Field(Expression = "//span[@class='label__text']", ValueType = ObjectValueType.String)]
     public string Validity { get; set; }
 
-    public override DateTime ValidFrom { get; set; }
+    public override DateOnly ValidFrom { get; set; }
 
-    public override DateTime? ValidTo { get; set; }
+    public override DateOnly? ValidTo { get; set; }
 
     [JsonValue(Expression = "sku", ValueType = ObjectValueType.String)]
     public override string ProductKey { get; set; }
@@ -47,13 +47,13 @@ public partial class LidlOffer : BaseOffer
 
     public override void CalculateValidity()
     {
-        ValidFrom = DateTime.MinValue;
-        ValidTo = DateTime.MaxValue;
+        ValidFrom = DateOnly.MinValue;
+        ValidTo = DateOnly.MaxValue;
 
-        if( string.IsNullOrEmpty(Validity))
+        if (string.IsNullOrEmpty(Validity))
             return;
 
-        if(Validity.StartsWith(ValidityPrefix))
+        if (Validity.StartsWith(ValidityPrefix))
         {
             var validFromText = Validity.Substring(ValidityPrefix.Length);
 
@@ -74,17 +74,17 @@ public partial class LidlOffer : BaseOffer
 
             // Thank you nullable
             if (ValidTo < ValidFrom)
-                ValidTo = ((DateTime)ValidTo).AddYears(1);
+                ValidTo = ((DateOnly)ValidTo).AddYears(1);
         }
     }
 
-    private DateTime ToDate(string monthAndDay, bool increaseYear = false)
+    private DateOnly ToDate(string monthAndDay, bool increaseYear = false)
     {
         var year = DateTime.UtcNow.Year;
         if (increaseYear)
             year++;
 
-        return DateTime.ParseExact($"{year}.{monthAndDay}", DateFormat, CultureInfo.InvariantCulture);
+        return DateOnly.ParseExact($"{year}.{monthAndDay}", DateFormat, CultureInfo.InvariantCulture);
     }
 
     [GeneratedRegex("\\d{2}.\\d{2}. - \\d{2}.\\d{2}.", RegexOptions.IgnoreCase, "hu-HU")]
