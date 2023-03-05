@@ -42,7 +42,7 @@ public partial class LidlOffer : BaseOffer
     public override bool IsValid => !string.IsNullOrEmpty(ProductKey);
 
     private const string ValidityPrefix = "ajánlat kezdete: ";
-    private const string DateFormat = "yyyy.mm.dd.";
+    private const string DateFormat = "yyyy.MM.dd.";
 
     public override void CalculateValidity()
     {
