@@ -57,16 +57,16 @@ public class Crawler<TEntity> : ICrawler where TEntity : BaseEntity
 
     public async Task Crawl()
     {
-        Console.WriteLine();
         Console.WriteLine($"========================================================");
         Console.WriteLine($"      Crawling started at:  {DateTime.UtcNow           }");
         Console.WriteLine($"========================================================");
         Console.WriteLine();
 
-        Console.WriteLine($"Initializing Crawler for <{typeof(TEntity).Name}>...");
-        await InitCrawl();
-        Console.WriteLine($"Crawler initialized.");
-        Console.WriteLine();
+        Console.Write($"Initializing Crawler for <{typeof(TEntity).Name}>...");
+        {
+            await InitCrawl();
+        }
+        Console.WriteLine($" initialized.");
 
         IEnumerable<string> links;
         Console.WriteLine($"Collecting links...");
@@ -75,8 +75,7 @@ public class Crawler<TEntity> : ICrawler where TEntity : BaseEntity
 
             links = await reader.GetLinks();
         }
-        Console.WriteLine($"Collected {links.Count()} link(s).");
-        Console.WriteLine();
+        Console.WriteLine($"Collected {links.Count()}.");
 
         // DEBUG
         //var links = new List<string>
@@ -89,7 +88,7 @@ public class Crawler<TEntity> : ICrawler where TEntity : BaseEntity
             return;
 
         var entities = new List<TEntity>();
-        Console.WriteLine($"Processing product pages...");
+        Console.Write($"Processing product pages...");
         {
             var downloader = new Downloader(Page, Selector.UrlBase, Selector.CookieSelector);
 
@@ -104,7 +103,7 @@ public class Crawler<TEntity> : ICrawler where TEntity : BaseEntity
                 var percentile = 100 * processedLinks / allLinks;
                 if (percentile > lastProcessPercentile + PercentileSteps)
                 {
-                    Console.WriteLine($"===== Processed {processedLinks.ToString().PadRight(width)} out of {allLinks} pages.");
+                    Console.Write($"█");
                     lastProcessPercentile += PercentileSteps;
                 }
 
@@ -130,22 +129,19 @@ public class Crawler<TEntity> : ICrawler where TEntity : BaseEntity
                 entities.Add(entity);
             }
         }
-        Console.WriteLine($"Processed {entities.Count()} product(s).");
-        Console.WriteLine();
+        Console.WriteLine($" Processed {entities.Count}.");
 
-        Console.WriteLine($"Updating products in database...");
+        Console.Write($"Updating products in database...");
         {
             Pipeline.Run(entities);
         }
-        Console.WriteLine($"Updated products.");
-        Console.WriteLine();
+        Console.WriteLine($" Updated.");
 
         await WrapUpCrawl();
         Console.WriteLine();
         Console.WriteLine($"========================================================");
         Console.WriteLine($"      Crawling finished at: {DateTime.UtcNow           }");
         Console.WriteLine($"========================================================");
-        Console.WriteLine();
     }
 
     private async Task InitCrawl()
