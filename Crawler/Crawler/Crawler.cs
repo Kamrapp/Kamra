@@ -10,7 +10,7 @@ public class Crawler<TProduct, TOffer> : ICrawler
     private List<IProcessor<TProduct, TOffer>> Processors { get; set; }
     private IPipeline<TProduct, TOffer> Pipeline { get; set; }
 
-    private IScheduler Scheduler { get; set; }
+    //private IScheduler Scheduler { get; set; }
 
     private IPlaywright PlaywrightInstance { get; set; }
     private IBrowser Browser { get; set; }
@@ -56,11 +56,11 @@ public class Crawler<TProduct, TOffer> : ICrawler
         return this;
     }
 
-    public Crawler<TProduct, TOffer> AddScheduler(IScheduler scheduler)
-    {
-        Scheduler = scheduler;
-        return this;
-    }
+    //public Crawler<TProduct, TOffer> AddScheduler(IScheduler scheduler)
+    //{
+    //    Scheduler = scheduler;
+    //    return this;
+    //}
 
     private const int PercentileSteps = 10;
 
@@ -194,7 +194,7 @@ public class Crawler<TProduct, TOffer> : ICrawler
             filteredLinks.Add(link);
         }
 
-        Console.Write($" Remains {filteredLinks.Count()}.");
+        Console.Write($" Remains {filteredLinks.Count}.");
         return filteredLinks;
     }
 

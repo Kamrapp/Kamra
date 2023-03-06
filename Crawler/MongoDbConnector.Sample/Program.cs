@@ -2,7 +2,7 @@
 
 class Program
 {
-    static async Task Main(string[] args)
+    static void Main()
     {
         var mongoDatabase = MongoDbConnector.InitDatabase();
 

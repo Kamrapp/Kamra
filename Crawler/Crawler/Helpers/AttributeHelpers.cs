@@ -6,8 +6,8 @@ namespace Crawler.Helpers;
 
 public static class AttributeHelpers
 {
-    public static FieldAttribute ToInnerFieldAttribute(this FieldAttribute fieldAttribute) => new FieldAttribute { Expression = fieldAttribute.ChildExpression, Selector = NodeSelector.AttributeSelector, ValueType = fieldAttribute.ValueType };
-    public static JsonValueAttribute ToInnerJsonValueAttribute(this JsonValueAttribute jsonValueAttribute) => new JsonValueAttribute { Expression = jsonValueAttribute.ChildExpression, Selector = JTokenSelector.Key, ValueType = jsonValueAttribute.ValueType };
+    public static FieldAttribute ToInnerFieldAttribute(this FieldAttribute fieldAttribute) => new() { Expression = fieldAttribute.ChildExpression, Selector = NodeSelector.AttributeSelector, ValueType = fieldAttribute.ValueType };
+    public static JsonValueAttribute ToInnerJsonValueAttribute(this JsonValueAttribute jsonValueAttribute) => new() { Expression = jsonValueAttribute.ChildExpression, Selector = JTokenSelector.Key, ValueType = jsonValueAttribute.ValueType };
 
     public static object GetValue(this HtmlNode node, FieldAttribute fieldAttribute)
     {
@@ -105,26 +105,26 @@ public static class AttributeHelpers
 
     public static object SortValueBySource(this HtmlNode node, FieldAttribute fieldAttribute)
     {
-        switch (fieldAttribute.ValueSource)
+        return fieldAttribute.ValueSource switch
         {
-            case NodeValueSource.InnerText_Clean: return GetValueByType(CleanTextFromHtml(node.InnerText), fieldAttribute);
-            case NodeValueSource.InnerText: return GetValueByType(node.InnerText, fieldAttribute);
-            case NodeValueSource.InnerHtml: return GetValueByType(node.InnerHtml, fieldAttribute);
-            case NodeValueSource.Attribute: return node.GetValueByAttribute(fieldAttribute);
-            default: return node.InnerText;
-        }
+            NodeValueSource.InnerText_Clean => GetValueByType(CleanTextFromHtml(node.InnerText), fieldAttribute),
+            NodeValueSource.InnerText => GetValueByType(node.InnerText, fieldAttribute),
+            NodeValueSource.InnerHtml => GetValueByType(node.InnerHtml, fieldAttribute),
+            NodeValueSource.Attribute => node.GetValueByAttribute(fieldAttribute),
+            _ => node.InnerText,
+        };
     }
 
     public static object SortValueBySource(this JToken jToken, JsonValueAttribute jsonValueAttribute)
     {
-        switch (jsonValueAttribute.ValueSource)
+        return jsonValueAttribute.ValueSource switch
         {
-            case JsonValueSource.Value_Clean: return GetValueByType(CleanTextFromHtml(jToken.Value<string>()), jsonValueAttribute);
-            case JsonValueSource.Value: return GetValueByType(jToken.Value<string>(), jsonValueAttribute);
-            case JsonValueSource.Value_FirstItem: return GetValueByType(jToken.First.Value<string>(), jsonValueAttribute);
-            case JsonValueSource.ChildValue: return jToken.GetValueByChildToken(jsonValueAttribute);
-            default: return jToken.Value<string>();
-        }
+            JsonValueSource.Value_Clean => GetValueByType(CleanTextFromHtml(jToken.Value<string>()), jsonValueAttribute),
+            JsonValueSource.Value => GetValueByType(jToken.Value<string>(), jsonValueAttribute),
+            JsonValueSource.Value_FirstItem => GetValueByType(jToken.First.Value<string>(), jsonValueAttribute),
+            JsonValueSource.ChildValue => jToken.GetValueByChildToken(jsonValueAttribute),
+            _ => jToken.Value<string>(),
+        };
     }
 
     private static string CleanTextFromHtml(string text)

@@ -1,6 +1,4 @@
-﻿using System.Collections;
-
-namespace MongoDbConnector.Repository;
+﻿namespace MongoDbConnector.Repository;
 
 public abstract class RecordService<TRecord> : IRecordService<TRecord> where TRecord : IDbRecord
 {

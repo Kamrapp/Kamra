@@ -8,8 +8,8 @@ public class MathHelper
     {
         if (length <= 0) return string.Empty;
 
-        StringBuilder str_build = new StringBuilder();
-        Random random = new Random();
+        StringBuilder str_build = new();
+        Random random = new();
 
         for (int i = 0; i < length; i++)
         {

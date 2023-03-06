@@ -20,7 +20,7 @@ public static class ReflectionHelper
         var attributeDictionary = new Dictionary<string, TAttribute>();
 
         PropertyInfo[] props = typeof(TType).GetProperties();
-        var propList = props.Where(p => p.CustomAttributes.Count() > 0);
+        var propList = props.Where(p => p.CustomAttributes.Any());
 
         foreach (PropertyInfo prop in propList)
         {

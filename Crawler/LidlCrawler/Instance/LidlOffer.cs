@@ -57,7 +57,7 @@ public partial class LidlOffer : BaseOffer
 
         if (Validity.StartsWith(ValidityPrefix))
         {
-            var validFromText = Validity.Substring(ValidityPrefix.Length);
+            var validFromText = Validity[ValidityPrefix.Length..];
 
             Match fromMatch = FromRegex().Match(validFromText);
             if (fromMatch.Success)
@@ -80,7 +80,7 @@ public partial class LidlOffer : BaseOffer
         }
     }
 
-    private DateOnly ToDate(string monthAndDay, bool increaseYear = false)
+    private static DateOnly ToDate(string monthAndDay, bool increaseYear = false)
     {
         var year = DateTime.UtcNow.Year;
         if (increaseYear)

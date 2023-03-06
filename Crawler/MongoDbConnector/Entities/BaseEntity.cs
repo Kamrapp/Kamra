@@ -1,4 +1,4 @@
-﻿namespace Shared.Entities;
+﻿namespace MongoDbConnector.Entities;
 
 public abstract class BaseEntity : KeyRecord, IBaseEntity
 {
