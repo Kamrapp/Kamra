@@ -1,11 +1,9 @@
 ﻿namespace LidlCrawler.Instance;
 
-[Entity(XPath = "//article[@class='detail']")]
+[Class(XPath = "//article[@class='detail']")]
 [Json(XPath = "//script[@data-hid='json_data_product']")]
 public class LidlProduct : BaseProduct
 {
-    public static new string Collection => "LidlProducts";
-
     [JsonValue(Expression = "sku", ValueType = ObjectValueType.String)]
     public override string Key { get; set; }
 

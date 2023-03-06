@@ -1,8 +1,11 @@
-﻿namespace Crawler.Pipeline;
+﻿using MongoDB.Driver;
 
-public interface IPipeline<TProductEntity, TOfferEntity> 
-    where TProductEntity : BaseProduct
-    where TOfferEntity : BaseOffer
+namespace Crawler.Pipeline;
+
+public interface IPipeline<TProduct, TOffer>
+    where TProduct : BaseProduct
+    where TOffer : BaseOffer
 {
-    void Run(IEnumerable<TProductEntity> entities, IEnumerable<TOfferEntity> offers);
+    void Run(IEnumerable<TProduct> entities, IEnumerable<TOffer> offers);
+    void SetConnection(IMongoDatabase database);
 }

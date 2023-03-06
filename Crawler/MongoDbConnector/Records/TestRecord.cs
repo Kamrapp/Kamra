@@ -1,6 +1,6 @@
-﻿namespace MongoDbConnector.Entities;
+﻿namespace MongoDbConnector.Records;
 
-internal class TestEntity : IDbRecord
+internal class TestRecord : IDbRecord
 {
     public ObjectId Id { get; set; }
     public string Value { get; set; }

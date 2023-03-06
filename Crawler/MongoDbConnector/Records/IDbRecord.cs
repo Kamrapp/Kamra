@@ -1,4 +1,4 @@
-﻿namespace MongoDbConnector.Repository;
+﻿namespace MongoDbConnector.Records;
 
 public interface IDbRecord
 {

@@ -1,5 +1,5 @@
 ﻿namespace Shared.Attributes.ClassAttributes;
 
-public class EntityAttribute : BaseClassAttribute
+public class ClassAttribute : BaseClassAttribute
 {
 }

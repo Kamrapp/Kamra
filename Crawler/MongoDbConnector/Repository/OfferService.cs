@@ -1,20 +1,30 @@
 ﻿namespace MongoDbConnector.Repository;
 
-public class OfferService<TEntity> : GenericService<TEntity>, IOfferService<TEntity>
-    where TEntity : BaseOffer
+public class OfferService<TOffer> : BaseRecordService<TOffer>, IOfferService<TOffer>
+    where TOffer : BaseOffer
 {
     public OfferService(string collectionName)
     : base(collectionName)
     {
     }
 
-    public TEntity Get(string productKey, DateTime validFrom, DateTime? validTo) => _items.Find(item => item.ProductKey == productKey).FirstOrDefault();
-
-    public void Update(string productKey, DateTime validFrom, DateTime? validTo, TEntity updatedItem)
+    public IEnumerable<TOffer> GetValidOffersAtBegin(string productKey, DateOnly validFrom)
     {
-        updatedItem.UpdatedAt = DateTime.UtcNow;
-        _items.ReplaceOne(item => item.ProductKey == productKey, updatedItem);
+        var validOffers = new List<TOffer>();
+
+        validOffers = Records.Find(record => record.ProductKey == productKey &&
+            record.ValidFrom <= validFrom && validFrom < record.ValidTo).ToList();
+
+        return validOffers;
     }
 
-    public void Delete(string productKey, DateTime validFrom, DateTime? validTo) => _items.DeleteOne(item => item.ProductKey == productKey);
+    public TOffer Get(string productKey, DateOnly validFrom, DateOnly validTo) => Records.Find(record => record.ProductKey == productKey && record.ValidFrom == validFrom && record.ValidTo == validTo).FirstOrDefault();
+
+    public override void Update(ObjectId id, TOffer updatedItem)
+    {
+        updatedItem.UpdatedAt = DateTime.Now;
+        Records.ReplaceOne(record => record.ProductKey == updatedItem.ProductKey, updatedItem);
+    }
+
+    public void Delete(string productKey, DateOnly validFrom, DateOnly validTo) => Records.DeleteOne(record => record.ProductKey == productKey && record.ValidFrom == validFrom && record.ValidTo == validTo);
 }

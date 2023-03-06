@@ -1,25 +1,27 @@
 ﻿namespace Crawler.Process;
 
-public abstract class BaseProcessor<TProductEntity, TOfferEntity, TClassAttribute, TPropertyAttribute> : IProcessor<TProductEntity, TOfferEntity> 
-    where TProductEntity : BaseProduct
-    where TOfferEntity : BaseOffer
+public abstract class BaseProcessor<TProduct, TOffer, TClassAttribute, TPropertyAttribute> : IProcessor<TProduct, TOffer>
+    where TProduct : BaseProduct
+    where TOffer : BaseOffer
     where TClassAttribute : BaseClassAttribute
     where TPropertyAttribute : BasePropertyAttribute
-
 {
-    public (TProductEntity, TOfferEntity) Process(HtmlDocument document, TProductEntity product, TOfferEntity offer)
+    public (TProduct, TOffer) Process(HtmlDocument document, TProduct product, TOffer offer)
     {
-        product ??= ReflectionHelper.CreateNewEntity<TProductEntity>() as TProductEntity;
+        product ??= ReflectionHelper.CreateObject<TProduct>() as TProduct;
 
-        var productNameValueDictionary = GetColumnNameValuePairsFromHtml<TProductEntity>(document);
+        var productNameValueDictionary = GetColumnNameValuePairsFromHtml<TProduct>(document);
         foreach (var pair in productNameValueDictionary)
         {
             ReflectionHelper.TrySetProperty(product, pair.Key, pair.Value);
         }
 
-        offer ??= ReflectionHelper.CreateNewEntity<TOfferEntity>() as TOfferEntity;
+        if (!product.IsValid)
+            product = null;
 
-        var offerNameValueDictionary = GetColumnNameValuePairsFromHtml<TOfferEntity>(document);
+        offer ??= ReflectionHelper.CreateObject<TOffer>() as TOffer;
+
+        var offerNameValueDictionary = GetColumnNameValuePairsFromHtml<TOffer>(document);
         foreach (var pair in offerNameValueDictionary)
         {
             ReflectionHelper.TrySetProperty(offer, pair.Key, pair.Value);
@@ -28,22 +30,25 @@ public abstract class BaseProcessor<TProductEntity, TOfferEntity, TClassAttribut
         // Very important!
         offer.CalculateValidity();
 
+        if (!offer.IsValid)
+            offer = null;
+
         return (product, offer);
     }
 
     protected abstract void SetValueObject(HtmlNode node);
     protected abstract object GetValueObject(TPropertyAttribute propertyAttribute);
 
-    protected Dictionary<string, object> GetColumnNameValuePairsFromHtml<TEntity>(HtmlDocument document)
+    protected Dictionary<string, object> GetColumnNameValuePairsFromHtml<TRecord>(HtmlDocument document)
     {
         var columnNameValueDictionary = new Dictionary<string, object>();
 
-        var classExpression = ReflectionHelper.GetClassAttributes<TEntity, TClassAttribute>();
+        var classExpression = ReflectionHelper.GetClassAttributes<TRecord, TClassAttribute>();
         var classNode = document.DocumentNode.SelectSingleNode(classExpression);
 
         SetValueObject(classNode);
 
-        var propertyExpressions = ReflectionHelper.GetPropertyAttributes<TEntity, TPropertyAttribute>();
+        var propertyExpressions = ReflectionHelper.GetPropertyAttributes<TRecord, TPropertyAttribute>();
         foreach (var expression in propertyExpressions)
         {
             var columnName = expression.Key;
