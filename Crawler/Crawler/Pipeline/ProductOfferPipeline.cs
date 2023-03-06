@@ -1,21 +1,29 @@
-﻿namespace Crawler.Pipeline;
+﻿using MongoDB.Driver;
 
-public class MongoDbPipeline<TProduct, TOffer> : IPipeline<TProduct, TOffer>
+namespace Crawler.Pipeline;
+
+public class ProductOfferPipeline<TProduct, TOffer> : IPipeline<TProduct, TOffer>
     where TProduct : BaseProduct
     where TOffer : BaseOffer
 {
     private IKeyRecordService<TProduct> _productService;
     private IOfferService<TOffer> _offerService;
 
-    public MongoDbPipeline()
+    public ProductOfferPipeline()
     {
     }
 
-    public MongoDbPipeline<TProduct, TOffer> WithServices(IKeyRecordService<TProduct> productService, IOfferService<TOffer> offerService)
+    public ProductOfferPipeline<TProduct, TOffer> WithServices(IKeyRecordService<TProduct> productService, IOfferService<TOffer> offerService)
     {
         _productService = productService;
         _offerService = offerService;
         return this;
+    }
+
+    public void SetConnection(IMongoDatabase database)
+    {
+        _productService.SetConnection(database);
+        _offerService.SetConnection(database);
     }
 
     public void Run(IEnumerable<TProduct> productList, IEnumerable<TOffer> offerList)

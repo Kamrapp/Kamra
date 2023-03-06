@@ -1,27 +1,36 @@
-﻿namespace MongoDbConnector.Repository;
+﻿using System.Collections;
+
+namespace MongoDbConnector.Repository;
 
 public abstract class RecordService<TRecord> : IRecordService<TRecord> where TRecord : IDbRecord
 {
-    protected readonly IMongoCollection<TRecord> _records;
+    protected IMongoCollection<TRecord> Records { get; private set; }
 
-    public RecordService(IMongoDatabase database, string collectionName)
+    private readonly string CollectionName;
+
+    public RecordService(string collectionName)
     {
-        _records = database.GetCollection<TRecord>(collectionName);
+        CollectionName = collectionName;
     }
 
-    public List<TRecord> Get() => _records.Find(record => true).ToList();
+    public void SetConnection(IMongoDatabase database)
+    {
+        Records = database.GetCollection<TRecord>(CollectionName);
+    }
 
-    public TRecord Get(ObjectId id) => _records.Find(record => record.Id == id).FirstOrDefault();
+    public List<TRecord> Get() => Records.Find(record => true).ToList();
+
+    public TRecord Get(ObjectId id) => Records.Find(record => record.Id == id).FirstOrDefault();
 
     public TRecord Create(TRecord record)
     {
-        _records.InsertOne(record);
+        Records.InsertOne(record);
         return record;
     }
 
-    public void Update(ObjectId id, TRecord updatedItem) => _records.ReplaceOne(record => record.Id == id, updatedItem);
+    public void Update(ObjectId id, TRecord updatedItem) => Records.ReplaceOne(record => record.Id == id, updatedItem);
 
-    public void Delete(TRecord recordToDelete) => _records.DeleteOne(record => record.Id == recordToDelete.Id);
+    public void Delete(TRecord recordToDelete) => Records.DeleteOne(record => record.Id == recordToDelete.Id);
 
-    public void Delete(ObjectId id) => _records.DeleteOne(record => record.Id == id);
+    public void Delete(ObjectId id) => Records.DeleteOne(record => record.Id == id);
 }
