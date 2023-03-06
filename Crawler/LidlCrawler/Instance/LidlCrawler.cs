@@ -7,9 +7,9 @@ namespace LidlCrawler.Instance
     {
         private static readonly ISelector selector = new LidlSelector();
 
-        private const string LidlProcessCollection = "LidlProcesses";
+        private const string CrawlerPrefix = "Lidl";
 
         public LidlCrawler()
-            : base(selector, LidlProcessCollection, LidlProduct.Collection, LidlOffer.Collection) { }
+            : base(selector, CrawlerPrefix) { }
     }
 }

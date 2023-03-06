@@ -2,7 +2,6 @@
 
 public abstract class BaseRecord : KeyRecord, IBaseRecord
 {
-    public static string Collection { get; }
     public BaseRecord()
         : base()
     {

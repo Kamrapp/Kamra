@@ -5,29 +5,44 @@ public class Crawler<TProduct, TOffer> : ICrawler
     where TProduct : BaseProduct
     where TOffer : BaseOffer
 {
-    private IKeyRecordService<KeyRecord> ProcessService { get; set; }
     private ISelector Selector { get; set; }
     private List<IProcessor<TProduct, TOffer>> Processors { get; set; }
     private IPipeline<TProduct, TOffer> Pipeline { get; set; }
+    private IKeyRecordService<KeyRecord> OfferCardService { get; set; }
+    private IKeyRecordService<KeyRecord> LinkService { get; set; }
+    private IReader Reader { get; set; }
 
     //private IScheduler Scheduler { get; set; }
 
     private IPlaywright PlaywrightInstance { get; set; }
     private IBrowser Browser { get; set; }
     private IPage Page { get; set; }
+    private string CrawlerPrefix { get; set; }
 
-    public Crawler(ISelector selector, string processCollectionName, string productCollectionName, string offerCollectionName)
+    private string OfferCardCollection => $"{CrawlerPrefix}_OfferCards";
+    private string LinkCollection => $"{CrawlerPrefix}_Links";
+    private string ProductCollection => $"{CrawlerPrefix}_Products";
+    private string OfferCollection => $"{CrawlerPrefix}_Offers";
+
+    public Crawler(ISelector selector, string crawlerPrefix)
         : base()
     {
-        ProcessService = new KeyRecordService<KeyRecord>(processCollectionName);
+        CrawlerPrefix = crawlerPrefix;
+
+        OfferCardService = new KeyRecordService<KeyRecord>(OfferCardCollection);
+        LinkService = new KeyRecordService<KeyRecord>(LinkCollection);
+        Reader = new OfferCardLinkReader(Page, Selector)
+            .WithServices(
+            OfferCardService,
+            LinkService);
 
         AddSelector(selector)
             .AddProcessor(new JsonProcessor<TProduct, TOffer> { })
             .AddProcessor(new HtmlProcessor<TProduct, TOffer> { })
             .AddPipeline(new ProductOfferPipeline<TProduct, TOffer>()
                 .WithServices(
-                new ProductService<TProduct>(productCollectionName),
-                new OfferService<TOffer>(offerCollectionName)
+                new ProductService<TProduct>(ProductCollection),
+                new OfferService<TOffer>(OfferCollection)
                 )
             );
     }
@@ -68,26 +83,14 @@ public class Crawler<TProduct, TOffer> : ICrawler
     {
         await InitCrawl();
 
-        // DEBUG
-        //var links = new List<string>
-        //    {
-        //        "/p/furdoszobaszekreny/p499363",
-        //        "/p/keskeny-furdoszobaszekreny/p499331"
-        //    };
-        var links = await CollectLinks();
+        var (offerCards, links) = await CollectCardsAndLinks();
         if (!links.Any())
             return;
 
-        InitDatabase();
-
-        var unprocessedLinks = FilterLinks(links);
-        if (!unprocessedLinks.Any())
-            return;
-
-        var (products, offers) = await CollectProductsAndOffers(unprocessedLinks);
+        var (products, offers) = await CollectProductsAndOffers(links);
 
         UpdateProductsAndOffers(products, offers);
-        UpdateProcessedLinks(unprocessedLinks);
+        UpdateProcessedOfferCardsAndLinks(offerCards, links);
 
         await WrapUpCrawl();
     }
@@ -96,12 +99,23 @@ public class Crawler<TProduct, TOffer> : ICrawler
     {
         var database = MongoDbConnector.MongoDbConnector.InitDatabase();
 
-        ProcessService.SetConnection(database);
+        Reader.SetConnection(database);
         Pipeline.SetConnection(database);
     }
 
-    private void UpdateProcessedLinks(IEnumerable<string> links)
+    private void UpdateProcessedOfferCardsAndLinks(IEnumerable<string> offerCards, IEnumerable<string> links)
     {
+        foreach (var offerCard in offerCards)
+        {
+            var offerCardRecord = new KeyRecord
+            {
+                CreatedAt = DateTime.Now,
+                Key = offerCard
+            };
+
+            LinkService.Create(offerCardRecord);
+        }
+
         foreach (var link in links)
         {
             var linkRecord = new KeyRecord
@@ -110,7 +124,7 @@ public class Crawler<TProduct, TOffer> : ICrawler
                 Key = link
             };
 
-            ProcessService.Create(linkRecord);
+            LinkService.Create(linkRecord);
         }
     }
 
@@ -180,33 +194,14 @@ public class Crawler<TProduct, TOffer> : ICrawler
         return (products, offers);
     }
 
-    private IEnumerable<string> FilterLinks(IEnumerable<string> links)
-    {
-        Console.WriteLine($"Filtering processed links...");
-
-        var filteredLinks = new List<string>();
-
-        foreach (var link in links)
-        {
-            if (ProcessService.Get("link") != null)
-                continue;
-
-            filteredLinks.Add(link);
-        }
-
-        Console.Write($" Remains {filteredLinks.Count}.");
-        return filteredLinks;
-    }
-
-    private async Task<IEnumerable<string>> CollectLinks()
+    private async Task<(IEnumerable<string>, IEnumerable<string>)> CollectCardsAndLinks()
     {
         Console.WriteLine($"Collecting links...");
 
-        var reader = new Reader(Page, Selector);
-        var links = await reader.GetLinks();
+        var (offerCards, links) = await Reader.GetCardsAndLinks();
 
-        Console.WriteLine($"Collected {links.Count()}.");
-        return links;
+        Console.WriteLine($"Collected {links.Count()} links from {offerCards.Count()} cards.");
+        return (offerCards, links);
     }
 
     private async Task InitCrawl()
@@ -225,6 +220,8 @@ public class Crawler<TProduct, TOffer> : ICrawler
 
         await Page.GotoAsync(Selector.UrlBase);
         await Page.DeclineCookie(Selector.CookieSelector);
+
+        InitDatabase();
 
         Console.WriteLine($" initialized.");
     }

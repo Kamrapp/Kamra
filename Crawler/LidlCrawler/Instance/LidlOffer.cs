@@ -7,9 +7,6 @@ namespace LidlCrawler.Instance;
 [Json(XPath = "//script[@data-hid='json_data_product']")]
 public partial class LidlOffer : BaseOffer
 {
-    public static new string Collection => "LidlOffers";
-
-
     [JsonValue(Expression = "sku", ValueType = ObjectValueType.String)]
     public override string ProductKey { get; set; }
 

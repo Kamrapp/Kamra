@@ -5,7 +5,6 @@ public abstract class BaseProcessor<TProduct, TOffer, TClassAttribute, TProperty
     where TOffer : BaseOffer
     where TClassAttribute : BaseClassAttribute
     where TPropertyAttribute : BasePropertyAttribute
-
 {
     public (TProduct, TOffer) Process(HtmlDocument document, TProduct product, TOffer offer)
     {
@@ -17,6 +16,9 @@ public abstract class BaseProcessor<TProduct, TOffer, TClassAttribute, TProperty
             ReflectionHelper.TrySetProperty(product, pair.Key, pair.Value);
         }
 
+        if (!product.IsValid)
+            product = null;
+
         offer ??= ReflectionHelper.CreateObject<TOffer>() as TOffer;
 
         var offerNameValueDictionary = GetColumnNameValuePairsFromHtml<TOffer>(document);
@@ -27,6 +29,9 @@ public abstract class BaseProcessor<TProduct, TOffer, TClassAttribute, TProperty
 
         // Very important!
         offer.CalculateValidity();
+
+        if (!offer.IsValid)
+            offer = null;
 
         return (product, offer);
     }

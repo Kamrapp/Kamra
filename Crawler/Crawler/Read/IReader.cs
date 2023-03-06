@@ -1,7 +1,10 @@
-﻿namespace Crawler.Read;
+﻿using MongoDB.Driver;
+
+namespace Crawler.Read;
 
 public interface IReader
 {
     public IPage Page { get; set; }
-    public Task<IEnumerable<string>> GetLinks();
+    void SetConnection(IMongoDatabase database);
+    public Task<(IEnumerable<string>, IEnumerable<string>)> GetCardsAndLinks();
 }
