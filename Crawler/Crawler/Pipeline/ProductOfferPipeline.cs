@@ -6,14 +6,14 @@ public class ProductOfferPipeline<TProduct, TOffer> : IPipeline<TProduct, TOffer
     where TProduct : BaseProduct
     where TOffer : BaseOffer
 {
-    private IKeyRecordService<TProduct> _productService;
+    private IBaseRecordService<TProduct> _productService;
     private IOfferService<TOffer> _offerService;
 
     public ProductOfferPipeline()
     {
     }
 
-    public ProductOfferPipeline<TProduct, TOffer> WithServices(IKeyRecordService<TProduct> productService, IOfferService<TOffer> offerService)
+    public ProductOfferPipeline<TProduct, TOffer> WithServices(IBaseRecordService<TProduct> productService, IOfferService<TOffer> offerService)
     {
         _productService = productService;
         _offerService = offerService;
@@ -62,8 +62,15 @@ public class ProductOfferPipeline<TProduct, TOffer> : IPipeline<TProduct, TOffer
                 if (!changed)
                     continue;
 
-                _offerService.Update(offer.ProductKey, offer.ValidFrom, offer.ValidTo, newOffer);
+                _offerService.Update(newOffer);
                 continue;
+            }
+
+            var offersToInvalidate = _offerService.GetValidOffersAtBegin(offer.ProductKey, offer.ValidFrom);
+            foreach (var offerToInvalidate in offersToInvalidate)
+            {
+                offerToInvalidate.ValidTo = offer.ValidFrom.AddDays(-1);
+                _offerService.Update(offerToInvalidate);
             }
 
             _offerService.Create(offer);

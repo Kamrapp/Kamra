@@ -17,10 +17,6 @@ public partial class LidlOffer : BaseOffer
     [Field(Expression = "//span[@class='label__text']", ValueType = ObjectValueType.String)]
     public string Validity { get; set; }
 
-    public override DateOnly ValidFrom { get; set; }
-
-    public override DateOnly? ValidTo { get; set; }
-
     [Field(Expression = "//div[@class='m-price__price']", ValueType = ObjectValueType.Decimal)]
     //This looks better encoded in html
     //[JsonValue(Expression = "offers", ValueType = ObjectValueType.Decimal, ValueSource = JsonValueSource.ChildValue, ChildExpression = "price")]
@@ -49,9 +45,6 @@ public partial class LidlOffer : BaseOffer
     private const string DateFormat = "yyyy.MM.dd.";
     public override void CalculateValidity()
     {
-        ValidFrom = DateOnly.MinValue;
-        ValidTo = DateOnly.MaxValue;
-
         if (string.IsNullOrEmpty(Validity))
             return;
 
@@ -74,15 +67,14 @@ public partial class LidlOffer : BaseOffer
             ValidFrom = ToDate(Validity[..6]);
             ValidTo = ToDate(Validity[^6..]);
 
-            // Thank you nullable
             if (ValidTo < ValidFrom)
-                ValidTo = ((DateOnly)ValidTo).AddYears(1);
+                ValidTo = ValidTo.AddYears(1);
         }
     }
 
     private static DateOnly ToDate(string monthAndDay, bool increaseYear = false)
     {
-        var year = DateTime.UtcNow.Year;
+        var year = DateTime.Now.Year;
         if (increaseYear)
             year++;
 

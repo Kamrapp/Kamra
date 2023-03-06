@@ -1,6 +1,6 @@
 ﻿namespace MongoDbConnector.Repository;
 
-public class OfferService<TOffer> : RecordService<TOffer>, IOfferService<TOffer>
+public class OfferService<TOffer> : BaseRecordService<TOffer>, IOfferService<TOffer>
     where TOffer : BaseOffer
 {
     public OfferService(string collectionName)
@@ -8,13 +8,25 @@ public class OfferService<TOffer> : RecordService<TOffer>, IOfferService<TOffer>
     {
     }
 
-    public TOffer Get(string productKey, DateOnly validFrom, DateOnly? validTo) => Records.Find(item => item.ProductKey == productKey).FirstOrDefault();
-
-    public void Update(string productKey, DateOnly validFrom, DateOnly? validTo, TOffer updatedItem)
+    public IEnumerable<TOffer> GetValidOffersAtBegin(string productKey, DateOnly validFrom)
     {
-        updatedItem.UpdatedAt = DateTime.UtcNow;
-        Records.ReplaceOne(item => item.ProductKey == productKey, updatedItem);
+        var validOffers = new List<TOffer>();
+
+        validOffers = Records.Find(record => record.ProductKey == productKey &&
+            record.ValidFrom <= validFrom && validFrom < record.ValidTo).ToList();
+
+        return validOffers;
     }
 
-    public void Delete(string productKey, DateOnly validFrom, DateOnly? validTo) => Records.DeleteOne(item => item.ProductKey == productKey);
+    public TOffer Get(string productKey, DateOnly validFrom, DateOnly validTo) => Records.Find(record => Match(record, productKey, validFrom, validTo)).FirstOrDefault();
+
+    public override void Update(ObjectId id, TOffer updatedItem)
+    {
+        updatedItem.UpdatedAt = DateTime.Now;
+        Records.ReplaceOne(record => record.ProductKey == updatedItem.ProductKey, updatedItem);
+    }
+
+    public void Delete(string productKey, DateOnly validFrom, DateOnly validTo) => Records.DeleteOne(record => Match(record, productKey, validFrom, validTo));
+
+    public bool Match(TOffer record, string productKey, DateOnly validFrom, DateOnly validTo) => record.ProductKey == productKey && record.ValidFrom == validFrom && record.ValidTo == validTo;
 }

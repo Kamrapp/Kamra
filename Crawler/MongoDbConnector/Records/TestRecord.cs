@@ -1,4 +1,4 @@
-﻿namespace MongoDbConnector.Entities;
+﻿namespace MongoDbConnector.Records;
 
 internal class TestRecord : IDbRecord
 {

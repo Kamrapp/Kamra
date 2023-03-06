@@ -1,6 +1,6 @@
-﻿namespace Shared.Entities;
+﻿namespace Shared.Records;
 
-public interface IBaseEntity
+public interface IBaseRecord
 {
     public static string Collection { get; }
 

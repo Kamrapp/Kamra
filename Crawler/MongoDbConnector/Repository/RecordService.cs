@@ -26,9 +26,10 @@ public abstract class RecordService<TRecord> : IRecordService<TRecord> where TRe
         return record;
     }
 
-    public void Update(ObjectId id, TRecord updatedItem) => Records.ReplaceOne(record => record.Id == id, updatedItem);
+    public virtual void Update(TRecord updatedItem) => Update(updatedItem.Id, updatedItem);
+    public virtual void Update(ObjectId id, TRecord updatedItem) => Records.ReplaceOne(record => record.Id == id, updatedItem);
 
-    public void Delete(TRecord recordToDelete) => Records.DeleteOne(record => record.Id == recordToDelete.Id);
+    public void Delete(TRecord recordToDelete) => Delete(recordToDelete.Id);
 
     public void Delete(ObjectId id) => Records.DeleteOne(record => record.Id == id);
 }

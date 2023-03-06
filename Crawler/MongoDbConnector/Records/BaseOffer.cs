@@ -1,12 +1,19 @@
 ﻿using Shared.Attributes.PropertyAttributes;
 
-namespace MongoDbConnector.Entities;
+namespace MongoDbConnector.Records;
 
-public abstract class BaseOffer : BaseEntity
+public abstract class BaseOffer : BaseRecord
 {
-    public abstract DateOnly ValidFrom { get; set; }
+    public BaseOffer()
+        : base()
+    {
+        ValidFrom = DateOnly.MinValue;
+        ValidTo = DateOnly.MaxValue;
+    }
 
-    public abstract DateOnly? ValidTo { get; set; }
+    public virtual DateOnly ValidFrom { get; set; }
+
+    public virtual DateOnly ValidTo { get; set; }
 
     public abstract string ProductKey { get; set; }
 
@@ -22,4 +29,5 @@ public abstract class BaseOffer : BaseEntity
     public abstract void CalculateValidity();
 
     public override bool IsValid => string.IsNullOrEmpty(ProductKey);
+
 }

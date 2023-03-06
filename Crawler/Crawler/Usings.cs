@@ -9,7 +9,7 @@ global using HtmlAgilityPack;
 
 global using Microsoft.Playwright;
 
-global using MongoDbConnector.Entities;
+global using MongoDbConnector.Records;
 global using MongoDbConnector.Repository;
 
 global using Shared.Attributes;

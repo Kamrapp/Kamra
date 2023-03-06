@@ -1,4 +1,4 @@
-﻿global using MongoDbConnector.Entities;
+﻿global using MongoDbConnector.Records;
 
 global using Shared.Attributes.ClassAttributes;
 global using Shared.Attributes.Enums;

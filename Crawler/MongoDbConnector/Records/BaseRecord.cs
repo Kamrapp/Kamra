@@ -1,9 +1,9 @@
-﻿namespace MongoDbConnector.Entities;
+﻿namespace MongoDbConnector.Records;
 
-public abstract class BaseEntity : KeyRecord, IBaseEntity
+public abstract class BaseRecord : KeyRecord, IBaseRecord
 {
     public static string Collection { get; }
-    public BaseEntity()
+    public BaseRecord()
         : base()
     {
         IsMigrated = false;

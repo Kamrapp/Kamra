@@ -212,7 +212,7 @@ public class Crawler<TProduct, TOffer> : ICrawler
     private async Task InitCrawl()
     {
         Console.WriteLine($"========================================================");
-        Console.WriteLine($"      Crawling started at:  {DateTime.UtcNow}");
+        Console.WriteLine($"      Crawling started at:  {DateTime.Now}");
         Console.WriteLine($"========================================================");
         Console.WriteLine();
 
@@ -236,7 +236,7 @@ public class Crawler<TProduct, TOffer> : ICrawler
 
         Console.WriteLine();
         Console.WriteLine($"========================================================");
-        Console.WriteLine($"      Crawling finished at: {DateTime.UtcNow}");
+        Console.WriteLine($"      Crawling finished at: {DateTime.Now}");
         Console.WriteLine($"========================================================");
     }
 }

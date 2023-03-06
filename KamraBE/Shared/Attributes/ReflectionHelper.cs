@@ -93,7 +93,7 @@ public static class ReflectionHelper
     }
 
     public static (bool, TType) UpdateValues<TType>(this TType currentObject, TType objectToUpdate)
-        where TType : IBaseEntity
+        where TType : IBaseRecord
     {
         bool anythingUpdated = false;
 

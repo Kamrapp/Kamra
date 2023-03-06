@@ -20,9 +20,9 @@ public static class MongoDbConnector
         {
             Console.WriteLine($"Testing DB connection...");
             var collection = database.GetCollection<TestRecord>(DatabaseSettings.CollectionName);
-            foreach (var item in collection.Find(item => true).ToList())
+            foreach (var record in collection.Find(item => true).ToList())
             {
-                Console.WriteLine(item.Value);
+                Console.WriteLine(record.Value);
             }
         }
         catch (Exception ex)

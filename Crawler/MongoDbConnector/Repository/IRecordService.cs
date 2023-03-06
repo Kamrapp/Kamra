@@ -7,6 +7,8 @@ public interface IRecordService<TRecord>
     List<TRecord> Get();
     TRecord Get(ObjectId id);
     TRecord Create(TRecord record);
+    void Update(TRecord record);
     void Update(ObjectId id, TRecord record);
+    void Delete(TRecord record);
     void Delete(ObjectId id);
 }

@@ -1,10 +1,10 @@
-﻿namespace MongoDbConnector.Entities;
+﻿namespace MongoDbConnector.Records;
 
 public class KeyRecord : IDbRecord
 {
     public KeyRecord()
     {
-        CreatedAt = DateTime.UtcNow;
+        CreatedAt = DateTime.Now;
     }
 
     public ObjectId Id { get; set; }
