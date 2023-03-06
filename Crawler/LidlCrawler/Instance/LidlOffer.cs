@@ -3,11 +3,16 @@ using System.Text.RegularExpressions;
 
 namespace LidlCrawler.Instance;
 
-[Entity(XPath = "//article[@class='detail']")]
+[Class(XPath = "//article[@class='detail']")]
 [Json(XPath = "//script[@data-hid='json_data_product']")]
 public partial class LidlOffer : BaseOffer
 {
     public static new string Collection => "LidlOffers";
+
+
+    [JsonValue(Expression = "sku", ValueType = ObjectValueType.String)]
+    public override string ProductKey { get; set; }
+
 
     [Field(Expression = "//span[@class='label__text']", ValueType = ObjectValueType.String)]
     public string Validity { get; set; }
@@ -16,34 +21,32 @@ public partial class LidlOffer : BaseOffer
 
     public override DateOnly? ValidTo { get; set; }
 
-    [JsonValue(Expression = "sku", ValueType = ObjectValueType.String)]
-    public override string ProductKey { get; set; }
-
-    [Update]
     [Field(Expression = "//div[@class='m-price__price']", ValueType = ObjectValueType.Decimal)]
     //This looks better encoded in html
     //[JsonValue(Expression = "offers", ValueType = ObjectValueType.Decimal, ValueSource = JsonValueSource.ChildValue, ChildExpression = "price")]
-    public decimal Price { get; set; }
+    public override decimal Price { get; set; }
 
-    [Update]
     // This is 'Ft' instead of 'HUF'
     //[Field(Expression = "//div[@class='m-price__currency']", ValueType = ObjectValueType.String)]
     [JsonValue(Expression = "offers", ValueType = ObjectValueType.String, ValueSource = JsonValueSource.ChildValue, ChildExpression = "priceCurrency")]
-    public string Currency { get; set; }
+    public override string Currency { get; set; }
 
-    [Update]
     [Field(Expression = "//div[@class='price-footer']", ValueType = ObjectValueType.String)]
-    public string Unit { get; set; }
+    public override string Unit { get; set; }
 
-    [Update]
     [JsonValue(Expression = "url", ValueType = ObjectValueType.String)]
-    public string Url { get; set; }
+    public override string Url { get; set; }
+
+
+    [Field(Expression = "//div[@class='m-price__rrp']", ValueType = ObjectValueType.Decimal)]
+    public decimal OriginalPrice { get; set; }
+
 
     public override bool IsValid => !string.IsNullOrEmpty(ProductKey);
 
+
     private const string ValidityPrefix = "ajánlat kezdete: ";
     private const string DateFormat = "yyyy.MM.dd.";
-
     public override void CalculateValidity()
     {
         ValidFrom = DateOnly.MinValue;
@@ -85,6 +88,7 @@ public partial class LidlOffer : BaseOffer
 
         return DateOnly.ParseExact($"{year}.{monthAndDay}", DateFormat, CultureInfo.InvariantCulture);
     }
+
 
     [GeneratedRegex("\\d{2}.\\d{2}. - \\d{2}.\\d{2}.", RegexOptions.IgnoreCase, "hu-HU")]
     private static partial Regex FromToRegex();

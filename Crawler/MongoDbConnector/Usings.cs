@@ -1,5 +1,7 @@
 ﻿global using Microsoft.Extensions.Configuration;
 
+global using Shared.Entities;
+
 global using MongoDB.Bson;
 global using MongoDB.Driver;
 

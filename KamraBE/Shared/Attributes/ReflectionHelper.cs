@@ -1,25 +1,25 @@
 ﻿using System.Reflection;
 
-namespace Crawler.Helpers;
+namespace Shared.Attributes;
 
 public static class ReflectionHelper
 {
-    internal static string GetClassAttributes<TEntity, TAttribute>()
+    public static string GetClassAttributes<TType, TAttribute>()
         where TAttribute : BaseClassAttribute
     {
-        var attribute = typeof(TEntity).GetCustomAttribute<TAttribute>();
+        var attribute = typeof(TType).GetCustomAttribute<TAttribute>();
         if (attribute == null || string.IsNullOrWhiteSpace(attribute.XPath))
-            throw new Exception("This entity should be xpath");
+            throw new Exception("This attribute should have xpath");
 
         return attribute.XPath;
     }
 
-    public static Dictionary<string, TAttribute> GetPropertyAttributes<TEntity, TAttribute>()
+    public static Dictionary<string, TAttribute> GetPropertyAttributes<TType, TAttribute>()
         where TAttribute : BasePropertyAttribute
     {
         var attributeDictionary = new Dictionary<string, TAttribute>();
 
-        PropertyInfo[] props = typeof(TEntity).GetProperties();
+        PropertyInfo[] props = typeof(TType).GetProperties();
         var propList = props.Where(p => p.CustomAttributes.Count() > 0);
 
         foreach (PropertyInfo prop in propList)
@@ -33,16 +33,16 @@ public static class ReflectionHelper
         return attributeDictionary;
     }
 
-    public static List<PropertyInfo> GetPropertiesToUpdate<TEntity>()
+    public static List<PropertyInfo> GetPropertiesToUpdate<TType>()
     {
         var propertyList = new List<PropertyInfo>();
 
-        PropertyInfo[] props = typeof(TEntity).GetProperties();
+        PropertyInfo[] props = typeof(TType).GetProperties();
         var propList = props.Where(p => p.CustomAttributes.Any());
 
         foreach (PropertyInfo prop in propList)
         {
-            var attr = prop.GetCustomAttribute<UpdateAttribute>();
+            var attr = prop.GetCustomAttribute<UpdateAttribute>(true);
             if (attr != null)
             {
                 propertyList.Add(prop);
@@ -51,13 +51,13 @@ public static class ReflectionHelper
         return propertyList;
     }
 
-    internal static object CreateNewEntity<TEntity>()
+    public static object CreateObject<TType>()
     {
-        object instance = Activator.CreateInstance(typeof(TEntity));
+        object instance = Activator.CreateInstance(typeof(TType));
         return instance;
     }
 
-    internal static void TrySetProperty(object obj, string property, object value, bool overWrite = false)
+    public static void TrySetProperty(object obj, string property, object value, bool overWrite = false)
     {
         if (value == null)
             return;
@@ -78,16 +78,6 @@ public static class ReflectionHelper
         {
             if (!overWrite)
             {
-                //Console.WriteLine();
-                //Console.WriteLine($"Value already set for property <{prop.Name}> of type <{prop.PropertyType.Name}> in object type <{obj.GetType().Name}>.");
-                //Console.WriteLine("Keeping current value...");
-                //Console.WriteLine("Current value:");
-                //Console.WriteLine(currentValue);
-                //Console.WriteLine("New value:");
-                //Console.WriteLine(value);
-                //Console.WriteLine();
-                //Console.WriteLine();
-                //Console.WriteLine();
                 return;
             }
         }
@@ -102,31 +92,31 @@ public static class ReflectionHelper
         }
     }
 
-    public static (bool, TEntity) UpdateValues<TEntity>(this TEntity currentEntity, TEntity entityToUpdate)
-        where TEntity : BaseEntity
+    public static (bool, TType) UpdateValues<TType>(this TType currentObject, TType objectToUpdate)
+        where TType : IBaseEntity
     {
         bool anythingUpdated = false;
 
-        var properties = GetPropertiesToUpdate<TEntity>();
+        var properties = GetPropertiesToUpdate<TType>();
         foreach (var property in properties)
         {
-            var valueToUpdate = property.GetValue(entityToUpdate);
+            var valueToUpdate = property.GetValue(objectToUpdate);
 
             // Let's not delete data just because the shop removed it
             if (valueToUpdate == null)
                 continue;
 
-            var currentValue = property.GetValue(currentEntity);
+            var currentValue = property.GetValue(currentObject);
 
             if (valueToUpdate.Equals(currentValue))
                 continue;
 
-            property.SetValue(currentEntity, valueToUpdate);
+            property.SetValue(currentObject, valueToUpdate);
 
             if (!anythingUpdated)
                 anythingUpdated = true;
         }
 
-        return (anythingUpdated, currentEntity);
+        return (anythingUpdated, currentObject);
     }
 }

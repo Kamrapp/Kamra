@@ -1,4 +1,6 @@
-﻿namespace MongoDbConnector.Entities;
+﻿using Shared.Attributes.PropertyAttributes;
+
+namespace MongoDbConnector.Entities;
 
 public abstract class BaseOffer : BaseEntity
 {
@@ -8,5 +10,16 @@ public abstract class BaseOffer : BaseEntity
 
     public abstract string ProductKey { get; set; }
 
+    [Update]
+    public abstract decimal Price { get; set; }
+    [Update]
+    public abstract string Currency { get; set; }
+    [Update]
+    public abstract string Unit { get; set; }
+    [Update]
+    public abstract string Url { get; set; }
+
     public abstract void CalculateValidity();
+
+    public override bool IsValid => string.IsNullOrEmpty(ProductKey);
 }

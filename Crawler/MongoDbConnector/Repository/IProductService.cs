@@ -1,9 +1,9 @@
 ﻿namespace MongoDbConnector.Repository;
 
-public interface IProductService<TEntity> : IGenericService<TEntity>
-    where TEntity : BaseEntity
+public interface IKeyRecordService<TKeyRecord> : IRecordService<TKeyRecord>
+    where TKeyRecord : KeyRecord
 {
-    TEntity Get(string key);
-    void Update(string key, TEntity entity);
+    TKeyRecord Get(string key);
+    void Update(string key, TKeyRecord record);
     void Delete(string key);
 }

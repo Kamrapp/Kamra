@@ -19,7 +19,7 @@ public static class MongoDbConnector
         try
         {
             Console.WriteLine($"Testing DB connection...");
-            var collection = database.GetCollection<TestEntity>(DatabaseSettings.CollectionName);
+            var collection = database.GetCollection<TestRecord>(DatabaseSettings.CollectionName);
             foreach (var item in collection.Find(item => true).ToList())
             {
                 Console.WriteLine(item.Value);
@@ -36,14 +36,14 @@ public static class MongoDbConnector
         return true;
     }
 
-    public static bool CleanCollection<TEntity>(IMongoDatabase database, string collectionName)
-        where TEntity : BaseEntity
+    public static bool CleanCollection<TRecord>(IMongoDatabase database, string collectionName)
+        where TRecord : IDbRecord
     {
         try
         {
             Console.WriteLine($"Cleaning DB collection <{collectionName}>...");
-            var collection = database.GetCollection<TEntity>(collectionName);
-            collection.DeleteMany(item => true);
+            var collection = database.GetCollection<TRecord>(collectionName);
+            collection.DeleteMany(record => true);
         }
         catch (Exception ex)
         {

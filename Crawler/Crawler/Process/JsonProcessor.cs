@@ -2,9 +2,9 @@
 
 namespace Crawler.Process;
 
-public class JsonProcessor<TProductEntity, TOfferEntity> : BaseProcessor<TProductEntity, TOfferEntity, JsonAttribute, JsonValueAttribute>
-    where TProductEntity : BaseProduct
-    where TOfferEntity : BaseOffer
+public class JsonProcessor<TProduct, TOffer> : BaseProcessor<TProduct, TOffer, JsonAttribute, JsonValueAttribute>
+    where TProduct : BaseProduct
+    where TOffer : BaseOffer
 {
     private JObject JsonData;
     protected override void SetValueObject(HtmlNode jsonNode)

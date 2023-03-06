@@ -1,11 +1,15 @@
-﻿namespace Crawler;
-public class Crawler<TProductEntity, TOfferEntity> : ICrawler
-    where TProductEntity : BaseProduct
-    where TOfferEntity : BaseOffer
+﻿using MongoDB.Driver;
+
+namespace Crawler;
+public class Crawler<TProduct, TOffer> : ICrawler
+    where TProduct : BaseProduct
+    where TOffer : BaseOffer
 {
+    public string ProcessCollectionName { get; set; }
+    public IMongoDatabase Database { get; set; }
     public ISelector Selector { get; private set; }
-    public List<IProcessor<TProductEntity, TOfferEntity>> Processors { get; private set; }
-    public IPipeline<TProductEntity, TOfferEntity> Pipeline { get; private set; }
+    public List<IProcessor<TProduct, TOffer>> Processors { get; private set; }
+    public IPipeline<TProduct, TOffer> Pipeline { get; private set; }
 
     public IScheduler Scheduler { get; private set; }
 
@@ -13,16 +17,19 @@ public class Crawler<TProductEntity, TOfferEntity> : ICrawler
     private IBrowser Browser { get; set; }
     private IPage Page { get; set; }
 
-    public Crawler(ISelector selector, string productCollectionName, string offerCollectionName)
+    public Crawler(ISelector selector, string processCollectionName, string productCollectionName, string offerCollectionName)
         : base()
     {
+        ProcessCollectionName = processCollectionName;
+        Database = MongoDbConnector.MongoDbConnector.InitDatabase();
+
         AddSelector(selector)
-            .AddProcessor(new JsonProcessor<TProductEntity, TOfferEntity> { })
-            .AddProcessor(new HtmlProcessor<TProductEntity, TOfferEntity> { })
-            .AddPipeline(new MongoDbPipeline<TProductEntity, TOfferEntity>()
+            .AddProcessor(new JsonProcessor<TProduct, TOffer> { })
+            .AddProcessor(new HtmlProcessor<TProduct, TOffer> { })
+            .AddPipeline(new MongoDbPipeline<TProduct, TOffer>()
                 .WithServices(
-                new ProductService<TProductEntity>(productCollectionName),
-                new OfferService<TOfferEntity>(offerCollectionName)
+                new ProductService<TProduct>(Database, productCollectionName),
+                new OfferService<TOffer>(Database, offerCollectionName)
                 )
             );
     }
@@ -31,27 +38,27 @@ public class Crawler<TProductEntity, TOfferEntity> : ICrawler
     {
     }
 
-    public Crawler<TProductEntity, TOfferEntity> AddSelector(ISelector selector)
+    public Crawler<TProduct, TOffer> AddSelector(ISelector selector)
     {
         Selector = selector;
         return this;
     }
 
-    public Crawler<TProductEntity, TOfferEntity> AddProcessor(IProcessor<TProductEntity, TOfferEntity> processor)
+    public Crawler<TProduct, TOffer> AddProcessor(IProcessor<TProduct, TOffer> processor)
     {
-        Processors ??= new List<IProcessor<TProductEntity, TOfferEntity>>();
+        Processors ??= new List<IProcessor<TProduct, TOffer>>();
 
         Processors.Add(processor);
         return this;
     }
 
-    public Crawler<TProductEntity, TOfferEntity> AddPipeline(IPipeline<TProductEntity, TOfferEntity> pipeline)
+    public Crawler<TProduct, TOffer> AddPipeline(IPipeline<TProduct, TOffer> pipeline)
     {
         Pipeline = pipeline;
         return this;
     }
 
-    public Crawler<TProductEntity, TOfferEntity> AddScheduler(IScheduler scheduler)
+    public Crawler<TProduct, TOffer> AddScheduler(IScheduler scheduler)
     {
         Scheduler = scheduler;
         return this;
@@ -66,7 +73,7 @@ public class Crawler<TProductEntity, TOfferEntity> : ICrawler
         Console.WriteLine($"========================================================");
         Console.WriteLine();
 
-        Console.Write($"Initializing Crawler for <{typeof(TProductEntity).Name}>...");
+        Console.Write($"Initializing Crawler for <{typeof(TProduct).Name}>...");
         {
             await InitCrawl();
         }
@@ -88,11 +95,24 @@ public class Crawler<TProductEntity, TOfferEntity> : ICrawler
         //        "/p/keskeny-furdoszobaszekreny/p499331"
         //    };
 
-        if (!links.Any())
-            return;
+        var unprocessedLinks = new List<string>();
+        Console.WriteLine($"Filtering processed links...");
+        {
+            if (!links.Any())
+                return;
 
-        var products = new List<TProductEntity>();
-        var offers = new List<TOfferEntity>();
+
+
+            foreach (var link in links)
+            {
+                unprocessedLinks.Add(link);
+            }
+        }
+        Console.Write($" Remains {links.Count()}.");
+
+
+        var products = new List<TProduct>();
+        var offers = new List<TOffer>();
         Console.WriteLine($"Processing product pages...");
         {
             var downloader = new Downloader(Page, Selector.UrlBase, Selector.CookieSelector);
@@ -119,14 +139,14 @@ public class Crawler<TProductEntity, TOfferEntity> : ICrawler
                 //var document = new HtmlDocument();
                 //document.LoadHtml(content);
 
-                TProductEntity product = null;
-                TOfferEntity offer = null;
+                TProduct product = null;
+                TOffer offer = null;
                 foreach (var processor in Processors)
                 {
                     (product, offer) = processor.Process(document, product, offer);
                 }
 
-                if (!products.Any(addedEntity => addedEntity.Key == product.Key))
+                if (!products.Any(addedProduct => addedProduct.Key == product.Key))
                 {
                     products.Add(product);
                 }

@@ -12,6 +12,7 @@ global using Microsoft.Playwright;
 global using MongoDbConnector.Entities;
 global using MongoDbConnector.Repository;
 
+global using Shared.Attributes;
 global using Shared.Attributes.ClassAttributes;
 global using Shared.Attributes.Enums;
 global using Shared.Attributes.PropertyAttributes;
