@@ -18,7 +18,7 @@ public class OfferService<TOffer> : BaseRecordService<TOffer>, IOfferService<TOf
         return validOffers;
     }
 
-    public TOffer Get(string productKey, DateOnly validFrom, DateOnly validTo) => Records.Find(record => Match(record, productKey, validFrom, validTo)).FirstOrDefault();
+    public TOffer Get(string productKey, DateOnly validFrom, DateOnly validTo) => Records.Find(record => record.ProductKey == productKey && record.ValidFrom == validFrom && record.ValidTo == validTo).FirstOrDefault();
 
     public override void Update(ObjectId id, TOffer updatedItem)
     {
@@ -26,7 +26,5 @@ public class OfferService<TOffer> : BaseRecordService<TOffer>, IOfferService<TOf
         Records.ReplaceOne(record => record.ProductKey == updatedItem.ProductKey, updatedItem);
     }
 
-    public void Delete(string productKey, DateOnly validFrom, DateOnly validTo) => Records.DeleteOne(record => Match(record, productKey, validFrom, validTo));
-
-    public bool Match(TOffer record, string productKey, DateOnly validFrom, DateOnly validTo) => record.ProductKey == productKey && record.ValidFrom == validFrom && record.ValidTo == validTo;
+    public void Delete(string productKey, DateOnly validFrom, DateOnly validTo) => Records.DeleteOne(record => record.ProductKey == productKey && record.ValidFrom == validFrom && record.ValidTo == validTo);
 }

@@ -1,4 +1,6 @@
-﻿namespace MongoDbConnector.Sample;
+﻿using MongoDbConnector.Records;
+
+namespace MongoDbConnector.Sample;
 
 class Program
 {
@@ -9,7 +11,7 @@ class Program
         if (!MongoDbConnector.TestConnection(mongoDatabase))
             throw new Exception("Test connection could not be initiated");
 
-        //MongoDbConnector.CleanCollection<LidlProduct>(mongoDatabase, "LidlOffers");
+        //MongoDbConnector.CleanCollection<KeyRecord>(mongoDatabase, "Lidl_Links");
     }
 
 }

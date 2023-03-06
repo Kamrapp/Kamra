@@ -27,11 +27,12 @@ public class Crawler<TProduct, TOffer> : ICrawler
     public Crawler(ISelector selector, string crawlerPrefix)
         : base()
     {
+        Selector = selector;
         CrawlerPrefix = crawlerPrefix;
 
         OfferCardService = new KeyRecordService<KeyRecord>(OfferCardCollection);
         LinkService = new KeyRecordService<KeyRecord>(LinkCollection);
-        Reader = new OfferCardLinkReader(Page, Selector)
+        Reader = new OfferCardLinkReader(Selector)
             .WithServices(
             OfferCardService,
             LinkService);
@@ -95,6 +96,30 @@ public class Crawler<TProduct, TOffer> : ICrawler
         await WrapUpCrawl();
     }
 
+    private async Task InitCrawl()
+    {
+        Console.WriteLine($"========================================================");
+        Console.WriteLine($"      Crawling started at:  {DateTime.Now}");
+        Console.WriteLine($"========================================================");
+        Console.WriteLine();
+
+        Console.WriteLine($"Initializing Crawler for <{CrawlerPrefix}>...");
+
+        PlaywrightInstance = await Playwright.CreateAsync();
+        Browser = await PlaywrightInstance.Chromium.LaunchAsync();
+
+        Page = await Browser.NewPageAsync();
+
+        await Page.GotoAsync(Selector.UrlBase);
+        await Page.DeclineCookie(Selector.CookieSelector);
+
+        Reader.SetPage(Page);
+
+        InitDatabase();
+
+        Console.WriteLine($"Initialization successful.");
+    }
+
     private void InitDatabase()
     {
         var database = MongoDbConnector.MongoDbConnector.InitDatabase();
@@ -103,38 +128,15 @@ public class Crawler<TProduct, TOffer> : ICrawler
         Pipeline.SetConnection(database);
     }
 
-    private void UpdateProcessedOfferCardsAndLinks(IEnumerable<string> offerCards, IEnumerable<string> links)
+
+    private async Task<(IEnumerable<string>, IEnumerable<string>)> CollectCardsAndLinks()
     {
-        foreach (var offerCard in offerCards)
-        {
-            var offerCardRecord = new KeyRecord
-            {
-                CreatedAt = DateTime.Now,
-                Key = offerCard
-            };
+        Console.WriteLine($"Collecting links...");
 
-            LinkService.Create(offerCardRecord);
-        }
+        var (offerCards, links) = await Reader.GetCardsAndLinks();
 
-        foreach (var link in links)
-        {
-            var linkRecord = new KeyRecord
-            {
-                CreatedAt = DateTime.Now,
-                Key = link
-            };
-
-            LinkService.Create(linkRecord);
-        }
-    }
-
-    private void UpdateProductsAndOffers(IEnumerable<TProduct> products, IEnumerable<TOffer> offers)
-    {
-        Console.Write($"Updating products in database...");
-
-        Pipeline.Run(products, offers);
-
-        Console.WriteLine($" Updated.");
+        Console.WriteLine($"Collected {links.Count()} link(s) from {offerCards.Count()} card(s).");
+        return (offerCards, links);
     }
 
     private async Task<(IEnumerable<TProduct>, IEnumerable<TOffer>)> CollectProductsAndOffers(IEnumerable<string> links)
@@ -189,42 +191,50 @@ public class Crawler<TProduct, TOffer> : ICrawler
 
         }
 
-        Console.WriteLine($" Processed {products.Count} product(s).");
-        Console.WriteLine($" Processed {offers.Count} offer(s).");
+        Console.WriteLine();
+        Console.WriteLine($"Processed {products.Count} product(s) and {offers.Count} offer(s).");
         return (products, offers);
     }
 
-    private async Task<(IEnumerable<string>, IEnumerable<string>)> CollectCardsAndLinks()
+
+    private void UpdateProductsAndOffers(IEnumerable<TProduct> products, IEnumerable<TOffer> offers)
     {
-        Console.WriteLine($"Collecting links...");
+        Console.Write($"Updating products in database...");
 
-        var (offerCards, links) = await Reader.GetCardsAndLinks();
+        Pipeline.Run(products, offers);
 
-        Console.WriteLine($"Collected {links.Count()} links from {offerCards.Count()} cards.");
-        return (offerCards, links);
+        Console.WriteLine($" Updated.");
     }
 
-    private async Task InitCrawl()
+    private void UpdateProcessedOfferCardsAndLinks(IEnumerable<string> offerCards, IEnumerable<string> links)
     {
-        Console.WriteLine($"========================================================");
-        Console.WriteLine($"      Crawling started at:  {DateTime.Now}");
-        Console.WriteLine($"========================================================");
-        Console.WriteLine();
+        Console.Write($"Updating offer cards in database...");
 
-        Console.Write($"Initializing Crawler for <{typeof(TProduct).Name}>...");
+        foreach (var offerCard in offerCards)
+        {
+            var offerCardRecord = new KeyRecord
+            {
+                CreatedAt = DateTime.Now,
+                Key = offerCard
+            };
 
-        PlaywrightInstance = await Playwright.CreateAsync();
-        Browser = await PlaywrightInstance.Chromium.LaunchAsync();
+            OfferCardService.Create(offerCardRecord);
+        }
 
-        Page = await Browser.NewPageAsync();
+        foreach (var link in links)
+        {
+            var linkRecord = new KeyRecord
+            {
+                CreatedAt = DateTime.Now,
+                Key = link
+            };
 
-        await Page.GotoAsync(Selector.UrlBase);
-        await Page.DeclineCookie(Selector.CookieSelector);
+            LinkService.Create(linkRecord);
+        }
 
-        InitDatabase();
-
-        Console.WriteLine($" initialized.");
+        Console.WriteLine($" Updated.");
     }
+
 
     private async Task WrapUpCrawl()
     {

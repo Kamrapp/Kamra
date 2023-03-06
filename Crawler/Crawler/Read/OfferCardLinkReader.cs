@@ -8,9 +8,8 @@ public class OfferCardLinkReader : IReader
     private IKeyRecordService<KeyRecord> LinkService { get; set; }
     public IPage Page { get; set; }
     public ISelector Selector { get; set; }
-    public OfferCardLinkReader(IPage page, ISelector selector)
+    public OfferCardLinkReader(ISelector selector)
     {
-        Page = page;
         Selector = selector;
     }
 
@@ -25,6 +24,11 @@ public class OfferCardLinkReader : IReader
     {
         OfferCardService.SetConnection(database);
         LinkService.SetConnection(database);
+    }
+
+    public void SetPage(IPage page)
+    {
+        Page = page;
     }
 
     public async Task<(IEnumerable<string>, IEnumerable<string>)> GetCardsAndLinks()
@@ -45,24 +49,22 @@ public class OfferCardLinkReader : IReader
         if (!filteredOfferCards.Any())
             return (filteredOfferCards, filteredProductLinks_ALL);
 
-        int maxWidth = filteredOfferCards.Max(offer => offer.Length) + 4;
+        // DEBUG
+        //var testCards = new List<string> { filteredOfferCards.First() };
 
+        //foreach (var offerCard in testCards)
         foreach (var offerCard in filteredOfferCards)
         {
-            var previousCount = filteredProductLinks_ALL.Count;
+            Console.WriteLine($"- Querying {offerCard}...");
 
-            Console.Write($"- {(offerCard + "...").PadRight(maxWidth)}");
+            var productLinks = await CollectProductLinks(offerCard);
+
+            var filteredProductLinks = FilterLinks(productLinks);
+
+            foreach (var productLink in filteredProductLinks)
             {
-                var productLinks = await CollectProductLinks(offerCard);
-
-                var filteredProductLinks = FilterLinks(productLinks);
-
-                foreach (var productLink in filteredProductLinks)
-                {
-                    filteredProductLinks_ALL.AddIfNotContains(productLink);
-                }
+                filteredProductLinks_ALL.AddIfNotContains(productLink);
             }
-            Console.WriteLine($" Collected {filteredProductLinks_ALL.Count - previousCount,8}.");
         }
 
         return (filteredOfferCards, filteredProductLinks_ALL);
@@ -70,6 +72,8 @@ public class OfferCardLinkReader : IReader
 
     private async Task<IEnumerable<string>> CollectOfferCards()
     {
+        Console.Write($"- Collecting offer cards...");
+
         var cards = await Page.QuerySelectorAllAsync(Selector.CardSelector);
 
         var offerCards = new List<string>();
@@ -80,6 +84,7 @@ public class OfferCardLinkReader : IReader
             offerCards.AddIfNotContains(link);
         }
 
+        Console.WriteLine($" collected {offerCards.Count}");
         return offerCards;
     }
 
@@ -103,30 +108,29 @@ public class OfferCardLinkReader : IReader
             productReferences.AddIfNotContains(productReference);
         }
 
+        Console.Write($" collected {productReferences.Count}");
         return productReferences;
     }
 
     private IEnumerable<string> FilterOfferCards(IEnumerable<string> offercards)
     {
-        Console.WriteLine($"- Filtering offer cards...");
+        Console.Write($"- Filtering  offer cards...");
 
         var filteredCards = FilterItems(OfferCardService, offercards);
 
-        Console.Write($" Remains {filteredCards.Count()}.");
+        Console.WriteLine($" filtered  {filteredCards.Count()}.");
         return filteredCards;
     }
 
     private IEnumerable<string> FilterLinks(IEnumerable<string> links)
     {
-        Console.WriteLine($"- - Filtering product links...");
-
         var filteredLinks = FilterItems(LinkService, links);
 
-        Console.Write($" Remains {filteredLinks.Count()}.");
+        Console.WriteLine($" | filtered  {filteredLinks.Count()}.");
         return filteredLinks;
     }
 
-    private IEnumerable<string> FilterItems(IKeyRecordService<KeyRecord> service, IEnumerable<string> items)
+    private static IEnumerable<string> FilterItems(IKeyRecordService<KeyRecord> service, IEnumerable<string> items)
     {
         var filteredItems = new List<string>();
 
