@@ -1,9 +1,9 @@
 ﻿namespace MongoDbConnector.Repository;
 
-public class LinkService<TProduct> : KeyRecordService<TProduct>
+public class LinkRepository<TProduct> : KeyRecordRepository<TProduct>
     where TProduct : KeyRecord
 {
-    public LinkService(string collectionName)
+    public LinkRepository(string collectionName)
         : base(collectionName)
     {
     }

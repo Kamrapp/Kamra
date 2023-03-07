@@ -3,7 +3,6 @@ global using Crawler.Helpers;
 global using Crawler.Pipeline;
 global using Crawler.Process;
 global using Crawler.Read;
-global using Crawler.Schedule;
 
 global using HtmlAgilityPack;
 
@@ -11,6 +10,7 @@ global using Microsoft.Playwright;
 
 global using MongoDbConnector.Records;
 global using MongoDbConnector.Repository;
+global using MongoDbConnector.Repository.Interfaces;
 
 global using Shared.Attributes;
 global using Shared.Attributes.ClassAttributes;

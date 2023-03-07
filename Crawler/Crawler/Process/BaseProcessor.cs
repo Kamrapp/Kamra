@@ -6,26 +6,26 @@ public abstract class BaseProcessor<TProduct, TOffer, TClassAttribute, TProperty
     where TClassAttribute : BaseClassAttribute
     where TPropertyAttribute : BasePropertyAttribute
 {
-    public (TProduct, TOffer) Process(HtmlDocument document, TProduct product, TOffer offer)
+    private void SetValues<TObject>(TObject record, HtmlDocument document)
+        where TObject : class
     {
-        product ??= ReflectionHelper.CreateObject<TProduct>() as TProduct;
-
-        var productNameValueDictionary = GetColumnNameValuePairsFromHtml<TProduct>(document);
+        var productNameValueDictionary = GetColumnNameValuePairsFromHtml<TObject>(document);
         foreach (var pair in productNameValueDictionary)
         {
-            ReflectionHelper.TrySetProperty(product, pair.Key, pair.Value);
+            ReflectionHelper.TrySetProperty(record, pair.Key, pair.Value);
         }
+    }
+
+    public (TProduct, TOffer) Process(HtmlDocument document, TProduct product, TOffer offer)
+    {
+        product ??= ReflectionHelper.CreateObject<TProduct>();
+        SetValues(product, document);
 
         if (!product.IsValid)
             product = null;
 
-        offer ??= ReflectionHelper.CreateObject<TOffer>() as TOffer;
-
-        var offerNameValueDictionary = GetColumnNameValuePairsFromHtml<TOffer>(document);
-        foreach (var pair in offerNameValueDictionary)
-        {
-            ReflectionHelper.TrySetProperty(offer, pair.Key, pair.Value);
-        }
+        offer ??= ReflectionHelper.CreateObject<TOffer>();
+        SetValues(offer, document);
 
         // Very important!
         offer.CalculateValidity();

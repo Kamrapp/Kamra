@@ -4,8 +4,8 @@ namespace Crawler.Read;
 
 public class OfferCardLinkReader : IReader
 {
-    private IKeyRecordService<KeyRecord> OfferCardService { get; set; }
-    private IKeyRecordService<KeyRecord> LinkService { get; set; }
+    private IKeyRecordRepository<KeyRecord> OfferCardRepository { get; set; }
+    private IKeyRecordRepository<KeyRecord> LinkRepository { get; set; }
     public IPage Page { get; set; }
     public ISelector Selector { get; set; }
     public OfferCardLinkReader(ISelector selector)
@@ -13,17 +13,17 @@ public class OfferCardLinkReader : IReader
         Selector = selector;
     }
 
-    public OfferCardLinkReader WithServices(IKeyRecordService<KeyRecord> offerCardService, IKeyRecordService<KeyRecord> linkService)
+    public OfferCardLinkReader WithRepositories(IKeyRecordRepository<KeyRecord> offerCardRepository, IKeyRecordRepository<KeyRecord> linkRepository)
     {
-        OfferCardService = offerCardService;
-        LinkService = linkService;
+        OfferCardRepository = offerCardRepository;
+        LinkRepository = linkRepository;
         return this;
     }
 
     public void SetConnection(IMongoDatabase database)
     {
-        OfferCardService.SetConnection(database);
-        LinkService.SetConnection(database);
+        OfferCardRepository.SetConnection(database);
+        LinkRepository.SetConnection(database);
     }
 
     public void SetPage(IPage page)
@@ -116,7 +116,7 @@ public class OfferCardLinkReader : IReader
     {
         Console.Write($"- Filtering  offer cards...");
 
-        var filteredCards = FilterItems(OfferCardService, offercards);
+        var filteredCards = FilterItems(OfferCardRepository, offercards);
 
         Console.WriteLine($" filtered  {filteredCards.Count()}.");
         return filteredCards;
@@ -124,13 +124,13 @@ public class OfferCardLinkReader : IReader
 
     private IEnumerable<string> FilterLinks(IEnumerable<string> links)
     {
-        var filteredLinks = FilterItems(LinkService, links);
+        var filteredLinks = FilterItems(LinkRepository, links);
 
         Console.WriteLine($" | filtered  {filteredLinks.Count()}.");
         return filteredLinks;
     }
 
-    private static IEnumerable<string> FilterItems(IKeyRecordService<KeyRecord> service, IEnumerable<string> items)
+    private static IEnumerable<string> FilterItems(IKeyRecordRepository<KeyRecord> repository, IEnumerable<string> items)
     {
         var filteredItems = new List<string>();
 
@@ -139,7 +139,7 @@ public class OfferCardLinkReader : IReader
             if (item == null)
                 continue;
 
-            if (service.Get(item) != null)
+            if (repository.Get(item) != null)
                 continue;
 
             filteredItems.Add(item);

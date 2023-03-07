@@ -1,6 +1,6 @@
-﻿namespace MongoDbConnector.Repository;
+﻿namespace MongoDbConnector.Repository.Interfaces;
 
-public interface IKeyRecordService<TKeyRecord> : IRecordService<TKeyRecord>
+public interface IKeyRecordRepository<TKeyRecord> : IRecordRepository<TKeyRecord>
     where TKeyRecord : KeyRecord
 {
     TKeyRecord Get(string key);

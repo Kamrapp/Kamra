@@ -8,11 +8,9 @@ public class Crawler<TProduct, TOffer> : ICrawler
     private ISelector Selector { get; set; }
     private List<IProcessor<TProduct, TOffer>> Processors { get; set; }
     private IPipeline<TProduct, TOffer> Pipeline { get; set; }
-    private IKeyRecordService<KeyRecord> OfferCardService { get; set; }
-    private IKeyRecordService<KeyRecord> LinkService { get; set; }
+    private IKeyRecordRepository<KeyRecord> OfferCardRepository { get; set; }
+    private IKeyRecordRepository<KeyRecord> LinkRepository { get; set; }
     private IReader Reader { get; set; }
-
-    //private IScheduler Scheduler { get; set; }
 
     private IPlaywright PlaywrightInstance { get; set; }
     private IBrowser Browser { get; set; }
@@ -30,53 +28,29 @@ public class Crawler<TProduct, TOffer> : ICrawler
         Selector = selector;
         CrawlerPrefix = crawlerPrefix;
 
-        OfferCardService = new KeyRecordService<KeyRecord>(OfferCardCollection);
-        LinkService = new KeyRecordService<KeyRecord>(LinkCollection);
+        OfferCardRepository = new KeyRecordRepository<KeyRecord>(OfferCardCollection);
+        LinkRepository = new KeyRecordRepository<KeyRecord>(LinkCollection);
         Reader = new OfferCardLinkReader(Selector)
-            .WithServices(
-            OfferCardService,
-            LinkService);
+            .WithRepositories(
+            OfferCardRepository,
+            LinkRepository);
 
-        AddSelector(selector)
-            .AddProcessor(new JsonProcessor<TProduct, TOffer> { })
-            .AddProcessor(new HtmlProcessor<TProduct, TOffer> { })
-            .AddPipeline(new ProductOfferPipeline<TProduct, TOffer>()
-                .WithServices(
-                new ProductService<TProduct>(ProductCollection),
-                new OfferService<TOffer>(OfferCollection)
-                )
-            );
+        Selector = selector;
+
+        Processors = new List<IProcessor<TProduct, TOffer>>
+        {
+            new JsonProcessor<TProduct, TOffer>(),
+            new HtmlProcessor<TProduct, TOffer>()
+        };
+
+        Pipeline = new ProductOfferPipeline<TProduct, TOffer>(ProductCollection, OfferCollection);
     }
 
     public Crawler()
     {
     }
 
-    public Crawler<TProduct, TOffer> AddSelector(ISelector selector)
-    {
-        Selector = selector;
-        return this;
-    }
 
-    public Crawler<TProduct, TOffer> AddProcessor(IProcessor<TProduct, TOffer> processor)
-    {
-        Processors ??= new List<IProcessor<TProduct, TOffer>>();
-
-        Processors.Add(processor);
-        return this;
-    }
-
-    public Crawler<TProduct, TOffer> AddPipeline(IPipeline<TProduct, TOffer> pipeline)
-    {
-        Pipeline = pipeline;
-        return this;
-    }
-
-    //public Crawler<TProduct, TOffer> AddScheduler(IScheduler scheduler)
-    //{
-    //    Scheduler = scheduler;
-    //    return this;
-    //}
 
     private const int PercentileSteps = 10;
 
@@ -95,6 +69,7 @@ public class Crawler<TProduct, TOffer> : ICrawler
 
         await WrapUpCrawl();
     }
+
 
     private async Task InitCrawl()
     {
@@ -218,7 +193,7 @@ public class Crawler<TProduct, TOffer> : ICrawler
                 Key = offerCard
             };
 
-            OfferCardService.Create(offerCardRecord);
+            OfferCardRepository.Create(offerCardRecord);
         }
 
         foreach (var link in links)
@@ -229,7 +204,7 @@ public class Crawler<TProduct, TOffer> : ICrawler
                 Key = link
             };
 
-            LinkService.Create(linkRecord);
+            LinkRepository.Create(linkRecord);
         }
 
         Console.WriteLine($" Updated.");
