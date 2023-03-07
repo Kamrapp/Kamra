@@ -74,7 +74,7 @@ public class OfferCardLinkReader : IReader
     {
         Console.Write($"- Collecting offer cards...");
 
-        var cards = await Page.QuerySelectorAllAsync(Selector.CardSelector);
+        var cards = await Page.QuerySelectorAllAsync(Selector.OfferCardSelector);
 
         var offerCards = new List<string>();
         foreach (var card in cards)
@@ -90,12 +90,18 @@ public class OfferCardLinkReader : IReader
 
     private async Task<IEnumerable<string>> CollectProductLinks(string offerCard)
     {
-        await Page.GotoAsync($"{Selector.UrlBase}{offerCard}");
+        await Page.GotoAsync(Selector.BuildUrl(offerCard));
         await Page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
 
         var productReferences = new List<string>();
 
-        var candidates = await Page.QuerySelectorAllAsync(Selector.CandidateSelector);
+        await Page.ScreenshotAsync(new()
+        {
+            Path = "C:\\code\\master\\Kamra\\Crawler\\AldiCrawler\\bin\\screenshot.png",
+            FullPage = true,
+        });
+
+        var candidates = await Page.QuerySelectorAllAsync(Selector.LinkSelector);
         foreach (var candidate in candidates)
         {
             if (!await MatchProductData(candidate))
@@ -150,9 +156,12 @@ public class OfferCardLinkReader : IReader
 
     protected async Task<bool> MatchProductData(IElementHandle candidate)
     {
+        if (Selector.ProductAttribute == null)
+            return true;
+
         try
         {
-            var dataSelector = await candidate.GetAttributeAsync(Selector.DataAttribute);
+            var dataSelector = await candidate.GetAttributeAsync(Selector.ProductAttribute);
             return Selector.ProductDataMatcher(dataSelector);
         }
         catch

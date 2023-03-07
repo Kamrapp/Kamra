@@ -17,7 +17,9 @@ public static class LinkHelper
         if (string.IsNullOrEmpty(href))
             return null;
 
-        var cleanHref = href[..href.IndexOf("?")];
-        return cleanHref;
+        if (href.IndexOf("?") != -1)
+            href = href[..href.IndexOf("?")];
+
+        return href;
     }
 }

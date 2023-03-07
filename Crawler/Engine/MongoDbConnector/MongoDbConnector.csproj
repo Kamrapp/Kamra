@@ -27,7 +27,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\..\KamraBE\Shared\Shared.csproj" />
+		<ProjectReference Include="..\..\..\KamraBE\Shared\Shared.csproj" />
 	</ItemGroup>
 
 </Project>
