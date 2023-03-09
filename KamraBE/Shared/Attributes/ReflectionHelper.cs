@@ -51,9 +51,10 @@ public static class ReflectionHelper
         return propertyList;
     }
 
-    public static object CreateObject<TType>()
+    public static TType CreateObject<TType>()
+        where TType : class
     {
-        object instance = Activator.CreateInstance(typeof(TType));
+        var instance = Activator.CreateInstance(typeof(TType)) as TType;
         return instance;
     }
 

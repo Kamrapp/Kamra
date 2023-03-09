@@ -1,4 +1,6 @@
-﻿namespace Shared.Utils;
+﻿using System.Globalization;
+
+namespace Shared.Utils;
 
 public static class StringConverter
 {
@@ -15,7 +17,7 @@ public static class StringConverter
                 }
                 break;
             case ObjectValueType.Decimal:
-                if (decimal.TryParse(stringValue, out var result3))
+                if (decimal.TryParse(stringValue, NumberStyles.Any, CultureInfo.InvariantCulture, out var result3))
                 {
                     value = result3;
                 }

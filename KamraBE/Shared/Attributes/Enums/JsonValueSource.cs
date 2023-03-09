@@ -6,4 +6,5 @@ public enum JsonValueSource
     Value,
     Value_FirstItem,
     ChildValue,
+    ChildKey
 }
