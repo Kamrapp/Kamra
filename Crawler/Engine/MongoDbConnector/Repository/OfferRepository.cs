@@ -23,18 +23,15 @@ public class OfferRepository<TOffer> : BaseRecordRepository<TOffer>, IOfferRepos
     }
 
     public override TOffer Get(TOffer offerImage) => Get(offerImage.ProductKey, offerImage.ValidFrom, offerImage.ValidTo);
-    private TOffer Get(string productKey, DateOnly validFrom, DateOnly validTo) => Records.Find(record => Match(record, productKey, validFrom, validTo)).FirstOrDefault();
+    private TOffer Get(string productKey, DateOnly validFrom, DateOnly validTo) => Records.Find(record => record.ProductKey == productKey && record.ValidFrom == validFrom && record.ValidTo == validTo).FirstOrDefault();
 
     public override void Update(TOffer updatedItem) => Update(updatedItem.ProductKey, updatedItem.ValidFrom, updatedItem.ValidTo, updatedItem);
     private void Update(string productKey, DateOnly validFrom, DateOnly validTo, TOffer updatedItem)
     {
         updatedItem.UpdatedAt = DateTime.Now;
-        Records.ReplaceOne(record => Match(record, productKey, validFrom, validTo), updatedItem);
+        Records.ReplaceOne(record => record.ProductKey == productKey && record.ValidFrom == validFrom && record.ValidTo == validTo, updatedItem);
     }
 
     public override void Delete(TOffer offer) => Delete(offer.ProductKey, offer.ValidFrom, offer.ValidTo);
-    private void Delete(string productKey, DateOnly validFrom, DateOnly validTo) => Records.DeleteOne(record => Match(record, productKey, validFrom, validTo));
-
-
-    private readonly Func<TOffer, string, DateOnly, DateOnly, bool> Match = (TOffer record, string productKey, DateOnly validFrom, DateOnly validTo) => record.ProductKey == productKey && record.ValidFrom == validFrom && record.ValidTo == validTo;
+    private void Delete(string productKey, DateOnly validFrom, DateOnly validTo) => Records.DeleteOne(record => record.ProductKey == productKey && record.ValidFrom == validFrom && record.ValidTo == validTo);
 }

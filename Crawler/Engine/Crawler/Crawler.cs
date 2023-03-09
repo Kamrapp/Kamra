@@ -121,6 +121,9 @@ public class Crawler<TProduct, TOffer> : ICrawler
         var products = new List<TProduct>();
         var offers = new List<TOffer>();
 
+        if (!links.Any())
+            return (products, offers);
+
         var downloader = new Downloader(Page, Selector.UrlBase, Selector.CookieSelector);
 
         int lastProcessPercentile = 0;
@@ -152,12 +155,14 @@ public class Crawler<TProduct, TOffer> : ICrawler
                 (product, offer) = processor.Process(document, product, offer);
             }
 
-            if (!products.Any(addedProduct => addedProduct.Key == product.Key))
+            if (product.IsValid &&
+                !products.Any(addedProduct => addedProduct.Key == product.Key))
             {
                 products.Add(product);
             }
 
-            if (!offers.Any(addedOffer => addedOffer.ProductKey == offer.ProductKey &&
+            if (offer.IsValid &&
+                !offers.Any(addedOffer => addedOffer.ProductKey == offer.ProductKey &&
                 addedOffer.ValidFrom == offer.ValidFrom &&
                 addedOffer.ValidTo == offer.ValidTo))
             {

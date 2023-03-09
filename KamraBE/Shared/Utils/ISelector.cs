@@ -3,6 +3,7 @@
 public interface ISelector
 {
     string UrlBase { get; }
+    string OfferUrl { get; }
     string CookieSelector { get; }
 
     string OfferCardSelector { get; }

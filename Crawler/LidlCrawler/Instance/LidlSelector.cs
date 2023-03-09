@@ -3,6 +3,8 @@
 public class LidlSelector : ISelector
 {
     public string UrlBase => "https://www.lidl.hu";
+
+    public string OfferUrl => UrlBase;
     public string CookieSelector => "button.cookie-alert-decline-button";
 
     public string OfferCardSelector => "a.AHeroStageItems__Item--Wrapper";

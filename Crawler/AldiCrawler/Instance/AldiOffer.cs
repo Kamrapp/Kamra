@@ -3,19 +3,19 @@ using System.Text.RegularExpressions;
 
 namespace AldiCrawler.Instance;
 
-[Class(XPath = "//div[@id='pdpDetails']")]
+[Class(XPath = "//main")]
 [Json(XPath = "//script[@type='application/ld+json']")]
 public partial class AldiOffer : BaseOffer
 {
-    [Field(Expression = "//div[@class='product-reference']/div", ValueType = ObjectValueType.String)]
+    [Field(Expression = "//div[@id='pdpDetails']", ValueType = ObjectValueType.String, ValueSource = NodeValueSource.Attribute, Selector = NodeSelector.XPath, ChildExpression = "data-product-code")]
     public override string ProductKey { get; set; }
 
 
-    [Field(Expression = "//div[@class='liveOSDavailabilityLabel']", ValueType = ObjectValueType.String)]
+    [Field(Expression = "//div[contains(@class, 'liveOSDavailabilityLabel')]", ValueType = ObjectValueType.String)]
     public string Validity { get; set; }
 
-    [Field(Expression = "//span[@class='pdp_price__now']", ValueType = ObjectValueType.Decimal, ValueSource = NodeValueSource.Attribute, Selector = NodeSelector.AttributeSelector, ChildExpression = "data-price")]
-    [JsonValue(Expression = "price", ValueType = ObjectValueType.String)]
+    //[Field(Expression = "//span[@class='pdp_price__now']", ValueType = ObjectValueType.Decimal, ValueSource = NodeValueSource.Attribute, Selector = NodeSelector.XPath, ChildExpression = "data-price")]
+    [JsonValue(Expression = "offers", ValueType = ObjectValueType.Decimal, ValueSource = JsonValueSource.ChildKey, ChildExpression = "price")]
     //This looks better encoded in html
     //[JsonValue(Expression = "offers", ValueType = ObjectValueType.Decimal, ValueSource = JsonValueSource.ChildValue, ChildExpression = "price")]
     public override decimal Price { get; set; }
@@ -23,13 +23,13 @@ public partial class AldiOffer : BaseOffer
     // This is 'Ft' instead of 'HUF'
     // fix attribute data-currency
     //[Field(Expression = "//span[@class='pdp_price__now']", ValueType = ObjectValueType.Decimal)]
-    [JsonValue(Expression = "priceCurrency", ValueType = ObjectValueType.String)]
+    [JsonValue(Expression = "offers", ValueType = ObjectValueType.String, ValueSource = JsonValueSource.ChildKey, ChildExpression = "priceCurrency")]
     public override string Currency { get; set; }
 
     [Field(Expression = "//span[@class='additional-notes-price']", ValueType = ObjectValueType.String)]
     public override string Unit { get; set; }
 
-    [JsonValue(Expression = "url", ValueType = ObjectValueType.String)]
+    [JsonValue(Expression = "offers", ValueType = ObjectValueType.String, ValueSource = JsonValueSource.ChildKey, ChildExpression = "url")]
     public override string Url { get; set; }
 
 

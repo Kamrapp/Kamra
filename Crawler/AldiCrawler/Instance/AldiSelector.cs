@@ -2,8 +2,9 @@
 
 public class AldiSelector : ISelector
 {
-    public string UrlBase => "https://www.aldi.hu/hu/ajanlatok";
-    public string CookieSelector => "button.onetrust-reject-all-handler";
+    public string UrlBase => "https://www.aldi.hu";
+    public string OfferUrl => $"{UrlBase}/hu/ajanlatok";
+    public string CookieSelector => "button[id='onetrust-reject-all-handler']";
 
     public string OfferCardSelector => "a.item";
     public string LinkSelector => "article.wrapper > a";

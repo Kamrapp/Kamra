@@ -21,17 +21,11 @@ public abstract class BaseProcessor<TProduct, TOffer, TClassAttribute, TProperty
         product ??= ReflectionHelper.CreateObject<TProduct>();
         SetValues(product, document);
 
-        if (!product.IsValid)
-            product = null;
-
         offer ??= ReflectionHelper.CreateObject<TOffer>();
         SetValues(offer, document);
 
         // Very important!
         offer.CalculateValidity();
-
-        if (!offer.IsValid)
-            offer = null;
 
         return (product, offer);
     }
@@ -52,7 +46,15 @@ public abstract class BaseProcessor<TProduct, TOffer, TClassAttribute, TProperty
         foreach (var expression in propertyExpressions)
         {
             var columnName = expression.Key;
-            var columnValue = GetValueObject(expression.Value);
+            object columnValue;
+            try
+            {
+                columnValue = GetValueObject(expression.Value);
+            }
+            catch
+            {
+                continue;
+            }
 
             columnNameValueDictionary.Add(columnName, columnValue);
         }

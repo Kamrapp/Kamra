@@ -33,7 +33,7 @@ public class OfferCardLinkReader : IReader
 
     public async Task<(IEnumerable<string>, IEnumerable<string>)> GetCardsAndLinks()
     {
-        await Page.GotoAsync(Selector.UrlBase);
+        await Page.GotoAsync(Selector.OfferUrl);
         await Page.DeclineCookie(Selector.CookieSelector);
 
         return await GetOfferCardsAndLinks();

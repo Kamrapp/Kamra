@@ -72,6 +72,11 @@ public static class AttributeHelpers
         return jToken.First.GetValue(jsonValueAttribute.ToInnerJsonValueAttribute());
     }
 
+    public static object GetValueByChildKey(this JToken jToken, JsonValueAttribute jsonValueAttribute)
+    {
+        return jToken.GetValueByKey(jsonValueAttribute.ToInnerJsonValueAttribute());
+    }
+
 
     public static object GetValueByType(string stringValue, BasePropertyAttribute propertyAttribute)
     {
@@ -80,7 +85,7 @@ public static class AttributeHelpers
 
     public static object GetValueByAttribute(this HtmlNode node, FieldAttribute fieldAttribute)
     {
-        var nodeAttribute = node.GetAttributeValue(fieldAttribute.ChildExpression, "none_default");
+        var nodeAttribute = node.GetAttributeValue(fieldAttribute.Expression, "none_default");
         if (nodeAttribute == null || nodeAttribute.Equals("none_default"))
             return null;
 
@@ -110,7 +115,7 @@ public static class AttributeHelpers
             NodeValueSource.InnerText_Clean => GetValueByType(CleanTextFromHtml(node.InnerText), fieldAttribute),
             NodeValueSource.InnerText => GetValueByType(node.InnerText, fieldAttribute),
             NodeValueSource.InnerHtml => GetValueByType(node.InnerHtml, fieldAttribute),
-            NodeValueSource.Attribute => node.GetValueByAttribute(fieldAttribute),
+            NodeValueSource.Attribute => node.GetValueByAttribute(ToInnerFieldAttribute(fieldAttribute)),
             _ => node.InnerText,
         };
     }
@@ -123,6 +128,7 @@ public static class AttributeHelpers
             JsonValueSource.Value => GetValueByType(jToken.Value<string>(), jsonValueAttribute),
             JsonValueSource.Value_FirstItem => GetValueByType(jToken.First.Value<string>(), jsonValueAttribute),
             JsonValueSource.ChildValue => jToken.GetValueByChildToken(jsonValueAttribute),
+            JsonValueSource.ChildKey => jToken.GetValueByChildKey(jsonValueAttribute),
             _ => jToken.Value<string>(),
         };
     }

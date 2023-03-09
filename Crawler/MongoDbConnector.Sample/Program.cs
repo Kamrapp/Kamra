@@ -10,8 +10,8 @@ class Program
     {
         var database = MongoDbConnector.InitDatabase();
 
-        //if (!MongoDbConnector.TestConnection(database))
-        //    throw new Exception("Test connection could not be initiated");
+        if (!MongoDbConnector.TestConnection(database))
+            throw new Exception("Test connection could not be initiated");
 
         //MongoDbConnector.CleanCollection<KeyRecord>(database, "Lidl_Links");
     }
