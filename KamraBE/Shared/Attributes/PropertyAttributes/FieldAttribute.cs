@@ -1,5 +1,5 @@
 ﻿namespace Shared.Attributes.PropertyAttributes;
 
-public class FieldAttribute : BasePropertyAttribute<NodeSelector, NodeValueSource>
+public class FieldAttribute : HtmlPropertyAttribute
 {
 }

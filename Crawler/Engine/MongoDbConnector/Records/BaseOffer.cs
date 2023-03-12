@@ -27,6 +27,9 @@ public abstract class BaseOffer : BaseRecord
     public abstract string Url { get; set; }
 
     public abstract void CalculateValidity();
+    public virtual void CalculateDiscountValidity()
+    {
+    }
 
     public override bool IsValid => string.IsNullOrEmpty(ProductKey);
 
