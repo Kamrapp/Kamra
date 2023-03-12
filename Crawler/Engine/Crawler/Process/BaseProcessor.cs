@@ -16,7 +16,7 @@ public abstract class BaseProcessor<TProduct, TOffer, TClassAttribute, TProperty
         }
     }
 
-    public (TProduct, TOffer) Process(HtmlDocument document, TProduct product, TOffer offer)
+    public (TProduct, TOffer) Process(HtmlDocument document, TProduct product, TOffer offer, bool isDiscount = false)
     {
         product ??= ReflectionHelper.CreateObject<TProduct>();
         SetValues(product, document);
@@ -25,7 +25,10 @@ public abstract class BaseProcessor<TProduct, TOffer, TClassAttribute, TProperty
         SetValues(offer, document);
 
         // Very important!
-        offer.CalculateValidity();
+        if (!isDiscount)
+            offer.CalculateValidity();
+        else
+            offer.CalculateDiscountValidity();
 
         return (product, offer);
     }
@@ -38,7 +41,14 @@ public abstract class BaseProcessor<TProduct, TOffer, TClassAttribute, TProperty
         var columnNameValueDictionary = new Dictionary<string, object>();
 
         var classExpression = ReflectionHelper.GetClassAttributes<TRecord, TClassAttribute>();
-        var classNode = document.DocumentNode.SelectSingleNode(classExpression);
+
+        HtmlNode classNode;
+
+        // might already have the filtered node
+        if (classExpression != null)
+            classNode = document.DocumentNode.SelectSingleNode(classExpression);
+        else
+            classNode = document.DocumentNode;
 
         SetValueObject(classNode);
 

@@ -1,5 +1,6 @@
 ﻿global using Crawler.Download;
 global using Crawler.Helpers;
+global using Crawler.Log;
 global using Crawler.Pipeline;
 global using Crawler.Process;
 global using Crawler.Read;
@@ -18,6 +19,7 @@ global using Shared.Attributes.Enums;
 global using Shared.Attributes.PropertyAttributes;
 global using Shared.Extensions;
 global using Shared.Utils;
+global using Shared.Utils.Logger;
 
 global using System;
 global using System.Collections.Generic;

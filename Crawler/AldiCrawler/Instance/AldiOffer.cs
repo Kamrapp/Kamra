@@ -7,10 +7,11 @@ namespace AldiCrawler.Instance;
 [Json(XPath = "//script[@type='application/ld+json']")]
 public partial class AldiOffer : BaseOffer
 {
+    [DiscountField(Expression = "//figcaption//sup", ValueType = ObjectValueType.String)]
     [Field(Expression = "//div[@id='pdpDetails']", ValueType = ObjectValueType.String, ValueSource = NodeValueSource.Attribute, Selector = NodeSelector.XPath, ChildExpression = "data-product-code")]
     public override string ProductKey { get; set; }
 
-
+    [DiscountField(Expression = "validityheader", ValueType = ObjectValueType.String)]
     [Field(Expression = "//div[contains(@class, 'liveOSDavailabilityLabel')]", ValueType = ObjectValueType.String)]
     public string Validity { get; set; }
 
@@ -19,6 +20,12 @@ public partial class AldiOffer : BaseOffer
     //This looks better encoded in html
     //[JsonValue(Expression = "offers", ValueType = ObjectValueType.Decimal, ValueSource = JsonValueSource.ChildValue, ChildExpression = "price")]
     public override decimal Price { get; set; }
+
+    [DiscountField(Expression = "//figcaption/h2/b", ValueType = ObjectValueType.String)]
+    public string DiscountPrice { get; set; }
+
+    [DiscountField(Expression = "//figcaption/h3//strike", ValueType = ObjectValueType.String)]
+    public string OriginalPrice { get; set; }
 
     // This is 'Ft' instead of 'HUF'
     // fix attribute data-currency
@@ -51,7 +58,20 @@ public partial class AldiOffer : BaseOffer
         }
     }
 
-    private static DateOnly ToDate(string yearMonthDay, bool increaseYear = false)
+    public override void CalculateDiscountValidity()
+    {
+        if (string.IsNullOrEmpty(Validity))
+            return;
+
+        var dateMatches = FromRegex().Matches(Validity);
+        if (dateMatches.Count != 2)
+            return;
+
+        ValidFrom = ToDate(dateMatches[0].Value);
+        ValidTo = ToDate(dateMatches[1].Value);
+    }
+
+    private static DateOnly ToDate(string yearMonthDay)
     {
         return DateOnly.ParseExact($"{yearMonthDay}", DateFormat, CultureInfo.InvariantCulture);
     }

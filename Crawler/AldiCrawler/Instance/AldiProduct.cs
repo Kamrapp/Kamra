@@ -4,11 +4,13 @@
 [Json(XPath = "//script[@type='application/ld+json']")]
 public class AldiProduct : BaseProduct
 {
-    //[Field(Expression = "//div[@class='product-reference']/div", ValueType = ObjectValueType.String)]
+    [DiscountField(Expression = "//figcaption//sup", ValueType = ObjectValueType.String)]
     [Field(Expression = "//div[@id='pdpDetails']", ValueType = ObjectValueType.String, ValueSource = NodeValueSource.Attribute, Selector = NodeSelector.XPath, ChildExpression = "data-product-code")]
     public override string Key { get; set; }
 
+    [Update]
     //[Field(Expression = "//h1[@class='target_product_name']", ValueType = ObjectValueType.String, ValueSource = NodeValueSource.Attribute, Selector = NodeSelector.XPath, ChildExpression = "data-product-name")]
+    [DiscountField(Expression = "//figcaption/h3", ValueType = ObjectValueType.String)]
     [JsonValue(Expression = "name", ValueType = ObjectValueType.String)]
     public string Name { get; set; }
 
@@ -27,12 +29,14 @@ public class AldiProduct : BaseProduct
     [Field(Expression = "//section[@class='tab-content']/*/div[contains(@class, infobox)]", ValueType = ObjectValueType.String, ValueSource = NodeValueSource.Attribute, Selector = NodeSelector.XPath, ChildExpression = "data-description")]
     // This is just "ingyenes szállítás"
     //[JsonValue(Expression = "description", ValueType = ObjectValueType.String)]
+    [DiscountField(Expression = "(//figcaption/p)[last()-1]", ValueType = ObjectValueType.String, ValueSource = NodeValueSource.InnerHtml)]
     public string Description { get; set; }
 
     [Update]
     // both are fine
     //[Field(Expression = "//a[@class='zoom-ico-image']", ValueType = ObjectValueType.String, ValueSource = NodeValueSource.Attribute, ChildExpression = "src")]
     [JsonValue(Expression = "image", ValueType = ObjectValueType.String, ValueSource = JsonValueSource.Value)]
+    [DiscountField(Expression = "//img", ValueType = ObjectValueType.String, ValueSource = NodeValueSource.Attribute, ChildExpression = "src")]
     public string PictureUri { get; set; }
 
     [Update]

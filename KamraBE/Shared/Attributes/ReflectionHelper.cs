@@ -8,7 +8,10 @@ public static class ReflectionHelper
         where TAttribute : BaseClassAttribute
     {
         var attribute = typeof(TType).GetCustomAttribute<TAttribute>();
-        if (attribute == null || string.IsNullOrWhiteSpace(attribute.XPath))
+        if (attribute == null)
+            return null;
+
+        if (string.IsNullOrWhiteSpace(attribute.XPath))
             throw new Exception("This attribute should have xpath");
 
         return attribute.XPath;

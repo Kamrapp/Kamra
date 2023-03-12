@@ -6,21 +6,21 @@ namespace Crawler.Helpers;
 
 public static class AttributeHelpers
 {
-    public static FieldAttribute ToInnerFieldAttribute(this FieldAttribute fieldAttribute) => new() { Expression = fieldAttribute.ChildExpression, Selector = NodeSelector.AttributeSelector, ValueType = fieldAttribute.ValueType };
+    public static HtmlPropertyAttribute ToInnerHtmlPropertyAttribute(this HtmlPropertyAttribute htmlPropertyAttribute) => new() { Expression = htmlPropertyAttribute.ChildExpression, Selector = NodeSelector.AttributeSelector, ValueType = htmlPropertyAttribute.ValueType };
     public static JsonValueAttribute ToInnerJsonValueAttribute(this JsonValueAttribute jsonValueAttribute) => new() { Expression = jsonValueAttribute.ChildExpression, Selector = JTokenSelector.Key, ValueType = jsonValueAttribute.ValueType };
 
-    public static object GetValue(this HtmlNode node, FieldAttribute fieldAttribute)
+    public static object GetValue(this HtmlNode node, HtmlPropertyAttribute htmlPropertyAttribute)
     {
-        switch (fieldAttribute.Selector)
+        switch (htmlPropertyAttribute.Selector)
         {
             case NodeSelector.XPath:
-                return node.GetValueByXPath(fieldAttribute);
+                return node.GetValueByXPath(htmlPropertyAttribute);
             case NodeSelector.CssSelector:
-                return node.GetValueByCSS(fieldAttribute);
+                return node.GetValueByCSS(htmlPropertyAttribute);
             case NodeSelector.AttributeSelector:
-                return node.GetValueByAttribute(fieldAttribute);
+                return node.GetValueByAttribute(htmlPropertyAttribute);
             case NodeSelector.FixedValue:
-                if (int.TryParse(fieldAttribute.Expression, out var result))
+                if (int.TryParse(htmlPropertyAttribute.Expression, out var result))
                 {
                     return result;
                 }
@@ -83,39 +83,39 @@ public static class AttributeHelpers
         return StringConverter.ConvertStringToObject(stringValue, propertyAttribute.ValueType);
     }
 
-    public static object GetValueByAttribute(this HtmlNode node, FieldAttribute fieldAttribute)
+    public static object GetValueByAttribute(this HtmlNode node, HtmlPropertyAttribute htmlPropertyAttribute)
     {
-        var nodeAttribute = node.GetAttributeValue(fieldAttribute.Expression, "none_default");
+        var nodeAttribute = node.GetAttributeValue(htmlPropertyAttribute.Expression, "none_default");
         if (nodeAttribute == null || nodeAttribute.Equals("none_default"))
             return null;
 
-        return GetValueByType(nodeAttribute, fieldAttribute);
+        return GetValueByType(nodeAttribute, htmlPropertyAttribute);
     }
-    public static object GetValueByXPath(this HtmlNode node, FieldAttribute fieldAttribute)
+    public static object GetValueByXPath(this HtmlNode node, HtmlPropertyAttribute htmlPropertyAttribute)
     {
-        var subNode = node.SelectSingleNode(fieldAttribute.Expression);
+        var subNode = node.SelectSingleNode(htmlPropertyAttribute.Expression);
         if (subNode == null)
             return null;
 
-        return SortValueBySource(subNode, fieldAttribute);
+        return SortValueBySource(subNode, htmlPropertyAttribute);
     }
-    public static object GetValueByCSS(this HtmlNode node, FieldAttribute fieldAttribute)
+    public static object GetValueByCSS(this HtmlNode node, HtmlPropertyAttribute htmlPropertyAttribute)
     {
-        var nodeCss = node.QuerySelector(fieldAttribute.Expression);
+        var nodeCss = node.QuerySelector(htmlPropertyAttribute.Expression);
         if (nodeCss == null)
             return null;
 
-        return SortValueBySource(nodeCss, fieldAttribute);
+        return SortValueBySource(nodeCss, htmlPropertyAttribute);
     }
 
-    public static object SortValueBySource(this HtmlNode node, FieldAttribute fieldAttribute)
+    public static object SortValueBySource(this HtmlNode node, HtmlPropertyAttribute htmlPropertyAttribute)
     {
-        return fieldAttribute.ValueSource switch
+        return htmlPropertyAttribute.ValueSource switch
         {
-            NodeValueSource.InnerText_Clean => GetValueByType(CleanTextFromHtml(node.InnerText), fieldAttribute),
-            NodeValueSource.InnerText => GetValueByType(node.InnerText, fieldAttribute),
-            NodeValueSource.InnerHtml => GetValueByType(node.InnerHtml, fieldAttribute),
-            NodeValueSource.Attribute => node.GetValueByAttribute(ToInnerFieldAttribute(fieldAttribute)),
+            NodeValueSource.InnerText_Clean => GetValueByType(CleanTextFromHtml(node.InnerText), htmlPropertyAttribute),
+            NodeValueSource.InnerText => GetValueByType(node.InnerText, htmlPropertyAttribute),
+            NodeValueSource.InnerHtml => GetValueByType(node.InnerHtml, htmlPropertyAttribute),
+            NodeValueSource.Attribute => node.GetValueByAttribute(ToInnerHtmlPropertyAttribute(htmlPropertyAttribute)),
             _ => node.InnerText,
         };
     }
