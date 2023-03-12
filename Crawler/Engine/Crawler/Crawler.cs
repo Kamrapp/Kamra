@@ -74,6 +74,8 @@ public class Crawler<TProduct, TOffer> : ICrawler
     {
         await InitCrawl();
 
+        Logger.Log(LogType.Info, $"Crawling started <{CrawlerPrefix}>");
+
         var (offerCards, links, discounts) = await CollectCardsAndLinksAndDiscounts();
         if (!links.Any() && !discounts.Any())
             return;
@@ -96,6 +98,8 @@ public class Crawler<TProduct, TOffer> : ICrawler
         UpdateDiscountProductsAndOffers(productsFromDiscounts, offersFromDiscounts);
 
         UpdateProcessedOfferCardsAndLinks(offerCards, links);
+
+        Logger.Log(LogType.Info, $"Crawling finished <{CrawlerPrefix}>");
 
         await WrapUpCrawl();
     }
@@ -137,7 +141,6 @@ public class Crawler<TProduct, TOffer> : ICrawler
 
     private async Task<(IEnumerable<string>, IEnumerable<string>, IEnumerable<string>)> CollectCardsAndLinksAndDiscounts()
     {
-
         Logger.Log(LoggerType.Console, LogType.Info, $"Collecting links...");
 
         var (offerCards, links, discountCards, discounts) = await Reader.GetCardsAndLinksAndDiscounts();
