@@ -31,7 +31,7 @@
         public override void LogInner(LogType type, string message)
         {
             using StreamWriter streamWriter = new(FilePath);
-            streamWriter.WriteLine($"{DateTime.Now} | {type}: {message}");
+            streamWriter.WriteLine($"{DateTime.Now} | {type,6}: {message}");
             streamWriter.Close();
         }
     }

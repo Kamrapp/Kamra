@@ -15,7 +15,7 @@ namespace Crawler.Log
         {
             ConsoleLogger = new ConsoleLogger(LogLevel.Debug);
             FileLogger = new FileLogger(LogLevel.Info, filePath);
-            MongoLogger = new MongoLogger(LogLevel.Warn, logCollection);
+            MongoLogger = new MongoLogger(LogLevel.Info, logCollection);
         }
 
         public void SetConnection(IMongoDatabase database)

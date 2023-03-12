@@ -9,7 +9,7 @@
 
         public override void LogInner(LogType type, string message)
         {
-            Console.WriteLine($"{type}: {message}");
+            Console.WriteLine($"{DateTime.Now} | {type,6}: {message}");
         }
     }
 }
