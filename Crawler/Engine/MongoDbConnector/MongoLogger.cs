@@ -1,38 +1,57 @@
 ﻿using Shared.Utils.Logger;
 
-namespace MongoDbConnector
+namespace MongoDbConnector;
+
+public class MongoLogger : BaseLogger, IMongoLogger
 {
-    public class MongoLogger : BaseLogger, IMongoLogger
+    public List<LogRecord> Logs { get; set; }
+    public override LoggerType LoggerType => LoggerType.MongoDb;
+
+    private readonly IRecordRepository<LogRecord> _logRepository;
+
+    public MongoLogger(LogLevel level, string logCollection)
+        : this(level)
     {
-        public override LoggerType LoggerType => LoggerType.MongoDb;
+        _logRepository = new LogRepository(logCollection);
+    }
 
-        private readonly IRecordRepository<LogRecord> _logRepository;
+    public MongoLogger(LogLevel level)
+        : base(level)
+    {
+        Logs = new List<LogRecord>();
+    }
 
-        public MongoLogger(LogLevel level, string logCollection)
-            : this(level)
+    public void SetConnection(IMongoDatabase database)
+    {
+        _logRepository.SetConnection(database);
+    }
+
+    public void WrapUp()
+    {
+        var message = string.Empty;
+        foreach (var log in Logs)
         {
-            _logRepository = new LogRepository(logCollection);
+            message += $"{DateTime.Now} | {log.Type.AsText()}: {log.Message}\r\n";
         }
 
-        public MongoLogger(LogLevel level)
-            : base(level)
+        var collectiveLog = new LogRecord
         {
-        }
+            Type = LogType.Collective,
+            Message = message
+        };
 
-        public void SetConnection(IMongoDatabase database)
+        _logRepository.Create(collectiveLog);
+    }
+
+    public override void LogInner(LogType type, string message)
+    {
+        var record = new LogRecord
         {
-            _logRepository.SetConnection(database);
-        }
+            Type = type,
+            Message = message
+        };
 
-        public override void LogInner(LogType type, string message)
-        {
-            var record = new LogRecord
-            {
-                Type = type,
-                Message = message
-            };
-
-            _logRepository.Create(record);
-        }
+        Logs.Add(record);
+        //_logRepository.Create(record);
     }
 }

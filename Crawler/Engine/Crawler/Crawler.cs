@@ -30,6 +30,8 @@ public class Crawler<TProduct, TOffer> : ICrawler
     private string LogCollection => $"{CrawlerPrefix}_Logs";
     private string LogPath => $"KamraCrawler\\Logs\\{CrawlerPrefix}\\log_{DateTime.Now:yyyy_MM_dd__hh_mm_ss}.txt";
 
+    private readonly float BaseTimeoutInMs = (float)new TimeSpan(1, 0, 0).TotalMilliseconds;
+
     public Crawler(ISelector selector, string crawlerPrefix)
         : base()
     {
@@ -74,22 +76,14 @@ public class Crawler<TProduct, TOffer> : ICrawler
     {
         await InitCrawl();
 
+        Logger.Log(LoggerType.Console, LogType.Info, $"========================================================");
+        Logger.Log(LoggerType.Console, LogType.Info, $"      Crawling started at:  {DateTime.Now}");
+        Logger.Log(LoggerType.Console, LogType.Info, $"========================================================");
         Logger.Log(LogType.Info, $"Crawling started <{CrawlerPrefix}>");
 
         var (offerCards, links, discounts) = await CollectCardsAndLinksAndDiscounts();
         if (!links.Any() && !discounts.Any())
             return;
-
-        // DEBUG
-        //var offerCards = new List<string>
-        //{
-
-        //};
-
-        //var links = new List<string>
-        //{
-        //    "/hu/p.scheppach-foldfuro.000000000000476724.html"
-        //};
 
         var (products, offers) = await CollectProductsAndOffers(links);
         UpdateProductsAndOffers(products, offers);
@@ -100,6 +94,9 @@ public class Crawler<TProduct, TOffer> : ICrawler
         UpdateProcessedOfferCardsAndLinks(offerCards, links);
 
         Logger.Log(LogType.Info, $"Crawling finished <{CrawlerPrefix}>");
+        Logger.Log(LoggerType.Console, LogType.Info, $"========================================================");
+        Logger.Log(LoggerType.Console, LogType.Info, $"      Crawling finished at: {DateTime.Now}");
+        Logger.Log(LoggerType.Console, LogType.Info, $"========================================================");
 
         await WrapUpCrawl();
     }
@@ -107,25 +104,24 @@ public class Crawler<TProduct, TOffer> : ICrawler
 
     private async Task InitCrawl()
     {
-        Logger.Log(LogType.Info, $"Initializing Crawler for <{CrawlerPrefix}>...");
-
-        Logger.Log(LoggerType.Console, LogType.Info, $"========================================================");
-        Logger.Log(LoggerType.Console, LogType.Info, $"      Crawling started at:  {DateTime.Now}");
-        Logger.Log(LoggerType.Console, LogType.Info, $"========================================================");
+        Logger.Log(LoggerType.File, LogType.Debug, $"Initializing Crawler for <{CrawlerPrefix}>...");
 
         PlaywrightInstance = await Playwright.CreateAsync();
         Browser = await PlaywrightInstance.Chromium.LaunchAsync();
 
         Page = await Browser.NewPageAsync();
 
-        await Page.GotoAsync(Selector.UrlBase);
+        Logger.Log(LoggerType.File, LogType.Debug, $"Loading main page at {Selector.UrlBase}");
+        await Page.GotoAsync(Selector.UrlBase, new PageGotoOptions { Timeout = BaseTimeoutInMs });
+        Logger.Log(LoggerType.File, LogType.Debug, $"Main page loaded");
+
         await Page.DeclineCookie(Selector.CookieSelector);
 
         Reader.SetPage(Page);
 
         InitDatabase();
 
-        Logger.Log(LoggerType.File, LogType.Info, $"Initialization successful.");
+        Logger.Log(LoggerType.File, LogType.Debug, $"Initialization successful.");
     }
 
     private void InitDatabase()
@@ -272,7 +268,7 @@ public class Crawler<TProduct, TOffer> : ICrawler
 
         Pipeline.Run(products, offers);
 
-        Logger.Log(LoggerType.Console, LogType.Info, $" Updated.");
+        Logger.Log(LoggerType.Console, LogType.Debug, $" Updated.");
     }
 
     private void UpdateDiscountProductsAndOffers(IEnumerable<TProduct> products, IEnumerable<TOffer> offers)
@@ -281,7 +277,7 @@ public class Crawler<TProduct, TOffer> : ICrawler
 
         DiscountPipeline.Run(products, offers);
 
-        Logger.Log(LoggerType.Console, LogType.Info, $" Updated.");
+        Logger.Log(LoggerType.Console, LogType.Debug, $" Updated.");
     }
 
     private void UpdateProcessedOfferCardsAndLinks(IEnumerable<string> offerCards, IEnumerable<string> links)
@@ -310,7 +306,7 @@ public class Crawler<TProduct, TOffer> : ICrawler
             LinkRepository.Create(linkRecord);
         }
 
-        Logger.Log(LoggerType.Console, LogType.Info, $" Updated.");
+        Logger.Log(LoggerType.Console, LogType.Debug, $" Updated.");
     }
 
 
@@ -319,8 +315,6 @@ public class Crawler<TProduct, TOffer> : ICrawler
         await Browser.DisposeAsync();
         PlaywrightInstance.Dispose();
 
-        Logger.Log(LoggerType.Console, LogType.Info, $"========================================================");
-        Logger.Log(LoggerType.Console, LogType.Info, $"      Crawling finished at: {DateTime.Now}");
-        Logger.Log(LoggerType.Console, LogType.Info, $"========================================================");
+        Logger.WrapUp();
     }
 }

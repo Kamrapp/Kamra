@@ -1,8 +1,7 @@
-﻿namespace Shared.Utils.Logger
+﻿namespace Shared.Utils.Logger;
+
+public interface ILogger
 {
-    public interface ILogger
-    {
-        public LoggerType LoggerType { get; }
-        public void Log(LogType type, string message);
-    }
+    public LoggerType LoggerType { get; }
+    public void Log(LogType type, string message);
 }

@@ -1,11 +1,11 @@
-﻿namespace Shared.Utils.Logger
+﻿namespace Shared.Utils.Logger;
+
+public enum LogType
 {
-    public enum LogType
-    {
-        Debug,
-        Info,
-        Warn,
-        Error,
-        Fatal
-    }
+    Debug,
+    Info,
+    Warn,
+    Error,
+    Fatal,
+    Collective
 }

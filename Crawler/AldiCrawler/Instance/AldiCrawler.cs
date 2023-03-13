@@ -1,15 +1,13 @@
 ﻿using Crawler;
 
-namespace AldiCrawler.Instance
+namespace AldiCrawler.Instance;
+
+public class AldiCrawler : Crawler<AldiProduct, AldiOffer>
 {
+    private static readonly ISelector selector = new AldiSelector();
 
-    public class AldiCrawler : Crawler<AldiProduct, AldiOffer>
-    {
-        private static readonly ISelector selector = new AldiSelector();
+    private const string CrawlerPrefix = "Aldi";
 
-        private const string CrawlerPrefix = "Aldi";
-
-        public AldiCrawler()
-            : base(selector, CrawlerPrefix) { }
-    }
+    public AldiCrawler()
+        : base(selector, CrawlerPrefix) { }
 }

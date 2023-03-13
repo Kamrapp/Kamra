@@ -1,10 +1,9 @@
-﻿namespace Shared.Utils.Logger
+﻿namespace Shared.Utils.Logger;
+
+public enum LoggerType
 {
-    public enum LoggerType
-    {
-        Console,
-        File,
-        MongoDb,
-        Combo
-    }
+    Console,
+    File,
+    MongoDb,
+    Combo
 }

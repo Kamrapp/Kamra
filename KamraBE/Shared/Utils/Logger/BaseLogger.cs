@@ -1,31 +1,30 @@
-﻿namespace Shared.Utils.Logger
+﻿namespace Shared.Utils.Logger;
+
+public abstract class BaseLogger : ILogger
 {
-    public abstract class BaseLogger : ILogger
+    public abstract LoggerType LoggerType { get; }
+    public LogLevel Level { get; set; }
+
+    public BaseLogger()
     {
-        public abstract LoggerType LoggerType { get; }
-        public LogLevel Level { get; set; }
+        Level = LogLevel.Debug;
+    }
 
-        public BaseLogger()
-        {
-            Level = LogLevel.Debug;
-        }
+    public BaseLogger(LogLevel level)
+    {
+        Level = level;
+    }
 
-        public BaseLogger(LogLevel level)
+    public bool ShouldLog(LogType type)
+    {
+        return (int)Level <= (int)type;
+    }
+    public abstract void LogInner(LogType type, string message);
+    public void Log(LogType type, string message)
+    {
+        if (ShouldLog(type))
         {
-            Level = level;
-        }
-
-        public bool ShouldLog(LogType type)
-        {
-            return (int)Level <= (int)type;
-        }
-        public abstract void LogInner(LogType type, string message);
-        public void Log(LogType type, string message)
-        {
-            if (ShouldLog(type))
-            {
-                LogInner(type, message);
-            }
+            LogInner(type, message);
         }
     }
 }
