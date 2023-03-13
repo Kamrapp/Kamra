@@ -1,5 +1,4 @@
-﻿namespace Shared.Utils.Logger
-{
-    public interface IConsoleLogger : ILogger
-    { }
-}
+﻿namespace Shared.Utils.Logger;
+
+public interface IConsoleLogger : ILogger
+{ }

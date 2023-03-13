@@ -1,11 +1,10 @@
-﻿namespace Shared.Utils.Logger
+﻿namespace Shared.Utils.Logger;
+
+public enum LogLevel
 {
-    public enum LogLevel
-    {
-        Debug,
-        Info,
-        Warn,
-        Error,
-        Fatal
-    }
+    Debug,
+    Info,
+    Warn,
+    Error,
+    Fatal
 }

@@ -1,7 +1,6 @@
-﻿namespace Shared.Utils.Logger
+﻿namespace Shared.Utils.Logger;
+
+public interface IFileLogger : ILogger
 {
-    public interface IFileLogger : ILogger
-    {
-        void SetFilePath(string filePath);
-    }
+    void SetFilePath(string filePath);
 }

@@ -30,7 +30,7 @@ public class Crawler<TProduct, TOffer> : ICrawler
     private string LogCollection => $"{CrawlerPrefix}_Logs";
     private string LogPath => $"KamraCrawler\\Logs\\{CrawlerPrefix}\\log_{DateTime.Now:yyyy_MM_dd__hh_mm_ss}.txt";
 
-    private readonly int BaseTimeoutInMs = 60000;
+    private readonly float BaseTimeoutInMs = (float)new TimeSpan(1, 0, 0).TotalMilliseconds;
 
     public Crawler(ISelector selector, string crawlerPrefix)
         : base()
@@ -314,5 +314,7 @@ public class Crawler<TProduct, TOffer> : ICrawler
     {
         await Browser.DisposeAsync();
         PlaywrightInstance.Dispose();
+
+        Logger.WrapUp();
     }
 }

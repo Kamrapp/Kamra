@@ -1,9 +1,9 @@
 ﻿using Shared.Utils.Logger;
 
-namespace MongoDbConnector
+namespace MongoDbConnector;
+
+public interface IMongoLogger : ILogger
 {
-    public interface IMongoLogger : ILogger
-    {
-        void SetConnection(IMongoDatabase database);
-    }
+    void SetConnection(IMongoDatabase database);
+    void WrapUp();
 }
