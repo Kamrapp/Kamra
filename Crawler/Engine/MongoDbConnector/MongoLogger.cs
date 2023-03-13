@@ -28,16 +28,12 @@ public class MongoLogger : BaseLogger, IMongoLogger
 
     public void WrapUp()
     {
-        var message = string.Empty;
-        foreach (var log in Logs)
-        {
-            message += $"{DateTime.Now} | {log.Type.AsText()}: {log.Message}\r\n";
-        }
+        var messages = string.Join("\r\n", Logs.Select(x => x.Message));
 
         var collectiveLog = new LogRecord
         {
             Type = LogType.Collective,
-            Message = message
+            Message = messages
         };
 
         _logRepository.Create(collectiveLog);
@@ -48,7 +44,7 @@ public class MongoLogger : BaseLogger, IMongoLogger
         var record = new LogRecord
         {
             Type = type,
-            Message = message
+            Message = $"{DateTime.Now} | {type.AsText()}: {message}"
         };
 
         Logs.Add(record);
