@@ -82,14 +82,18 @@ public class Crawler<TProduct, TOffer> : ICrawler
         Logger.Log(LogType.Info, $"Crawling started <{CrawlerPrefix}>");
 
         var (offerCards, links, discounts) = await CollectCardsAndLinksAndDiscounts();
-        if (!links.Any() && !discounts.Any())
-            return;
 
-        var (products, offers) = await CollectProductsAndOffers(links);
-        UpdateProductsAndOffers(products, offers);
+        if (links.Any())
+        {
+            var (products, offers) = await CollectProductsAndOffers(links);
+            UpdateProductsAndOffers(products, offers);
+        }
 
-        var (productsFromDiscounts, offersFromDiscounts) = CollectProductsAndOffersFromDiscounts(discounts);
-        UpdateDiscountProductsAndOffers(productsFromDiscounts, offersFromDiscounts);
+        if (discounts.Any())
+        {
+            var (productsFromDiscounts, offersFromDiscounts) = CollectProductsAndOffersFromDiscounts(discounts);
+            UpdateDiscountProductsAndOffers(productsFromDiscounts, offersFromDiscounts);
+        }
 
         UpdateProcessedOfferCardsAndLinks(offerCards, links);
 
