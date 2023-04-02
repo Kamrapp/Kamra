@@ -9,6 +9,7 @@ public class OfferCardLinkReader : IReader
     private IComboLogger Logger { get; set; }
     public IPage Page { get; set; }
     public ISelector Selector { get; set; }
+    private readonly float BaseTimeoutInMs = (float)new TimeSpan(1, 0, 0).TotalMilliseconds;
     public OfferCardLinkReader(ISelector selector, IComboLogger logger)
     {
         Logger = logger;
@@ -35,7 +36,7 @@ public class OfferCardLinkReader : IReader
 
     public async Task<(IEnumerable<string>, IEnumerable<string>, IEnumerable<string>, IEnumerable<string>)> GetCardsAndLinksAndDiscounts()
     {
-        await Page.GotoAsync(Selector.OfferUrl);
+        await Page.GotoAsync(Selector.OfferUrl, new PageGotoOptions { Timeout = BaseTimeoutInMs });
         await Page.DeclineCookie(Selector.CookieSelector);
 
         return await GetOfferCardsAndLinksAndDiscounts();
@@ -164,7 +165,7 @@ public class OfferCardLinkReader : IReader
 
     private async Task<IEnumerable<string>> CollectDiscounts(string offerCard)
     {
-        await Page.GotoAsync(Selector.BuildUrl(offerCard));
+        await Page.GotoAsync(Selector.BuildUrl(offerCard), new PageGotoOptions { Timeout = BaseTimeoutInMs });
         await Page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
 
         var discountElements = new List<string>();
@@ -182,7 +183,7 @@ public class OfferCardLinkReader : IReader
 
     private async Task<IEnumerable<string>> CollectProductLinks(string offerCard)
     {
-        await Page.GotoAsync(Selector.BuildUrl(offerCard));
+        await Page.GotoAsync(Selector.BuildUrl(offerCard), new PageGotoOptions { Timeout = BaseTimeoutInMs });
         await Page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
 
         var productReferences = new List<string>();
