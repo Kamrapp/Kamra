@@ -1,6 +1,4 @@
-﻿using Shared.Attributes.PropertyAttributes;
-
-namespace MongoDbConnector.Records;
+﻿namespace Shared.Records.Base;
 
 public abstract class BaseOffer : BaseRecord
 {

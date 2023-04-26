@@ -1,8 +1,4 @@
-﻿using MongoDB.Driver;
-
-using MongoDbConnector;
-
-namespace BaseCrawler.Log;
+﻿namespace MongoDbConnector.Log;
 
 public class ComboLogger : BaseLogger, IComboLogger
 {

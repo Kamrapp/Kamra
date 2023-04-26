@@ -1,4 +1,4 @@
-﻿namespace AldiCrawler.Instance;
+﻿namespace Shared.Records.Aldi;
 
 [Class(XPath = "//main")]
 [Json(XPath = "//script[@type='application/ld+json']")]

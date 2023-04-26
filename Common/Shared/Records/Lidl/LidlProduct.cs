@@ -1,4 +1,4 @@
-﻿namespace LidlCrawler.Instance;
+﻿namespace Shared.Records.Lidl;
 
 [Class(XPath = "//article[@class='detail']")]
 [Json(XPath = "//script[@data-hid='json_data_product']")]
