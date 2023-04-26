@@ -2,9 +2,9 @@
 
 namespace Models.Entities
 {
-    public class Brand
+    public class Shop
     {
-        public Brand()
+        public Shop()
         {
             Stocks = new List<Stock>();
         }
@@ -16,8 +16,10 @@ namespace Models.Entities
 
         public ICollection<Stock> Stocks { get; set; }
 
-        //TODO Brands should have Stores that have Addresses
-        //public Address Address { get; set; }
+        public ICollection<Store> Stores { get; set; }
+
+        //TODO Shops should have Address
+        //public Address Addresss { get; set; }
 
     }
 

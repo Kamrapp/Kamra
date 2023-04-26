@@ -1,5 +1,7 @@
 ﻿using BaseCrawler;
 
+using Models.Records.Lidl;
+
 using Shared.Records.Lidl;
 
 namespace LidlCrawler.Instance;

@@ -1,6 +1,6 @@
 ﻿using BaseCrawler;
 
-using Shared.Records.Aldi;
+using Models.Records.Aldi;
 
 namespace AldiCrawler.Instance;
 

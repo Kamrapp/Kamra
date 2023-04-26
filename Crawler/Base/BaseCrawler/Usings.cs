@@ -10,7 +10,7 @@ global using Microsoft.Playwright;
 
 global using MongoDbConnector.Repository;
 global using MongoDbConnector.Repository.Interfaces;
-
+global using Models.Records.Base;
 global using Shared.Attributes;
 global using Shared.Attributes.ClassAttributes;
 global using Shared.Attributes.Enums;

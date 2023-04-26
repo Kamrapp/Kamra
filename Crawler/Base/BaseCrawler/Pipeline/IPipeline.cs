@@ -1,7 +1,5 @@
 ﻿using MongoDB.Driver;
 
-using Shared.Records.Base;
-
 namespace BaseCrawler.Pipeline;
 
 public interface IPipeline<TProduct, TOffer>

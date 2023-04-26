@@ -2,8 +2,6 @@
 
 using MongoDbConnector.Log;
 
-using Shared.Records.Base;
-
 namespace BaseCrawler.Read;
 
 public class OfferCardLinkReader : IReader

@@ -1,6 +1,6 @@
-﻿using MongoDB.Driver;
+﻿using Models.Records.Base;
 
-using Shared.Records.Base;
+using MongoDB.Driver;
 
 namespace MongoDbConnector.Sample;
 
