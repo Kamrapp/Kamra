@@ -22,7 +22,7 @@ namespace DataAccess.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder, 1L, 1);
 
-            modelBuilder.Entity("DataAccess.Models.Component", b =>
+            modelBuilder.Entity("Models.Entities.Component", b =>
                 {
                     b.Property<int>("ParentElementId")
                         .HasColumnType("int");
@@ -40,7 +40,7 @@ namespace DataAccess.Migrations
                     b.ToTable("Components");
                 });
 
-            modelBuilder.Entity("DataAccess.Models.Element", b =>
+            modelBuilder.Entity("Models.Entities.Element", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -67,7 +67,7 @@ namespace DataAccess.Migrations
                     b.ToTable("Elements");
                 });
 
-            modelBuilder.Entity("DataAccess.Models.Element2Tag", b =>
+            modelBuilder.Entity("Models.Entities.Element2Tag", b =>
                 {
                     b.Property<int>("ElementId")
                         .HasColumnType("int");
@@ -85,7 +85,7 @@ namespace DataAccess.Migrations
                     b.ToTable("Element2Tags");
                 });
 
-            modelBuilder.Entity("DataAccess.Models.Household", b =>
+            modelBuilder.Entity("Models.Entities.Household", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -102,7 +102,7 @@ namespace DataAccess.Migrations
                     b.ToTable("Households");
                 });
 
-            modelBuilder.Entity("DataAccess.Models.Property", b =>
+            modelBuilder.Entity("Models.Entities.Property", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -114,10 +114,10 @@ namespace DataAccess.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int?>("TagId")
+                    b.Property<int>("PropertyType")
                         .HasColumnType("int");
 
-                    b.Property<int>("Type")
+                    b.Property<int?>("TagId")
                         .HasColumnType("int");
 
                     b.Property<int>("ValueListType")
@@ -130,7 +130,7 @@ namespace DataAccess.Migrations
                     b.ToTable("Properties", (string)null);
                 });
 
-            modelBuilder.Entity("DataAccess.Models.PropertyValue", b =>
+            modelBuilder.Entity("Models.Entities.PropertyValue", b =>
                 {
                     b.Property<int>("PropertyId")
                         .HasColumnType("int");
@@ -159,9 +159,6 @@ namespace DataAccess.Migrations
                     b.Property<int?>("Tag2TagParentTagId")
                         .HasColumnType("int");
 
-                    b.Property<int>("Type")
-                        .HasColumnType("int");
-
                     b.HasKey("PropertyId", "Bool", "String", "Double", "Int");
 
                     b.HasIndex("Element2TagElementId", "Element2TagTagId");
@@ -171,7 +168,24 @@ namespace DataAccess.Migrations
                     b.ToTable("PropertyValues");
                 });
 
-            modelBuilder.Entity("DataAccess.Models.Stock", b =>
+            modelBuilder.Entity("Models.Entities.Shop", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Shops");
+                });
+
+            modelBuilder.Entity("Models.Entities.Stock", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -188,8 +202,17 @@ namespace DataAccess.Migrations
                     b.Property<int>("HouseholdId")
                         .HasColumnType("int");
 
+                    b.Property<double>("Price")
+                        .HasColumnType("float");
+
                     b.Property<double>("Quantity")
                         .HasColumnType("float");
+
+                    b.Property<int?>("ShopId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("StoreId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("ValidFrom")
                         .HasColumnType("datetime2");
@@ -203,10 +226,36 @@ namespace DataAccess.Migrations
 
                     b.HasIndex("HouseholdId");
 
+                    b.HasIndex("ShopId");
+
+                    b.HasIndex("StoreId");
+
                     b.ToTable("Stocks");
                 });
 
-            modelBuilder.Entity("DataAccess.Models.Tag", b =>
+            modelBuilder.Entity("Models.Entities.Store", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("ShopId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ShopId");
+
+                    b.ToTable("Stores");
+                });
+
+            modelBuilder.Entity("Models.Entities.Tag", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -223,7 +272,7 @@ namespace DataAccess.Migrations
                     b.ToTable("Tags");
                 });
 
-            modelBuilder.Entity("DataAccess.Models.Tag2Tag", b =>
+            modelBuilder.Entity("Models.Entities.Tag2Tag", b =>
                 {
                     b.Property<int>("ParentTagId")
                         .HasColumnType("int");
@@ -241,15 +290,15 @@ namespace DataAccess.Migrations
                     b.ToTable("Tag2Tags");
                 });
 
-            modelBuilder.Entity("DataAccess.Models.Component", b =>
+            modelBuilder.Entity("Models.Entities.Component", b =>
                 {
-                    b.HasOne("DataAccess.Models.Element", "ChildElement")
+                    b.HasOne("Models.Entities.Element", "ChildElement")
                         .WithMany("ParentComponents")
                         .HasForeignKey("ChildElementId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
-                    b.HasOne("DataAccess.Models.Element", "ParentElement")
+                    b.HasOne("Models.Entities.Element", "ParentElement")
                         .WithMany("Components")
                         .HasForeignKey("ParentElementId")
                         .OnDelete(DeleteBehavior.NoAction)
@@ -260,15 +309,15 @@ namespace DataAccess.Migrations
                     b.Navigation("ParentElement");
                 });
 
-            modelBuilder.Entity("DataAccess.Models.Element2Tag", b =>
+            modelBuilder.Entity("Models.Entities.Element2Tag", b =>
                 {
-                    b.HasOne("DataAccess.Models.Element", "Element")
+                    b.HasOne("Models.Entities.Element", "Element")
                         .WithMany("Element2Tags")
                         .HasForeignKey("ElementId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("DataAccess.Models.Tag", "Tag")
+                    b.HasOne("Models.Entities.Tag", "Tag")
                         .WithMany("Element2Tags")
                         .HasForeignKey("TagId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -279,60 +328,75 @@ namespace DataAccess.Migrations
                     b.Navigation("Tag");
                 });
 
-            modelBuilder.Entity("DataAccess.Models.Property", b =>
+            modelBuilder.Entity("Models.Entities.Property", b =>
                 {
-                    b.HasOne("DataAccess.Models.Tag", null)
+                    b.HasOne("Models.Entities.Tag", null)
                         .WithMany("Properties")
                         .HasForeignKey("TagId");
                 });
 
-            modelBuilder.Entity("DataAccess.Models.PropertyValue", b =>
+            modelBuilder.Entity("Models.Entities.PropertyValue", b =>
                 {
-                    b.HasOne("DataAccess.Models.Property", "Property")
+                    b.HasOne("Models.Entities.Property", "Property")
                         .WithMany("PropertyValues")
                         .HasForeignKey("PropertyId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("DataAccess.Models.Element2Tag", null)
+                    b.HasOne("Models.Entities.Element2Tag", null)
                         .WithMany("PropertyValues")
                         .HasForeignKey("Element2TagElementId", "Element2TagTagId");
 
-                    b.HasOne("DataAccess.Models.Tag2Tag", null)
+                    b.HasOne("Models.Entities.Tag2Tag", null)
                         .WithMany("PropertyValues")
                         .HasForeignKey("Tag2TagParentTagId", "Tag2TagChildTagId");
 
                     b.Navigation("Property");
                 });
 
-            modelBuilder.Entity("DataAccess.Models.Stock", b =>
+            modelBuilder.Entity("Models.Entities.Stock", b =>
                 {
-                    b.HasOne("DataAccess.Models.Element", "Element")
+                    b.HasOne("Models.Entities.Element", "Element")
                         .WithMany("Stocks")
                         .HasForeignKey("ElementId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("DataAccess.Models.Household", "Household")
+                    b.HasOne("Models.Entities.Household", "Household")
                         .WithMany("Stocks")
                         .HasForeignKey("HouseholdId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("Models.Entities.Shop", null)
+                        .WithMany("Stocks")
+                        .HasForeignKey("ShopId");
+
+                    b.HasOne("Models.Entities.Store", null)
+                        .WithMany("Stocks")
+                        .HasForeignKey("StoreId");
 
                     b.Navigation("Element");
 
                     b.Navigation("Household");
                 });
 
-            modelBuilder.Entity("DataAccess.Models.Tag2Tag", b =>
+            modelBuilder.Entity("Models.Entities.Store", b =>
                 {
-                    b.HasOne("DataAccess.Models.Tag", "ChildTag")
+                    b.HasOne("Models.Entities.Shop", null)
+                        .WithMany("Stores")
+                        .HasForeignKey("ShopId");
+                });
+
+            modelBuilder.Entity("Models.Entities.Tag2Tag", b =>
+                {
+                    b.HasOne("Models.Entities.Tag", "ChildTag")
                         .WithMany("ParentTag2Tags")
                         .HasForeignKey("ChildTagId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
-                    b.HasOne("DataAccess.Models.Tag", "ParentTag")
+                    b.HasOne("Models.Entities.Tag", "ParentTag")
                         .WithMany("Tag2Tags")
                         .HasForeignKey("ParentTagId")
                         .OnDelete(DeleteBehavior.NoAction)
@@ -343,7 +407,7 @@ namespace DataAccess.Migrations
                     b.Navigation("ParentTag");
                 });
 
-            modelBuilder.Entity("DataAccess.Models.Element", b =>
+            modelBuilder.Entity("Models.Entities.Element", b =>
                 {
                     b.Navigation("Components");
 
@@ -354,22 +418,34 @@ namespace DataAccess.Migrations
                     b.Navigation("Stocks");
                 });
 
-            modelBuilder.Entity("DataAccess.Models.Element2Tag", b =>
+            modelBuilder.Entity("Models.Entities.Element2Tag", b =>
                 {
                     b.Navigation("PropertyValues");
                 });
 
-            modelBuilder.Entity("DataAccess.Models.Household", b =>
+            modelBuilder.Entity("Models.Entities.Household", b =>
                 {
                     b.Navigation("Stocks");
                 });
 
-            modelBuilder.Entity("DataAccess.Models.Property", b =>
+            modelBuilder.Entity("Models.Entities.Property", b =>
                 {
                     b.Navigation("PropertyValues");
                 });
 
-            modelBuilder.Entity("DataAccess.Models.Tag", b =>
+            modelBuilder.Entity("Models.Entities.Shop", b =>
+                {
+                    b.Navigation("Stocks");
+
+                    b.Navigation("Stores");
+                });
+
+            modelBuilder.Entity("Models.Entities.Store", b =>
+                {
+                    b.Navigation("Stocks");
+                });
+
+            modelBuilder.Entity("Models.Entities.Tag", b =>
                 {
                     b.Navigation("Element2Tags");
 
@@ -380,7 +456,7 @@ namespace DataAccess.Migrations
                     b.Navigation("Tag2Tags");
                 });
 
-            modelBuilder.Entity("DataAccess.Models.Tag2Tag", b =>
+            modelBuilder.Entity("Models.Entities.Tag2Tag", b =>
                 {
                     b.Navigation("PropertyValues");
                 });

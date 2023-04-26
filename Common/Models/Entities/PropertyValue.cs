@@ -7,15 +7,6 @@ namespace Models.Entities
     {
         public PropertyValue()
         {
-            Type = EType.Unset;
-        }
-        public enum EType
-        {
-            Unset,
-            Bool,
-            String,
-            Int,
-            Double
         }
 
         [Required]
@@ -23,79 +14,39 @@ namespace Models.Entities
         public int PropertyId { get; set; }
         public virtual Property? Property { get; set; }
 
-
-        public EType Type
-        {
-            get;
-            /*
-                {
-                    return
-                        Bool != null ? EType.Bool
-                      : String != null ? EType.String
-                      : Int != null ? EType.Int
-                      : Double != null ? EType.Double
-                      : EType.Unset;
-                }
-            */
-            private set;
-            /*
-                { 
-                }
-            */
-        }
-
+        [NotMapped]
         public object? Value
         {
             get
             {
-                switch (Type)
+                return Property.ValueListType switch
                 {
-                    case EType.Unset:
-                        return null;
-                    case EType.Bool:
-                        return Bool;
-                    case EType.String:
-                        return String;
-                    case EType.Int:
-                        return Int;
-                    case EType.Double:
-                        return Double;
+                    Property.EValueListType.Unset => null,
+                    Property.EValueListType.Bool => Bool,
+                    Property.EValueListType.String => String,
+                    Property.EValueListType.Int => Int,
+                    Property.EValueListType.Double => Double,
+                    _ => throw new NotImplementedException(),
+                };
+            }
+            set
+            {
+                switch (Property.ValueListType)
+                {
+                    case Property.EValueListType.Unset: break;
+                    case Property.EValueListType.Bool: Bool = (bool?)Value; break;
+                    case Property.EValueListType.String: String = (string?)Value; break;
+                    case Property.EValueListType.Int: Int = (int?)Value; break;
+                    case Property.EValueListType.Double: Double = (double?)Value; break;
                     default:
                         throw new NotImplementedException();
                 }
             }
         }
 
-
-        #region Variable value members
-        bool? _bool = null;
-        public bool? Bool
-        {
-            get { return _bool; }
-            set { _bool = value; Type = EType.Bool; }
-        }
-
-        string? _string = null;
-        public string? String
-        {
-            get => _string;
-            set { _string = value; Type = EType.String; }
-        }
-
-        int? _int = null;
-        public int? Int
-        {
-            get { return _int; }
-            set { _int = value; Type = EType.Int; }
-        }
-
-        double? _double = null;
-        public double? Double
-        {
-            get { return _double; }
-            set { _double = value; Type = EType.Double; }
-        }
-        #endregion Variable value members
-
+        public bool? Bool { set; get; }
+        public string? String { set; get; }
+        public int? Int { set; get; }
+        public double? Double { set; get; }
     }
 }
