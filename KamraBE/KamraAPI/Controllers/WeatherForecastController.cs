@@ -1,9 +1,10 @@
 using BusinessLogicService.TestService;
-using DataAccess.Data;
-using Microsoft.AspNetCore.Mvc;
-using Shared.Dtos;
 
-namespace KamraBE.Controllers
+using DataAccess.Data;
+
+using Microsoft.AspNetCore.Mvc;
+
+namespace KamraAPI.Controllers
 {
     [ApiController]
     [Route("api/test/")]
@@ -15,7 +16,7 @@ namespace KamraBE.Controllers
 
         private readonly ApplicationDbContext _context;
         public WeatherForecastController(
-            ILogger<WeatherForecastController> logger, 
+            ILogger<WeatherForecastController> logger,
             ITestService testService,
             ApplicationDbContext context)
         {

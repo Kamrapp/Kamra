@@ -1,8 +1,8 @@
 using DataAccess.Data;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 
-namespace KamraBE
+using Microsoft.EntityFrameworkCore;
+
+namespace KamraAPI
 {
     public class Program
     {

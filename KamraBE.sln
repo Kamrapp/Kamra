@@ -13,6 +13,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DataAccess", "KamraBE\DataA
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BusinessLogicService", "KamraBE\BusinessLogicService\BusinessLogicService.csproj", "{5A91FE1E-9421-44C8-ACB4-813CCA956F9F}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Models", "Common\Models\Models.csproj", "{DBF144C1-456C-47E5-B643-17222358F11B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -35,12 +37,17 @@ Global
 		{5A91FE1E-9421-44C8-ACB4-813CCA956F9F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5A91FE1E-9421-44C8-ACB4-813CCA956F9F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5A91FE1E-9421-44C8-ACB4-813CCA956F9F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DBF144C1-456C-47E5-B643-17222358F11B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DBF144C1-456C-47E5-B643-17222358F11B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DBF144C1-456C-47E5-B643-17222358F11B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DBF144C1-456C-47E5-B643-17222358F11B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{126FA97B-42E7-46A4-AAB1-1B562EAE680F} = {91AE67E2-E852-4586-B9A3-FD198E80C7DE}
+		{DBF144C1-456C-47E5-B643-17222358F11B} = {91AE67E2-E852-4586-B9A3-FD198E80C7DE}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {3E9D171A-D1A2-49E7-A792-6A102D58F5CB}
