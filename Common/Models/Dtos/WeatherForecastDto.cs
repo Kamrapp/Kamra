@@ -1,4 +1,4 @@
-namespace Shared.Dtos;
+namespace Models.Dtos;
 
 public class WeatherForecastDto
 {

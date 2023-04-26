@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace DataAccess.Models
+namespace Models.Entities
 {
     public class Stock
     {
@@ -39,7 +39,7 @@ namespace DataAccess.Models
         [DataType(DataType.Date)]
         public DateTime ValidTill { get; set; }
 
-        [Range(0, Double.MaxValue,
+        [Range(0, double.MaxValue,
             ErrorMessage = "How dare you create stock with negative quantity?!")]
         public double Quantity { get; set; }
     }
