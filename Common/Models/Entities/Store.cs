@@ -2,9 +2,9 @@
 
 namespace Models.Entities
 {
-    public class Household
+    public class Store
     {
-        public Household()
+        public Store()
         {
             Stocks = new List<Stock>();
         }
@@ -16,12 +16,8 @@ namespace Models.Entities
 
         public ICollection<Stock> Stocks { get; set; }
 
-        //TODO User should be handled here
-        //public ICollection<User> Users { get; set; }
-
-        //TODO Households should have Address
-        //public Address Address { get; set; }
-
+        //TODO Stores should have Address
+        //public Address Addresss { get; set; }
     }
 
 }

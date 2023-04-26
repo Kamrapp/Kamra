@@ -1,5 +1,6 @@
-﻿using Models.Entities;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
+
+using Models.Entities;
 
 namespace DataAccess.Data
 {

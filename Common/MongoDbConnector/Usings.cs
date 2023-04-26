@@ -1,5 +1,7 @@
 ﻿global using Microsoft.Extensions.Configuration;
 
+global using Models.Records.Base;
+
 global using MongoDB.Bson;
 global using MongoDB.Driver;
 

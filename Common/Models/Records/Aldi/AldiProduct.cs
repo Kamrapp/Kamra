@@ -1,4 +1,4 @@
-﻿namespace Shared.Records.Aldi;
+﻿namespace Models.Records.Aldi;
 
 [Class(XPath = "//main")]
 [Json(XPath = "//script[@type='application/ld+json']")]

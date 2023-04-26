@@ -1,6 +1,4 @@
-﻿using Shared.Records.Base;
-
-namespace MongoDbConnector.Repository;
+﻿namespace MongoDbConnector.Repository;
 
 public class BaseRecordRepository<TBaseRecord> : KeyRecordRepository<TBaseRecord>, IBaseRecordRepository<TBaseRecord>
     where TBaseRecord : BaseRecord

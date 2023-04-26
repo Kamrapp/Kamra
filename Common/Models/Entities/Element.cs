@@ -16,6 +16,7 @@ namespace Models.Entities
 
         [Key]
         public int Id { get; set; }
+
         [Required]
         public string GlobalName { get; set; }
 

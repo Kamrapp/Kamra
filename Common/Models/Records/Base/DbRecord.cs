@@ -1,4 +1,4 @@
-﻿namespace Shared.Records.Base;
+﻿namespace Models.Records.Base;
 
 public class DbRecord : IDbRecord
 {

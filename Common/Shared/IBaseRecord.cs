@@ -1,4 +1,4 @@
-﻿namespace Shared.Records.Base;
+﻿namespace Shared;
 
 public interface IBaseRecord
 {

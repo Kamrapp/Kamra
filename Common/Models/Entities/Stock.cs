@@ -42,6 +42,10 @@ namespace Models.Entities
         [Range(0, double.MaxValue,
             ErrorMessage = "How dare you create stock with negative quantity?!")]
         public double Quantity { get; set; }
+
+        [Range(0, double.MaxValue,
+            ErrorMessage = "How dare you create stock with negative price?!")]
+        public double Price { get; set; }
     }
 
 }

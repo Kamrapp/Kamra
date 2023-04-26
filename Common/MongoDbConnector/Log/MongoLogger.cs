@@ -1,6 +1,4 @@
-﻿using Shared.Records.Base;
-
-namespace MongoDbConnector.Log;
+﻿namespace MongoDbConnector.Log;
 
 public class MongoLogger : BaseLogger, IMongoLogger
 {

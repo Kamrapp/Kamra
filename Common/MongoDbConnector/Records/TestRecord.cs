@@ -1,6 +1,4 @@
-﻿using Shared.Records.Base;
-
-namespace MongoDbConnector.Records;
+﻿namespace MongoDbConnector.Records;
 
 internal class TestRecord : IDbRecord
 {

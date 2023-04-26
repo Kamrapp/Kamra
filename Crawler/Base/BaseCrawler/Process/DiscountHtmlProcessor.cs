@@ -1,6 +1,4 @@
-﻿using Shared.Records.Base;
-
-namespace BaseCrawler.Process;
+﻿namespace BaseCrawler.Process;
 
 public class DiscountHtmlProcessor<TProduct, TOffer> : BaseProcessor<TProduct, TOffer, DiscountClassAttribute, DiscountFieldAttribute>
     where TProduct : BaseProduct
