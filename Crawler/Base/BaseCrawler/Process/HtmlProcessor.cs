@@ -1,4 +1,6 @@
-﻿namespace BaseCrawler.Process;
+﻿using Shared.Records.Base;
+
+namespace BaseCrawler.Process;
 
 public class HtmlProcessor<TProduct, TOffer> : BaseProcessor<TProduct, TOffer, ClassAttribute, FieldAttribute>
     where TProduct : BaseProduct

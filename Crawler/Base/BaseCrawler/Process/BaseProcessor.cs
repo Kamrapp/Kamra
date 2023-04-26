@@ -1,4 +1,6 @@
-﻿namespace BaseCrawler.Process;
+﻿using Shared.Records.Base;
+
+namespace BaseCrawler.Process;
 
 public abstract class BaseProcessor<TProduct, TOffer, TClassAttribute, TPropertyAttribute> : IProcessor<TProduct, TOffer>
     where TProduct : BaseProduct

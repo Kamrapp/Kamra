@@ -1,5 +1,7 @@
 ﻿using Newtonsoft.Json.Linq;
 
+using Shared.Records.Base;
+
 namespace BaseCrawler.Process;
 
 public class JsonProcessor<TProduct, TOffer> : BaseProcessor<TProduct, TOffer, JsonAttribute, JsonValueAttribute>

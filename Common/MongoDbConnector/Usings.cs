@@ -9,4 +9,4 @@ global using MongoDbConnector.Repository.Interfaces;
 global using MongoDbConnector.Settings;
 
 global using Shared.Extensions;
-global using Shared.Records;
+global using Shared.Utils.Logger;

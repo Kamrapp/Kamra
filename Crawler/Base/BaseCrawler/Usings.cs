@@ -1,6 +1,5 @@
 ﻿global using BaseCrawler.Download;
 global using BaseCrawler.Helpers;
-global using BaseCrawler.Log;
 global using BaseCrawler.Pipeline;
 global using BaseCrawler.Process;
 global using BaseCrawler.Read;
@@ -9,7 +8,6 @@ global using HtmlAgilityPack;
 
 global using Microsoft.Playwright;
 
-global using MongoDbConnector.Records;
 global using MongoDbConnector.Repository;
 global using MongoDbConnector.Repository.Interfaces;
 

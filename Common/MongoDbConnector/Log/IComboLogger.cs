@@ -1,6 +1,4 @@
-﻿using MongoDbConnector;
-
-namespace BaseCrawler.Log;
+﻿namespace MongoDbConnector.Log;
 
 public interface IComboLogger : IMongoLogger
 {

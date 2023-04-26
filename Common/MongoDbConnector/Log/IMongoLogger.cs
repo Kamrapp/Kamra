@@ -1,6 +1,4 @@
-﻿using Shared.Utils.Logger;
-
-namespace MongoDbConnector;
+﻿namespace MongoDbConnector.Log;
 
 public interface IMongoLogger : ILogger
 {

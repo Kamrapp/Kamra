@@ -1,4 +1,6 @@
-﻿namespace MongoDbConnector.Repository;
+﻿using Shared.Records.Base;
+
+namespace MongoDbConnector.Repository;
 
 public class KeyRecordRepository<TKeyRecord> : RecordRepository<TKeyRecord>, IKeyRecordRepository<TKeyRecord>
     where TKeyRecord : KeyRecord

@@ -1,4 +1,6 @@
-﻿namespace MongoDbConnector.Repository.Interfaces;
+﻿using Shared.Records.Base;
+
+namespace MongoDbConnector.Repository.Interfaces;
 
 public interface IRecordRepository<TRecord>
     where TRecord : IDbRecord

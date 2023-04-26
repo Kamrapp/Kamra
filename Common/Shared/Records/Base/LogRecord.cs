@@ -1,6 +1,6 @@
-﻿using Shared.Utils.Logger;
+﻿
 
-namespace MongoDbConnector.Records;
+namespace Shared.Records.Base;
 
 public class LogRecord : IDbRecord
 {

@@ -1,5 +1,7 @@
 ﻿using BaseCrawler;
 
+using Shared.Records.Lidl;
+
 namespace LidlCrawler.Instance;
 
 public class LidlCrawler : Crawler<LidlProduct, LidlOffer>

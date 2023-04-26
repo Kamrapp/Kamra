@@ -1,5 +1,7 @@
 ﻿using BaseCrawler;
 
+using Shared.Records.Aldi;
+
 namespace AldiCrawler.Instance;
 
 public class AldiCrawler : Crawler<AldiProduct, AldiOffer>

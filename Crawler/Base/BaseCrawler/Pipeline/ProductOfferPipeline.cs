@@ -1,5 +1,9 @@
 ﻿using MongoDB.Driver;
 
+using MongoDbConnector.Log;
+
+using Shared.Records.Base;
+
 namespace BaseCrawler.Pipeline;
 
 public class ProductOfferPipeline<TProduct, TOffer> : IPipeline<TProduct, TOffer>

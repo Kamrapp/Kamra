@@ -1,4 +1,6 @@
-﻿namespace MongoDbConnector.Repository;
+﻿using Shared.Records.Base;
+
+namespace MongoDbConnector.Repository;
 
 public class LogRepository : RecordRepository<LogRecord>
 {

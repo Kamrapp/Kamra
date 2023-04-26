@@ -1,5 +1,9 @@
 ﻿using MongoDB.Driver;
 
+using MongoDbConnector.Log;
+
+using Shared.Records.Base;
+
 namespace BaseCrawler;
 public class Crawler<TProduct, TOffer> : ICrawler
     where TProduct : BaseProduct

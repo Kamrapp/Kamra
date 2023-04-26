@@ -1,4 +1,6 @@
-﻿namespace MongoDbConnector.Records;
+﻿
+
+namespace Shared.Records.Base;
 
 public class KeyRecord : IDbRecord
 {
