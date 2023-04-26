@@ -1,4 +1,4 @@
-﻿namespace Shared.Records.Lidl;
+﻿namespace Models.Records.Lidl;
 
 [Class(XPath = "//article[@class='detail']")]
 [Json(XPath = "//script[@data-hid='json_data_product']")]

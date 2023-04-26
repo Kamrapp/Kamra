@@ -1,6 +1,4 @@
-﻿using Shared.Records.Base;
-
-namespace MongoDbConnector.Repository.Interfaces;
+﻿namespace MongoDbConnector.Repository.Interfaces;
 
 public interface IKeyRecordRepository<TKeyRecord> : IRecordRepository<TKeyRecord>
     where TKeyRecord : KeyRecord

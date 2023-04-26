@@ -1,4 +1,4 @@
-﻿namespace Shared.Records.Base;
+﻿namespace Models.Records.Base;
 
 public abstract class BaseOffer : BaseRecord
 {

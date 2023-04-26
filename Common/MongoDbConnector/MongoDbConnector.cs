@@ -1,6 +1,4 @@
-﻿using Shared.Records.Base;
-
-namespace MongoDbConnector;
+﻿namespace MongoDbConnector;
 
 public static class MongoDbConnector
 {

@@ -1,6 +1,4 @@
-﻿
-
-namespace Shared.Records.Base;
+﻿namespace Models.Records.Base;
 
 public class LogRecord : IDbRecord
 {

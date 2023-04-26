@@ -10,3 +10,4 @@ global using MongoDbConnector.Settings;
 
 global using Shared.Extensions;
 global using Shared.Utils.Logger;
+global using Models.Records.Base;

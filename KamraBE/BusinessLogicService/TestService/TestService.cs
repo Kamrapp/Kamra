@@ -1,4 +1,6 @@
-﻿namespace BusinessLogicService.TestService
+﻿using Models.Dtos;
+
+namespace BusinessLogicService.TestService
 {
     public class TestService : ITestService
     {
