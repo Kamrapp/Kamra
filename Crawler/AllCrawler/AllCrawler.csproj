@@ -8,8 +8,8 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\AldiCrawler\AldiCrawler.csproj" />
-		<ProjectReference Include="..\LidlCrawler\LidlCrawler.csproj" />
+	  <ProjectReference Include="..\Sample\AldiCrawler\AldiCrawler.csproj" />
+	  <ProjectReference Include="..\Sample\LidlCrawler\LidlCrawler.csproj" />
 	</ItemGroup>
 
 </Project>
