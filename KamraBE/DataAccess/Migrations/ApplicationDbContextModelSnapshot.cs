@@ -37,7 +37,7 @@ namespace DataAccess.Migrations
 
                     b.HasIndex("ChildElementId");
 
-                    b.ToTable("Components", (string)null);
+                    b.ToTable("Components");
                 });
 
             modelBuilder.Entity("Models.Entities.Element", b =>
@@ -64,7 +64,7 @@ namespace DataAccess.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Elements", (string)null);
+                    b.ToTable("Elements");
                 });
 
             modelBuilder.Entity("Models.Entities.Element2Tag", b =>
@@ -82,7 +82,7 @@ namespace DataAccess.Migrations
 
                     b.HasIndex("TagId");
 
-                    b.ToTable("Element2Tags", (string)null);
+                    b.ToTable("Element2Tags");
                 });
 
             modelBuilder.Entity("Models.Entities.Household", b =>
@@ -99,7 +99,7 @@ namespace DataAccess.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Households", (string)null);
+                    b.ToTable("Households");
                 });
 
             modelBuilder.Entity("Models.Entities.Property", b =>
@@ -114,10 +114,10 @@ namespace DataAccess.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int?>("TagId")
+                    b.Property<int>("PropertyType")
                         .HasColumnType("int");
 
-                    b.Property<int>("Type")
+                    b.Property<int?>("TagId")
                         .HasColumnType("int");
 
                     b.Property<int>("ValueListType")
@@ -159,16 +159,13 @@ namespace DataAccess.Migrations
                     b.Property<int?>("Tag2TagParentTagId")
                         .HasColumnType("int");
 
-                    b.Property<int>("Type")
-                        .HasColumnType("int");
-
                     b.HasKey("PropertyId", "Bool", "String", "Double", "Int");
 
                     b.HasIndex("Element2TagElementId", "Element2TagTagId");
 
                     b.HasIndex("Tag2TagParentTagId", "Tag2TagChildTagId");
 
-                    b.ToTable("PropertyValues", (string)null);
+                    b.ToTable("PropertyValues");
                 });
 
             modelBuilder.Entity("Models.Entities.Shop", b =>
@@ -185,7 +182,7 @@ namespace DataAccess.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Shops", (string)null);
+                    b.ToTable("Shops");
                 });
 
             modelBuilder.Entity("Models.Entities.Stock", b =>
@@ -233,7 +230,7 @@ namespace DataAccess.Migrations
 
                     b.HasIndex("StoreId");
 
-                    b.ToTable("Stocks", (string)null);
+                    b.ToTable("Stocks");
                 });
 
             modelBuilder.Entity("Models.Entities.Store", b =>
@@ -255,7 +252,7 @@ namespace DataAccess.Migrations
 
                     b.HasIndex("ShopId");
 
-                    b.ToTable("Stores", (string)null);
+                    b.ToTable("Stores");
                 });
 
             modelBuilder.Entity("Models.Entities.Tag", b =>
@@ -272,7 +269,7 @@ namespace DataAccess.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Tags", (string)null);
+                    b.ToTable("Tags");
                 });
 
             modelBuilder.Entity("Models.Entities.Tag2Tag", b =>
@@ -290,7 +287,7 @@ namespace DataAccess.Migrations
 
                     b.HasIndex("ChildTagId");
 
-                    b.ToTable("Tag2Tags", (string)null);
+                    b.ToTable("Tag2Tags");
                 });
 
             modelBuilder.Entity("Models.Entities.Component", b =>

@@ -1,10 +1,11 @@
+﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace DataAccess.Migrations
 {
-    public partial class initaftermigrationtong : Migration
+    public partial class InitialMigration : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -35,6 +36,19 @@ namespace DataAccess.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Households", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Shops",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Shops", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -74,33 +88,22 @@ namespace DataAccess.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Stocks",
+                name: "Stores",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    ElementId = table.Column<int>(type: "int", nullable: false),
-                    HouseholdId = table.Column<int>(type: "int", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    ValidFrom = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    ValidTill = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Quantity = table.Column<double>(type: "float", nullable: false)
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ShopId = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Stocks", x => x.Id);
+                    table.PrimaryKey("PK_Stores", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Stocks_Elements_ElementId",
-                        column: x => x.ElementId,
-                        principalTable: "Elements",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_Stocks_Households_HouseholdId",
-                        column: x => x.HouseholdId,
-                        principalTable: "Households",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        name: "FK_Stores_Shops_ShopId",
+                        column: x => x.ShopId,
+                        principalTable: "Shops",
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
@@ -135,7 +138,7 @@ namespace DataAccess.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Type = table.Column<int>(type: "int", nullable: false),
+                    PropertyType = table.Column<int>(type: "int", nullable: false),
                     ValueListType = table.Column<int>(type: "int", nullable: false),
                     TagId = table.Column<int>(type: "int", nullable: true)
                 },
@@ -173,6 +176,49 @@ namespace DataAccess.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Stocks",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    ElementId = table.Column<int>(type: "int", nullable: false),
+                    HouseholdId = table.Column<int>(type: "int", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ValidFrom = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ValidTill = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Quantity = table.Column<double>(type: "float", nullable: false),
+                    Price = table.Column<double>(type: "float", nullable: false),
+                    ShopId = table.Column<int>(type: "int", nullable: true),
+                    StoreId = table.Column<int>(type: "int", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Stocks", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Stocks_Elements_ElementId",
+                        column: x => x.ElementId,
+                        principalTable: "Elements",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Stocks_Households_HouseholdId",
+                        column: x => x.HouseholdId,
+                        principalTable: "Households",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Stocks_Shops_ShopId",
+                        column: x => x.ShopId,
+                        principalTable: "Shops",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Stocks_Stores_StoreId",
+                        column: x => x.StoreId,
+                        principalTable: "Stores",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
                 name: "PropertyValues",
                 columns: table => new
                 {
@@ -181,7 +227,6 @@ namespace DataAccess.Migrations
                     String = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Int = table.Column<int>(type: "int", nullable: false),
                     Double = table.Column<double>(type: "float", nullable: false),
-                    Type = table.Column<int>(type: "int", nullable: false),
                     Element2TagElementId = table.Column<int>(type: "int", nullable: true),
                     Element2TagTagId = table.Column<int>(type: "int", nullable: true),
                     Tag2TagChildTagId = table.Column<int>(type: "int", nullable: true),
@@ -244,6 +289,21 @@ namespace DataAccess.Migrations
                 column: "HouseholdId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Stocks_ShopId",
+                table: "Stocks",
+                column: "ShopId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Stocks_StoreId",
+                table: "Stocks",
+                column: "StoreId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Stores_ShopId",
+                table: "Stores",
+                column: "ShopId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Tag2Tags_ChildTagId",
                 table: "Tag2Tags",
                 column: "ChildTagId");
@@ -273,10 +333,16 @@ namespace DataAccess.Migrations
                 name: "Households");
 
             migrationBuilder.DropTable(
+                name: "Stores");
+
+            migrationBuilder.DropTable(
                 name: "Elements");
 
             migrationBuilder.DropTable(
                 name: "Tags");
+
+            migrationBuilder.DropTable(
+                name: "Shops");
         }
     }
 }

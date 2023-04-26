@@ -6,12 +6,12 @@ namespace Models.Entities
     {
         public Property()
         {
-            Type = EType.Unset;
-            ValueListType = PropertyValue.EType.Unset;
+            PropertyType = EPropertyType.Unset;
+            ValueListType = EValueListType.Unset;
             PropertyValues = new List<PropertyValue>();
         }
 
-        public enum EType
+        public enum EPropertyType
         {
             Unset,
             Bool,
@@ -21,13 +21,22 @@ namespace Models.Entities
             ValueList
         }
 
+        public enum EValueListType
+        {
+            Unset,
+            Bool,
+            String,
+            Int,
+            Double
+        }
+
         [Key]
         public int Id { get; set; }
         [Required]
         public string Name { get; set; }
-        public EType Type { get; set; }
+        public EPropertyType PropertyType { get; set; }
 
-        public PropertyValue.EType ValueListType { get; set; }
+        public EValueListType ValueListType { get; set; }
         public ICollection<PropertyValue> PropertyValues { get; set; }
 
     }
