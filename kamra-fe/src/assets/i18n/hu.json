@@ -1,0 +1,18 @@
+{
+    "Login" : {
+        "LOGIN_TITLE": "Nézzen be a kamrába!",
+        "LOGIN_BUTTON": "Gyerünk!",
+        "LABEL_PASS": "Jelszó",
+        "LABEL_EMAIL": "E-mail cím",
+        "FORGOT_PASS": "Elfelejtettem a jelszavam",
+        "LOGOUT": "Kijelentkezés",
+        "REMEBER_ME": "Jegyezzen meg"
+    },
+    "Reg" : {
+        "REG_TITLE": "Hozza létre kamráját!",
+        "REG_BUTTON" : "Rajta!",
+        "LABEL_PASS": "Jelszó",
+        "LABEL_PASS_AGAIN": "Jelszó újra",
+        "LABEL_EMAIL": "E-mail cím"
+    }
+}

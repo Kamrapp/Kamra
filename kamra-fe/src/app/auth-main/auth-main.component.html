@@ -1,0 +1,15 @@
+<main class="form-signin w-100 m-auto position-absolute top-50 start-50 translate-middle">
+    <div class="d-flex justify-content-center mb-5">
+        <div class="w-80 btn btn-lg card-header" (click)="showLogin()">Bejelentkezés</div>
+        <div class="w-80 btn btn-lg card-header" (click)="showSignup()">Regisztráció</div>
+    </div>
+    <div *ngIf="showLoginComponent">
+        <app-login></app-login>
+      </div>
+      
+      <div *ngIf="showSignupComponent">
+        <app-signup></app-signup>
+      </div>
+</main>
+
+  
