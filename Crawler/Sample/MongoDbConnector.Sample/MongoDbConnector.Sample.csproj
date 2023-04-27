@@ -8,8 +8,8 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\Sample\AldiCrawler\AldiCrawler.csproj" />
-	  <ProjectReference Include="..\Sample\LidlCrawler\LidlCrawler.csproj" />
+		<ProjectReference Include="..\..\..\Common\MongoDbConnector\MongoDbConnector.csproj" />
+		<ProjectReference Include="..\LidlCrawler\LidlCrawler.csproj" />
 	</ItemGroup>
 
 </Project>

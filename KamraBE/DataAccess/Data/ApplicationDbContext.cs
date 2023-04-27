@@ -1,5 +1,9 @@
-﻿using DataAccess.Models;
+﻿
 using Microsoft.EntityFrameworkCore;
+using Models.Entities;
+
+using Models.Entities;
+
 namespace DataAccess.Data
 {
     public class ApplicationDbContext : DbContext
@@ -17,6 +21,10 @@ namespace DataAccess.Data
         public DbSet<Tag2Tag> Tag2Tags { get; set; }
         public DbSet<Stock> Stocks { get; set; }
         public DbSet<Household> Households { get; set; }
+        public DbSet<Store> Stores { get; set; }
+        public DbSet<User> Users { get; set; }
+        public DbSet<Shop> Shops { get; set; }
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
