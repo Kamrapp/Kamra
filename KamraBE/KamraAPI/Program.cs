@@ -35,6 +35,9 @@ namespace KamraAPI
             // Use dotnet Secret to overwrite connectionString "below" AppSettings data with your own value!
             //var connectionString = "Data Source=DESKTOP-KT33QNU\\SQLDEVELOPER;Initial Catalog=Kamra;Integrated Security=True";
 
+            if (connectionString == null)
+                throw new ArgumentException("Default connectionstring is missing");
+
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(connectionString));//, contextLifetime: ServiceLifetime.Singleton);
 
