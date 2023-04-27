@@ -1,6 +1,4 @@
-﻿using Models.Records.Aldi;
-using Models.Records.Base;
-using Models.Records.Lidl;
+﻿using Models.Records.Base;
 
 using MongoDB.Driver;
 
@@ -26,7 +24,7 @@ namespace Fetcher.Instance
         private IBaseRecordRepository<BaseProduct> LidlRepository;
         private IBaseRecordRepository<BaseProduct> AldiRepository;
 
-        private const string ApiEndpoint = "http://localhost:2022/";
+        private const string ApiEndpoint = "https://localhost:2022/";
         private HttpClient Client;
 
         public Fetcher()
@@ -63,11 +61,29 @@ namespace Fetcher.Instance
             }
         }
 
+        private static bool ValidateDto(MongoElementDto elementDto)
+        {
+            if (string.IsNullOrEmpty(elementDto.GlobalName))
+                return false;
+
+            return true;
+        }
+
         private async Task UploadProduct(BaseProduct product, string distributor, IBaseRecordRepository<BaseProduct> repository)
         {
             var mongoElementDto = product.ToMongoDto();
             if (string.IsNullOrEmpty(mongoElementDto.Distributor))
                 mongoElementDto.Distributor = distributor;
+
+            if (!ValidateDto(mongoElementDto))
+            {
+                Logger.Log(LogType.Info, $"Failed to fetch  {product.Name}");
+
+                product.IsFaulted = true;
+                repository.Update(product);
+                Logger.Log(LogType.Info, $"Updated  {product.Name} in mongoDb faulted");
+                return;
+            }
 
             var apiId = await CreateElementAsync(mongoElementDto);
             if (apiId <= 0)
@@ -79,14 +95,39 @@ namespace Fetcher.Instance
             Logger.Log(LogType.Info, $"Uploaded {product.Name} with given ApiId: {apiId}");
 
             product.ApiId = apiId;
+            product.IsMigrated = true;
             repository.Update(product);
             Logger.Log(LogType.Info, $"Updated  {product.Name} in mongoDb ApiId: {apiId}");
         }
 
+        async Task<bool> GetAllElementsAsync()
+        {
+            HttpResponseMessage response;
+            try
+            {
+                response = await Client.GetAsync("api/element/getall");
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
         async Task<int?> CreateElementAsync(MongoElementDto elementDto)
         {
-            HttpResponseMessage response = await Client.PostAsJsonAsync(
+            HttpResponseMessage response;
+            try
+            {
+                response = await Client.PostAsJsonAsync(
                 "api/element/create", elementDto);
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogType.Info, $"Failed to create {elementDto.GlobalName}");
+                return -1;
+            }
 
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
                 return -1;

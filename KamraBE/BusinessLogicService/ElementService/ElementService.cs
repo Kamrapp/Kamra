@@ -4,8 +4,6 @@ using DataAccess.Data;
 
 using Microsoft.EntityFrameworkCore;
 
-using MongoDB.Bson;
-
 namespace BusinessLogicService.UserService
 {
     public class ElementService : IElementService
@@ -16,11 +14,11 @@ namespace BusinessLogicService.UserService
             _context = context;
         }
 
-        public async Task<MongoElementDto> GetElement(ObjectId mongoId)
+        public async Task<MongoElementDto> GetElement(string mongoId)
         {
             try
             {
-                var element = await _context.Elements.FirstOrDefaultAsync(x => x.MongoId == mongoId.ToString());
+                var element = await _context.Elements.FirstOrDefaultAsync(x => x.MongoId == mongoId);
                 // todo if not exists throw an error
                 if (element == null) return null;
 
@@ -36,7 +34,26 @@ namespace BusinessLogicService.UserService
                 return null;
             }
         }
+        public async Task<MongoElementDto> GetElement(int id)
+        {
+            try
+            {
+                var element = await _context.Elements.FirstOrDefaultAsync(x => x.Id == id);
+                // todo if not exists throw an error
+                if (element == null) return null;
 
+                return element?.ToMongoDto();
+            }
+            catch (NullReferenceException ne)
+            {
+                // TODO logger
+                return null;
+            }
+            catch (TimeoutException te)
+            {
+                return null;
+            }
+        }
         public async Task<IEnumerable<MongoElementDto>> GetAllElements()
         {
             try
