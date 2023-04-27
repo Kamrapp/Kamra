@@ -55,7 +55,7 @@ namespace BusinessLogicService.UserService
             }
         }
 
-        public async Task<bool> CreateElement(MongoElementDto elementDto)
+        public async Task<MongoElementDto> CreateElement(MongoElementDto elementDto)
         {
             try
             {
@@ -71,19 +71,19 @@ namespace BusinessLogicService.UserService
 
                 var result = await _context.SaveChangesAsync();
 
-                return result > 0;
+                return result > 0 ? newElement.ToMongoDto() : null;
             }
             catch (NullReferenceException ne)
             {
-                return false;
+                return null;
             }
             catch (TimeoutException te)
             {
-                return false;
+                return null;
             }
             catch (DbUpdateException dbex)
             {
-                return false;
+                return null;
             }
         }
     }

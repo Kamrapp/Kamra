@@ -6,7 +6,7 @@ namespace BusinessLogicService.ElementService
     {
         public Task<MongoElementDto> GetElement(ObjectId mongoId);
         public Task<IEnumerable<MongoElementDto>> GetAllElements();
-        public Task<bool> CreateElement(MongoElementDto elementDto);
+        public Task<MongoElementDto> CreateElement(MongoElementDto elementDto);
 
     }
 }

@@ -29,7 +29,7 @@ namespace KamraAPI.Controllers
             {
                 var element = await _elementService.CreateElement(elementDto);
 
-                return Ok();
+                return Ok(element);
             }
             catch (Exception ex)
             {

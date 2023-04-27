@@ -31,7 +31,6 @@ namespace Shared.Mapper
         {
             return new Element()
             {
-                Id = elementDto.Id,
                 MongoId = elementDto.MongoId,
 
                 GlobalName = elementDto.GlobalName,
