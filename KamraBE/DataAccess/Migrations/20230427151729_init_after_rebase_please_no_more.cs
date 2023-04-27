@@ -5,11 +5,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace DataAccess.Migrations
 {
-<<<<<<<< HEAD:KamraBE/DataAccess/Migrations/20230426212521_InitialMigration.cs
-    public partial class InitialMigration : Migration
-========
-    public partial class init_with_user : Migration
->>>>>>>> e6e7e86 (KamraAPI: migration reload, slightly fix for userlogin):KamraBE/DataAccess/Migrations/20230427143632_init_with_user.cs
+    public partial class init_after_rebase_please_no_more : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -92,25 +88,6 @@ namespace DataAccess.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Stores",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ShopId = table.Column<int>(type: "int", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Stores", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Stores_Shops_ShopId",
-                        column: x => x.ShopId,
-                        principalTable: "Shops",
-                        principalColumn: "Id");
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Users",
                 columns: table => new
                 {
@@ -133,6 +110,25 @@ namespace DataAccess.Migrations
                         name: "FK_Users_Households_HouseHoldId",
                         column: x => x.HouseHoldId,
                         principalTable: "Households",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Stores",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ShopId = table.Column<int>(type: "int", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Stores", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Stores_Shops_ShopId",
+                        column: x => x.ShopId,
+                        principalTable: "Shops",
                         principalColumn: "Id");
                 });
 
@@ -368,10 +364,10 @@ namespace DataAccess.Migrations
                 name: "Tag2Tags");
 
             migrationBuilder.DropTable(
-                name: "Households");
+                name: "Stores");
 
             migrationBuilder.DropTable(
-                name: "Stores");
+                name: "Households");
 
             migrationBuilder.DropTable(
                 name: "Elements");

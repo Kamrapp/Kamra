@@ -12,13 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DataAccess.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-<<<<<<<< HEAD:KamraBE/DataAccess/Migrations/20230426212521_InitialMigration.Designer.cs
-    [Migration("20230426212521_InitialMigration")]
-    partial class InitialMigration
-========
-    [Migration("20230427143632_init_with_user")]
-    partial class init_with_user
->>>>>>>> e6e7e86 (KamraAPI: migration reload, slightly fix for userlogin):KamraBE/DataAccess/Migrations/20230427143632_init_with_user.Designer.cs
+    [Migration("20230427151729_init_after_rebase_please_no_more")]
+    partial class init_after_rebase_please_no_more
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -175,7 +170,6 @@ namespace DataAccess.Migrations
                     b.ToTable("PropertyValues");
                 });
 
-<<<<<<<< HEAD:KamraBE/DataAccess/Migrations/20230426212521_InitialMigration.Designer.cs
             modelBuilder.Entity("Models.Entities.Shop", b =>
                 {
                     b.Property<int>("Id")
@@ -193,8 +187,6 @@ namespace DataAccess.Migrations
                     b.ToTable("Shops");
                 });
 
-========
->>>>>>>> e6e7e86 (KamraAPI: migration reload, slightly fix for userlogin):KamraBE/DataAccess/Migrations/20230427143632_init_with_user.Designer.cs
             modelBuilder.Entity("Models.Entities.Stock", b =>
                 {
                     b.Property<int>("Id")
@@ -243,7 +235,6 @@ namespace DataAccess.Migrations
                     b.ToTable("Stocks");
                 });
 
-<<<<<<<< HEAD:KamraBE/DataAccess/Migrations/20230426212521_InitialMigration.Designer.cs
             modelBuilder.Entity("Models.Entities.Store", b =>
                 {
                     b.Property<int>("Id")
@@ -266,8 +257,6 @@ namespace DataAccess.Migrations
                     b.ToTable("Stores");
                 });
 
-========
->>>>>>>> e6e7e86 (KamraAPI: migration reload, slightly fix for userlogin):KamraBE/DataAccess/Migrations/20230427143632_init_with_user.Designer.cs
             modelBuilder.Entity("Models.Entities.Tag", b =>
                 {
                     b.Property<int>("Id")
@@ -303,10 +292,6 @@ namespace DataAccess.Migrations
                     b.ToTable("Tag2Tags");
                 });
 
-<<<<<<<< HEAD:KamraBE/DataAccess/Migrations/20230426212521_InitialMigration.Designer.cs
-            modelBuilder.Entity("Models.Entities.Component", b =>
-                {
-========
             modelBuilder.Entity("Models.Entities.User", b =>
                 {
                     b.Property<int>("Id")
@@ -355,7 +340,6 @@ namespace DataAccess.Migrations
 
             modelBuilder.Entity("Models.Entities.Component", b =>
                 {
->>>>>>>> e6e7e86 (KamraAPI: migration reload, slightly fix for userlogin):KamraBE/DataAccess/Migrations/20230427143632_init_with_user.Designer.cs
                     b.HasOne("Models.Entities.Element", "ChildElement")
                         .WithMany("ParentComponents")
                         .HasForeignKey("ChildElementId")
@@ -445,7 +429,6 @@ namespace DataAccess.Migrations
                     b.Navigation("Household");
                 });
 
-<<<<<<<< HEAD:KamraBE/DataAccess/Migrations/20230426212521_InitialMigration.Designer.cs
             modelBuilder.Entity("Models.Entities.Store", b =>
                 {
                     b.HasOne("Models.Entities.Shop", null)
@@ -455,10 +438,6 @@ namespace DataAccess.Migrations
 
             modelBuilder.Entity("Models.Entities.Tag2Tag", b =>
                 {
-========
-            modelBuilder.Entity("Models.Entities.Tag2Tag", b =>
-                {
->>>>>>>> e6e7e86 (KamraAPI: migration reload, slightly fix for userlogin):KamraBE/DataAccess/Migrations/20230427143632_init_with_user.Designer.cs
                     b.HasOne("Models.Entities.Tag", "ChildTag")
                         .WithMany("ParentTag2Tags")
                         .HasForeignKey("ChildTagId")
@@ -476,8 +455,6 @@ namespace DataAccess.Migrations
                     b.Navigation("ParentTag");
                 });
 
-<<<<<<<< HEAD:KamraBE/DataAccess/Migrations/20230426212521_InitialMigration.Designer.cs
-========
             modelBuilder.Entity("Models.Entities.User", b =>
                 {
                     b.HasOne("Models.Entities.Household", "Household")
@@ -487,7 +464,6 @@ namespace DataAccess.Migrations
                     b.Navigation("Household");
                 });
 
->>>>>>>> e6e7e86 (KamraAPI: migration reload, slightly fix for userlogin):KamraBE/DataAccess/Migrations/20230427143632_init_with_user.Designer.cs
             modelBuilder.Entity("Models.Entities.Element", b =>
                 {
                     b.Navigation("Components");
@@ -514,7 +490,6 @@ namespace DataAccess.Migrations
                     b.Navigation("PropertyValues");
                 });
 
-<<<<<<<< HEAD:KamraBE/DataAccess/Migrations/20230426212521_InitialMigration.Designer.cs
             modelBuilder.Entity("Models.Entities.Shop", b =>
                 {
                     b.Navigation("Stocks");
@@ -527,8 +502,6 @@ namespace DataAccess.Migrations
                     b.Navigation("Stocks");
                 });
 
-========
->>>>>>>> e6e7e86 (KamraAPI: migration reload, slightly fix for userlogin):KamraBE/DataAccess/Migrations/20230427143632_init_with_user.Designer.cs
             modelBuilder.Entity("Models.Entities.Tag", b =>
                 {
                     b.Navigation("Element2Tags");

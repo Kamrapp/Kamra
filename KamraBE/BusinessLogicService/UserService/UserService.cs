@@ -40,7 +40,7 @@ namespace BusinessLogicService.UserService
                 _config["Jwt:Issuer"],
                 _config["Jwt:Audience"],
                 claims,
-                expires: DateTime.Now.AddMinutes(10),
+                expires: DateTime.Now.AddDays(7),
                 signingCredentials: credKey);
 
             return new JwtSecurityTokenHandler().WriteToken(token);

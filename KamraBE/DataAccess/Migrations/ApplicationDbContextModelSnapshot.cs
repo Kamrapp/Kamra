@@ -233,7 +233,7 @@ namespace DataAccess.Migrations
                     b.ToTable("Stocks");
                 });
 
-            modelBuilder.Entity("Models.Entities.Tag", b =>
+            modelBuilder.Entity("Models.Entities.Store", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -290,7 +290,7 @@ namespace DataAccess.Migrations
                     b.ToTable("Tag2Tags");
                 });
 
-            modelBuilder.Entity("Models.Entities.Component", b =>
+            modelBuilder.Entity("Models.Entities.User", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -429,7 +429,7 @@ namespace DataAccess.Migrations
 
             modelBuilder.Entity("Models.Entities.Store", b =>
                 {
-                    b.HasOne("Models.Entities.Tag", "ChildTag")
+                    b.HasOne("Models.Entities.Shop", null)
                         .WithMany("Stores")
                         .HasForeignKey("ShopId");
                 });
@@ -453,7 +453,7 @@ namespace DataAccess.Migrations
                     b.Navigation("ParentTag");
                 });
 
-            modelBuilder.Entity("Models.Entities.Element", b =>
+            modelBuilder.Entity("Models.Entities.User", b =>
                 {
                     b.HasOne("Models.Entities.Household", "Household")
                         .WithMany()
