@@ -9,11 +9,11 @@ public partial class AldiOffer : BaseOffer
 {
     [DiscountField(Expression = "//figcaption//sup", ValueType = ObjectValueType.String)]
     [Field(Expression = "//div[@id='pdpDetails']", ValueType = ObjectValueType.String, ValueSource = NodeValueSource.Attribute, Selector = NodeSelector.XPath, ChildExpression = "data-product-code")]
-    public override string ProductKey { get; set; }
+    public override string? ProductKey { get; set; }
 
     [DiscountField(Expression = "validityheader", ValueType = ObjectValueType.String)]
     [Field(Expression = "//div[contains(@class, 'liveOSDavailabilityLabel')]", ValueType = ObjectValueType.String)]
-    public string Validity { get; set; }
+    public string? Validity { get; set; }
 
     //[Field(Expression = "//span[@class='pdp_price__now']", ValueType = ObjectValueType.Decimal, ValueSource = NodeValueSource.Attribute, Selector = NodeSelector.XPath, ChildExpression = "data-price")]
     [JsonValue(Expression = "offers", ValueType = ObjectValueType.Decimal, ValueSource = JsonValueSource.ChildKey, ChildExpression = "price")]
@@ -22,22 +22,22 @@ public partial class AldiOffer : BaseOffer
     public override decimal Price { get; set; }
 
     [DiscountField(Expression = "//figcaption/h2/b", ValueType = ObjectValueType.String)]
-    public string DiscountPrice { get; set; }
+    public string? DiscountPrice { get; set; }
 
     [DiscountField(Expression = "//figcaption/h3//strike", ValueType = ObjectValueType.String)]
-    public string OriginalPrice { get; set; }
+    public override string? OriginalPrice { get; set; }
 
     // This is 'Ft' instead of 'HUF'
     // fix attribute data-currency
     //[Field(Expression = "//span[@class='pdp_price__now']", ValueType = ObjectValueType.Decimal)]
     [JsonValue(Expression = "offers", ValueType = ObjectValueType.String, ValueSource = JsonValueSource.ChildKey, ChildExpression = "priceCurrency")]
-    public override string Currency { get; set; }
+    public override string? Currency { get; set; }
 
     [Field(Expression = "//span[@class='additional-notes-price']", ValueType = ObjectValueType.String)]
-    public override string Unit { get; set; }
+    public override string? Unit { get; set; }
 
     [JsonValue(Expression = "offers", ValueType = ObjectValueType.String, ValueSource = JsonValueSource.ChildKey, ChildExpression = "url")]
-    public override string Url { get; set; }
+    public override string? Url { get; set; }
 
 
     public override bool IsValid => !string.IsNullOrEmpty(ProductKey);

@@ -1,6 +1,9 @@
-﻿namespace Models.Records.Base;
+﻿using MongoDB.Bson.Serialization.Attributes;
 
-public abstract class BaseOffer : BaseRecord
+namespace Models.Records.Base;
+
+[BsonIgnoreExtraElements]
+public class BaseOffer : BaseRecord
 {
     public BaseOffer()
         : base()
@@ -9,22 +12,31 @@ public abstract class BaseOffer : BaseRecord
         ValidTo = DateOnly.MaxValue;
     }
 
+    public int? ApiId { get; set; }
+
     public virtual DateOnly ValidFrom { get; set; }
 
     public virtual DateOnly ValidTo { get; set; }
 
-    public abstract string ProductKey { get; set; }
+    public virtual string? ProductKey { get; set; }
 
     [Update]
-    public abstract decimal Price { get; set; }
-    [Update]
-    public abstract string Currency { get; set; }
-    [Update]
-    public abstract string Unit { get; set; }
-    [Update]
-    public abstract string Url { get; set; }
+    public virtual decimal Price { get; set; }
 
-    public abstract void CalculateValidity();
+    public virtual string? OriginalPrice { get; set; }
+    [Update]
+    public virtual string? Currency { get; set; }
+    [Update]
+    public virtual string? Unit { get; set; }
+    [Update]
+    public virtual string? Url { get; set; }
+    public virtual string? MongoShop { get; set; }
+
+    public virtual int? ElementId { get; set; }
+
+    public virtual void CalculateValidity()
+    {
+    }
     public virtual void CalculateDiscountValidity()
     {
     }

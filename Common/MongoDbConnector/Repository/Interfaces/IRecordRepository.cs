@@ -4,7 +4,8 @@ public interface IRecordRepository<TRecord>
     where TRecord : IDbRecord
 {
     public void SetConnection(IMongoDatabase database);
-    List<TRecord> Get();
+
+    List<TRecord> Get(FilterDefinition<TRecord> filter);
     TRecord Create(TRecord record);
     TRecord Get(TRecord record);
     TRecord Get(ObjectId id);

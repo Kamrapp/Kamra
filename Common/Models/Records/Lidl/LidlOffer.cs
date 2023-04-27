@@ -8,11 +8,11 @@ namespace Shared.Records.Lidl;
 public partial class LidlOffer : BaseOffer
 {
     [JsonValue(Expression = "sku", ValueType = ObjectValueType.String)]
-    public override string ProductKey { get; set; }
+    public override string? ProductKey { get; set; }
 
 
     [Field(Expression = "//span[@class='label__text']", ValueType = ObjectValueType.String)]
-    public string Validity { get; set; }
+    public string? Validity { get; set; }
 
     [Field(Expression = "//div[@class='m-price__price']", ValueType = ObjectValueType.Decimal)]
     //This looks better encoded in html
@@ -22,17 +22,17 @@ public partial class LidlOffer : BaseOffer
     // This is 'Ft' instead of 'HUF'
     //[Field(Expression = "//div[@class='m-price__currency']", ValueType = ObjectValueType.String)]
     [JsonValue(Expression = "offers", ValueType = ObjectValueType.String, ValueSource = JsonValueSource.ChildValue, ChildExpression = "priceCurrency")]
-    public override string Currency { get; set; }
+    public override string? Currency { get; set; }
 
     [Field(Expression = "//div[@class='price-footer']", ValueType = ObjectValueType.String)]
-    public override string Unit { get; set; }
+    public override string? Unit { get; set; }
 
     [JsonValue(Expression = "url", ValueType = ObjectValueType.String)]
-    public override string Url { get; set; }
+    public override string? Url { get; set; }
 
 
     [Field(Expression = "//div[@class='m-price__rrp']", ValueType = ObjectValueType.Decimal)]
-    public decimal OriginalPrice { get; set; }
+    public override string? OriginalPrice { get; set; }
 
 
     public override bool IsValid => !string.IsNullOrEmpty(ProductKey);

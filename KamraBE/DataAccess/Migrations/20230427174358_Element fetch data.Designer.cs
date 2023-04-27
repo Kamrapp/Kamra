@@ -4,6 +4,7 @@ using DataAccess.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,10 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DataAccess.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20230427174358_Element fetch data")]
+    partial class Elementfetchdata
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -52,9 +54,6 @@ namespace DataAccess.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Distributor")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("DistributorKey")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("GTIN")
@@ -201,18 +200,6 @@ namespace DataAccess.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Shops");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Name = "Lidl"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Name = "Aldi"
-                        });
                 });
 
             modelBuilder.Entity("Models.Entities.Stock", b =>
@@ -226,26 +213,11 @@ namespace DataAccess.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("Currency")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<int>("ElementId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("HouseholdId")
+                    b.Property<int>("HouseholdId")
                         .HasColumnType("int");
-
-                    b.Property<string>("MongoId")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("MongoPrice")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("MongoShop")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("OriginalPrice")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<double>("Price")
                         .HasColumnType("float");
@@ -258,12 +230,6 @@ namespace DataAccess.Migrations
 
                     b.Property<int?>("StoreId")
                         .HasColumnType("int");
-
-                    b.Property<string>("Unit")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Url")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("ValidFrom")
                         .HasColumnType("datetime2");
@@ -461,23 +427,21 @@ namespace DataAccess.Migrations
 
                     b.HasOne("Models.Entities.Household", "Household")
                         .WithMany("Stocks")
-                        .HasForeignKey("HouseholdId");
+                        .HasForeignKey("HouseholdId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
-                    b.HasOne("Models.Entities.Shop", "Shop")
+                    b.HasOne("Models.Entities.Shop", null)
                         .WithMany("Stocks")
                         .HasForeignKey("ShopId");
 
-                    b.HasOne("Models.Entities.Store", "Store")
+                    b.HasOne("Models.Entities.Store", null)
                         .WithMany("Stocks")
                         .HasForeignKey("StoreId");
 
                     b.Navigation("Element");
 
                     b.Navigation("Household");
-
-                    b.Navigation("Shop");
-
-                    b.Navigation("Store");
                 });
 
             modelBuilder.Entity("Models.Entities.Store", b =>

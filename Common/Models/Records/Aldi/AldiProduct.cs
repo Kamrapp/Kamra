@@ -4,6 +4,11 @@
 [Json(XPath = "//script[@type='application/ld+json']")]
 public class AldiProduct : BaseProduct
 {
+    public AldiProduct()
+    {
+        Distributor = "Aldi";
+    }
+
     [DiscountField(Expression = "//figcaption//sup", ValueType = ObjectValueType.String)]
     [Field(Expression = "//div[@id='pdpDetails']", ValueType = ObjectValueType.String, ValueSource = NodeValueSource.Attribute, Selector = NodeSelector.XPath, ChildExpression = "data-product-code")]
     public override string Key { get; set; }
@@ -12,17 +17,17 @@ public class AldiProduct : BaseProduct
     //[Field(Expression = "//h1[@class='target_product_name']", ValueType = ObjectValueType.String, ValueSource = NodeValueSource.Attribute, Selector = NodeSelector.XPath, ChildExpression = "data-product-name")]
     [DiscountField(Expression = "//figcaption/h3", ValueType = ObjectValueType.String)]
     [JsonValue(Expression = "name", ValueType = ObjectValueType.String)]
-    public string Name { get; set; }
+    public override string? Name { get; set; }
 
     [Update]
     //[Field(Expression = "//div[@class='keyfacts__supplemental-description']", ValueType = ObjectValueType.String)]
     // this has NO BRAND when empty
     [JsonValue(Expression = "brand", ValueType = ObjectValueType.String)]
-    public string BrandName { get; set; }
+    public override string? BrandName { get; set; }
 
     [Update]
     [JsonValue(Expression = "category", ValueType = ObjectValueType.String)]
-    public string Category { get; set; }
+    public string? Category { get; set; }
 
     [Update]
     // fix data-description value attribute
@@ -30,22 +35,22 @@ public class AldiProduct : BaseProduct
     // This is just "ingyenes szállítás"
     //[JsonValue(Expression = "description", ValueType = ObjectValueType.String)]
     [DiscountField(Expression = "(//figcaption/p)[last()-1]", ValueType = ObjectValueType.String, ValueSource = NodeValueSource.InnerHtml)]
-    public string Description { get; set; }
+    public override string? Description { get; set; }
 
     [Update]
     // both are fine
     //[Field(Expression = "//a[@class='zoom-ico-image']", ValueType = ObjectValueType.String, ValueSource = NodeValueSource.Attribute, ChildExpression = "src")]
     [JsonValue(Expression = "image", ValueType = ObjectValueType.String, ValueSource = JsonValueSource.Value)]
     [DiscountField(Expression = "//img", ValueType = ObjectValueType.String, ValueSource = NodeValueSource.Attribute, ChildExpression = "src")]
-    public string PictureUri { get; set; }
+    public override string? PictureUri { get; set; }
 
     [Update]
     [Field(Expression = "//script[@type='application/ld+json']", ValueType = ObjectValueType.String)]
-    public string JsonContent { get; set; }
+    public string? JsonContent { get; set; }
 
     [Update]
     [Field(Expression = "//link[@rel='canonical']", ValueType = ObjectValueType.String, ValueSource = NodeValueSource.Attribute, Selector = NodeSelector.XPath, ChildExpression = "href")]
-    public string Url { get; set; }
+    public override string? Url { get; set; }
 
     public override bool IsValid => !string.IsNullOrEmpty(Name) && !string.IsNullOrEmpty(Key);
 }

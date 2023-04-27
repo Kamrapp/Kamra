@@ -1,11 +1,12 @@
 ﻿using BusinessLogicService.EmailService;
 using BusinessLogicService.UserService;
+
 using DataAccess.Enums;
+
 using KamraAPI.External;
+
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Cors;
-using Microsoft.AspNetCore.Mvc;
-using Shared.Dtos;
+
 using Shared.Utils;
 
 namespace KamraAPI.Controllers
@@ -35,7 +36,7 @@ namespace KamraAPI.Controllers
 
                 return Ok(token);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 return BadRequest(ex.Message);
             }
@@ -72,9 +73,9 @@ namespace KamraAPI.Controllers
             try
             {
                 var verify = await _userService.VerifyUser(addr, token);
-                if (verify) 
+                if (verify)
                     return Ok();
-                else 
+                else
                     return BadRequest();
             }
             catch (Exception ex)
