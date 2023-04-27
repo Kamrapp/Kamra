@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Xml.Linq;
 
 namespace Models.Entities
 {
@@ -26,6 +27,11 @@ namespace Models.Entities
 
         //TODO: Needs proper class
         public string? Manufacturer { get; set; }
+        public string? Distributor { get; set; }
+        public string? Description { get; set; }
+        public string? PictureUri { get; set; }
+        public string? Url { get; set; }
+        public ObjectId MongoId { get; set; }
 
         // Element2Element are parts of the Element with a certain Ratio
         public ICollection<Component> Components { get; set; }

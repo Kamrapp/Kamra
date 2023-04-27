@@ -1,10 +1,12 @@
-﻿namespace BusinessLogicService.ElementService
+﻿using MongoDB.Bson;
+
+namespace BusinessLogicService.ElementService
 {
     public interface IElementService
     {
-        public Task<ElementDto> GetElement(ElementDto elementDto);
-        public Task<IEnumerable<ElementDto>> GetAllElements();
-        public Task<bool> CreateElement(ElementDto elementDto);
+        public Task<MongoElementDto> GetElement(ObjectId mongoId);
+        public Task<IEnumerable<MongoElementDto>> GetAllElements();
+        public Task<bool> CreateElement(MongoElementDto elementDto);
 
     }
 }

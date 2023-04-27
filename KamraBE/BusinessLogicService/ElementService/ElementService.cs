@@ -4,6 +4,8 @@ using DataAccess.Data;
 
 using Microsoft.EntityFrameworkCore;
 
+using MongoDB.Bson;
+
 namespace BusinessLogicService.UserService
 {
     public class ElementService : IElementService
@@ -14,15 +16,15 @@ namespace BusinessLogicService.UserService
             _context = context;
         }
 
-        public async Task<ElementDto> GetElement(ElementDto elementDto)
+        public async Task<MongoElementDto> GetElement(ObjectId mongoId)
         {
             try
             {
-                var element = await _context.Elements.FirstOrDefaultAsync(x => x.Id == elementDto.Id);
+                var element = await _context.Elements.FirstOrDefaultAsync(x => x.MongoId == mongoId);
                 // todo if not exists throw an error
                 if (element == null) return null;
 
-                return element?.ToDto();
+                return element?.ToMongoDto();
             }
             catch (NullReferenceException ne)
             {
@@ -35,11 +37,11 @@ namespace BusinessLogicService.UserService
             }
         }
 
-        public async Task<IEnumerable<ElementDto>> GetAllElements()
+        public async Task<IEnumerable<MongoElementDto>> GetAllElements()
         {
             try
             {
-                var elementDtos = _context.Elements.Select(x => x.ToDto()).ToList();
+                var elementDtos = _context.Elements.Select(x => x.ToMongoDto()).ToList();
                 return elementDtos;
             }
             catch (NullReferenceException ne)
@@ -53,11 +55,11 @@ namespace BusinessLogicService.UserService
             }
         }
 
-        public async Task<bool> CreateElement(ElementDto elementDto)
+        public async Task<bool> CreateElement(MongoElementDto elementDto)
         {
             try
             {
-                var elementAlreadyExists = await _context.Elements.AnyAsync(x => x.Id == elementDto.Id);
+                var elementAlreadyExists = await _context.Elements.AnyAsync(x => x.MongoId == elementDto.MongoId);
 
                 //TODO: fix handling existence
                 if (elementAlreadyExists)
