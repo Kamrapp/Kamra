@@ -1,4 +1,6 @@
-﻿using BusinessLogicService.TestService;
+﻿using BusinessLogicService.EmailService;
+using BusinessLogicService.TestService;
+using BusinessLogicService.UserService;
 
 namespace KamraBE
 {
@@ -6,7 +8,9 @@ namespace KamraBE
     {
         public static void RegisterCustomServices(this IServiceCollection services )
         {
-            services.AddSingleton<ITestService,TestService>();
+            services.AddScoped<ITestService,TestService>();
+            services.AddScoped<IUserService,UserService>();
+            services.AddScoped<IEmailService,EmailService>();
         }
     }
 }

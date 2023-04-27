@@ -17,6 +17,7 @@ namespace DataAccess.Data
         public DbSet<Tag2Tag> Tag2Tags { get; set; }
         public DbSet<Stock> Stocks { get; set; }
         public DbSet<Household> Households { get; set; }
+        public DbSet<User> Users { get; set; }
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
