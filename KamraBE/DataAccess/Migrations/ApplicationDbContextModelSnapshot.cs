@@ -241,52 +241,6 @@ namespace DataAccess.Migrations
                     b.ToTable("Tag2Tags");
                 });
 
-            modelBuilder.Entity("DataAccess.Models.User", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
-
-                    b.Property<string>("ActivateLink")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("Activated")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("AuthType")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("EmailAddress")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("HouseHoldId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Password")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("UserName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("UserPermission")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("HouseHoldId");
-
-                    b.ToTable("Users");
-                });
-
             modelBuilder.Entity("DataAccess.Models.Component", b =>
                 {
                     b.HasOne("DataAccess.Models.Element", "ChildElement")
@@ -389,15 +343,6 @@ namespace DataAccess.Migrations
                     b.Navigation("ParentTag");
                 });
 
-            modelBuilder.Entity("DataAccess.Models.User", b =>
-                {
-                    b.HasOne("DataAccess.Models.Household", "Household")
-                        .WithMany("Users")
-                        .HasForeignKey("HouseHoldId");
-
-                    b.Navigation("Household");
-                });
-
             modelBuilder.Entity("DataAccess.Models.Element", b =>
                 {
                     b.Navigation("Components");
@@ -417,8 +362,6 @@ namespace DataAccess.Migrations
             modelBuilder.Entity("DataAccess.Models.Household", b =>
                 {
                     b.Navigation("Stocks");
-
-                    b.Navigation("Users");
                 });
 
             modelBuilder.Entity("DataAccess.Models.Property", b =>

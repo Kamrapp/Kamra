@@ -16,7 +16,8 @@ namespace DataAccess.Models
 
         public ICollection<Stock> Stocks { get; set; }
 
-        public ICollection<User> Users { get; set; }
+        //TODO User should be handled here
+        //public ICollection<User> Users { get; set; }
 
         //TODO Households should have Address
         //public Address Addresss { get; set; }

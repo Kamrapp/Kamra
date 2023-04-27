@@ -13,12 +13,15 @@ namespace KamraBE.Controllers
 
         private readonly ITestService _testService;
 
+        private readonly ApplicationDbContext _context;
         public WeatherForecastController(
             ILogger<WeatherForecastController> logger, 
-            ITestService testService)
+            ITestService testService,
+            ApplicationDbContext context)
         {
             _logger = logger;
             _testService = testService;
+            _context = context;
         }
 
         [HttpGet]
