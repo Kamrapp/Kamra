@@ -20,7 +20,7 @@ namespace BusinessLogicService.UserService
         {
             try
             {
-                var element = await _context.Elements.FirstOrDefaultAsync(x => x.MongoId == mongoId);
+                var element = await _context.Elements.FirstOrDefaultAsync(x => x.MongoId == mongoId.ToString());
                 // todo if not exists throw an error
                 if (element == null) return null;
 
@@ -59,7 +59,7 @@ namespace BusinessLogicService.UserService
         {
             try
             {
-                var elementAlreadyExists = await _context.Elements.AnyAsync(x => x.MongoId == elementDto.MongoId);
+                var elementAlreadyExists = await _context.Elements.AnyAsync(x => x.MongoId == elementDto.MongoId.ToString());
 
                 //TODO: fix handling existence
                 if (elementAlreadyExists)

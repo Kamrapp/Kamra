@@ -2,7 +2,7 @@
 {
     public class MongoElementDto
     {
-        public int Id { get; set; }
+        public int? ApiId { get; set; }
         public string GlobalName { get; set; }
 
         public string? Manufacturer { get; set; }

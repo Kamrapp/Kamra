@@ -4,6 +4,11 @@
 [Json(XPath = "//script[@data-hid='json_data_product']")]
 public class LidlProduct : BaseProduct
 {
+    public LidlProduct()
+    {
+        Distributor = "Lidl";
+    }
+
     [JsonValue(Expression = "sku", ValueType = ObjectValueType.String)]
     public override string Key { get; set; }
 

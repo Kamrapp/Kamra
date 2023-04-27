@@ -1,10 +1,12 @@
 ﻿namespace Models.Records.Base;
 
-public abstract class BaseProduct : BaseRecord
+public class BaseProduct : BaseRecord
 {
-    public abstract string? Name { get; set; }
-    public abstract string? BrandName { get; set; }
-    public abstract string? Description { get; set; }
-    public abstract string? PictureUri { get; set; }
-    public abstract string? Url { get; set; }
+    public int? ApiId { get; set; }
+    public virtual string? Name { get; set; }
+    public virtual string? BrandName { get; set; }
+    public virtual string? Description { get; set; }
+    public virtual string? PictureUri { get; set; }
+    public virtual string? Url { get; set; }
+    public virtual string? Distributor { get; set; }
 }

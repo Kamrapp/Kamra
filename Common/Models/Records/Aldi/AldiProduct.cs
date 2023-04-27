@@ -4,6 +4,11 @@
 [Json(XPath = "//script[@type='application/ld+json']")]
 public class AldiProduct : BaseProduct
 {
+    public AldiProduct()
+    {
+        Distributor = "Aldi";
+    }
+
     [DiscountField(Expression = "//figcaption//sup", ValueType = ObjectValueType.String)]
     [Field(Expression = "//div[@id='pdpDetails']", ValueType = ObjectValueType.String, ValueSource = NodeValueSource.Attribute, Selector = NodeSelector.XPath, ChildExpression = "data-product-code")]
     public override string Key { get; set; }
