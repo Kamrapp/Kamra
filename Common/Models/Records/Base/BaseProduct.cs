@@ -1,5 +1,8 @@
-﻿namespace Models.Records.Base;
+﻿using MongoDB.Bson.Serialization.Attributes;
 
+namespace Models.Records.Base;
+
+[BsonIgnoreExtraElements]
 public class BaseProduct : BaseRecord
 {
     public int? ApiId { get; set; }

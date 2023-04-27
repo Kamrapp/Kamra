@@ -3,8 +3,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-using MongoDB.Bson;
-
 using Shared.Dtos;
 
 namespace KamraAPI.Controllers
@@ -40,11 +38,28 @@ namespace KamraAPI.Controllers
         [AllowAnonymous]
         [HttpPost]
         [Route(nameof(Get))]
-        public async Task<IActionResult> Get([FromBody] ObjectId mongoId)
+        public async Task<IActionResult> Get([FromBody] string mongoId)
         {
             try
             {
                 var element = await _elementService.GetElement(mongoId);
+
+                return Ok(element);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [AllowAnonymous]
+        [HttpPost]
+        [Route(nameof(GetById))]
+        public async Task<IActionResult> GetById([FromBody] int id)
+        {
+            try
+            {
+                var element = await _elementService.GetElement(id);
 
                 return Ok(element);
             }

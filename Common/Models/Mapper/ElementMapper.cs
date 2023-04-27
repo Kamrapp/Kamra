@@ -14,7 +14,7 @@ namespace Shared.Mapper
             return new MongoElementDto()
             {
                 ApiId = product.ApiId,
-                MongoId = product.Id,
+                MongoId = product.Id.ToString(),
 
                 GlobalName = product.Name,
 
@@ -34,7 +34,7 @@ namespace Shared.Mapper
             return new MongoElementDto()
             {
                 ApiId = element.Id,
-                MongoId = new ObjectId(element.MongoId),
+                MongoId = element.MongoId,
 
                 GlobalName = element.GlobalName,
 
@@ -51,8 +51,7 @@ namespace Shared.Mapper
         {
             return new Element()
             {
-                MongoId = elementDto.MongoId.ToString(),
-                Id = elementDto.ApiId ?? -1,
+                MongoId = elementDto.MongoId,
 
                 GlobalName = elementDto.GlobalName,
 
@@ -69,7 +68,6 @@ namespace Shared.Mapper
             return new BaseProduct()
             {
                 ApiId = elementDto.ApiId,
-                Id = elementDto.MongoId,
 
                 Name = elementDto.GlobalName,
 

@@ -10,6 +10,6 @@
         public string? Description { get; set; }
         public string? PictureUri { get; set; }
         public string? Url { get; set; }
-        public ObjectId MongoId { get; set; }
+        public string? MongoId { get; set; }
     }
 }
