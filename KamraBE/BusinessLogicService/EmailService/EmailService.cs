@@ -1,12 +1,5 @@
-﻿using Shared.Dtos;
-using Shared.Utils;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
+﻿using System.Net;
 using System.Net.Mail;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BusinessLogicService.EmailService
 {
@@ -32,11 +25,11 @@ namespace BusinessLogicService.EmailService
                     Body = body,
                     IsBodyHtml = true
                 })
-                smtp.Send(message);
+                    smtp.Send(message);
 
                 return true;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 // i have no idea what kind of expections can happen...
                 return false;
@@ -56,7 +49,7 @@ namespace BusinessLogicService.EmailService
                 body = $@"<h2>Üdvözlünk a kamrádban</h2><br/><br/>Jó hírrel tudunk szolgálni.<br/>A felhasználód elkészült! Már csak egy lépés választ el téged attól, hogy feltöltsd a kamrád.<br/>Kérjük aktiváld az email címed.<br/><br/><a href='{url}'>Aktiválás</a><br/><br/>Üdvözlettel,<br/>Kamra Team";
             }
 
-            return SendMail(user.EmailAddress,subject,body);
+            return SendMail(user.EmailAddress, subject, body);
         }
     }
 }

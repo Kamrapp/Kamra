@@ -23,6 +23,7 @@ public abstract class RecordRepository<TRecord> : IRecordRepository<TRecord> whe
     }
 
     public List<TRecord> Get() => Records.Find(record => true).ToList();
+    public List<TRecord> Get(FilterDefinition<TRecord> filter) => Records.Find(filter).ToList();
 
     public virtual TRecord Get(TRecord record) => Get(record.Id);
     public virtual TRecord Get(ObjectId id) => Records.Find(record => record.Id == id).FirstOrDefault();

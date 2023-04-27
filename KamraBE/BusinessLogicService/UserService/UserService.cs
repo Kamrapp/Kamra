@@ -1,14 +1,12 @@
 ﻿using DataAccess.Data;
+
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
-using System;
-using System.Collections.Generic;
+
 using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
 using System.Security.Claims;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace BusinessLogicService.UserService
 {
@@ -52,19 +50,19 @@ namespace BusinessLogicService.UserService
             {
                 var user = await _context.Users.FirstOrDefaultAsync(x => x.EmailAddress == email && x.Password == password);
                 // todo if not exists throw an error
-                if(user == null) return null;
+                if (user == null) return null;
 
                 // todo if not activated throw an error
                 if (user.Activated == false) return null;
 
                 return user?.ToDto();
             }
-            catch(NullReferenceException ne)
+            catch (NullReferenceException ne)
             {
                 // TODO logger
                 return null;
             }
-            catch(TimeoutException te)
+            catch (TimeoutException te)
             {
                 return null;
             }
@@ -95,7 +93,7 @@ namespace BusinessLogicService.UserService
                 var newUser = userRegisterDto.ToModel();
                 if (newUser == null) return null;
 
-                var userExists = await _context.Users.FirstOrDefaultAsync(x=>x.EmailAddress == userRegisterDto.Email);
+                var userExists = await _context.Users.FirstOrDefaultAsync(x => x.EmailAddress == userRegisterDto.Email);
                 // todo not activated error
                 if (userExists?.Activated == false) return null;
 
@@ -110,7 +108,7 @@ namespace BusinessLogicService.UserService
 
                 return result > 0 ? newUser.ToDto() : null;
             }
-            catch(NullReferenceException ne)
+            catch (NullReferenceException ne)
             {
                 return null;
             }
@@ -128,7 +126,7 @@ namespace BusinessLogicService.UserService
         {
             try
             {
-                var newUser = await _context.Users.FirstOrDefaultAsync(x=>x.EmailAddress == addr);
+                var newUser = await _context.Users.FirstOrDefaultAsync(x => x.EmailAddress == addr);
                 if (newUser == null) return false;
 
                 var tokenStored = Hash.GetHashedString(newUser.ActivateLink + newUser.EmailAddress);
