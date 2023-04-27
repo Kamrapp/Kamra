@@ -1,4 +1,6 @@
 import { Component } from '@angular/core';
+import { TranslateService } from '@ngx-translate/core';
+import { environment } from 'src/environments/environment';
 
 @Component({
   selector: 'app-root',
@@ -7,4 +9,18 @@ import { Component } from '@angular/core';
 })
 export class AppComponent {
   title = 'kamra-fe';
+
+  constructor( 
+    public translateService : TranslateService
+    ){
+      translateService.addLangs(['hu','en']);
+      translateService.setDefaultLang('hu');
+      environment.lang = 'hu';
+  }
+
+  switchLanguage(lang : string) {
+    this.translateService.use(lang.toLowerCase());
+    environment.lang = lang.toLowerCase();
+  }
 }
+

@@ -290,6 +290,52 @@ namespace DataAccess.Migrations
                     b.ToTable("Tag2Tags");
                 });
 
+            modelBuilder.Entity("Models.Entities.User", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
+
+                    b.Property<string>("ActivateLink")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("Activated")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("AuthType")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("EmailAddress")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("HouseHoldId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Password")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("UserName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("UserPermission")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HouseHoldId");
+
+                    b.ToTable("Users");
+                });
+
             modelBuilder.Entity("Models.Entities.Component", b =>
                 {
                     b.HasOne("Models.Entities.Element", "ChildElement")
@@ -405,6 +451,15 @@ namespace DataAccess.Migrations
                     b.Navigation("ChildTag");
 
                     b.Navigation("ParentTag");
+                });
+
+            modelBuilder.Entity("Models.Entities.User", b =>
+                {
+                    b.HasOne("Models.Entities.Household", "Household")
+                        .WithMany()
+                        .HasForeignKey("HouseHoldId");
+
+                    b.Navigation("Household");
                 });
 
             modelBuilder.Entity("Models.Entities.Element", b =>

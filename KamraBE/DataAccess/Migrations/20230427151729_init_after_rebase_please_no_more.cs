@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace DataAccess.Migrations
 {
-    public partial class InitialMigration : Migration
+    public partial class init_after_rebase_please_no_more : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -84,6 +84,32 @@ namespace DataAccess.Migrations
                         name: "FK_Components_Elements_ParentElementId",
                         column: x => x.ParentElementId,
                         principalTable: "Elements",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Users",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    UserName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Password = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Activated = table.Column<bool>(type: "bit", nullable: false),
+                    ActivateLink = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    EmailAddress = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    AuthType = table.Column<int>(type: "int", nullable: false),
+                    UserPermission = table.Column<int>(type: "int", nullable: false),
+                    HouseHoldId = table.Column<int>(type: "int", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Users", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Users_Households_HouseHoldId",
+                        column: x => x.HouseHoldId,
+                        principalTable: "Households",
                         principalColumn: "Id");
                 });
 
@@ -307,6 +333,11 @@ namespace DataAccess.Migrations
                 name: "IX_Tag2Tags_ChildTagId",
                 table: "Tag2Tags",
                 column: "ChildTagId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Users_HouseHoldId",
+                table: "Users",
+                column: "HouseHoldId");
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
@@ -321,6 +352,9 @@ namespace DataAccess.Migrations
                 name: "Stocks");
 
             migrationBuilder.DropTable(
+                name: "Users");
+
+            migrationBuilder.DropTable(
                 name: "Element2Tags");
 
             migrationBuilder.DropTable(
@@ -330,10 +364,10 @@ namespace DataAccess.Migrations
                 name: "Tag2Tags");
 
             migrationBuilder.DropTable(
-                name: "Households");
+                name: "Stores");
 
             migrationBuilder.DropTable(
-                name: "Stores");
+                name: "Households");
 
             migrationBuilder.DropTable(
                 name: "Elements");

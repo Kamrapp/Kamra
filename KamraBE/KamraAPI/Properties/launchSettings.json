@@ -4,7 +4,7 @@
     "windowsAuthentication": false,
     "anonymousAuthentication": true,
     "iisExpress": {
-      "applicationUrl": "http://localhost:4621",
+      "applicationUrl": "https://localhost:2022",
       "sslPort": 44305
     }
   },
@@ -19,7 +19,7 @@
       "applicationUrl": "https://localhost:2022",
       "dotnetRunMessages": true
     },
-    "IIS Express": {
+    "IIS KamraBE - START THIS": {
       "commandName": "IISExpress",
       "launchBrowser": true,
       "launchUrl": "swagger",

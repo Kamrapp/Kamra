@@ -1,0 +1,20 @@
+  <form [formGroup]="regForm" (ngSubmit)="onSubmit()">
+      <div class="d-flex justify-content-center">
+          <img class="mb-4" src="../assets/logo/logo_temp.png" alt="" width="72" height="57">
+      </div>
+      <h1 class="h3 mb-3 fw-normal text-center pt-5">{{ 'Reg.REG_TITLE' | translate }}</h1>
+  
+      <div class="form-floating">
+        <input type="email" class="form-control" id="floatingInput" placeholder="name@example.com" formControlName="email">
+        <label for="floatingInput">{{ 'Reg.LABEL_EMAIL' | translate }}</label>
+      </div>
+      <div class="form-floating">
+        <input type="password" class="form-control" id="floatingPassword" placeholder="{{ 'Reg.LABEL_PASS' | translate }}" formControlName="password">
+        <label for="floatingPassword">{{ 'Reg.LABEL_PASS' | translate }}</label>
+      </div>
+      <div class="form-floating">
+        <input type="password" class="form-control" id="floatingPasswordAgain" placeholder="{{ 'Reg.LABEL_PASS_AGAIN' | translate }}" formControlName="passwordAgain">
+        <label for="floatingPasswordAgain">{{ 'Reg.LABEL_PASS_AGAIN' | translate }}</label>
+      </div>
+      <button class="w-100 btn btn-lg btn-primary" type="submit">{{ 'Reg.REG_BUTTON' | translate }}</button>
+  </form>
