@@ -36,7 +36,9 @@ namespace Shared.Mapper
                 EmailAddress = userRegisterDto.Email,
                 CreatedDate = DateTime.Now,
                 AuthType = userRegisterDto.AuthType,
-                Activated = false,
+                // MVP-59: todo make the verification email usable (the api works! only a page should be essential and proper testing credentials for smtp)
+                //Activated = false,
+                Activated = true,
                 ActivateLink = Guid.NewGuid().ToString(),
                 UserPermission = UserPermission.User
             };
