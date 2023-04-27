@@ -13,16 +13,16 @@ public abstract class BaseOffer : BaseRecord
 
     public virtual DateOnly ValidTo { get; set; }
 
-    public abstract string ProductKey { get; set; }
+    public abstract string? ProductKey { get; set; }
 
     [Update]
     public abstract decimal Price { get; set; }
     [Update]
-    public abstract string Currency { get; set; }
+    public abstract string? Currency { get; set; }
     [Update]
-    public abstract string Unit { get; set; }
+    public abstract string? Unit { get; set; }
     [Update]
-    public abstract string Url { get; set; }
+    public abstract string? Url { get; set; }
 
     public abstract void CalculateValidity();
     public virtual void CalculateDiscountValidity()
