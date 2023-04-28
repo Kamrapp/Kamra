@@ -1,5 +1,6 @@
 ﻿using BusinessLogicService.ElementService;
 using BusinessLogicService.EmailService;
+using BusinessLogicService.StockService;
 using BusinessLogicService.TestService;
 using BusinessLogicService.UserService;
 
@@ -13,6 +14,7 @@ namespace KamraAPI
             services.AddScoped<IUserService, UserService>();
             services.AddScoped<IEmailService, EmailService>();
             services.AddScoped<IElementService, ElementService>();
+            services.AddScoped<IStockService, StockService>();
         }
     }
 }
