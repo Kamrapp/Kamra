@@ -3,9 +3,6 @@ using Microsoft.EntityFrameworkCore;
 
 using Models.Entities;
 
-using System.Reflection.Emit;
-using System.Reflection.Metadata;
-
 namespace DataAccess.Data
 {
     public class ApplicationDbContext : DbContext

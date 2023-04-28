@@ -1,6 +1,4 @@
-﻿using AldiCrawler.Instance;
-
-using Models.Records.Base;
+﻿using Models.Records.Base;
 
 using MongoDB.Driver;
 
@@ -9,7 +7,6 @@ using MongoDbConnector.Repository;
 using Shared.Dtos;
 using Shared.Mapper;
 
-using System;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 
