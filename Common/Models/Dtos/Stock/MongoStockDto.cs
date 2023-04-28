@@ -4,7 +4,6 @@
     {
         public int? ApiId { get; set; }
         public string? MongoId { get; set; }
-        public string? MongoProductId { get; set; }
         public int? ElementId { get; set; }
         public decimal Price { get; set; }
         public string? OriginalPrice { get; set; }

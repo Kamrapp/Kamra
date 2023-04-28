@@ -77,7 +77,7 @@ namespace BusinessLogicService.StockService
                 if (stockAlreadyExists)
                     throw new InvalidDataException("Stock to be created already exists");
 
-                var element = await _context.Elements.FirstOrDefaultAsync(x => x.MongoId == stockDto.MongoProductId);
+                var element = await _context.Elements.FirstOrDefaultAsync(x => x.Id == stockDto.ElementId);
                 if (element == null)
                     throw new InvalidDataException("Stock to be created requires existing element from MongoProductId");
 

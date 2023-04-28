@@ -56,7 +56,6 @@ namespace Models.Entities
         public double Price { get; set; }
 
         public string? MongoId { get; set; }
-        public string? MongoProductId { get; set; }
         public string? MongoPrice { get; set; }
         public string? OriginalPrice { get; set; }
         public string? Currency { get; set; }

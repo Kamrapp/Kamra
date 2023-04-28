@@ -1,4 +1,6 @@
-﻿using Models.Records.Base;
+﻿using AldiCrawler.Instance;
+
+using Models.Records.Base;
 
 using MongoDB.Driver;
 
@@ -61,18 +63,25 @@ namespace Fetcher.Instance
             var filter2 = Builders<BaseOffer>.Filter.Eq(x => x.IsFaulted, false);
             var combineFilter = Builders<BaseOffer>.Filter.And(filter1, filter2);
 
-            var lidlOffers = LidlOfferRepository.Get(combineFilter);
-            Logger.Log(LogType.Info, $"Fetched {lidlOffers.Count} lidl offer(s).");
-            foreach (var lidlOffer in lidlOffers)
+            try
             {
-                await UploadOffer(lidlOffer, "Lidl", LidlOfferRepository);
-            }
+                var lidlOffers = LidlOfferRepository.Get(combineFilter);
+                Logger.Log(LogType.Info, $"Fetched {lidlOffers.Count} lidl offer(s).");
+                foreach (var lidlOffer in lidlOffers)
+                {
+                    await UploadOffer(lidlOffer, "Lidl", LidlOfferRepository, LidlProductRepository);
+                }
 
-            var aldiOffers = AldiOfferRepository.Get(combineFilter);
-            Logger.Log(LogType.Info, $"Fetched {aldiOffers.Count} aldi offer(s).");
-            foreach (var aldiOffer in aldiOffers)
+                var aldiOffers = AldiOfferRepository.Get(combineFilter);
+                Logger.Log(LogType.Info, $"Fetched {aldiOffers.Count} aldi offer(s).");
+                foreach (var aldiOffer in aldiOffers)
+                {
+                    await UploadOffer(aldiOffer, "Aldi", AldiOfferRepository, AldiProductRepository);
+                }
+            }
+            catch (Exception ex)
             {
-                await UploadOffer(aldiOffer, "Aldi", AldiOfferRepository);
+                Logger.Log(LogType.Error, $"Fatal error");
             }
         }
 
@@ -82,18 +91,25 @@ namespace Fetcher.Instance
             var filter2 = Builders<BaseProduct>.Filter.Eq(x => x.IsFaulted, false);
             var combineFilter = Builders<BaseProduct>.Filter.And(filter1, filter2);
 
-            var lidlProducts = LidlProductRepository.Get(combineFilter);
-            Logger.Log(LogType.Info, $"Fetched {lidlProducts.Count} lidl product(s).");
-            foreach (var lidlProduct in lidlProducts)
+            try
             {
-                await UploadProduct(lidlProduct, "lidl", LidlProductRepository);
-            }
+                var lidlProducts = LidlProductRepository.Get(combineFilter);
+                Logger.Log(LogType.Info, $"Fetched {lidlProducts.Count} lidl product(s).");
+                foreach (var lidlProduct in lidlProducts)
+                {
+                    await UploadProduct(lidlProduct, "lidl", LidlProductRepository);
+                }
 
-            var aldiProducts = AldiProductRepository.Get(combineFilter);
-            Logger.Log(LogType.Info, $"Fetched {aldiProducts.Count} aldi product(s).");
-            foreach (var aldiProduct in aldiProducts)
+                var aldiProducts = AldiProductRepository.Get(combineFilter);
+                Logger.Log(LogType.Info, $"Fetched {aldiProducts.Count} aldi product(s).");
+                foreach (var aldiProduct in aldiProducts)
+                {
+                    await UploadProduct(aldiProduct, "aldi", AldiProductRepository);
+                }
+            }
+            catch (Exception ex)
             {
-                await UploadProduct(aldiProduct, "aldi", AldiProductRepository);
+                Logger.Log(LogType.Error, $"Fatal error");
             }
         }
 
@@ -113,16 +129,25 @@ namespace Fetcher.Instance
         {
             if (string.IsNullOrEmpty(stockDto.Url))
                 return false;
-            if (string.IsNullOrEmpty(stockDto.MongoProductId))
+            if (stockDto.ApiId == null)
                 return false;
 
             return true;
         }
-        private async Task UploadOffer(BaseOffer offer, string distributor, IBaseRecordRepository<BaseOffer> repository)
+        private async Task UploadOffer(BaseOffer offer, string distributor, IBaseRecordRepository<BaseOffer> repository, IBaseRecordRepository<BaseProduct> productRepository)
         {
             var mongoStockDto = offer.ToMongoDto();
             if (string.IsNullOrEmpty(mongoStockDto.MongoShop))
                 mongoStockDto.MongoShop = distributor;
+
+            int? productApiId = GetProductId(productRepository, offer.ProductKey);
+            if (productApiId == null)
+            {
+                Logger.Log(LogType.Info, $"Failed to check  product for offer {offer.ProductKey}");
+                return;
+            }
+
+            mongoStockDto.ElementId = productApiId;
 
             if (!ValidateDto(mongoStockDto))
             {
@@ -150,6 +175,34 @@ namespace Fetcher.Instance
             Logger.Log(LogType.Info, $"Updated  offer for product {offer.ProductKey} in mongoDb ApiId: {apiId}");
         }
 
+        private int? GetProductId(IBaseRecordRepository<BaseProduct> productRepository, string productKey)
+        {
+            int? productApiId;
+            try
+            {
+                var filterProduct = Builders<BaseProduct>.Filter.Eq(x => x.Key, productKey);
+                var product = productRepository.Get(filterProduct).Single();
+
+                if (product.IsMigrated == false)
+                {
+                    //product is not yet migrated
+                    return null;
+                }
+
+                if (product.ApiId == null)
+                {
+                    throw new DataMisalignedException("Product is migrated but does not have ApiId");
+                }
+
+                productApiId = product.ApiId;
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
+
+            return productApiId;
+        }
         private async Task UploadProduct(BaseProduct product, string distributor, IBaseRecordRepository<BaseProduct> repository)
         {
             var mongoElementDto = product.ToMongoDto();
@@ -207,7 +260,7 @@ namespace Fetcher.Instance
             }
             catch (Exception ex)
             {
-                Logger.Log(LogType.Info, $"Failed to create offer for {stockDto.MongoProductId}");
+                Logger.Log(LogType.Info, $"Failed to create offer for {stockDto.ElementId}");
                 return -1;
             }
 
@@ -257,6 +310,8 @@ namespace Fetcher.Instance
 
             LidlProductRepository.SetConnection(database);
             AldiProductRepository.SetConnection(database);
+            LidlOfferRepository.SetConnection(database);
+            AldiOfferRepository.SetConnection(database);
         }
 
         private void InitClient()

@@ -19,7 +19,6 @@ namespace Shared.Mapper
                 ElementId = offer.ElementId,
                 Price = offer.Price,
                 MongoShop = offer.MongoShop,
-                MongoProductId = offer.ProductKey,
                 OriginalPrice = offer.OriginalPrice,
                 Unit = offer.Unit,
                 Url = offer.Url,
@@ -39,7 +38,6 @@ namespace Shared.Mapper
                 MongoId = stock.MongoId,
                 Currency = stock.Currency,
                 ElementId = stock.ElementId,
-                MongoProductId = stock.MongoProductId,
                 OriginalPrice = stock.OriginalPrice,
                 Unit = stock.Unit,
                 MongoShop = stock.Shop?.Name,
@@ -55,7 +53,6 @@ namespace Shared.Mapper
             return new Stock()
             {
                 MongoId = stockDto.MongoId,
-                MongoProductId = stockDto.MongoProductId,
                 Price = (double)stockDto.Price,
                 Unit = stockDto.Unit,
                 ValidFrom = stockDto.ValidFrom,
@@ -70,7 +67,6 @@ namespace Shared.Mapper
             return new BaseOffer()
             {
                 ApiId = stockDto.ApiId,
-                ProductKey = stockDto.MongoProductId,
                 Url = stockDto.Url,
                 ValidFrom = DateOnly.FromDateTime(stockDto.ValidFrom),
                 ValidTo = DateOnly.FromDateTime(stockDto.ValidTill),

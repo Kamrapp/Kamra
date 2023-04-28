@@ -6,6 +6,7 @@
         public string GlobalName { get; set; }
 
         public string? Manufacturer { get; set; }
+        public string? DistributorKey { get; set; }
         public string? Distributor { get; set; }
         public string? Description { get; set; }
         public string? PictureUri { get; set; }
