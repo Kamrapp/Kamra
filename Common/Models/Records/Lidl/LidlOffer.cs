@@ -32,7 +32,7 @@ public partial class LidlOffer : BaseOffer
 
 
     [Field(Expression = "//div[@class='m-price__rrp']", ValueType = ObjectValueType.Decimal)]
-    public decimal OriginalPrice { get; set; }
+    public override string? OriginalPrice { get; set; }
 
 
     public override bool IsValid => !string.IsNullOrEmpty(ProductKey);

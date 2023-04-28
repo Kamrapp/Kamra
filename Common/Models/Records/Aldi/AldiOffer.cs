@@ -25,7 +25,7 @@ public partial class AldiOffer : BaseOffer
     public string? DiscountPrice { get; set; }
 
     [DiscountField(Expression = "//figcaption/h3//strike", ValueType = ObjectValueType.String)]
-    public string? OriginalPrice { get; set; }
+    public override string? OriginalPrice { get; set; }
 
     // This is 'Ft' instead of 'HUF'
     // fix attribute data-currency

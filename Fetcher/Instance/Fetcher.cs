@@ -7,6 +7,7 @@ using MongoDbConnector.Repository;
 using Shared.Dtos;
 using Shared.Mapper;
 
+using System;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 
@@ -17,12 +18,16 @@ namespace Fetcher.Instance
         private IComboLogger Logger { get; set; }
 
         private const string LogCollection = "Fetcher_Logs";
-        private const string LidlCollection = "Lidl_Products";
-        private const string AldiCollection = "Aldi_Products";
+        private const string LidlProductCollection = "Lidl_Products";
+        private const string AldiProductCollection = "Aldi_Products";
+        private const string LidlOfferCollection = "Lidl_Offers";
+        private const string AldiOfferCollection = "Aldi_Offers";
         private static string LogPath => $"KamraFetcher\\Logs\\Fetcher\\log_{DateTime.Now:yyyy_MM_dd__hh_mm_ss}.txt";
 
-        private IBaseRecordRepository<BaseProduct> LidlRepository;
-        private IBaseRecordRepository<BaseProduct> AldiRepository;
+        private IBaseRecordRepository<BaseProduct> LidlProductRepository;
+        private IBaseRecordRepository<BaseProduct> AldiProductRepository;
+        private IBaseRecordRepository<BaseOffer> LidlOfferRepository;
+        private IBaseRecordRepository<BaseOffer> AldiOfferRepository;
 
         private const string ApiEndpoint = "https://localhost:2022/";
         private HttpClient Client;
@@ -31,8 +36,10 @@ namespace Fetcher.Instance
         {
             Logger = new ComboLogger(LogPath, LogCollection);
 
-            LidlRepository = new ProductRepository<BaseProduct>(LidlCollection);
-            AldiRepository = new ProductRepository<BaseProduct>(AldiCollection);
+            LidlProductRepository = new ProductRepository<BaseProduct>(LidlProductCollection);
+            AldiProductRepository = new ProductRepository<BaseProduct>(AldiProductCollection);
+            LidlOfferRepository = new OfferRepository<BaseOffer>(LidlOfferCollection);
+            AldiOfferRepository = new OfferRepository<BaseOffer>(AldiOfferCollection);
         }
 
         public async Task Fetch()
@@ -44,20 +51,49 @@ namespace Fetcher.Instance
             Logger.Log(LoggerType.Console, LogType.Info, $"========================================================");
             Logger.Log(LogType.Info, $"Fetching started");
 
-            var filter = Builders<BaseProduct>.Filter.Eq("IsMigrated", false);
+            await FetchProducts();
+            await FetchOffers();
+        }
 
-            var lidlProducts = LidlRepository.Get(filter);
+        private async Task FetchOffers()
+        {
+            var filter1 = Builders<BaseOffer>.Filter.Eq(x => x.IsMigrated, false);
+            var filter2 = Builders<BaseOffer>.Filter.Eq(x => x.IsFaulted, false);
+            var combineFilter = Builders<BaseOffer>.Filter.And(filter1, filter2);
+
+            var lidlOffers = LidlOfferRepository.Get(combineFilter);
+            Logger.Log(LogType.Info, $"Fetched {lidlOffers.Count} lidl offer(s).");
+            foreach (var lidlOffer in lidlOffers)
+            {
+                await UploadOffer(lidlOffer, "Lidl", LidlOfferRepository);
+            }
+
+            var aldiOffers = AldiOfferRepository.Get(combineFilter);
+            Logger.Log(LogType.Info, $"Fetched {aldiOffers.Count} aldi offer(s).");
+            foreach (var aldiOffer in aldiOffers)
+            {
+                await UploadOffer(aldiOffer, "Aldi", AldiOfferRepository);
+            }
+        }
+
+        private async Task FetchProducts()
+        {
+            var filter1 = Builders<BaseProduct>.Filter.Eq(x => x.IsMigrated, false);
+            var filter2 = Builders<BaseProduct>.Filter.Eq(x => x.IsFaulted, false);
+            var combineFilter = Builders<BaseProduct>.Filter.And(filter1, filter2);
+
+            var lidlProducts = LidlProductRepository.Get(combineFilter);
             Logger.Log(LogType.Info, $"Fetched {lidlProducts.Count} lidl product(s).");
             foreach (var lidlProduct in lidlProducts)
             {
-                await UploadProduct(lidlProduct, "lidl", LidlRepository);
+                await UploadProduct(lidlProduct, "lidl", LidlProductRepository);
             }
 
-            var aldiProducts = AldiRepository.Get(filter);
+            var aldiProducts = AldiProductRepository.Get(combineFilter);
             Logger.Log(LogType.Info, $"Fetched {aldiProducts.Count} aldi product(s).");
             foreach (var aldiProduct in aldiProducts)
             {
-                await UploadProduct(aldiProduct, "aldi", AldiRepository);
+                await UploadProduct(aldiProduct, "aldi", AldiProductRepository);
             }
         }
 
@@ -65,8 +101,53 @@ namespace Fetcher.Instance
         {
             if (string.IsNullOrEmpty(elementDto.GlobalName))
                 return false;
+            if (string.IsNullOrEmpty(elementDto.Url))
+                return false;
+            if (string.IsNullOrEmpty(elementDto.PictureUri))
+                return false;
 
             return true;
+        }
+
+        private static bool ValidateDto(MongoStockDto stockDto)
+        {
+            if (string.IsNullOrEmpty(stockDto.Url))
+                return false;
+            if (string.IsNullOrEmpty(stockDto.MongoProductId))
+                return false;
+
+            return true;
+        }
+        private async Task UploadOffer(BaseOffer offer, string distributor, IBaseRecordRepository<BaseOffer> repository)
+        {
+            var mongoStockDto = offer.ToMongoDto();
+            if (string.IsNullOrEmpty(mongoStockDto.MongoShop))
+                mongoStockDto.MongoShop = distributor;
+
+            if (!ValidateDto(mongoStockDto))
+            {
+                Logger.Log(LogType.Info, $"Failed to fetch  offer for product {offer.ProductKey}");
+
+                offer.IsFaulted = true;
+                repository.Update(offer);
+                Logger.Log(LogType.Info, $"Updated  offer for product {offer.ProductKey} in mongoDb faulted");
+                return;
+            }
+
+            var apiId = await CreateStockAsync(mongoStockDto);
+            if (apiId <= 0)
+            {
+                Logger.Log(LogType.Info, $"Failed to upload offer for product {offer.ProductKey}");
+                return;
+            }
+
+            Logger.Log(LogType.Info, $"Uploaded offer for product {offer.ProductKey} with given ApiId: {apiId}");
+
+            offer.ApiId = apiId;
+            offer.IsMigrated = true;
+            offer.MigratedAt = DateTime.Now;
+            repository.Update(offer);
+            Logger.Log(LogType.Info, $"Updated  offer for product {offer.ProductKey} in mongoDb ApiId: {apiId}");
         }
 
         private async Task UploadProduct(BaseProduct product, string distributor, IBaseRecordRepository<BaseProduct> repository)
@@ -96,6 +177,7 @@ namespace Fetcher.Instance
 
             product.ApiId = apiId;
             product.IsMigrated = true;
+            product.MigratedAt = DateTime.Now;
             repository.Update(product);
             Logger.Log(LogType.Info, $"Updated  {product.Name} in mongoDb ApiId: {apiId}");
         }
@@ -115,6 +197,27 @@ namespace Fetcher.Instance
             return true;
         }
 
+        async Task<int?> CreateStockAsync(MongoStockDto stockDto)
+        {
+            HttpResponseMessage response;
+            try
+            {
+                response = await Client.PostAsJsonAsync(
+                "api/stock/create", stockDto);
+            }
+            catch (Exception ex)
+            {
+                Logger.Log(LogType.Info, $"Failed to create offer for {stockDto.MongoProductId}");
+                return -1;
+            }
+
+            if (response.StatusCode != System.Net.HttpStatusCode.OK)
+                return -1;
+
+            var newStockDto = await response.Content.ReadFromJsonAsync<MongoStockDto>();
+            return newStockDto.ApiId;
+        }
+
         async Task<int?> CreateElementAsync(MongoElementDto elementDto)
         {
             HttpResponseMessage response;
@@ -132,7 +235,7 @@ namespace Fetcher.Instance
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
                 return -1;
 
-            var newElementDto = await response.Content.ReadFromJsonAsync<MongoElementDto>();
+            var newElementDto = await response.Content.ReadFromJsonAsync<MongoStockDto>();
             return newElementDto.ApiId;
         }
 
@@ -152,8 +255,8 @@ namespace Fetcher.Instance
 
             Logger.SetConnection(database);
 
-            LidlRepository.SetConnection(database);
-            AldiRepository.SetConnection(database);
+            LidlProductRepository.SetConnection(database);
+            AldiProductRepository.SetConnection(database);
         }
 
         private void InitClient()
