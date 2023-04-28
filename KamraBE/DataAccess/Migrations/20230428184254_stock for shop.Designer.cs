@@ -4,6 +4,7 @@ using DataAccess.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,10 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DataAccess.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20230428184254_stock for shop")]
+    partial class stockforshop
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -52,9 +54,6 @@ namespace DataAccess.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Distributor")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("DistributorKey")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("GTIN")
@@ -201,18 +200,6 @@ namespace DataAccess.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Shops");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Name = "Lidl"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Name = "Aldi"
-                        });
                 });
 
             modelBuilder.Entity("Models.Entities.Stock", b =>
@@ -239,6 +226,9 @@ namespace DataAccess.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("MongoPrice")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("MongoProductId")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("MongoShop")

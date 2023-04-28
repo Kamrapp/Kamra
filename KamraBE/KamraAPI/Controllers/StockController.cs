@@ -1,30 +1,30 @@
-﻿using BusinessLogicService.ElementService;
+﻿using BusinessLogicService.StockService;
 
 using Microsoft.AspNetCore.Authorization;
 
 namespace KamraAPI.Controllers
 {
     [ApiController]
-    [Route("api/element/")]
-    public class ElementController : Controller
+    [Route("api/stock/")]
+    public class StockController : Controller
     {
-        private readonly IElementService _elementService;
+        private readonly IStockService _stockService;
 
-        public ElementController(IElementService elementService)
+        public StockController(IStockService stockService)
         {
-            _elementService = elementService;
+            _stockService = stockService;
         }
 
         [AllowAnonymous]
         [HttpPost]
         [Route(nameof(Create))]
-        public async Task<IActionResult> Create([FromBody] MongoElementDto elementDto)
+        public async Task<IActionResult> Create([FromBody] MongoStockDto stockDto)
         {
             try
             {
-                var element = await _elementService.CreateElement(elementDto);
+                var stock = await _stockService.CreateStock(stockDto);
 
-                return Ok(element);
+                return Ok(stock);
             }
             catch (Exception ex)
             {
@@ -39,9 +39,9 @@ namespace KamraAPI.Controllers
         {
             try
             {
-                var element = await _elementService.GetElement(mongoId);
+                var stock = await _stockService.GetStock(mongoId);
 
-                return Ok(element);
+                return Ok(stock);
             }
             catch (Exception ex)
             {
@@ -56,9 +56,9 @@ namespace KamraAPI.Controllers
         {
             try
             {
-                var element = await _elementService.GetElement(id);
+                var stock = await _stockService.GetStock(id);
 
-                return Ok(element);
+                return Ok(stock);
             }
             catch (Exception ex)
             {
@@ -73,9 +73,9 @@ namespace KamraAPI.Controllers
         {
             try
             {
-                var elements = await _elementService.GetAllElements();
+                var stocks = await _stockService.GetAllStocks();
 
-                return Ok(elements);
+                return Ok(stocks);
             }
             catch (Exception ex)
             {

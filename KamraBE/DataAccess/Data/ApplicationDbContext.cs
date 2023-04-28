@@ -81,6 +81,12 @@ namespace DataAccess.Data
                 .HasForeignKey(t2t => t2t.ChildTagId)
                 .OnDelete(DeleteBehavior.NoAction);
             #endregion Connections
+            #region Seeding
+            builder.Entity<Shop>().HasData(
+                new Shop { Name = "Lidl", Id = 1 },
+                new Shop { Name = "Aldi", Id = 2 }
+                );
+            #endregion Seeding
         }
     }
 }

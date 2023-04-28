@@ -6,9 +6,7 @@ using DataAccess.Enums;
 using KamraAPI.External;
 
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
 
-using Shared.Dtos;
 using Shared.Utils;
 
 namespace KamraAPI.Controllers

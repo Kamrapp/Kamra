@@ -1,10 +1,4 @@
-﻿using BusinessLogicService.ElementService;
-
-using DataAccess.Data;
-
-using Microsoft.EntityFrameworkCore;
-
-namespace BusinessLogicService.UserService
+﻿namespace BusinessLogicService.ElementService
 {
     public class ElementService : IElementService
     {

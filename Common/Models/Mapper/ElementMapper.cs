@@ -16,6 +16,7 @@ namespace Shared.Mapper
                 ApiId = product.ApiId,
                 MongoId = product.Id.ToString(),
 
+                DistributorKey = product.Key,
                 GlobalName = product.Name,
 
                 Manufacturer = product.BrandName,
@@ -40,6 +41,7 @@ namespace Shared.Mapper
 
                 Manufacturer = element.Manufacturer,
                 Distributor = element.Distributor,
+                DistributorKey = element.DistributorKey,
 
                 Description = element.Description,
                 PictureUri = element.PictureUri,
@@ -57,6 +59,7 @@ namespace Shared.Mapper
 
                 Manufacturer = elementDto.Manufacturer,
                 Distributor = elementDto.Distributor,
+                DistributorKey = elementDto.DistributorKey,
                 Description = elementDto.Description,
                 PictureUri = elementDto.PictureUri,
                 Url = elementDto.Url
@@ -73,6 +76,7 @@ namespace Shared.Mapper
 
                 BrandName = elementDto.Manufacturer,
                 Distributor = elementDto.Distributor,
+                Key = elementDto.DistributorKey,
                 Description = elementDto.Description,
                 PictureUri = elementDto.PictureUri,
                 Url = elementDto.Url
