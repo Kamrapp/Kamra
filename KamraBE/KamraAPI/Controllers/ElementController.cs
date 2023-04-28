@@ -1,9 +1,6 @@
 ﻿using BusinessLogicService.ElementService;
 
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-
-using Shared.Dtos;
 
 namespace KamraAPI.Controllers
 {

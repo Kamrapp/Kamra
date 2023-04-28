@@ -2,8 +2,6 @@ using BusinessLogicService.TestService;
 
 using DataAccess.Data;
 
-using Microsoft.AspNetCore.Mvc;
-
 namespace KamraAPI.Controllers
 {
     [ApiController]
