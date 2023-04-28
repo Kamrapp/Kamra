@@ -126,7 +126,7 @@ namespace Fetcher.Instance
         {
             if (string.IsNullOrEmpty(stockDto.Url))
                 return false;
-            if (stockDto.ApiId == null)
+            if (stockDto.ElementId == null)
                 return false;
 
             return true;
