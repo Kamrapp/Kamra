@@ -12,8 +12,9 @@ Kamra is serverless-first for the MVP target.
 
 The intended setup:
 
-- Vercel for frontend hosting and stateless API routes
+- Vercel for Angular frontend hosting and Node.js stateless API routes
 - MongoDB Atlas as the managed system of record
+- separate databases or equivalent isolated environments for real internal data and demo-facing data
 - GitHub Actions for scheduled or event-driven ingestion and transformation jobs
 - Google account authentication as a later auth extension unless revised by plan
 - GitHub pull requests for controlled review
@@ -32,6 +33,7 @@ Allowed:
 - scheduled ingestion jobs
 - event-driven batch jobs
 - deterministic transformation scripts
+- scheduled maintenance processors for merge review, stale-data cleanup, and similar hygiene work
 - managed database access
 - managed authentication or OAuth integration
 - feature-flagged email and cleanup workflows
@@ -77,12 +79,17 @@ This is valuable existing work, but it differs from the target MVP operating mod
 
 Future standardization plans must explicitly decide:
 
-- whether the Angular frontend is retained, migrated, or replaced
-- whether .NET code is retained for scripts, libraries, or removed from runtime serving
+- how Angular is retained or upgraded for Vercel deployment
+- whether any .NET code remains as temporary reference tooling only
 - how crawler logic maps into GitHub Actions
+- how shared TypeScript contracts are generated or exposed for workflow jobs in other languages
 - how SQL Server entities map to MongoDB documents or are retired
 - how API behavior maps to Vercel serverless routes
 - how existing user/auth concepts map to Google sign-in, households, and admin access
+
+Workflow runtime should stay flexible per job. JavaScript or TypeScript is likely the most consistent default, but Python or C# should remain allowed when a crawler, parser, or transformation is materially better served by that toolchain.
+
+Shared contract generation should prefer a TypeScript source of truth with both JSON Schema and OpenAPI artifacts when the maintenance cost stays low enough. Those generated artifacts should be produced in CI or PR workflows and referenced from repository docs.
 
 ## Secrets
 
@@ -128,6 +135,19 @@ Ingestion should run through GitHub Actions schedules or manual dispatch.
 
 MongoDB should remain the persisted data layer for MVP target data.
 
+The first admin-only login should use Vercel-managed credentials or secrets as the simplest bootstrap gate, while the authenticated admin identity should still exist in the database so authorization, auditing, and future role handling do not depend on env vars alone.
+
+Even after EF Core removal, Kamra should retain a migration-ledger mechanism so document-shape changes and scripted backfills remain traceable.
+
+Contract drift should be checked automatically where practical. A useful early safeguard is to validate sample or fixture documents against the generated contract artifacts and run smoke queries against a representative seeded database shape in CI.
+
+The preferred safeguard is both:
+
+- generated contract artifacts should be regenerated and surfaced in PR workflows when schema-relevant code changes
+- seeded snapshot-style database data should be validated through smoke queries against the current code
+
+Demo environments should run against generated sample datasets built by workflows from real ingestion/transformation logic, not against the live internal dataset directly.
+
 Whitelist cleanup may also run as a scheduled job, but only after the whitelist feature flag is enabled. Until then, no automatic whitelist expiry job or invitation email should run.
 
 ## Licensing And Public Use
@@ -153,21 +173,23 @@ Operational defaults:
 - avoid authenticated, personal, paywalled, CAPTCHA-protected, or anti-bot-protected surfaces
 - present price data as observed and timestamped, not guaranteed
 
+Standardized processor jobs should also be planned alongside crawlers where needed, for example:
+
+- duplicate or merge-candidate detection
+- stale stock or outdated offer cleanup
+- no-longer-available item handling
+- snapshot-to-query backfills after schema changes
+
 ## Open Decisions
 
 These should be resolved by explicit planning before implementation:
 
-- final frontend framework
 - exact serverless API framework
-- authentication provider and Google account integration details
-- email provider choice for invitation and expiry emails
+- Google account authentication details after the admin-only phase
 - feature flag mechanism for whitelist registration
 - minimal user, household, membership, and admin role model
 - MongoDB collection model
-- crawler execution language and packaging
-- migration or retirement path for SQL Server code
-- minimal first ingestion source
 - free-tier quota limits and acceptable demo data volume
-- public demo data policy
+- which retailer or source should be the first enabled ingestion target after source-policy review and acquisition-method investigation
 - license and public-use wording for the repository
 - source review and crawler compliance checklist
