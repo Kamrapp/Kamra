@@ -16,8 +16,28 @@ jobs:
     steps:
       - name: Check out repository code
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Ensure tag points to current master_dev
+        id: verify-master-dev
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git fetch origin master_dev --depth=1
+          MASTER_DEV_SHA="$(git rev-parse refs/remotes/origin/master_dev)"
+
+          if [ "${GITHUB_SHA}" != "${MASTER_DEV_SHA}" ]; then
+            echo "Tag ${GITHUB_REF_NAME} does not point to the current master_dev tip."
+            echo "should_create_pr=false" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          echo "should_create_pr=true" >> "${GITHUB_OUTPUT}"
 
       - name: pull-request
+        if: steps.verify-master-dev.outputs.should_create_pr == 'true'
         uses: step-security/repo-sync-pull-request@v2
         with:
           source_branch: "master_dev"

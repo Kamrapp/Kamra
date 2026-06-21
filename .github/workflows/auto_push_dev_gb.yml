@@ -6,7 +6,7 @@ on:
       - master_dev_gb
 
 permissions:
-  contents: read
+  contents: write
   pull-requests: write
   issues: write
 
@@ -17,6 +17,21 @@ jobs:
     steps:
       - name: Check out repository code
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Ensure master_dev exists
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if git ls-remote --exit-code --heads origin master_dev >/dev/null 2>&1; then
+            echo "master_dev already exists."
+            exit 0
+          fi
+
+          git fetch origin master --depth=1
+          git push origin refs/remotes/origin/master:refs/heads/master_dev
 
       - name: pull-request
         uses: step-security/repo-sync-pull-request@v2
