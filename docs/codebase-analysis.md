@@ -159,6 +159,11 @@ Composition should stay visible as a first-class product-model concern. A future
 
 Tags should also be treated as more than display labels. The legacy model hints at a future elastic-search and intent-search role where product terms or attributes such as `Bio`, `Tej`, and possibly even `3,8%` can participate in search, matching, filtering, and later ranking behavior.
 
+The legacy tag idea is probably heading toward two related concepts:
+
+- system-owned normalized search signals that drive matching and search behavior
+- future user-owned custom tags that remain visible in the UI but are distinguishable in storage and behavior
+
 ### Mapping Boundaries
 
 The `ToDto`, `ToModel`, and `ToMongoDto` mapper pattern is worth carrying forward in spirit:
@@ -239,6 +244,8 @@ The legacy code suggests a clearer target direction than the initial bootstrap d
 - generate language-agnostic contract artifacts for workflow jobs so ingestion is not forced into TypeScript
 - keep a migrations ledger in MongoDB even after EF Core is removed
 - treat workflow jobs as the replacement for crawler registration and long-running backend infrastructure
+- bootstrap admin login with Vercel-managed credentials, but keep the admin identity itself in the database
+- maintain separate real and demo data environments, with demo data built from workflow-generated sample output rather than live internal data exposure
 
 Workflow runtime should stay pragmatic per job. JavaScript or TypeScript is the most consistent default with the planned app stack, but Python or even C# can still be acceptable for individual crawlers or transformation jobs when the source or tooling fit is clearly better.
 

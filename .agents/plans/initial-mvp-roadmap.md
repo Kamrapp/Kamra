@@ -29,6 +29,7 @@ The intended direction is:
 
 - Vercel frontend and stateless API routes
 - MongoDB Atlas as the MVP system of record
+- separate real and demo data environments
 - GitHub Actions cron jobs for ingestion
 - raw snapshots before processed product data
 - no public registration initially
@@ -75,11 +76,8 @@ Expected output:
 
 Questions:
 
-- Archive legacy code in-place, move it under a legacy folder, or keep it untouched until the new MVP runs?
 - Which current entities should influence the first MongoDB schema?
 - Which crawler code should be reused versus treated as reference?
-- Should Angular remain the frontend baseline unless it blocks Stage 2?
-- Should shared TypeScript contracts become the main source of truth for frontend and server models, with generated artifacts for workflow jobs?
 - How should composition and tags influence the first canonical product schema and later elastic-search behavior?
 
 ## Stage 2: Minimal Serverless Foundation
@@ -96,6 +94,8 @@ Scope slice:
 - API healthcheck route
 - healthcheck connects to MongoDB and reports safe status
 - MongoDB connection finalized for local and deployed environments
+- admin bootstrap credentials managed through Vercel env vars or equivalent secrets
+- authenticated admin identity persisted in the database
 
 Validation:
 
@@ -105,11 +105,6 @@ Validation:
 - unauthorized users cannot access admin-only surfaces
 - free-tier limits are documented
 - demo behavior does not expose private data
-
-Questions:
-
-- Keep Angular on Vercel for the first serverless slice, or revisit the frontend only if deployment friction proves it necessary?
-- Temporary admin credentials in Vercel env vars, MongoDB admin document, or external auth provider from the start?
 
 ## Stage 3: First Simple Ingestion Job
 
@@ -123,6 +118,7 @@ Scope slice:
 - one simple crawler/fetcher
 - raw snapshot collection in MongoDB
 - run metadata
+- country-aware and scope-aware offer or assortment capture
 - admin view showing crawled/fetched products or raw rows
 
 Validation:
@@ -135,7 +131,8 @@ Validation:
 
 Questions:
 
-- First source: existing Lidl sample, existing Aldi sample, SPAR, or a deliberately simpler stable source?
+- Which retailer or source should be the first enabled ingestion target after source-policy review and source-method investigation?
+- Which acquisition method is best for the first enabled source: browser automation, public API, PDF ingestion, or another source-specific approach?
 - Runtime: TypeScript/Playwright, lightweight fetch/parser, or selective .NET reuse only as temporary reference tooling?
 
 ## Stage 4: Product Processing Pipeline
@@ -152,6 +149,8 @@ Expected model direction:
 - price history is separate from current query documents
 - current/collated values may be duplicated where frequent queries need them
 - transformation is deterministic and rerunnable
+- uncertain identity remains unlinked until verified
+- standardized processor jobs can maintain merge candidates, stale data, and similar hygiene tasks
 
 Validation:
 
@@ -184,11 +183,6 @@ Validation:
 - emails are not sent while the feature flag is disabled
 - cleanup cron does not run while the feature flag is disabled
 - audit metadata records who created the whitelist entry
-
-Questions:
-
-- Should the first email provider be a real free-tier provider, a console/log adapter, or a no-op adapter until the flag is enabled?
-- Should whitelist links be single-use tokens or email-only checks for the first implementation?
 
 ## Stage 6: Household Foundation
 
@@ -307,6 +301,10 @@ Ask during the relevant planning sessions:
 - How should shared TypeScript contracts map to workflow jobs that are not written in TypeScript?
 - How should migration-ledger records be modeled after EF Core is removed?
 - How should composition records and tag-like normalized search signals be stored so later elastic search stays explainable?
+- How should country-wide, regional, and location-specific availability or pricing scope be represented?
+- Which canonical product fields are truly required in the first schema versus better left deferred until real ingestion data forces them?
+- Which shared contract shapes are internal-only versus intended to remain stable across public API boundaries?
+- How should unresolved identity or merge-candidate records be modeled so automated processors and later review can work safely?
 - What snapshot granularity is enough for price history and debugging?
 - What admin actions are needed before automatic product merging is trusted?
 
@@ -315,7 +313,6 @@ Ask during the relevant planning sessions:
 Ask during the relevant planning sessions:
 
 - What should public demo users be able to see without risking private household data?
-- Should the deployed demo have sample data, real crawled data, or both?
 - What usage limits are needed to stay inside free-tier boundaries?
 - What feature flags must remain off in public/demo deployments?
 - What should be documented for job-application reviewers?
@@ -323,6 +320,22 @@ Ask during the relevant planning sessions:
 - Which practices belong in global agent settings or reusable skills instead of this repo?
 - Which crawler sources are acceptable under `docs/crawler-policy.md`?
 - What license wording should be shown to portfolio reviewers so source availability is clear without implying clone-and-host permission?
+
+Current direction:
+
+- keep Angular as the frontend baseline unless a later plan proves it is blocking
+- use shared TypeScript contracts as the main app-facing source of truth
+- generate both JSON Schema and OpenAPI artifacts when cheap enough
+- keep workflows language-flexible per source
+- bootstrap admin login with Vercel-managed credentials while persisting admin identity in the database
+- use workflow-generated sample datasets for demo environments instead of exposing live internal data
+- use single-use tokens for whitelist registration links
+- require both PR-visible contract regeneration and seeded-database smoke validation for contract safety
+- treat stock as location-connectable and offers as country-wide first, with room for later regional scope
+- represent country-wide offer scope with `regionCode = null`
+- treat store records as country-scoped at minimum, with a country-level no-region no-address store anchor per brand for the first country-wide stock model
+- model composition through quantity plus unit, including percentage-style composition via `%`
+- use a no-op or console/log email adapter before any real email provider is introduced
 
 ## Post-MVP Horizons
 

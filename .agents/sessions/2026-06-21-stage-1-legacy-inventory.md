@@ -52,16 +52,58 @@
 - Decision: preserve a migration-ledger concept after EF Core removal
 - Reason: document-shape evolution still needs tracked, replayable migrations or backfills
 
+- Decision: bootstrap first admin login with Vercel-managed credentials, but keep the admin identity in the database
+- Reason: env vars are the simplest initial gate, while database-backed identity keeps roles and auditing sane
+
+- Decision: use shared TypeScript contracts with both JSON Schema and OpenAPI artifacts when the maintenance cost stays low
+- Reason: frontend/server consistency stays high while non-TypeScript workflows still get a consumable contract
+
+- Decision: keep workflow runtime flexible per job
+- Reason: JavaScript or TypeScript is the default preference, but Python or selective C# can still be justified by source-specific tooling
+
+- Decision: serve demos from workflow-generated sample datasets in a separate demo environment
+- Reason: demo data should reflect real ingestion logic without exposing the internal live dataset directly
+
+- Decision: treat country and geographic offer scope as an early schema concern
+- Reason: product availability and pricing cannot be assumed to be global even within the same retailer
+
+- Decision: treat stock or availability as location-connectable, while offers start country-wide with room for later regional scope
+- Reason: store presence and offer coverage do not necessarily share the same geographic granularity
+
+- Decision: use `countryCode` plus nullable `regionCode` for early offer scope
+- Reason: `regionCode = null` gives a simple and explicit whole-country representation
+
+- Decision: require store records to carry `countryCode`, with an initial country-level brand store anchor when only country-wide stock data exists
+- Reason: this keeps early country-wide assortment data simple without pretending every item already has store-address granularity
+
+- Decision: use both PR-visible contract regeneration and seeded-database smoke checks for contract safety
+- Reason: schema drift should be visible in review and also checked against realistic data shapes
+
+- Decision: use single-use tokens for whitelist registration links
+- Reason: this is the safer first implementation for controlled access
+
+- Decision: model composition through quantity plus unit, including `%` for percentage-style composition
+- Reason: one representation is simpler than keeping a parallel ratio-only concept
+
+- Decision: leave uncertain product identity unlinked until verified
+- Reason: over-merging is harder to recover from than keeping candidates separate
+
+- Decision: preserve multiple reliable quantity dimensions instead of collapsing to one preferred unit too early
+- Reason: some products legitimately need both volume and weight or similar parallel measurements for later comparison
+
 ## Open Issues
 
-- Issue: the future shared-contract strategy is not yet designed in detail
-- Impact: Stage 2 implementation could drift between frontend, API, and workflow models if this is not planned explicitly
+- Issue: the shared-contract direction is decided, but the exact package layout and CI workflow shape are not yet designed
+- Impact: Stage 2 implementation still needs a concrete contract package and artifact-generation plan
 
 - Issue: legacy `Stock` mixes store-offer and household-inventory concepts
 - Impact: early MongoDB schema work could inherit a misleading model boundary
 
-- Issue: compound-product modeling currently relies on a simple ratio field
-- Impact: future household/product search capabilities may need richer composition semantics than the legacy model provides
+- Issue: the broad geo-scope direction is decided, but the exact document shape is still not designed
+- Impact: Stage 2 or 3 schema work still needs to choose the precise field layout for country, region, store, and brand-level country anchors
+
+- Issue: standardized maintenance-processor boundaries are not yet designed
+- Impact: later implementation needs clear ownership for duplicate detection, merge verification, stale cleanup, and backfill-style maintenance work
 
 ## Next Step
 

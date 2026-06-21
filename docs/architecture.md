@@ -13,6 +13,7 @@ Kamra is intended to use a serverless-first architecture:
 - Angular frontend hosted on Vercel unless a later approved plan changes the frontend framework
 - Node.js and TypeScript stateless API routes for query and lightweight orchestration
 - MongoDB Atlas as the managed data store
+- separate real and demo data environments, with demo data produced from workflow-built samples rather than direct live-database exposure
 - GitHub Actions for ingestion and transformation jobs
 - user-facing household workflows separate from admin/operator workflows
 - free-tier friendly operation for demo, testing, and portfolio/reference use
@@ -62,6 +63,8 @@ Expected business failures should use Result-style responses or an equivalent ex
 
 When frontend and API shapes are genuinely the same, prefer shared TypeScript contracts instead of duplicative 1:1 DTOs. Use explicit mapping layers where auth, admin actions, raw snapshots, or public API boundaries differ.
 
+The initial admin-only login can be bootstrapped with Vercel-managed credentials or secrets, but the authenticated admin identity should still map to a database record so roles, auditing, and future expansion remain data-driven.
+
 ### Ingestion Layer
 
 Responsibilities:
@@ -76,6 +79,8 @@ Ingestion should run through GitHub Actions or equivalent event-driven batch exe
 
 Workflows do not need to be limited to TypeScript. The model contract should still be consumable from non-TypeScript jobs through generated artifacts or another explicit compatibility layer.
 
+Shared contracts should ideally produce both JSON Schema and OpenAPI artifacts when that remains cheap enough to maintain.
+
 ### Transformation Layer
 
 Responsibilities:
@@ -83,8 +88,10 @@ Responsibilities:
 - normalize raw source data
 - deduplicate records
 - resolve product identity
+- partition availability and pricing by country and, where known, by region or store scope
 - create canonical product documents
 - update materialized query collections
+- run standardized maintenance processors for merge candidates, stale records, and other data hygiene tasks
 
 Transformations should be deterministic and reproducible from raw snapshots.
 
@@ -99,6 +106,7 @@ Responsibilities:
 - store store-product mappings
 - store offer and price history
 - store transformation metadata
+- store country and geographic offer scope metadata
 - store users, households, memberships, and household items
 - store admin review state for crawled or fetched products where needed
 - store registration whitelist entries with email, expiry, status, and audit metadata
@@ -184,14 +192,25 @@ External source
 - processed products are optimized for common product queries
 - price history is stored separately from product query documents
 - store-specific products stay separate from canonical product identity
+- country-specific assortment and pricing stay separate, even when products appear similar across countries
 - transformation output must trace back to source snapshots
 - current/collated values may be duplicated where they avoid frequent expensive calculations
 - obvious future fields may exist empty when they prevent disruptive schema churn later
 - uncertain matches should be represented explicitly, not hidden as confident canonical products
+- uncertain store-product identity should remain unlinked until verified by stronger evidence or explicit review
 - household inventory concepts should stay separate from store-offer observations even if they share some fields
 - shared contracts should be designed for reuse by frontend and API first, with generated compatibility for workflow runtimes where needed
 - composition should be modeled explicitly so compound products or household items can reference their parts
+- composition should support quantity plus unit, with ratio represented through the same model instead of a special unrelated relation shape
 - tags should remain queryable and normalization-friendly so later elastic or intent-based search can use them directly
+- system-provided search signals and future user-created tags should remain distinguishable in the data model even if the frontend presents them in a shared visual cloud
+- stock or availability records should be location-connectable from the beginning
+- offer scope should support country-wide coverage first, with room for later regional scope where sources require it
+- country-wide offers should use `regionCode = null`, while regional offers can set a concrete `regionCode`
+- store records should always carry `countryCode`
+- each brand should be able to have a country-level store record without region or address so country-wide starter data has a simple store anchor
+- unit data should preserve all useful measurable dimensions instead of collapsing them too early
+- products may legitimately carry multiple comparable quantity signals such as volume and weight at the same time
 
 The exact MongoDB document model should be decided in its own planning session before implementation.
 

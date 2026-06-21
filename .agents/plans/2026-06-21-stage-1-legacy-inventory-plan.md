@@ -20,8 +20,6 @@ Complete Stage 1 of the MVP roadmap by classifying the legacy repository, extrac
 
 ## Discovery Questions
 
-- Should Angular remain the frontend baseline for the MVP, or should it be revisited before Stage 2?
-- Should shared frontend/server contracts be first-class TypeScript models, with generated artifacts for non-TypeScript jobs?
 - Which legacy entity ideas are valuable enough to preserve even if the C# runtime and EF Core are removed?
 
 ## User Decisions
@@ -33,6 +31,15 @@ Complete Stage 1 of the MVP roadmap by classifying the legacy repository, extrac
 - Prefer Node.js in general for future backend/serverless work.
 - Keep Angular unless discovery shows it is a poor fit.
 - Preserve useful ideas around value-list properties, tags, compound products, DTO mapping, localization, and migration tracking.
+- Prefer Vercel-managed bootstrap credentials for the first admin gate, while keeping the admin identity itself in the database.
+- Prefer shared TypeScript contracts plus generated JSON Schema and OpenAPI artifacts when cheap enough.
+- Allow workflow jobs in JavaScript, TypeScript, Python, or selective C# depending on fit.
+- Use workflow-generated sample data for demo environments rather than exposing live internal data directly.
+- Treat country and geographic offer scope as an early data-model concern.
+- Prefer single-use tokens for whitelist registration when that stage is implemented.
+- Prefer both PR-visible contract regeneration and seeded-database smoke validation for contract safety.
+- Prefer `countryCode` plus nullable `regionCode` for early offer scope modeling.
+- Prefer quantity-plus-unit composition, including `%` for ratio-like composition.
 
 ## Current Reality
 
@@ -74,9 +81,6 @@ Complete Stage 1 of the MVP roadmap by classifying the legacy repository, extrac
 
 ## Open Questions
 
-- How much of the future shared contract should be literal shared TypeScript versus explicit API DTOs?
-- Should workflow jobs consume generated JSON Schema, OpenAPI, or another artifact from the TypeScript contract package?
-- How should compound products represent composition when `Ratio` is not expressive enough?
 - Which early canonical product fields should exist from day one versus being added later through migration-ledger changes?
 
 ## Side Suggestions
