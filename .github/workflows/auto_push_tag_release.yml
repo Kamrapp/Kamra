@@ -22,7 +22,6 @@ jobs:
         with:
           destination_branch: "master"
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          pr_label: "[GB][GYR]"
           pr_template: ".github/pr_templ.md"
           pr_assignee: "legrab,gyrz"
           pr_reviewer: "legrab,gyrz"
