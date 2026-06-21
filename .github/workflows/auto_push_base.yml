@@ -1,23 +1,30 @@
 name: Pull Request Action Base
+
 on:
   push:
-    #branches:
-      #- master_dev
     tags:
       - "v*"
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
 
 jobs:
   create-pull-request:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v5
+
       - name: pull-request
-        uses: repo-sync/pull-request@v2
+        uses: step-security/repo-sync-pull-request@v2
         with:
           destination_branch: "master"
           github_token: ${{ secrets.GITHUB_TOKEN }}
           pr_label: "[GB][GYR]"
-          pr_template: ".github/pr_templ.md"                
+          pr_template: ".github/pr_templ.md"
+          pr_assignee: "legrab,gyrz"
+          pr_reviewer: "legrab,gyrz"
           pr_allow_empty: false
-          pr_title: ${{ github.event.head_commit.message }}
+          pr_title: "Release ${{ github.ref_name }}"
