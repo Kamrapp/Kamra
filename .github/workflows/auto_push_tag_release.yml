@@ -1,0 +1,30 @@
+name: Release Pull Request Action for version tags
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  create-pull-request:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v5
+
+      - name: pull-request
+        uses: step-security/repo-sync-pull-request@v2
+        with:
+          source_branch: "master_dev"
+          destination_branch: "master"
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          pr_template: ".github/pr_templ.md"
+          pr_assignee: "legrab,gyrz"
+          pr_reviewer: "legrab,gyrz"
+          pr_allow_empty: false
+          pr_title: "Release ${{ github.ref_name }}"

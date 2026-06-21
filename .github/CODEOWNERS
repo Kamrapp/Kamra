@@ -1,0 +1,6 @@
+# This file defines who owns (sections of) the repository.
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# The line below applies to ALL files (*) and assigns ownership to the specified team. 
+# Code owner review from this team will be required when branch protection requires review from code owners.
+* @legrab @gyrz
