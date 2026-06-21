@@ -1,22 +1,29 @@
-name: Pull Request Action GYR
+name: Auto Pull Request Action for Devs
+
 on:
   push:
     branches:
-      - master_dev_gyr
+      - master_dev_*
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
 
 jobs:
   create-pull-request:
     runs-on: ubuntu-latest
+
     steps:
       - name: Check out repository code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v5
+
       - name: pull-request
-        uses: repo-sync/pull-request@v2
+        uses: step-security/repo-sync-pull-request@v2
         with:
           destination_branch: "master_dev"
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          pr_label: "[GB]"
           pr_template: ".github/pr_templ.md"
-          pr_assignee: "gyrz"                  
+          pr_assignee: ${{ github.actor }}
           pr_allow_empty: false
           pr_title: ${{ github.event.head_commit.message }}
