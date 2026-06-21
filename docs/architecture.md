@@ -10,8 +10,8 @@ It should be read together with `docs/codebase-analysis.md`, because the current
 
 Kamra is intended to use a serverless-first architecture:
 
-- frontend hosted on Vercel
-- stateless API routes for query and lightweight orchestration
+- Angular frontend hosted on Vercel unless a later approved plan changes the frontend framework
+- Node.js and TypeScript stateless API routes for query and lightweight orchestration
 - MongoDB Atlas as the managed data store
 - GitHub Actions for ingestion and transformation jobs
 - user-facing household workflows separate from admin/operator workflows
@@ -40,6 +40,8 @@ The frontend should not own business-critical product matching or ingestion logi
 
 User-facing screens should focus on household workflows. Admin screens should focus on ingestion visibility, crawled/fetched product review, and data maintenance.
 
+Frontend localization should be treated as an early MVP concern, not a later polish item.
+
 ### API Layer
 
 Responsibilities:
@@ -58,6 +60,8 @@ API routes must remain stateless and should not perform crawling or long-running
 
 Expected business failures should use Result-style responses or an equivalent explicit convention instead of exceptions as control flow. Exceptions should represent unexpected or infrastructure failures.
 
+When frontend and API shapes are genuinely the same, prefer shared TypeScript contracts instead of duplicative 1:1 DTOs. Use explicit mapping layers where auth, admin actions, raw snapshots, or public API boundaries differ.
+
 ### Ingestion Layer
 
 Responsibilities:
@@ -69,6 +73,8 @@ Responsibilities:
 - honor `docs/crawler-policy.md` for source review, rate limits, and disablement
 
 Ingestion should run through GitHub Actions or equivalent event-driven batch execution.
+
+Workflows do not need to be limited to TypeScript. The model contract should still be consumable from non-TypeScript jobs through generated artifacts or another explicit compatibility layer.
 
 ### Transformation Layer
 
@@ -98,6 +104,8 @@ Responsibilities:
 - store registration whitelist entries with email, expiry, status, and audit metadata
 
 MongoDB Atlas is the target MVP persistence layer.
+
+Even without EF Core, the persistence layer should include a migration-ledger concept so scripted document-shape changes can be tracked and applied safely.
 
 ## Access Model
 
@@ -141,6 +149,8 @@ Responsibilities:
 
 Query logic should use canonical data, not raw crawler output directly.
 
+Tags should be modeled so they can evolve into elastic-search inputs, synonym anchors, and intent-matching hints instead of remaining passive labels only.
+
 ### Optimization Layer
 
 Responsibilities:
@@ -178,6 +188,10 @@ External source
 - current/collated values may be duplicated where they avoid frequent expensive calculations
 - obvious future fields may exist empty when they prevent disruptive schema churn later
 - uncertain matches should be represented explicitly, not hidden as confident canonical products
+- household inventory concepts should stay separate from store-offer observations even if they share some fields
+- shared contracts should be designed for reuse by frontend and API first, with generated compatibility for workflow runtimes where needed
+- composition should be modeled explicitly so compound products or household items can reference their parts
+- tags should remain queryable and normalization-friendly so later elastic or intent-based search can use them directly
 
 The exact MongoDB document model should be decided in its own planning session before implementation.
 

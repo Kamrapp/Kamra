@@ -12,7 +12,7 @@ Kamra is serverless-first for the MVP target.
 
 The intended setup:
 
-- Vercel for frontend hosting and stateless API routes
+- Vercel for Angular frontend hosting and Node.js stateless API routes
 - MongoDB Atlas as the managed system of record
 - GitHub Actions for scheduled or event-driven ingestion and transformation jobs
 - Google account authentication as a later auth extension unless revised by plan
@@ -77,12 +77,15 @@ This is valuable existing work, but it differs from the target MVP operating mod
 
 Future standardization plans must explicitly decide:
 
-- whether the Angular frontend is retained, migrated, or replaced
-- whether .NET code is retained for scripts, libraries, or removed from runtime serving
+- how Angular is retained or upgraded for Vercel deployment
+- whether any .NET code remains as temporary reference tooling only
 - how crawler logic maps into GitHub Actions
+- how shared TypeScript contracts are generated or exposed for workflow jobs in other languages
 - how SQL Server entities map to MongoDB documents or are retired
 - how API behavior maps to Vercel serverless routes
 - how existing user/auth concepts map to Google sign-in, households, and admin access
+
+Workflow runtime should stay flexible per job. JavaScript or TypeScript is likely the most consistent default, but Python or C# should remain allowed when a crawler, parser, or transformation is materially better served by that toolchain.
 
 ## Secrets
 
@@ -128,6 +131,8 @@ Ingestion should run through GitHub Actions schedules or manual dispatch.
 
 MongoDB should remain the persisted data layer for MVP target data.
 
+Even after EF Core removal, Kamra should retain a migration-ledger mechanism so document-shape changes and scripted backfills remain traceable.
+
 Whitelist cleanup may also run as a scheduled job, but only after the whitelist feature flag is enabled. Until then, no automatic whitelist expiry job or invitation email should run.
 
 ## Licensing And Public Use
@@ -157,14 +162,15 @@ Operational defaults:
 
 These should be resolved by explicit planning before implementation:
 
-- final frontend framework
+- Angular deployment and upgrade path
 - exact serverless API framework
 - authentication provider and Google account integration details
 - email provider choice for invitation and expiry emails
 - feature flag mechanism for whitelist registration
 - minimal user, household, membership, and admin role model
 - MongoDB collection model
-- crawler execution language and packaging
+- shared contract generation format for non-TypeScript workflow jobs
+- crawler execution language and packaging per source or workflow
 - migration or retirement path for SQL Server code
 - minimal first ingestion source
 - free-tier quota limits and acceptable demo data volume

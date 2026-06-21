@@ -67,6 +67,9 @@ Expected output:
 
 - fuller `docs/codebase-analysis.md`
 - extraction notes for useful models, crawler patterns, selectors, and mapping ideas
+- explicit keep/reference/retire guidance for frontend, backend, crawler, fetcher, workflow, and solution files
+- session notes for what to keep versus throw away before the legacy branch split
+- learnings for crawler architecture, legacy domain-model ideas, and shared-contract direction
 - list of code to keep temporarily as reference
 - list of code that can become legacy/archive
 
@@ -75,6 +78,9 @@ Questions:
 - Archive legacy code in-place, move it under a legacy folder, or keep it untouched until the new MVP runs?
 - Which current entities should influence the first MongoDB schema?
 - Which crawler code should be reused versus treated as reference?
+- Should Angular remain the frontend baseline unless it blocks Stage 2?
+- Should shared TypeScript contracts become the main source of truth for frontend and server models, with generated artifacts for workflow jobs?
+- How should composition and tags influence the first canonical product schema and later elastic-search behavior?
 
 ## Stage 2: Minimal Serverless Foundation
 
@@ -102,7 +108,7 @@ Validation:
 
 Questions:
 
-- Next.js on Vercel, minimal Vercel app, or another frontend/serverless framework?
+- Keep Angular on Vercel for the first serverless slice, or revisit the frontend only if deployment friction proves it necessary?
 - Temporary admin credentials in Vercel env vars, MongoDB admin document, or external auth provider from the start?
 
 ## Stage 3: First Simple Ingestion Job
@@ -130,7 +136,7 @@ Validation:
 Questions:
 
 - First source: existing Lidl sample, existing Aldi sample, SPAR, or a deliberately simpler stable source?
-- Runtime: TypeScript/Playwright, .NET reuse, or lightweight fetch/parser first?
+- Runtime: TypeScript/Playwright, lightweight fetch/parser, or selective .NET reuse only as temporary reference tooling?
 
 ## Stage 4: Product Processing Pipeline
 
@@ -298,6 +304,9 @@ Ask during the relevant planning sessions:
 - Which values must remain historical only?
 - How should units and package sizes be represented?
 - How should uncertain product identity matches be represented?
+- How should shared TypeScript contracts map to workflow jobs that are not written in TypeScript?
+- How should migration-ledger records be modeled after EF Core is removed?
+- How should composition records and tag-like normalized search signals be stored so later elastic search stays explainable?
 - What snapshot granularity is enough for price history and debugging?
 - What admin actions are needed before automatic product merging is trusted?
 
