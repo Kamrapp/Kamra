@@ -20,9 +20,9 @@ jobs:
       - name: pull-request
         uses: step-security/repo-sync-pull-request@v2
         with:
+          source_branch: "master_dev"
           destination_branch: "master"
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          pr_label: "[GB][GYR]"
           pr_template: ".github/pr_templ.md"
           pr_assignee: "legrab,gyrz"
           pr_reviewer: "legrab,gyrz"
