@@ -18,8 +18,9 @@ afterEach(() => {
 });
 
 describe("kamra logger", () => {
-  it("does not attempt file logging on Vercel when no explicit log path is set", () => {
+  it("does not attempt file logging on Vercel", () => {
     vi.stubEnv("VERCEL", "1");
+    vi.stubEnv("LOG_FILE_DIR", "D:/Code/Kamra/logs");
 
     writeServerLog("info", "hello");
 

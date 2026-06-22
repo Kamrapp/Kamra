@@ -2,18 +2,18 @@
 
 Kamra currently uses a simple split logging model:
 
-- server-side logs go to the console and to daily rolling files under `logs/`
+- server-side logs go to the console and, locally, to daily rolling files under `logs/`
 - browser-side logs go to the browser console and are forwarded to `POST /api/log`
-- forwarded browser logs are written by the server to the same rolling file set and mirrored to the server console
+- forwarded browser logs are mirrored to the server console and, locally, written to the same rolling file set
 - on Vercel, both `/api/health` and `/api/log` are deployed as thin Function entrypoints that delegate to the shared server handler
-- file logging is disabled automatically on Vercel unless `LOG_FILE_DIR` points to a writable directory
+- file logging is disabled on Vercel; hosted logs are console-only
 
 ## Server Logging
 
-The shared server logger writes timestamped records in two places:
+The shared server logger writes timestamped records to:
 
 - console output for local runs and Vercel runtime logs
-- JSONL files under `logs/server-YYYY-MM-DD.log`
+- JSONL files under `logs/server-YYYY-MM-DD.log` during local runs
 
 The file logs roll daily and older log files are removed after 10 days.
 
@@ -27,7 +27,7 @@ That helper:
 - sends structured log payloads to `POST /api/log`
 - never blocks the app if the log endpoint is unavailable
 
-The server then records those browser logs to `logs/browser-YYYY-MM-DD.log` and mirrors them to the server console.
+The server mirrors those browser logs to the server console. During local runs, it also records them to `logs/browser-YYYY-MM-DD.log`.
 
 ## Notes
 
@@ -36,5 +36,5 @@ The server then records those browser logs to `logs/browser-YYYY-MM-DD.log` and 
 - Browser log forwarding only reaches Vercel runtime logs when the deployed project includes the `/api/log` Function route.
 - Health failures are logged in every environment so hosted MongoDB connection issues can be diagnosed from Vercel runtime logs.
 - The file logs are a local and developer convenience, not the source of truth for hosted retention.
-- `LOG_FILE_DIR` controls the file output path when file logging is enabled. Leaving it unset keeps local file logs in `logs/`, while hosted Vercel runs stay console-only by default.
+- `LOG_FILE_DIR` controls the local file output path when file logging is enabled. Hosted Vercel runs ignore it and stay console-only.
 - Logging payloads should stay small and should not include secrets.

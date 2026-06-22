@@ -1,0 +1,115 @@
+import { computed, Injectable, signal } from "@angular/core";
+
+interface LoginResponse {
+  token: string;
+  tokenType: "Bearer";
+  user: AuthenticatedUser;
+}
+
+interface CurrentUserResponse {
+  user: AuthenticatedUser;
+}
+
+export interface AuthenticatedUser {
+  email: string;
+  role: "admin";
+}
+
+export type LoginResult =
+  | {
+      status: "ok";
+    }
+  | {
+      message: string;
+      status: "error";
+    };
+
+const userTokenStorageKey = "kamra_user_token";
+
+@Injectable({
+  providedIn: "root"
+})
+export class AuthService {
+  readonly token = signal<string | null>(this.readStoredToken());
+  readonly user = signal<AuthenticatedUser | null>(null);
+  readonly isAuthenticated = computed(() => Boolean(this.token() && this.user()));
+
+  getAuthorizationHeaders(): Record<string, string> {
+    const token = this.token();
+    return token
+      ? { authorization: `Bearer ${token}` }
+      : {};
+  }
+
+  async loadCurrentUser(): Promise<void> {
+    if (!this.token()) {
+      this.user.set(null);
+      return;
+    }
+
+    const response = await fetch("/api/admin/me", {
+      headers: {
+        accept: "application/json",
+        ...this.getAuthorizationHeaders()
+      },
+      method: "GET"
+    });
+
+    if (!response.ok) {
+      this.clearToken();
+      return;
+    }
+
+    const payload = (await response.json()) as CurrentUserResponse;
+    this.user.set(payload.user);
+  }
+
+  async login(email: string, password: string): Promise<LoginResult> {
+    const response = await fetch("/api/login", {
+      body: JSON.stringify({ email, password }),
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json"
+      },
+      method: "POST"
+    });
+
+    if (!response.ok) {
+      return {
+        message: response.status === 401
+          ? "The email or password did not match an active user."
+          : "Login is not available right now.",
+        status: "error"
+      };
+    }
+
+    const payload = (await response.json()) as LoginResponse;
+    this.storeToken(payload.token);
+    this.user.set(payload.user);
+
+    return { status: "ok" };
+  }
+
+  async logout(): Promise<void> {
+    await fetch("/api/logout", {
+      headers: this.getAuthorizationHeaders(),
+      method: "POST"
+    }).catch(() => undefined);
+    this.clearToken();
+  }
+
+  private clearToken(): void {
+    this.token.set(null);
+    this.user.set(null);
+    window.localStorage.removeItem(userTokenStorageKey);
+  }
+
+  private readStoredToken(): string | null {
+    return window.localStorage.getItem(userTokenStorageKey);
+  }
+
+  private storeToken(token: string): void {
+    window.localStorage.setItem(userTokenStorageKey, token);
+    this.token.set(token);
+  }
+}

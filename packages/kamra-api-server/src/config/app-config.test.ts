@@ -3,6 +3,25 @@ import { describe, expect, it } from "vitest";
 import { readAppConfig } from "./app-config.js";
 
 describe("readAppConfig", () => {
+  it("reads auth token configuration", () => {
+    const result = readAppConfig({
+      AUTH_TOKEN_SECRET: "local-secret"
+    });
+
+    expect(result.auth).toEqual({
+      tokenMaxAgeSeconds: 28800,
+      tokenSecret: "local-secret",
+      tokenSecretConfigured: true
+    });
+  });
+
+  it("marks auth token configuration as missing when the secret is not set", () => {
+    const result = readAppConfig({});
+
+    expect(result.auth.tokenSecret).toBeNull();
+    expect(result.auth.tokenSecretConfigured).toBe(false);
+  });
+
   it("uses the default Atlas DNS fallback when MongoDB is configured without an override", () => {
     const result = readAppConfig({
       MONGODB_DB_NAME: "kamra_test",

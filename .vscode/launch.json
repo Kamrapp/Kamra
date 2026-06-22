@@ -2,6 +2,24 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Kamra: Serve local app",
+      "type": "pwa-node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "serverReadyAction": {
+        "pattern": "Local:\\s+(https?://\\S+)",
+        "uriFormat": "%s",
+        "action": "openExternally"
+      }
+    },
+    {
       "name": "Kamra: Run local API",
       "type": "pwa-node",
       "request": "launch",
@@ -20,7 +38,7 @@
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
       "serverReadyAction": {
-        "pattern": "Kamra local API listening on (https?://\\S+)",
+        "pattern": "url: '(https?://\\S+)'",
         "uriFormat": "%s/api/health",
         "action": "openExternally"
       }

@@ -129,6 +129,7 @@ For the current Stage 2 MongoDB setup, prefer storing the full connection string
 
 - `MONGODB_URI`
 - `MONGODB_DB_NAME`
+- `AUTH_TOKEN_SECRET` for signed browser-persisted user tokens
 
 The current database environment matrix is documented in [docs/database-environments.md](./database-environments.md). In short:
 
@@ -143,10 +144,10 @@ Keep the environment names, user names, and secret locations aligned with that m
 
 Kamra currently uses a lightweight split logging model documented in [docs/logging.md](./logging.md):
 
-- server logs are timestamped and written to console plus rolling `logs/server-YYYY-MM-DD.log` files
-- browser logs are timestamped in the browser, forwarded to `POST /api/log`, and mirrored to server console plus rolling `logs/browser-YYYY-MM-DD.log` files
+- server logs are timestamped and written to console plus local rolling `logs/server-YYYY-MM-DD.log` files
+- browser logs are timestamped in the browser, forwarded to `POST /api/log`, and mirrored to server console plus local rolling `logs/browser-YYYY-MM-DD.log` files
 - Vercel runtime logs should be treated as the hosted observability surface for server-side console output
-- file logs are a local convenience and should remain free of secrets
+- file logs are a local convenience, disabled on Vercel, and should remain free of secrets
 
 Logging should stay structured enough to debug startup and connectivity issues without becoming a general-purpose telemetry system before the app needs one.
 
@@ -173,7 +174,7 @@ The seed runner reads these shared database values from local environment files 
 - `MONGODB_DB_NAME`
 - `MONGODB_DNS_SERVERS` when a DNS override is needed for local or hosted SRV resolution
 
-The deployed `api/` Vercel Function entrypoints do not use a separate secrets layer inside the repository. They read these values from `process.env` through `readAppConfig()`, so the active Vercel environment must define the same variables that local development uses.
+The deployed `api/` Vercel Function entrypoints do not use a separate secrets layer inside the repository. They read runtime values from `process.env` through `readAppConfig()`, so the active Vercel environment must define the same variables that local development uses. Login and admin-only API checks also require `AUTH_TOKEN_SECRET`.
 
 Each seed owns its own optional env values. If all env values for an optional seed are present, that seed runs silently. If they are missing, `npm run seed` asks whether to run that seed and prompts for the missing values.
 

@@ -1,90 +1,111 @@
-import { Component, type OnInit } from "@angular/core";
+import { Component, inject, signal, type OnInit } from "@angular/core";
+import { FormsModule } from "@angular/forms";
+import {
+  NavigationEnd,
+  Router,
+  RouterLink,
+  RouterLinkActive,
+  RouterOutlet
+} from "@angular/router";
 
 import { logBrowserEvent } from "./browser-logger";
-
-interface HealthReport {
-  checks: {
-    api: {
-      status: string;
-    };
-    mongodb: {
-      databaseName?: string;
-      status: string;
-    };
-  };
-  stage: string;
-  status: string;
-}
+import { AuthService } from "./auth.service";
 
 @Component({
+  imports: [FormsModule, RouterLink, RouterLinkActive, RouterOutlet],
   selector: "app-root",
   standalone: true,
   template: `
-    <main class="shell" aria-label="Kamra app home">
-      <section class="app-frame" aria-labelledby="brand-title">
-        <header class="topbar">
-          <div class="brand-lockup">
-            <img
-              class="brand-mark"
-              src="/brand/kamra-basket.png"
-              alt=""
-              width="220"
-              height="220"
+    <main class="shell" aria-label="Kamra app">
+      <header class="topbar">
+        <a class="brand-link" routerLink="/" (click)="closeMenu()" aria-label="Kamra home">
+          <img
+            class="brand-mark"
+            src="/brand/kamra-basket.png"
+            alt=""
+            width="72"
+            height="72"
+          />
+          <span class="brand-copy">
+            <span class="eyebrow">Kamra</span>
+            <span class="brand-title">Pantry foundations, gently stocked.</span>
+          </span>
+        </a>
+
+        @if (auth.user(); as user) {
+          <div class="user-chip">
+            <span>{{ user.email }}</span>
+            <button type="button" (click)="logout()">Logout</button>
+          </div>
+        } @else {
+          <form class="login-form" (ngSubmit)="login()">
+            <input
+              autocomplete="username"
+              name="email"
+              placeholder="Email"
+              type="email"
+              [(ngModel)]="loginEmail"
+              [disabled]="loginState() === 'loading'"
             />
-            <div class="brand-copy">
-              <p class="eyebrow">Kamra</p>
-              <h1 id="brand-title">Pantry foundations, gently stocked.</h1>
-              <p class="intro">
-                The first deployed slice is intentionally small: frontend shell, shared API
-                runtime, and MongoDB-backed health visibility.
-              </p>
-            </div>
-          </div>
-
-          <nav class="menu" aria-label="Primary">
-            <button
-              class="menu-button"
-              type="button"
-              (click)="runHealthCheck()"
-              [disabled]="healthState === 'loading'"
-            >
-              {{ healthState === "loading" ? "Checking..." : "Health check" }}
+            <input
+              autocomplete="current-password"
+              name="password"
+              placeholder="Password"
+              type="password"
+              [(ngModel)]="loginPassword"
+              [disabled]="loginState() === 'loading'"
+            />
+            <button type="submit" [disabled]="loginState() === 'loading'">
+              {{ loginState() === "loading" ? "Logging in" : "Login" }}
             </button>
-          </nav>
-        </header>
+          </form>
+        }
+      </header>
 
-        <section class="status-panel" aria-live="polite">
-          <div class="status-heading">
-            <p class="status-kicker">Runtime</p>
-            <p class="status-summary">{{ healthSummary }}</p>
-          </div>
+      <router-outlet />
 
-          @if (healthMessage) {
-            <p class="status-message">{{ healthMessage }}</p>
-          }
+      @if (loginMessage(); as message) {
+        <p class="login-message" aria-live="polite">{{ message }}</p>
+      }
 
-          @if (healthReport) {
-            <dl class="status-grid">
-              <div>
-                <dt>API</dt>
-                <dd>{{ healthReport.checks.api.status }}</dd>
-              </div>
-              <div>
-                <dt>MongoDB</dt>
-                <dd>{{ healthReport.checks.mongodb.status }}</dd>
-              </div>
-              <div>
-                <dt>Database</dt>
-                <dd>{{ healthReport.checks.mongodb.databaseName ?? "not configured" }}</dd>
-              </div>
-              <div>
-                <dt>Stage</dt>
-                <dd>{{ healthReport.stage }}</dd>
-              </div>
-            </dl>
-          }
-        </section>
-      </section>
+      <button
+        class="menu-toggle"
+        type="button"
+        aria-label="Toggle navigation"
+        aria-controls="primary-menu"
+        [attr.aria-expanded]="isMenuOpen"
+        [class.menu-toggle-open]="isMenuOpen"
+        (click)="toggleMenu()"
+      >
+        <span aria-hidden="true">{{ isMenuOpen ? "›" : "‹" }}</span>
+      </button>
+
+      <aside
+        id="primary-menu"
+        class="side-menu"
+        [class.side-menu-open]="isMenuOpen"
+        [attr.aria-hidden]="!isMenuOpen"
+      >
+        <div class="side-menu-header">
+          <p class="side-menu-title">Navigation</p>
+        </div>
+
+        <nav class="nav-list" aria-label="Primary">
+          <a
+            routerLink="/"
+            routerLinkActive="active"
+            [routerLinkActiveOptions]="{ exact: true }"
+            (click)="closeMenu()"
+          >
+            <span aria-hidden="true">01</span>
+            Home
+          </a>
+          <a routerLink="/health" routerLinkActive="active" (click)="closeMenu()">
+            <span aria-hidden="true">02</span>
+            Health check
+          </a>
+        </nav>
+      </aside>
     </main>
   `,
   styles: [
@@ -95,234 +116,297 @@ interface HealthReport {
       }
 
       .shell {
-        display: flex;
-        justify-content: center;
-        padding: var(--space-page);
-        min-height: 100vh;
-      }
-
-      .app-frame {
         display: grid;
-        gap: var(--space-8);
-        width: min(100%, 72rem);
+        gap: var(--space-7);
+        margin: 0 auto;
+        min-height: 100vh;
+        padding: var(--space-page);
+        width: min(100%, 76rem);
       }
 
       .topbar {
-        align-items: start;
-        display: grid;
-        gap: var(--space-6);
-      }
-
-      .brand-lockup {
         align-items: center;
-        display: grid;
-        gap: var(--space-6);
+        display: flex;
+        gap: var(--space-4);
+        justify-content: space-between;
+        min-height: 4.5rem;
       }
 
-      .brand-copy {
-        display: grid;
+      .brand-link {
+        align-items: center;
+        color: inherit;
+        display: inline-flex;
         gap: var(--space-3);
+        min-width: 0;
+        text-decoration: none;
       }
 
       .brand-mark {
         aspect-ratio: 1;
-        height: auto;
-        width: min(48vw, 220px);
+        filter: drop-shadow(0 0.7rem 1.2rem rgb(105 88 79 / 18%));
+        height: clamp(3.5rem, 9vw, 4.5rem);
+        width: clamp(3.5rem, 9vw, 4.5rem);
+      }
+
+      .brand-copy {
+        display: grid;
+        gap: 0.1rem;
+        min-width: 0;
       }
 
       .eyebrow {
         color: var(--color-text-muted);
-        font-size: 0.9rem;
-        font-weight: 600;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0;
+        line-height: 1.2;
+        text-transform: uppercase;
+      }
+
+      .brand-title {
+        color: var(--color-text);
+        font-family: var(--font-display);
+        font-size: clamp(1.05rem, 3vw, 1.35rem);
+        font-weight: 700;
+        line-height: 1.18;
+      }
+
+      .login-form,
+      .user-chip {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2);
+        justify-content: flex-end;
+      }
+
+      .login-form input {
+        background: color-mix(in srgb, var(--color-surface) 88%, white 12%);
+        border: 1px solid color-mix(in srgb, var(--color-wood) 18%, transparent);
+        border-radius: 8px;
+        color: var(--color-text);
+        font: inherit;
+        min-height: 2.35rem;
+        padding: 0.55rem 0.7rem;
+        width: min(12rem, 32vw);
+      }
+
+      .login-form button,
+      .user-chip button {
+        background: var(--color-accent-leaf-strong);
+        border: 1px solid color-mix(in srgb, var(--color-accent-leaf-strong) 72%, black 28%);
+        border-radius: 8px;
+        color: white;
+        cursor: pointer;
+        font: inherit;
+        font-weight: 700;
+        min-height: 2.35rem;
+        padding: 0.55rem 0.8rem;
+      }
+
+      .login-form button:disabled {
+        cursor: progress;
+        opacity: 0.72;
+      }
+
+      .user-chip {
+        background: color-mix(in srgb, var(--color-surface) 82%, white 18%);
+        border: 1px solid color-mix(in srgb, var(--color-wood) 18%, transparent);
+        border-radius: 8px;
+        padding: 0.25rem;
+      }
+
+      .user-chip span {
+        color: var(--color-text);
+        font-size: 0.92rem;
+        padding: 0 0.45rem;
+      }
+
+      .login-message {
+        background: color-mix(in srgb, var(--color-surface) 86%, white 14%);
+        border: 1px solid color-mix(in srgb, var(--color-wood) 18%, transparent);
+        border-radius: 8px;
+        color: var(--color-text-muted);
+        justify-self: end;
+        margin: calc(var(--space-7) * -1) 0 0;
+        padding: 0.6rem 0.8rem;
+      }
+
+      .menu-toggle {
+        align-items: center;
+        background: color-mix(in srgb, var(--color-surface) 86%, white 14%);
+        border: 1px solid color-mix(in srgb, var(--color-wood) 28%, transparent);
+        border-radius: 8px 0 0 8px;
+        box-shadow: 0 0.55rem 1.4rem rgb(48 43 50 / 10%);
+        color: var(--color-text);
+        cursor: pointer;
+        display: inline-flex;
+        height: 3.2rem;
+        justify-content: center;
+        padding: 0;
+        padding: 0;
+        position: fixed;
+        right: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        transition: right 180ms ease;
+        width: 2rem;
+        z-index: 35;
+      }
+
+      .menu-toggle-open {
+        right: min(22rem, calc(100vw - 2rem));
+      }
+
+      .menu-toggle span {
+        font-size: 1.45rem;
+        line-height: 1;
+      }
+
+      .side-menu {
+        background: color-mix(in srgb, var(--color-surface) 94%, white 6%);
+        border: 1px solid color-mix(in srgb, var(--color-wood) 24%, transparent);
+        border-radius: 8px 0 0 8px;
+        box-shadow: -1.6rem 0 3.4rem rgb(48 43 50 / 18%);
+        display: grid;
+        gap: var(--space-5);
+        grid-template-rows: auto 1fr;
+        height: min(30rem, 52vh);
+        max-width: min(24rem, calc(100vw - 2rem));
+        padding: var(--space-5);
+        position: fixed;
+        right: 0;
+        top: 50%;
+        transform: translate(105%, -50%);
+        transition: transform 180ms ease;
+        width: 22rem;
+        z-index: 30;
+      }
+
+      .side-menu-open {
+        transform: translate(0, -50%);
+      }
+
+      .side-menu-header {
+        align-items: center;
+        display: flex;
+        justify-content: space-between;
+      }
+
+      .side-menu-title {
+        color: var(--color-text-muted);
+        font-size: 0.8rem;
+        font-weight: 700;
         letter-spacing: 0;
         margin: 0;
         text-transform: uppercase;
       }
 
-      h1 {
+      .nav-list {
+        display: grid;
+        gap: var(--space-2);
+        align-content: start;
+      }
+
+      .nav-list a {
+        align-items: center;
+        border-radius: 8px;
         color: var(--color-text);
-        font-family: var(--font-display);
-        font-size: clamp(1.9rem, 4vw, 3.1rem);
-        font-weight: 700;
-        line-height: 1.16;
-        margin: 0;
-        max-width: 12ch;
-      }
-
-      .intro {
-        color: var(--color-text-muted);
-        font-size: 1rem;
-        line-height: 1.6;
-        margin: 0;
-        max-width: 34rem;
-      }
-
-      .menu {
         display: flex;
-        justify-content: flex-start;
-      }
-
-      .menu-button {
-        background: var(--color-accent-strong);
-        border: 1px solid color-mix(in srgb, var(--color-accent-strong) 72%, black 28%);
-        border-radius: 999px;
-        color: var(--color-surface);
-        cursor: pointer;
-        font: inherit;
-        font-weight: 600;
-        min-height: 2.75rem;
-        min-width: 9.5rem;
-        padding: 0.7rem 1.1rem;
-      }
-
-      .menu-button:disabled {
-        cursor: progress;
-        opacity: 0.74;
-      }
-
-      .status-panel {
-        background: color-mix(in srgb, var(--color-surface) 88%, white 12%);
-        border: 1px solid color-mix(in srgb, var(--color-accent-soft) 30%, white 70%);
-        border-radius: 8px;
-        display: grid;
-        gap: var(--space-4);
-        padding: clamp(1rem, 2vw, 1.5rem);
-      }
-
-      .status-heading {
-        display: grid;
-        gap: 0.35rem;
-      }
-
-      .status-kicker {
-        color: var(--color-text-muted);
-        font-size: 0.85rem;
-        font-weight: 600;
-        margin: 0;
-        text-transform: uppercase;
-      }
-
-      .status-summary,
-      .status-message {
-        color: var(--color-text);
-        margin: 0;
-      }
-
-      .status-summary {
-        font-size: 1.05rem;
-        font-weight: 600;
-      }
-
-      .status-grid {
-        display: grid;
         gap: var(--space-3);
-        grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
-        margin: 0;
+        min-height: 3.25rem;
+        padding: 0.75rem 0.9rem;
+        text-decoration: none;
       }
 
-      .status-grid div {
-        background: color-mix(in srgb, var(--color-background) 85%, white 15%);
-        border-radius: 8px;
-        display: grid;
-        gap: 0.35rem;
-        min-height: 5rem;
-        padding: 0.9rem 1rem;
+      .nav-list a:hover,
+      .nav-list a.active {
+        background: color-mix(in srgb, var(--color-accent-sky) 28%, white 72%);
       }
 
-      dt {
-        color: var(--color-text-muted);
-        font-size: 0.82rem;
-        font-weight: 600;
-        margin: 0;
-        text-transform: uppercase;
+      .nav-list span {
+        color: var(--color-wood-deep);
+        font-family: var(--font-mono);
+        font-size: 0.76rem;
       }
 
-      dd {
-        color: var(--color-text);
-        font-size: 1rem;
-        margin: 0;
-      }
-
-      @media (min-width: 900px) {
+      @media (max-width: 520px) {
         .topbar {
-          grid-template-columns: minmax(0, 1fr) auto;
+          align-items: flex-start;
+          flex-direction: column;
         }
 
-        .brand-lockup {
-          grid-template-columns: auto minmax(0, 1fr);
+        .brand-title {
+          max-width: 14rem;
         }
 
-        .menu {
-          justify-content: flex-end;
-          padding-top: 0.5rem;
+        .login-form {
+          justify-content: flex-start;
+        }
+
+        .login-form input {
+          width: min(100%, 16rem);
+        }
+
+        .shell {
+          gap: var(--space-5);
         }
       }
     `
   ]
 })
 export class AppComponent implements OnInit {
-  healthMessage = "Run the health check from here to verify the shared server path.";
-  healthReport: HealthReport | null = null;
-  healthState: "idle" | "loading" | "error" | "success" = "idle";
+  readonly auth = inject(AuthService);
+  readonly loginMessage = signal("");
+  readonly loginState = signal<"idle" | "loading">("idle");
+  isMenuOpen = false;
+  loginEmail = "";
+  loginPassword = "";
+  private readonly router = inject(Router);
 
-  get healthSummary(): string {
-    if (this.healthState === "loading") {
-      return "Checking API and MongoDB connectivity...";
-    }
-
-    if (this.healthReport) {
-      return `Health is ${this.healthReport.status}.`;
-    }
-
-    if (this.healthState === "error") {
-      return "Health check could not be completed.";
-    }
-
-    return "No health check has been run yet.";
+  constructor() {
+    this.router.events.subscribe((event) => {
+      if (event instanceof NavigationEnd) {
+        this.closeMenu();
+      }
+    });
   }
 
   ngOnInit(): void {
+    void this.auth.loadCurrentUser();
+
     logBrowserEvent("info", "Browser app ready", {
       hostname: window.location.hostname,
       pathname: window.location.pathname
     });
   }
 
-  async runHealthCheck(): Promise<void> {
-    this.healthState = "loading";
-    this.healthMessage = "";
+  closeMenu(): void {
+    this.isMenuOpen = false;
+  }
 
-    logBrowserEvent("info", "Health check requested from app shell", {
-      pathname: window.location.pathname
-    });
+  toggleMenu(): void {
+    this.isMenuOpen = !this.isMenuOpen;
+  }
 
-    try {
-      const response = await fetch("/api/health", {
-        headers: {
-          accept: "application/json"
-        },
-        method: "GET"
-      });
+  async login(): Promise<void> {
+    this.loginState.set("loading");
+    this.loginMessage.set("");
 
-      const report = (await response.json()) as HealthReport;
+    const result = await this.auth.login(this.loginEmail, this.loginPassword);
+    this.loginState.set("idle");
 
-      this.healthReport = report;
-      this.healthState = response.ok ? "success" : "error";
-      this.healthMessage = response.ok
-        ? "Shared API health route responded successfully."
-        : "Shared API health route responded with a degraded or failed status.";
-
-      logBrowserEvent("info", "Health check response received", {
-        httpStatus: response.status,
-        mongodbStatus: report.checks.mongodb.status,
-        status: report.status
-      });
-    } catch (error: unknown) {
-      this.healthReport = null;
-      this.healthState = "error";
-      this.healthMessage = "The browser could not reach the health route.";
-
-      logBrowserEvent("error", "Health check request failed", error);
+    if (result.status === "error") {
+      this.loginMessage.set(result.message);
+      return;
     }
+
+    this.loginPassword = "";
+    this.loginMessage.set("");
+  }
+
+  async logout(): Promise<void> {
+    await this.auth.logout();
+    this.loginMessage.set("");
   }
 }

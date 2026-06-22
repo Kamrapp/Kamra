@@ -25,13 +25,13 @@ function toIsoDate(value: Date): string {
 }
 
 function getConfiguredLogDirectory(): string | null {
+  if (process.env["VERCEL"]) {
+    return null;
+  }
+
   const explicitLogDirectory = process.env["LOG_FILE_DIR"]?.trim();
   if (explicitLogDirectory) {
     return explicitLogDirectory;
-  }
-
-  if (process.env["VERCEL"]) {
-    return null;
   }
 
   return join(process.cwd(), "logs");
