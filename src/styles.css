@@ -1,0 +1,50 @@
+:root {
+  color-scheme: light;
+  --color-accent-leaf: #9fc83b;
+  --color-accent-leaf-strong: #6f9f21;
+  --color-accent-sky: #aad5e8;
+  --color-background: #e7dff1;
+  --color-background-soft: #f4eff8;
+  --color-surface: #f8f4f1;
+  --color-text: #302b32;
+  --color-text-muted: #6e6470;
+  --color-wood: #9a765d;
+  --color-wood-deep: #69584f;
+  --font-display: "Quicksand", "DM Sans", "Noto Sans", "Segoe UI", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", "Cascadia Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  --font-sans: "DM Sans", "Noto Sans", "Segoe UI", Arial, sans-serif;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-7: clamp(1.5rem, 4vw, 2.25rem);
+  --space-page: clamp(1.25rem, 4vw, 3rem);
+  font-family: var(--font-sans);
+  line-height: 1.5;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(circle at 18% 12%, color-mix(in srgb, var(--color-accent-sky) 44%, transparent), transparent 34%),
+    radial-gradient(circle at 82% 20%, color-mix(in srgb, var(--color-accent-leaf) 32%, transparent), transparent 30%),
+    linear-gradient(180deg, var(--color-background-soft) 0%, var(--color-background) 100%);
+  color: var(--color-text);
+}
+
+code,
+kbd,
+pre,
+samp {
+  font-family: var(--font-mono);
+}

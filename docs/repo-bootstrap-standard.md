@@ -36,6 +36,17 @@ Clean code should reduce cognitive load. Favor guardrails such as guard clauses,
 
 Platform choices should stay as thin and replaceable as practical. Prefer locally runnable application modules, scripts, and testable core logic behind small hosting, deployment, or workflow adapters so repositories can move between platforms later without rewriting the business core.
 
+Repository layouts should distinguish deployed entrypoints, application source, reusable packages, dependencies, and generated outputs. In Kamra's current Stage 2 structure:
+
+- `src/` contains the Angular frontend application.
+- `api/` contains Vercel Function entrypoints.
+- `packages/` contains first-party reusable workspace packages and should not be ignored globally.
+- `packages/kamra-api-server/` contains reusable backend/server logic shared by Vercel routes and the local Node runner.
+- downloaded dependencies belong in `node_modules/`
+- generated outputs such as `dist/`, `build/`, and `coverage/` should be ignored directly
+
+Do not move deployed Vercel route files into a generic tool directory. Add a `tools/` directory only when a repository has an actual manually runnable utility that is not an application entrypoint and not a deployed route.
+
 ## Bootstrap Outcomes
 
 A repository initialized with this standard should eventually contain:
@@ -382,6 +393,8 @@ The bootstrap should produce a compact set of artifacts:
 - `.agents/learnings/` - small durable lessons
 
 Detailed role, planning, commit, testing, and fixer rules belong in `AGENTS.md`, `.agents/planning-workflow.md`, and `.agents/coding-guidelines.md`, not in this bootstrap standard.
+
+Meaningful package, application, and route areas may also carry nested `AGENTS.md` files. Root guidance should stay repository-wide; folder-specific boundaries, commands, naming notes, and adapter rules should live near the code they govern.
 
 ## Global Versus Repository-Specific Practices
 

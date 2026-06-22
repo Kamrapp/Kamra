@@ -20,6 +20,7 @@ Then load only the smallest relevant set. Do not read this whole list by default
 - Crawler and public-source policy: `docs/crawler-policy.md`
 - License and public-use terms: `LICENSE.md`
 - Useful skill candidates: `docs/skill-candidates.md`
+- Logging and diagnostics: `docs/logging.md`
 - Planning and execution lifecycle: `.agents/planning-workflow.md`
 - Coding and review standards: `.agents/coding-guidelines.md`
 - Existing-code reality check: `docs/codebase-analysis.md`
@@ -29,6 +30,8 @@ Then load only the smallest relevant set. Do not read this whole list by default
 - Durable project learnings: `.agents/learnings/`
 
 The `zero_*.md` files are preserved in `.agents/sessions/zero_init/` as initialization-session notes. Treat them as historical input unless the user explicitly asks to revisit them.
+
+When working inside a subdirectory, check for a nested `AGENTS.md` in that area and follow it alongside this root file. The root file contains repository-wide rules; folder-specific boundaries, naming notes, and commands belong in nested `AGENTS.md` files.
 
 ## Core Rules
 
@@ -170,6 +173,16 @@ The intended direction is serverless-first:
 - no persistent custom backend server for the MVP target
 
 The current codebase does not yet match that direction. Existing .NET, Angular, SQL Server, Mongo connector, and crawler code should be analyzed and migrated intentionally, not assumed to be final architecture.
+
+## Current Repository Layout
+
+- `src/` currently contains the Angular browser application. `src/main.ts` is the frontend bootstrap entrypoint, not backend/server code.
+- `api/` contains thin Vercel Function entrypoints. Each file maps to a deployed `/api/*` route and should delegate to reusable server logic.
+- `packages/` contains first-party reusable workspace packages and must not be ignored globally. Downloaded dependencies belong in `node_modules/`; generated outputs such as `dist/`, `build/`, and `coverage/` should be ignored directly.
+- `packages/kamra-api-server/` contains the shared backend/server package used by both Vercel Function entrypoints and the local Node runner.
+- `scripts/local-api.ts` is the local API development runner. It starts a Node HTTP server and delegates to the same shared server handler used by the Vercel routes.
+
+Do not introduce a `tools/` directory for Vercel route code. Add one only when there is an actual manually runnable utility that is not a deployed route and not an application entrypoint.
 
 ## Documentation Placement
 

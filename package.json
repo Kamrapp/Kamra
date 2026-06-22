@@ -1,0 +1,46 @@
+{
+  "name": "kamra",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "24.x"
+  },
+  "scripts": {
+    "build": "npm run build:web && npm run build:api",
+    "build:api": "tsc -p tsconfig.api.json",
+    "build:web": "ng build",
+    "dev": "concurrently -k -n web,api -c blue,green \"npm:dev:web\" \"npm:dev:api\"",
+    "dev:api": "node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs watch --clear-screen=false scripts/local-api.ts",
+    "dev:web": "ng serve --host 0.0.0.0 --port 4200 --proxy-config proxy.conf.json",
+    "lint": "eslint .",
+    "seed": "node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/seed.ts",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.api.json --noEmit"
+  },
+  "dependencies": {
+    "@angular/common": "^22.0.0",
+    "@angular/compiler": "^22.0.0",
+    "@angular/core": "^22.0.0",
+    "@angular/forms": "^22.0.0",
+    "@angular/platform-browser": "^22.0.0",
+    "@angular/router": "^22.0.0",
+    "@vercel/speed-insights": "^2.0.0",
+    "mongodb": "^7.3.0",
+    "zone.js": "^0.15.1"
+  },
+  "devDependencies": {
+    "@angular/build": "^22.0.0",
+    "@angular/cli": "^22.0.0",
+    "@angular/compiler-cli": "^22.0.0",
+    "@eslint/js": "^9.30.0",
+    "@types/node": "^24.13.2",
+    "concurrently": "^9.2.0",
+    "eslint": "^9.30.0",
+    "globals": "^16.3.0",
+    "tsx": "^4.20.3",
+    "typescript": "^6.0.0",
+    "typescript-eslint": "^8.35.1",
+    "vitest": "^4.0.8"
+  }
+}

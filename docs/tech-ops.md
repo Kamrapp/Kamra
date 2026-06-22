@@ -125,6 +125,86 @@ Prefer platform-managed secrets:
 - Vercel environment variables for frontend and API routes
 - local developer secrets outside source control
 
+For the current Stage 2 MongoDB setup, prefer storing the full connection string and database name rather than splitting username and password across multiple app settings:
+
+- `MONGODB_URI`
+- `MONGODB_DB_NAME`
+- `AUTH_TOKEN_SECRET` for signed browser-persisted user tokens
+
+The current database environment matrix is documented in [docs/database-environments.md](./database-environments.md). In short:
+
+- `kamra_prod` is the main production database
+- `kamra_test` is the preview/test database
+- `kamra_dev` is the developer release-testing database
+- `kamra_smoke` is the proofbuild smoke database
+
+Keep the environment names, user names, and secret locations aligned with that matrix instead of inventing new one-off combinations in code or docs.
+
+## Logging And Diagnostics
+
+Kamra currently uses a lightweight split logging model documented in [docs/logging.md](./logging.md):
+
+- server logs are timestamped and written to console plus local rolling `logs/server-YYYY-MM-DD.log` files
+- browser logs are timestamped in the browser, forwarded to `POST /api/log`, and mirrored to server console plus local rolling `logs/browser-YYYY-MM-DD.log` files
+- Vercel runtime logs should be treated as the hosted observability surface for server-side console output
+- file logs are a local convenience, disabled on Vercel, and should remain free of secrets
+
+Logging should stay structured enough to debug startup and connectivity issues without becoming a general-purpose telemetry system before the app needs one.
+
+## Seeding
+
+Stage 2 includes a small seed registry that can be run locally with:
+
+```powershell
+npm run seed
+```
+
+Kamra now falls back to `1.1.1.1,8.8.8.8` for MongoDB Atlas SRV resolution whenever `MONGODB_URI` is configured and `MONGODB_DNS_SERVERS` is not set.
+
+If that default ever needs to be overridden, set `MONGODB_DNS_SERVERS` in `.env.local`, in the shell, or in the affected hosted environment before running the seed or health check:
+
+```powershell
+$env:MONGODB_DNS_SERVERS='1.1.1.1,8.8.8.8'
+npm run seed
+```
+
+The seed runner reads these shared database values from local environment files or platform secrets:
+
+- `MONGODB_URI`
+- `MONGODB_DB_NAME`
+- `MONGODB_DNS_SERVERS` when a DNS override is needed for local or hosted SRV resolution
+
+The deployed `api/` Vercel Function entrypoints do not use a separate secrets layer inside the repository. They read runtime values from `process.env` through `readAppConfig()`, so the active Vercel environment must define the same variables that local development uses. Login and admin-only API checks also require `AUTH_TOKEN_SECRET`.
+
+Each seed owns its own optional env values. If all env values for an optional seed are present, that seed runs silently. If they are missing, `npm run seed` asks whether to run that seed and prompts for the missing values.
+
+Current seed particles:
+
+- `admin_identity` creates or updates one bootstrap admin identity in the `users` collection and records each run in `seed_ledger`
+- `admin_identity` reads `SEED_ADMINUSER_USERNAME` and `SEED_ADMINUSER_PASSWORD`
+
+Seeding rules:
+
+- raw admin passwords must never be committed, logged, or written to seed ledger details
+- passwords are stored only as salted `scrypt` hashes
+- repeated runs with the same configured password leave the stored hash unchanged
+- changing the configured bootstrap password intentionally rotates the stored hash
+- future seeds should be added as separate seed definitions under `packages/kamra-api-server/src/seeds/`
+- `scripts/seed.ts` should stay a thin registry runner and should not own individual seed behavior
+
+Temporary bootstrap note:
+
+- the first manually chosen admin email and password may be used only to unblock the empty Stage 2 database
+- the next user/authentication slice must revisit this credential, rotate it if needed, and decide how real admin bootstrap credentials are owned long term
+- do not treat the initial local `.env.local` admin credential as a production-ready identity policy
+
+How to add future seeds:
+
+- create one focused seed module with its own env names, prompt questions, validation, and tests
+- expose it as a `SeedDefinition`
+- register it in `scripts/seed.ts`
+- keep seed ledger details free of raw secrets and private data
+
 ## CI And Validation
 
 The repository should evolve toward CI checks for:
@@ -169,6 +249,15 @@ Frontend and API deployment should be URL-based through Vercel.
 Ingestion should run through GitHub Actions schedules or manual dispatch.
 
 MongoDB should remain the persisted data layer for MVP target data.
+
+Current Stage 2 Atlas note:
+
+- Atlas project: `Kamrapp`
+- Atlas cluster: `KamrappCluster`
+- Local/Vercel/GitHub access currently depends on a temporary Atlas IP access list entry allowing `0.0.0.0/0` for one week.
+- This is acceptable as a short-lived Stage 2 bootstrap measure only because database credentials are stored as secrets and database users were reduced to read/write on the app database instead of broader admin access.
+- This access model must be revisited before treating the deployment as stable. Later work should narrow the network exposure or change the runner/deployment model so the database is not left broadly reachable longer than necessary.
+- Secret password inventories may live in a separate private repository so generated credentials do not need to be recreated on every restore or rotation, but that private store must never be referenced with concrete values in this repository.
 
 The first admin-only login should use Vercel-managed credentials or secrets as the simplest bootstrap gate, while the authenticated admin identity should still exist in the database so authorization, auditing, and future role handling do not depend on env vars alone.
 
