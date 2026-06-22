@@ -5,7 +5,7 @@
 - Date: 2026-06-22
 - Plan: `.agents/plans/2026-06-22-stage-2-serverless-foundation-plan.md`
 - Branch: unknown in sandbox due Git safe-directory restriction
-- Current objective: hand off the current Stage 2 foundation, including docs and logging updates, before commit
+- Current objective: hand off the structured admin seed slice for review before commit
 
 ## Completed
 
@@ -21,6 +21,12 @@
 - Item: added browser/server logging with daily rolling file output and `/api/log` forwarding
 - Item: documented the database environment matrix and logging behavior
 - Item: updated launcher and VS Code run support for the local API
+- Item: added an idempotent admin identity seed using env-provided bootstrap credentials
+- Item: added salted `scrypt` password hashing and tests
+- Item: added `npm run seed` as the recurring seed entrypoint
+- Item: refactored seeding into a registry of optional seed definitions
+- Item: moved admin-user seed configuration to `SEED_ADMINUSER_USERNAME` and `SEED_ADMINUSER_PASSWORD`
+- Item: added interactive seed prompts for optional seeds when env values are missing
 
 ## Changed Files
 
@@ -44,6 +50,8 @@
 - Path: `public/favicon.ico`
 - Path: `package-lock.json`
 - Path: `.vscode/launch.json`
+- Path: `packages/kamra-api-server/src/auth/`
+- Path: `packages/kamra-api-server/src/seeds/`
 
 ## Validation
 
@@ -97,6 +105,26 @@
 - Result: returned the same degraded JSON through the frontend proxy
 - Ran: `npm run typecheck`
 - Result: passed after logging and launch-profile changes
+- Ran: `npm run lint`
+- Result: passed after the admin seed slice
+- Ran: `npm run typecheck`
+- Result: passed after the admin seed slice
+- Ran: `npm run test`
+- Result: passed after the admin seed slice; 5 test files and 11 tests green
+- Ran: `npm run build`
+- Result: passed after the admin seed slice
+- Ran: `npm run lint`
+- Result: passed after the seed registry refactor
+- Ran: `npm run typecheck`
+- Result: passed after the seed registry refactor
+- Ran: `npm run test`
+- Result: passed after the seed registry refactor; 8 test files and 19 tests green
+- Ran: `npm run build`
+- Result: passed after the seed registry refactor
+- Ran: `npm run seed`
+- Result: failed locally with `querySrv ECONNREFUSED _mongodb._tcp.kamrappcluster.lft3pkg.mongodb.net`
+- Ran: `$env:MONGODB_DNS_SERVERS='1.1.1.1,8.8.8.8'; npm run seed`
+- Result: succeeded against the configured local environment; created the `admin_identity` seed in `kamra_prod`
 - Not run: committed scaffold
 - Reason: Git safe-directory restriction still blocks sandbox-side git status/staging/commit
 
@@ -122,6 +150,12 @@
 - Reason: Vercel and GitHub-hosted runners are easier to connect this way initially, but the exposure must be revisited later as a security follow-up
 - Decision: keep logging simple and local-first with console plus rolling file output, and mirror browser logs through `/api/log`
 - Reason: Vercel runtime logs already capture server console output, while rolling local files and browser forwarding make debugging easier without introducing a heavier logging stack too early
+- Decision: make the admin seed rotate the password hash only when the configured bootstrap password changes
+- Reason: repeated seed runs should be safe and idempotent while still allowing intentional credential rotation through env changes
+- Decision: allow the first manually chosen `.env.local` admin credential only as a temporary empty-database bootstrap
+- Reason: it unblocks Stage 2, but the next user/authentication slice must revisit and rotate or formalize this credential before treating admin identity as stable
+- Decision: use a small seed registry instead of putting seed-specific logic into `scripts/seed.ts`
+- Reason: future seeds can be added as separate definitions with their own env names, prompts, validation, and tests while the main runner stays thin
 
 ## Open Issues
 
@@ -137,6 +171,8 @@
 - Impact: acceptable for short-lived bootstrap testing, but must be tightened or redesigned before treating the deployment as stable
 - Issue: log files roll daily and are cleaned up after 10 days
 - Impact: fine for Stage 2 debugging, but a future observability plan may need centralized retention if the app grows beyond local diagnostics
+- Issue: current admin bootstrap credential is intentionally temporary
+- Impact: when the next user/auth slice lands, rotate or replace the seeded credential and document the long-term credential ownership path
 
 ## Roadmap Or Plan Updates
 
@@ -145,8 +181,8 @@
 
 ## Next Step
 
-Review the docs/logging note, then commit the current Stage 2 foundation state once Git safe-directory access is available.
+Review the admin seed slice, then run `npm run seed` only against the intended MongoDB database and commit after approval.
 
 ## Notes For Future Agent
 
-The user wants incremental, always-runnable progress with small reviewable units. The current foundation now includes logging and diagnostics docs, database environment docs, and the local launcher/VS Code run helpers. Keep future docs reset or auth work separate from this commit.
+The user wants incremental, always-runnable progress with small reviewable units. The seed runner now supports optional seed definitions and interactive prompts. Existing local env files using `ADMIN_BOOTSTRAP_EMAIL` or `ADMIN_BOOTSTRAP_PASSWORD` should be renamed to `SEED_ADMINUSER_USERNAME` and `SEED_ADMINUSER_PASSWORD`. Keep the next admin login work separate from this seed commit unless the user asks to combine them.

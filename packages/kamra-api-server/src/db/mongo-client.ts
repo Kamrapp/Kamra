@@ -40,3 +40,13 @@ export async function getMongoClient(
 
   return client;
 }
+
+export async function closeMongoClient(): Promise<void> {
+  if (!cachedClient) {
+    return;
+  }
+
+  await cachedClient.close();
+  cachedClient = null;
+  cachedUri = null;
+}

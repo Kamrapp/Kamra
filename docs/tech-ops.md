@@ -150,6 +150,56 @@ Kamra currently uses a lightweight split logging model documented in [docs/loggi
 
 Logging should stay structured enough to debug startup and connectivity issues without becoming a general-purpose telemetry system before the app needs one.
 
+## Seeding
+
+Stage 2 includes a small seed registry that can be run locally with:
+
+```powershell
+npm run seed
+```
+
+If local DNS refuses the MongoDB Atlas SRV lookup, set `MONGODB_DNS_SERVERS` in `.env.local` or in the shell before running the seed:
+
+```powershell
+$env:MONGODB_DNS_SERVERS='1.1.1.1,8.8.8.8'
+npm run seed
+```
+
+The seed runner reads these shared database values from local environment files or platform secrets:
+
+- `MONGODB_URI`
+- `MONGODB_DB_NAME`
+- `MONGODB_DNS_SERVERS` when a local DNS override is needed
+
+Each seed owns its own optional env values. If all env values for an optional seed are present, that seed runs silently. If they are missing, `npm run seed` asks whether to run that seed and prompts for the missing values.
+
+Current seed particles:
+
+- `admin_user` creates or updates one bootstrap admin identity in the `users` collection and records each run in `seed_ledger`
+- `admin_user` reads `SEED_ADMINUSER_USERNAME` and `SEED_ADMINUSER_PASSWORD`
+
+Seeding rules:
+
+- raw admin passwords must never be committed, logged, or written to seed ledger details
+- passwords are stored only as salted `scrypt` hashes
+- repeated runs with the same configured password leave the stored hash unchanged
+- changing the configured bootstrap password intentionally rotates the stored hash
+- future seeds should be added as separate seed definitions under `packages/kamra-api-server/src/seeds/`
+- `scripts/seed.ts` should stay a thin registry runner and should not own individual seed behavior
+
+Temporary bootstrap note:
+
+- the first manually chosen admin email and password may be used only to unblock the empty Stage 2 database
+- the next user/authentication slice must revisit this credential, rotate it if needed, and decide how real admin bootstrap credentials are owned long term
+- do not treat the initial local `.env.local` admin credential as a production-ready identity policy
+
+How to add future seeds:
+
+- create one focused seed module with its own env names, prompt questions, validation, and tests
+- expose it as a `SeedDefinition`
+- register it in `scripts/seed.ts`
+- keep seed ledger details free of raw secrets and private data
+
 ## CI And Validation
 
 The repository should evolve toward CI checks for:
