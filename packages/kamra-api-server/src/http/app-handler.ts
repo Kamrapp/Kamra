@@ -58,9 +58,7 @@ export async function handleAppRequest(request: AppRequest): Promise<AppResponse
     const config = readAppConfig();
     const result = await getHealthResult(config, {
       onHealthCheckFailed: (error) => {
-        if (config.nodeEnv !== "production") {
-          writeServerLog("error", "Health check failed", error);
-        }
+        writeServerLog("error", "Health check failed", error);
       },
       pingMongo: async () => {
         if (!config.mongodb.uri || !config.mongodb.databaseName) {
@@ -73,6 +71,14 @@ export async function handleAppRequest(request: AppRequest): Promise<AppResponse
         );
         await client.db(config.mongodb.databaseName).command({ ping: 1 });
       }
+    });
+
+    writeServerLog("info", "Health check completed", {
+      databaseName: result.report.checks.mongodb.databaseName,
+      mongodbStatus: result.report.checks.mongodb.status,
+      requestPath: request.path,
+      status: result.report.status,
+      statusCode: result.statusCode
     });
 
     return json(result.statusCode, result.report);
