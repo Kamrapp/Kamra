@@ -1,4 +1,4 @@
-import type { IncomingMessage, ServerResponse } from "node:http";
+import type { IncomingMessage, ServerResponse } from "http";
 
 import { handleNodeRequest } from "../packages/kamra-api-server/src/http/node-adapter.js";
 
