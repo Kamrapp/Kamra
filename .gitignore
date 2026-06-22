@@ -3,7 +3,7 @@
 [Oo]bj/
 
 # Logs
-Logs/
+[Ll]ogs/
 
 # Generated files
 project.lock.json
@@ -85,8 +85,8 @@ publish
 # Publish Web Output
 *.Publish.xml
 
-# NuGet Packages Directory
-packages
+# NuGet Packages Directory - enabled for local first-party reusables
+# packages
 
 # Windows Azure Build Output
 csx
@@ -123,6 +123,7 @@ src/.vs/config/applicationhost.config
 coverage/
 dist/
 node_modules/
+build/
 
 # Local environment files
 .env

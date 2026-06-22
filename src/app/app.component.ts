@@ -1,4 +1,6 @@
-import { Component } from "@angular/core";
+import { Component, OnInit } from "@angular/core";
+
+import { logBrowserEvent } from "./browser-logger";
 
 @Component({
   selector: "app-root",
@@ -62,4 +64,11 @@ import { Component } from "@angular/core";
     `
   ]
 })
-export class AppComponent {}
+export class AppComponent implements OnInit {
+  ngOnInit(): void {
+    logBrowserEvent("info", "Browser app ready", {
+      hostname: window.location.hostname,
+      pathname: window.location.pathname
+    });
+  }
+}

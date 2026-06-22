@@ -1,0 +1,29 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Kamra: Run local API",
+      "type": "pwa-node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "--env-file-if-exists=.env.local",
+        "${workspaceFolder}/node_modules/tsx/dist/cli.mjs",
+        "watch",
+        "--clear-screen=false",
+        "${workspaceFolder}/scripts/local-api.ts"
+      ],
+      "env": {
+        "MONGODB_DNS_SERVERS": "1.1.1.1,8.8.8.8"
+      },
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "serverReadyAction": {
+        "pattern": "Kamra local API listening on (https?://\\S+)",
+        "uriFormat": "%s/api/health",
+        "action": "openExternally"
+      }
+    }
+  ]
+}

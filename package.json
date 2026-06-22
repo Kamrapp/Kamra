@@ -11,7 +11,7 @@
     "build:api": "tsc -p tsconfig.api.json",
     "build:web": "ng build",
     "dev": "concurrently -k -n web,api -c blue,green \"npm:dev:web\" \"npm:dev:api\"",
-    "dev:api": "tsx watch --clear-screen=false scripts/local-api.ts",
+    "dev:api": "node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs watch --clear-screen=false scripts/local-api.ts",
     "dev:web": "ng serve --host 0.0.0.0 --port 4200 --proxy-config proxy.conf.json",
     "lint": "eslint .",
     "test": "vitest run",
@@ -24,6 +24,7 @@
     "@angular/forms": "^22.0.0",
     "@angular/platform-browser": "^22.0.0",
     "@angular/router": "^22.0.0",
+    "mongodb": "^7.3.0",
     "zone.js": "^0.15.1"
   },
   "devDependencies": {

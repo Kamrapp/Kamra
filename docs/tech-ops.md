@@ -125,6 +125,31 @@ Prefer platform-managed secrets:
 - Vercel environment variables for frontend and API routes
 - local developer secrets outside source control
 
+For the current Stage 2 MongoDB setup, prefer storing the full connection string and database name rather than splitting username and password across multiple app settings:
+
+- `MONGODB_URI`
+- `MONGODB_DB_NAME`
+
+The current database environment matrix is documented in [docs/database-environments.md](./database-environments.md). In short:
+
+- `kamra_prod` is the main production database
+- `kamra_test` is the preview/test database
+- `kamra_dev` is the developer release-testing database
+- `kamra_smoke` is the proofbuild smoke database
+
+Keep the environment names, user names, and secret locations aligned with that matrix instead of inventing new one-off combinations in code or docs.
+
+## Logging And Diagnostics
+
+Kamra currently uses a lightweight split logging model documented in [docs/logging.md](./logging.md):
+
+- server logs are timestamped and written to console plus rolling `logs/server-YYYY-MM-DD.log` files
+- browser logs are timestamped in the browser, forwarded to `POST /api/log`, and mirrored to server console plus rolling `logs/browser-YYYY-MM-DD.log` files
+- Vercel runtime logs should be treated as the hosted observability surface for server-side console output
+- file logs are a local convenience and should remain free of secrets
+
+Logging should stay structured enough to debug startup and connectivity issues without becoming a general-purpose telemetry system before the app needs one.
+
 ## CI And Validation
 
 The repository should evolve toward CI checks for:
@@ -169,6 +194,15 @@ Frontend and API deployment should be URL-based through Vercel.
 Ingestion should run through GitHub Actions schedules or manual dispatch.
 
 MongoDB should remain the persisted data layer for MVP target data.
+
+Current Stage 2 Atlas note:
+
+- Atlas project: `Kamrapp`
+- Atlas cluster: `KamrappCluster`
+- Local/Vercel/GitHub access currently depends on a temporary Atlas IP access list entry allowing `0.0.0.0/0` for one week.
+- This is acceptable as a short-lived Stage 2 bootstrap measure only because database credentials are stored as secrets and database users were reduced to read/write on the app database instead of broader admin access.
+- This access model must be revisited before treating the deployment as stable. Later work should narrow the network exposure or change the runner/deployment model so the database is not left broadly reachable longer than necessary.
+- Secret password inventories may live in a separate private repository so generated credentials do not need to be recreated on every restore or rotation, but that private store must never be referenced with concrete values in this repository.
 
 The first admin-only login should use Vercel-managed credentials or secrets as the simplest bootstrap gate, while the authenticated admin identity should still exist in the database so authorization, auditing, and future role handling do not depend on env vars alone.
 
