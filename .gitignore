@@ -117,3 +117,14 @@ src/.vs/config/applicationhost.config
 
 # JetBrains Rider's auto generated files
 .idea/
+
+# Node and web build artifacts
+.angular/
+coverage/
+dist/
+node_modules/
+
+# Local environment files
+.env
+.env.*
+!.env.example
