@@ -6,6 +6,7 @@ Kamra currently uses a simple split logging model:
 - browser-side logs go to the browser console and are forwarded to `POST /api/log`
 - forwarded browser logs are written by the server to the same rolling file set and mirrored to the server console
 - on Vercel, both `/api/health` and `/api/log` are deployed as thin Function entrypoints that delegate to the shared server handler
+- file logging is disabled automatically on Vercel unless `LOG_FILE_DIR` points to a writable directory
 
 ## Server Logging
 
@@ -35,4 +36,5 @@ The server then records those browser logs to `logs/browser-YYYY-MM-DD.log` and 
 - Browser log forwarding only reaches Vercel runtime logs when the deployed project includes the `/api/log` Function route.
 - Health failures are logged in every environment so hosted MongoDB connection issues can be diagnosed from Vercel runtime logs.
 - The file logs are a local and developer convenience, not the source of truth for hosted retention.
+- `LOG_FILE_DIR` controls the file output path when file logging is enabled. Leaving it unset keeps local file logs in `logs/`, while hosted Vercel runs stay console-only by default.
 - Logging payloads should stay small and should not include secrets.

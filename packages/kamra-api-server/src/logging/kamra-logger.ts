@@ -18,17 +18,32 @@ export interface LogRecord {
 
 const logRetentionDays = 10;
 const cleanedScopes = new Set<LogScope>();
+let logFileWriteWarningEmitted = false;
 
 function toIsoDate(value: Date): string {
   return value.toISOString().slice(0, 10);
 }
 
-function getLogDirectory(): string {
+function getConfiguredLogDirectory(): string | null {
+  const explicitLogDirectory = process.env["LOG_FILE_DIR"]?.trim();
+  if (explicitLogDirectory) {
+    return explicitLogDirectory;
+  }
+
+  if (process.env["VERCEL"]) {
+    return null;
+  }
+
   return join(process.cwd(), "logs");
 }
 
 function getLogFilePath(scope: LogScope, when = new Date()): string {
-  return join(getLogDirectory(), `${scope}-${toIsoDate(when)}.log`);
+  const logDirectory = getConfiguredLogDirectory();
+  if (!logDirectory) {
+    return "";
+  }
+
+  return join(logDirectory, `${scope}-${toIsoDate(when)}.log`);
 }
 
 function normalizeDetails(details: unknown): unknown {
@@ -44,14 +59,13 @@ function normalizeDetails(details: unknown): unknown {
   return details;
 }
 
-function purgeExpiredLogs(scope: LogScope): void {
+function purgeExpiredLogs(scope: LogScope, logDirectory: string): void {
   if (cleanedScopes.has(scope)) {
     return;
   }
 
   cleanedScopes.add(scope);
 
-  const logDirectory = getLogDirectory();
   if (!existsSync(logDirectory)) {
     return;
   }
@@ -77,11 +91,25 @@ function purgeExpiredLogs(scope: LogScope): void {
 }
 
 function writeRecord(record: LogRecord): void {
-  purgeExpiredLogs(record.scope);
+  const logFilePath = getLogFilePath(record.scope);
+  if (!logFilePath) {
+    return;
+  }
 
-  const filePath = getLogFilePath(record.scope);
-  mkdirSync(dirname(filePath), { recursive: true });
-  appendFileSync(filePath, `${JSON.stringify(record)}\n`, "utf8");
+  try {
+    const logDirectory = dirname(logFilePath);
+    purgeExpiredLogs(record.scope, logDirectory);
+    mkdirSync(logDirectory, { recursive: true });
+    appendFileSync(logFilePath, `${JSON.stringify(record)}\n`, "utf8");
+  } catch (error) {
+    if (!logFileWriteWarningEmitted) {
+      logFileWriteWarningEmitted = true;
+      console.warn(
+        `${new Date().toISOString()} [kamra:server] File logging disabled`,
+        error
+      );
+    }
+  }
 }
 
 function logToConsole(
