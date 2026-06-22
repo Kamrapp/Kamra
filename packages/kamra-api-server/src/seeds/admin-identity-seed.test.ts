@@ -106,7 +106,7 @@ describe("runAdminIdentitySeed", () => {
 
     expect(result).toMatchObject({
       outcome: "completed",
-      seedName: "admin_user"
+      seedName: "admin_identity"
     });
     expect(repository.getAdminUser()?.email).toBe("adminfromenv@kamra.test");
   });
