@@ -158,7 +158,9 @@ Stage 2 includes a small seed registry that can be run locally with:
 npm run seed
 ```
 
-If local DNS refuses the MongoDB Atlas SRV lookup, set `MONGODB_DNS_SERVERS` in `.env.local` or in the shell before running the seed:
+Kamra now falls back to `1.1.1.1,8.8.8.8` for MongoDB Atlas SRV resolution whenever `MONGODB_URI` is configured and `MONGODB_DNS_SERVERS` is not set.
+
+If that default ever needs to be overridden, set `MONGODB_DNS_SERVERS` in `.env.local`, in the shell, or in the affected hosted environment before running the seed or health check:
 
 ```powershell
 $env:MONGODB_DNS_SERVERS='1.1.1.1,8.8.8.8'
@@ -169,14 +171,16 @@ The seed runner reads these shared database values from local environment files 
 
 - `MONGODB_URI`
 - `MONGODB_DB_NAME`
-- `MONGODB_DNS_SERVERS` when a local DNS override is needed
+- `MONGODB_DNS_SERVERS` when a DNS override is needed for local or hosted SRV resolution
+
+The deployed `api/` Vercel Function entrypoints do not use a separate secrets layer inside the repository. They read these values from `process.env` through `readAppConfig()`, so the active Vercel environment must define the same variables that local development uses.
 
 Each seed owns its own optional env values. If all env values for an optional seed are present, that seed runs silently. If they are missing, `npm run seed` asks whether to run that seed and prompts for the missing values.
 
 Current seed particles:
 
-- `admin_user` creates or updates one bootstrap admin identity in the `users` collection and records each run in `seed_ledger`
-- `admin_user` reads `SEED_ADMINUSER_USERNAME` and `SEED_ADMINUSER_PASSWORD`
+- `admin_identity` creates or updates one bootstrap admin identity in the `users` collection and records each run in `seed_ledger`
+- `admin_identity` reads `SEED_ADMINUSER_USERNAME` and `SEED_ADMINUSER_PASSWORD`
 
 Seeding rules:
 
