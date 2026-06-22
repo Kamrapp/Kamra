@@ -1,6 +1,35 @@
 # Initial MVP Roadmap
 
-Status: Draft
+Status: Active Draft
+
+## Roadmap Concept
+
+Kamra should become a small but real grocery-planning MVP without turning GitHub, Vercel, or any single managed platform into the center of the codebase.
+
+Roadmap priorities:
+
+- reach a useful household and product loop, not just infrastructure proof
+- keep host and workflow adapters thin so the core app and job logic stay locally runnable
+- add validation when the relevant code exists and the signal is meaningful
+- stay fast enough for hobby-project momentum while leaving clean seams after the MVP rush
+
+## Milestone Tracking
+
+| Milestone | Focus | Status | Drift / notes |
+| --- | --- | --- | --- |
+| Stage 1 | Legacy inventory and extraction | Completed (docs) | Discovery strengthened the Angular-retention assumption, shared-contract direction, and migration-ledger need. |
+| Stage 2 | Minimal serverless foundation | Planned | Keep Vercel-specific glue thin and the app runnable locally. |
+| Stage 3 | First simple ingestion job | Planned | Keep workflow YAML small and move logic into scripts or modules. |
+| Stage 4 | Product processing pipeline | Planned | Add contract and schema safeguards only when processing code exists. |
+| Stage 5 | Feature-flagged demo user whitelist | Planned | Keep invitation and cleanup behavior explicitly disabled by default. |
+| Stage 6 | Household foundation | Planned | Keep household data boundaries simple and query-friendly first. |
+| Stage 7 | Shopping list and low-stock notices | Planned | Favor deterministic core logic over premature optimization. |
+| Stage 8 | Expiry and buffer logic | Planned | This is the first strong user-value milestone, not just ops maturity. |
+| Stage 9 | Crawler expansion | Planned | Add scheduled crawler-health validation only after real crawler paths exist. |
+| Stage 10 | Authentication upgrade | Planned | Better auth should extend a useful MVP, not delay it. |
+| Stage 11 | MVP finalization and repo hygiene | Planned | Delay PR autofix and similar repo automation until the functional application is in place. |
+
+When a later session changes stage ordering, validation strategy, platform posture, or key risks, update this roadmap or explicitly make that update the next required planning step. Do not leave durable direction only in session notes.
 
 ## Objective
 
@@ -47,6 +76,8 @@ The intended direction is:
 - Keep legacy code available until useful knowledge is extracted.
 - Do not extend the old backend by default.
 - Prefer small stages that prove one thing at a time.
+- Keep hosting and workflow glue thin so GitHub or Vercel are replaceable later.
+- Prefer checked-in scripts and modules over large workflow files or host-specific handlers.
 - Preserve raw crawl snapshots before transforming data.
 - Keep product query data separate from price history.
 - Add collated/current values only where they reduce common query cost.
@@ -55,8 +86,17 @@ The intended direction is:
 - Keep source-available public code clean enough to serve as a portfolio reference.
 - Treat security, secrets, and abuse prevention as MVP concerns because the repository is public.
 - Keep contributor workflow lightweight enough for one intermittent collaborator.
+- Add tests and automation when the corresponding code path exists and the signal is worth the maintenance cost.
+- Prefer small concern-specific PR checks over one opaque all-in validation workflow.
 - Keep crawler behavior source-friendly and easy to disable.
 - Keep recommendations independent from advertisements, seller sponsorship, or store agenda.
+
+## Delivery Risks And Mitigations
+
+- Platform lock-in risk: keep Vercel entrypoints and GitHub workflow files as thin adapters around app code and scripts that can also run locally.
+- CI sprawl risk: add checks only when a repo slice becomes real, and keep them scoped to the changed concern where possible.
+- MVP drag risk: avoid testing, pipeline work, or platform abstraction that exists only to look thorough; tie each addition to an actual code surface or operational risk.
+- Post-MVP cleanup risk: keep seams explicit now and evolve the roadmap when sessions reveal drift instead of burying new direction in handoff notes.
 
 ## Stage 1: Legacy Inventory And Extraction
 
@@ -89,6 +129,7 @@ Goal:
 Scope slice:
 
 - frontend deployed on Vercel
+- frontend and API remain locally runnable without Vercel-only behavior
 - raw admin credential login only
 - no public registration
 - API healthcheck route
@@ -96,15 +137,19 @@ Scope slice:
 - MongoDB connection finalized for local and deployed environments
 - admin bootstrap credentials managed through Vercel env vars or equivalent secrets
 - authenticated admin identity persisted in the database
+- host-specific handlers stay small around reusable app logic
+- once frontend and API slices exist, add small PR checks for those slices rather than one broad workflow
 
 Validation:
 
 - local healthcheck works
 - deployed healthcheck works
+- the same core healthcheck path is callable locally and through the deployed adapter
 - secrets are not committed
 - unauthorized users cannot access admin-only surfaces
 - free-tier limits are documented
 - demo behavior does not expose private data
+- platform-specific glue is visibly limited and replaceable
 
 ## Stage 3: First Simple Ingestion Job
 
@@ -120,6 +165,9 @@ Scope slice:
 - run metadata
 - country-aware and scope-aware offer or assortment capture
 - admin view showing crawled/fetched products or raw rows
+- workflow YAML stays minimal and shells into checked-in scripts or modules
+- ingestion entrypoints can run locally for debugging, not only inside GitHub Actions
+- add ingestion-related PR checks only for workflow or ingestion-script changes once those files exist
 
 Validation:
 
@@ -128,6 +176,7 @@ Validation:
 - raw snapshot preserves source truth
 - admin can inspect the latest run
 - cron frequency stays within free-tier and source-friendly limits
+- workflow behavior is not trapped inside YAML-only logic
 
 Questions:
 
@@ -151,6 +200,8 @@ Expected model direction:
 - transformation is deterministic and rerunnable
 - uncertain identity remains unlinked until verified
 - standardized processor jobs can maintain merge candidates, stale data, and similar hygiene tasks
+- schema-shaping logic stays explicit enough for later migration-ledger or backfill scripts
+- shared contracts or generated artifacts should remain cheap to refresh when model boundaries change
 
 Validation:
 
@@ -158,6 +209,8 @@ Validation:
 - price observations can be tracked over time
 - product queries do not need full price history by default
 - snapshot or fixture tests protect stable transformation output
+- contract or schema artifacts regenerate in PR-visible form when schema-relevant code exists
+- model-shape changes gain migration-ledger or backfill validation once those mechanisms are introduced
 
 ## Stage 5: Feature-Flagged Demo User Whitelist
 
@@ -174,6 +227,7 @@ Scope slice:
 - invitation email is sent when a whitelist entry is created
 - expiry email is sent if the user did not register before expiry
 - email sending and cleanup cron stay disabled until the whitelist feature flag is enabled
+- keep email and cleanup provider glue thin so provider swaps stay local to small adapters
 
 Validation:
 
@@ -198,6 +252,7 @@ Scope slice:
 - each household item has `minLimit`
 - each household item has `currentAmount`
 - minimal view for maintaining household item state
+- household queries and mutations should stay simple enough for focused API or domain tests once this slice exists
 
 Validation:
 
@@ -218,6 +273,7 @@ Scope slice:
 - show household users what they are likely to run out of, initially through in-app notices
 - connect needed items to available products where possible
 - keep unmatched needs visible
+- list generation should live in deterministic core logic that is easy to test outside UI or server adapters
 
 Validation:
 
@@ -260,6 +316,8 @@ Scope:
 - admin moderation for uncertain matches
 - richer price history
 - limited-offer product discovery
+- scheduled crawler-health validation on `main`, kept source-friendly and lightweight
+- dependency update PR automation can be added by this point if package boundaries are stable and the noise stays low
 
 Validation:
 
@@ -267,6 +325,7 @@ Validation:
 - source-specific parsing is isolated
 - canonical matching remains traceable
 - admin can inspect uncertain product mappings
+- crawler-health checks are scoped so they do not abuse external sources
 
 ## Stage 10: Authentication Upgrade
 
@@ -287,6 +346,29 @@ Validation:
 - admin access remains protected
 - user identity remains linkable to household membership
 - existing admin and whitelist flows keep working
+
+## Stage 11: MVP Finalization And Repo Hygiene
+
+Goal:
+
+- Add late-stage repository automation and cleanup once the functional MVP is already working and the repo has stable enough boundaries to justify it.
+
+Scope:
+
+- add a basic linter path for the real app surfaces that exist by then
+- add an open-PR workflow that can run lint or similarly small hygiene checks on PR branches
+- allow one small auto-generated follow-up commit on the PR branch when the chosen automation is explicitly designed to write safe mechanical fixes
+- keep the workflow itself thin and push fix logic into checked-in scripts where practical
+- review the required GitHub token, permissions, and branch-write posture before enabling PR-branch writeback
+- merge any still-relevant deferred repo-hygiene items from earlier plans rather than scattering them across many tiny follow-up stages
+
+Validation:
+
+- lint or equivalent hygiene checks run only for the code surfaces that actually exist
+- PR automation remains scoped, predictable, and easy to disable
+- writeback behavior is limited to safe mechanical fixes, not broad code rewriting
+- required token, permissions, and branch protections are documented before enablement
+- the workflow does not become a substitute for normal review
 
 ## Cross-Cutting Data Questions
 
@@ -327,10 +409,14 @@ Current direction:
 - use shared TypeScript contracts as the main app-facing source of truth
 - generate both JSON Schema and OpenAPI artifacts when cheap enough
 - keep workflows language-flexible per source
+- keep workflow YAML and host-specific handlers thin around locally runnable code
 - bootstrap admin login with Vercel-managed credentials while persisting admin identity in the database
 - use workflow-generated sample datasets for demo environments instead of exposing live internal data
 - use single-use tokens for whitelist registration links
 - require both PR-visible contract regeneration and seeded-database smoke validation for contract safety
+- prefer concern-specific PR checks plus lightweight smoke checks over one monolithic CI job
+- add automated dependency update PRs only after package boundaries stabilize and the update noise stays reviewable
+- add PR-branch autofix workflows such as lint writeback only as a late MVP-finalization step, after codebase boundaries and permissions are stable enough to keep the risk low
 - treat stock as location-connectable and offers as country-wide first, with room for later regional scope
 - represent country-wide offer scope with `regionCode = null`
 - treat store records as country-scoped at minimum, with a country-level no-region no-address store anchor per brand for the first country-wide stock model
@@ -352,11 +438,11 @@ Keep these visible as direction, but out of the first product MVP unless a later
 
 ## First Recommended Next Step
 
-After markdown review, create the Stage 1 plan:
+After roadmap review, create the Stage 2 plan:
 
-- inventory current code
-- classify useful legacy knowledge
-- decide what to archive or keep as reference
-- identify first MongoDB schema draft inputs
+- define the minimal Angular-on-Vercel and Node.js serverless foundation slice
+- pin down the first local-run versus hosted-adapter boundaries
+- decide the first shared-contract package or artifact-generation approach
+- define the smallest meaningful frontend, API, and smoke validation checks for that slice
 
 Implementation should not start until that plan is approved.
