@@ -16,6 +16,7 @@ The intended setup:
 - MongoDB Atlas as the managed system of record
 - separate databases or equivalent isolated environments for real internal data and demo-facing data
 - GitHub Actions for scheduled or event-driven ingestion and transformation jobs
+- Vercel and GitHub kept as current defaults, not hard architectural dependencies
 - Google account authentication as a later auth extension unless revised by plan
 - GitHub pull requests for controlled review
 - free-tier friendly deployment for demos, testing, and portfolio/reference use
@@ -48,6 +49,18 @@ Disallowed by default:
 - uncontrolled public registration
 - automatic invitation emails or cleanup cron before the whitelist feature flag is enabled
 - designs that require paid services before the MVP can be demonstrated
+
+## Portability And Platform Boundaries
+
+Kamra can use convenient managed platforms without letting them own too much of the codebase.
+
+Operational direction:
+
+- keep Vercel-specific server adapters thin around app logic
+- keep GitHub Actions workflows thin around checked-in scripts
+- keep core logic locally runnable outside hosted-platform wrappers
+- prefer explicit seams for hosting, auth-provider, email-provider, and workflow-entrypoint swaps
+- avoid burying business logic in workflow YAML, deployment config, or provider-specific glue
 
 ## Data Flow
 
@@ -126,6 +139,28 @@ The repository should evolve toward CI checks for:
 CI should not hide architectural drift. When validation only covers legacy code, docs should say so.
 
 For the public reference goal, CI should eventually make the repo look trustworthy to an outside reviewer: clear build status, no secret leakage, and a small set of meaningful checks.
+
+The intended future CI shape is concern-specific and staged, not one large opaque workflow. As the relevant code appears, prefer:
+
+- frontend checks when frontend files change
+- API or serverless checks when API files change
+- contract regeneration and schema smoke checks when shared contracts or model-shaping code changes
+- transformation or migration-ledger validation when processors or schema-evolution scripts change
+- lightweight smoke checks on code-changing PRs once the corresponding runtime surfaces exist
+- source-friendly scheduled crawler health checks on `main` once crawler paths exist
+- low-noise dependency update PR automation after package boundaries stabilize
+
+Late-stage hygiene automation may also include narrowly scoped PR-branch writeback, such as a linter or formatter creating one additional commit on the open PR branch. This should be deferred until the relevant codebase slice is stable enough to justify it.
+
+Workflow files should mostly orchestrate scripts that can also be run locally. This keeps core logic easier to test, debug, and eventually move to other platforms if needed.
+
+Any workflow that writes back to a branch should be planned explicitly, with documented:
+
+- GitHub token source and least-privilege permissions
+- branch protection and PR update behavior
+- exact commands allowed to modify files
+- guardrails that limit writeback to safe mechanical fixes
+- disable path if the workflow becomes noisy or surprising
 
 ## Deployment Direction
 
