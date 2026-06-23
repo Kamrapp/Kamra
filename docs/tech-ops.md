@@ -16,6 +16,7 @@ The intended setup:
 - MongoDB Atlas as the managed system of record
 - separate databases or equivalent isolated environments for real internal data and demo-facing data
 - GitHub Actions for scheduled or event-driven ingestion and transformation jobs
+- Vercel and GitHub kept as current defaults, not hard architectural dependencies
 - Google account authentication as a later auth extension unless revised by plan
 - GitHub pull requests for controlled review
 - free-tier friendly deployment for demos, testing, and portfolio/reference use
@@ -48,6 +49,18 @@ Disallowed by default:
 - uncontrolled public registration
 - automatic invitation emails or cleanup cron before the whitelist feature flag is enabled
 - designs that require paid services before the MVP can be demonstrated
+
+## Portability And Platform Boundaries
+
+Kamra can use convenient managed platforms without letting them own too much of the codebase.
+
+Operational direction:
+
+- keep Vercel-specific server adapters thin around app logic
+- keep GitHub Actions workflows thin around checked-in scripts
+- keep core logic locally runnable outside hosted-platform wrappers
+- prefer explicit seams for hosting, auth-provider, email-provider, and workflow-entrypoint swaps
+- avoid burying business logic in workflow YAML, deployment config, or provider-specific glue
 
 ## Data Flow
 
@@ -89,7 +102,7 @@ Future standardization plans must explicitly decide:
 
 Workflow runtime should stay flexible per job. JavaScript or TypeScript is likely the most consistent default, but Python or C# should remain allowed when a crawler, parser, or transformation is materially better served by that toolchain.
 
-Shared contract generation should prefer a TypeScript source of truth with both JSON Schema and OpenAPI artifacts when the maintenance cost stays low enough. Those generated artifacts should be produced in CI or PR workflows and referenced from repository docs.
+When shared contract generation is promoted from followups, prefer a TypeScript source of truth with both JSON Schema and OpenAPI artifacts if the maintenance cost stays low enough. Those generated artifacts should be produced in CI or PR workflows and referenced from repository docs once they exist.
 
 ## Secrets
 
@@ -112,6 +125,88 @@ Prefer platform-managed secrets:
 - Vercel environment variables for frontend and API routes
 - local developer secrets outside source control
 
+For the current Stage 2 MongoDB setup, prefer storing the full connection string and database name rather than splitting username and password across multiple app settings:
+
+- `MONGODB_URI`
+- `MONGODB_DB_NAME`
+- `AUTH_TOKEN_SECRET` for signed browser-persisted user tokens
+
+The current database environment matrix is documented in [docs/database-environments.md](./database-environments.md). In short:
+
+- `kamra_prod` is the main production database
+- `kamra_test` is the preview/test database
+- `kamra_dev` is the developer release-testing database
+- `kamra_smoke` is the proofbuild smoke database
+
+Keep the environment names, user names, and secret locations aligned with that matrix instead of inventing new one-off combinations in code or docs.
+
+## Logging And Diagnostics
+
+Kamra currently uses a lightweight split logging model documented in [docs/logging.md](./logging.md):
+
+- server logs are timestamped and written to console plus local rolling `logs/server-YYYY-MM-DD.log` files
+- browser logs are timestamped in the browser, forwarded to `POST /api/log`, and mirrored to server console plus local rolling `logs/browser-YYYY-MM-DD.log` files
+- Vercel runtime logs should be treated as the hosted observability surface for server-side console output
+- file logs are a local convenience, disabled on Vercel, and should remain free of secrets
+
+Logging should stay structured enough to debug startup and connectivity issues without becoming a general-purpose telemetry system before the app needs one.
+
+## Seeding
+
+Stage 2 includes a small seed registry that can be run locally with:
+
+```powershell
+npm run seed
+```
+
+Kamra now falls back to `1.1.1.1,8.8.8.8` for MongoDB Atlas SRV resolution whenever `MONGODB_URI` is configured and `MONGODB_DNS_SERVERS` is not set.
+
+If that default ever needs to be overridden, set `MONGODB_DNS_SERVERS` in `.env.local`, in the shell, or in the affected hosted environment before running the seed or health check:
+
+```powershell
+$env:MONGODB_DNS_SERVERS='1.1.1.1,8.8.8.8'
+npm run seed
+```
+
+The seed runner reads these shared database values from local environment files or platform secrets:
+
+- `MONGODB_URI`
+- `MONGODB_DB_NAME`
+- `MONGODB_DNS_SERVERS` when a DNS override is needed for local or hosted SRV resolution
+
+The deployed `api/` Vercel Function entrypoints do not use a separate secrets layer inside the repository. They read runtime values from `process.env` through `readAppConfig()`, so the active Vercel environment must define the same variables that local development uses. Login and admin-only API checks also require `AUTH_TOKEN_SECRET`.
+
+Stage 2 health reporting intentionally uses `database` as the public health-check contract name even though the underlying connectivity check currently pings MongoDB. Keep the external shape platform-neutral unless a later plan deliberately adds store-specific or engine-specific diagnostics.
+
+Each seed owns its own optional env values. If all env values for an optional seed are present, that seed runs silently. If they are missing, `npm run seed` asks whether to run that seed and prompts for the missing values.
+
+Current seed particles:
+
+- `admin_identity` creates or updates one bootstrap admin identity in the `users` collection and records each run in `seed_ledger`
+- `admin_identity` reads `SEED_ADMINUSER_USERNAME` and `SEED_ADMINUSER_PASSWORD`
+
+Seeding rules:
+
+- raw admin passwords must never be committed, logged, or written to seed ledger details
+- passwords are stored only as salted `scrypt` hashes
+- repeated runs with the same configured password leave the stored hash unchanged
+- changing the configured bootstrap password intentionally rotates the stored hash
+- future seeds should be added as separate seed definitions under `packages/kamra-api-server/src/seeds/`
+- `scripts/seed.ts` should stay a thin registry runner and should not own individual seed behavior
+
+Temporary bootstrap note:
+
+- the first manually chosen admin email and password may be used only to unblock the empty Stage 2 database
+- the next user/authentication slice must revisit this credential, rotate it if needed, and decide how real admin bootstrap credentials are owned long term
+- do not treat the initial local `.env.local` admin credential as a production-ready identity policy
+
+How to add future seeds:
+
+- create one focused seed module with its own env names, prompt questions, validation, and tests
+- expose it as a `SeedDefinition`
+- register it in `scripts/seed.ts`
+- keep seed ledger details free of raw secrets and private data
+
 ## CI And Validation
 
 The repository should evolve toward CI checks for:
@@ -127,6 +222,46 @@ CI should not hide architectural drift. When validation only covers legacy code,
 
 For the public reference goal, CI should eventually make the repo look trustworthy to an outside reviewer: clear build status, no secret leakage, and a small set of meaningful checks.
 
+The intended future CI shape is concern-specific and staged, not one large opaque workflow. As the relevant code appears, prefer:
+
+- frontend checks when frontend files change
+- API or serverless checks when API files change
+- contract regeneration and schema smoke checks when shared contracts or model-shaping code changes
+- transformation or migration-ledger validation when processors or schema-evolution scripts change
+- lightweight smoke checks on code-changing PRs once the corresponding runtime surfaces exist
+- source-friendly scheduled crawler health checks on `main` once crawler paths exist
+
+Stage 2 now uses one small read-only app-check workflow for the current Angular/API slice. It should stay secret-free and limited to install, lint, typecheck, test, and build until a later plan explicitly adds deeper smoke or deployment validation.
+
+Dependency update automation and PR-branch writeback are followup items, not MVP roadmap requirements. Keep them in `.agents/plans/mvp-followups.md` until the app surface is stable enough to justify the extra workflow behavior.
+
+Workflow files should mostly orchestrate scripts that can also be run locally. This keeps core logic easier to test, debug, and eventually move to other platforms if needed.
+
+Any future workflow that writes back to a branch should be planned explicitly, with documented:
+
+- GitHub token source and least-privilege permissions
+- branch protection and PR update behavior
+- exact commands allowed to modify files
+- guardrails that limit writeback to safe mechanical fixes
+- disable path if the workflow becomes noisy or surprising
+
+## Roadmap And Followup Triage
+
+The active MVP roadmap should stay focused on the smallest useful household grocery-planning product.
+
+Use `.agents/plans/mvp-followups.md` for valuable but non-essential ideas, including richer navigation concepts, authentication upgrades, repository automation, crawler expansion beyond the first useful sources, advanced recommendations, and mobile/PWA extensions.
+
+Followup entries should include:
+
+- added value, scored from `1/5` to `5/5` for market gain and user likability
+- effort, using `Low` or `High`
+- complexity, using `Low`, `Med`, or `High`
+- priority, using `Low`, `Med`, or `High`
+
+Promote a followup into an implementation plan only when it directly supports the next MVP milestone, removes a current operational or security blocker, or the user explicitly accepts the scope tradeoff.
+
+When a roadmap stage grows too large for one implementation session, split it into one-shot units by domain concern before implementation. Keep each unit small enough to validate and review independently, and move lower-value side work to followups.
+
 ## Deployment Direction
 
 Frontend and API deployment should be URL-based through Vercel.
@@ -135,20 +270,24 @@ Ingestion should run through GitHub Actions schedules or manual dispatch.
 
 MongoDB should remain the persisted data layer for MVP target data.
 
+Current Stage 2 Atlas note:
+
+- Atlas project: `Kamrapp`
+- Atlas cluster: `KamrappCluster`
+- Local/Vercel/GitHub access currently depends on a temporary Atlas IP access list entry allowing `0.0.0.0/0` for one week.
+- This is acceptable as a short-lived Stage 2 bootstrap measure only because database credentials are stored as secrets and database users were reduced to read/write on the app database instead of broader admin access.
+- This access model must be revisited before treating the deployment as stable. Later work should narrow the network exposure or change the runner/deployment model so the database is not left broadly reachable longer than necessary.
+- Secret password inventories may live in a separate private repository so generated credentials do not need to be recreated on every restore or rotation, but that private store must never be referenced with concrete values in this repository.
+
 The first admin-only login should use Vercel-managed credentials or secrets as the simplest bootstrap gate, while the authenticated admin identity should still exist in the database so authorization, auditing, and future role handling do not depend on env vars alone.
 
 Even after EF Core removal, Kamra should retain a migration-ledger mechanism so document-shape changes and scripted backfills remain traceable.
 
-Contract drift should be checked automatically where practical. A useful early safeguard is to validate sample or fixture documents against the generated contract artifacts and run smoke queries against a representative seeded database shape in CI.
-
-The preferred safeguard is both:
-
-- generated contract artifacts should be regenerated and surfaced in PR workflows when schema-relevant code changes
-- seeded snapshot-style database data should be validated through smoke queries against the current code
+Contract drift should be checked automatically where practical after shared contracts and schema-relevant code exist. Generated OpenAPI/JSON Schema artifacts are tracked as followup work until the API and model boundaries are stable enough to make them useful.
 
 Demo environments should run against generated sample datasets built by workflows from real ingestion/transformation logic, not against the live internal dataset directly.
 
-Whitelist cleanup may also run as a scheduled job, but only after the whitelist feature flag is enabled. Until then, no automatic whitelist expiry job or invitation email should run.
+Whitelist cleanup and invitation or expiry emails are followup work. Until explicitly planned, no automatic whitelist expiry job or invitation email should run.
 
 ## Licensing And Public Use
 
@@ -185,8 +324,8 @@ Standardized processor jobs should also be planned alongside crawlers where need
 These should be resolved by explicit planning before implementation:
 
 - exact serverless API framework
-- Google account authentication details after the admin-only phase
-- feature flag mechanism for whitelist registration
+- Google account authentication details when promoted from followups
+- feature flag mechanism for fuller whitelist registration when promoted from followups
 - minimal user, household, membership, and admin role model
 - MongoDB collection model
 - free-tier quota limits and acceptable demo data volume

@@ -4,6 +4,8 @@
 
 Short descriptive name.
 
+Use the sections that matter for the work. For very small documentation-only or low-risk cleanup plans, keep entries brief and mark irrelevant sections as `N/A` rather than filling the template mechanically.
+
 ## Objective
 
 What this plan should accomplish.
@@ -11,6 +13,14 @@ What this plan should accomplish.
 ## Context Read
 
 Files, docs, commands, or prior plans reviewed.
+
+## Research Gate
+
+Needed or not needed. If needed, summarize sources checked, decision impact, and remaining uncertainty.
+
+## User Requests
+
+Explicit requests from the user. Keep these separate from derived objectives and side suggestions.
 
 ## Discovery Questions
 

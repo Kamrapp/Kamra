@@ -4,7 +4,7 @@
 
 This document describes the intended Kamra architecture.
 
-It should be read together with `docs/codebase-analysis.md`, because the current codebase contains legacy or prototype structures that do not fully match this target.
+For legacy reference notes, see `docs/codebase-analysis.md`, although current architecture has little to gain; some design concepts may be useful for evolving the successor structure.
 
 ## Target Model
 
@@ -15,6 +15,7 @@ Kamra is intended to use a serverless-first architecture:
 - MongoDB Atlas as the managed data store
 - separate real and demo data environments, with demo data produced from workflow-built samples rather than direct live-database exposure
 - GitHub Actions for ingestion and transformation jobs
+- thin platform adapters so hosting, serverless entrypoints, and workflow orchestration stay replaceable
 - user-facing household workflows separate from admin/operator workflows
 - free-tier friendly operation for demo, testing, and portfolio/reference use
 - Google account authentication as a later extension, not a household/product MVP blocker
@@ -59,6 +60,8 @@ Responsibilities:
 
 API routes must remain stateless and should not perform crawling or long-running transformations.
 
+Host-specific handler glue should stay small. The core request, auth, and domain logic should be runnable and testable outside Vercel-specific entrypoints so a future move to another serverless platform stays low-friction.
+
 Expected business failures should use Result-style responses or an equivalent explicit convention instead of exceptions as control flow. Exceptions should represent unexpected or infrastructure failures.
 
 When frontend and API shapes are genuinely the same, prefer shared TypeScript contracts instead of duplicative 1:1 DTOs. Use explicit mapping layers where auth, admin actions, raw snapshots, or public API boundaries differ.
@@ -76,6 +79,8 @@ Responsibilities:
 - honor `docs/crawler-policy.md` for source review, rate limits, and disablement
 
 Ingestion should run through GitHub Actions or equivalent event-driven batch execution.
+
+Workflow files should remain thin orchestrators around checked-in scripts or modules. Source adapters, parsing, normalization, and transformation logic should live in locally runnable code rather than inside large workflow YAML files.
 
 Workflows do not need to be limited to TypeScript. The model contract should still be consumable from non-TypeScript jobs through generated artifacts or another explicit compatibility layer.
 
