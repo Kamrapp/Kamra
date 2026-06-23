@@ -1,0 +1,838 @@
+{
+  "artifactName": "catalog_v1_foundation",
+  "schemaVersion": "1.0.0",
+  "schemas": {
+    "migration_ledger": {
+      "additionalProperties": false,
+      "bsonType": "object",
+      "properties": {
+        "_id": {
+          "bsonType": "objectId"
+        },
+        "appliedAt": {
+          "bsonType": "string",
+          "description": "ISO date string"
+        },
+        "checksum": {
+          "bsonType": [
+            "null",
+            "string"
+          ]
+        },
+        "description": {
+          "bsonType": "string"
+        },
+        "id": {
+          "bsonType": "string"
+        },
+        "migrationId": {
+          "bsonType": "string"
+        },
+        "runnerName": {
+          "bsonType": "string"
+        },
+        "runnerVersion": {
+          "bsonType": "string"
+        },
+        "status": {
+          "enum": [
+            "applied",
+            "failed"
+          ]
+        }
+      },
+      "required": [
+        "appliedAt",
+        "description",
+        "id",
+        "migrationId",
+        "runnerName",
+        "runnerVersion",
+        "status"
+      ]
+    },
+    "product_sources": {
+      "additionalProperties": false,
+      "bsonType": "object",
+      "properties": {
+        "_id": {
+          "bsonType": "objectId"
+        },
+        "countryCode": {
+          "bsonType": "string"
+        },
+        "createdAt": {
+          "bsonType": "string",
+          "description": "ISO date string"
+        },
+        "currentCategoryLabel": {
+          "bsonType": [
+            "null",
+            "string"
+          ]
+        },
+        "id": {
+          "bsonType": "string"
+        },
+        "origin": {
+          "additionalProperties": false,
+          "bsonType": "object",
+          "properties": {
+            "_id": {
+              "bsonType": "objectId"
+            },
+            "capturedAt": {
+              "bsonType": "string",
+              "description": "ISO date string"
+            },
+            "kind": {
+              "enum": [
+                "crawler",
+                "manual",
+                "processor",
+                "seed"
+              ]
+            },
+            "producer": {
+              "bsonType": "string"
+            },
+            "sourceName": {
+              "bsonType": "string"
+            },
+            "sourceRecordId": {
+              "bsonType": [
+                "null",
+                "string"
+              ]
+            },
+            "sourceUrl": {
+              "bsonType": [
+                "null",
+                "string"
+              ]
+            }
+          },
+          "required": [
+            "capturedAt",
+            "kind",
+            "producer",
+            "sourceName"
+          ]
+        },
+        "priceLastCheckedAt": {
+          "bsonType": [
+            "null",
+            "string"
+          ]
+        },
+        "productId": {
+          "bsonType": "string"
+        },
+        "productPageUrl": {
+          "bsonType": "string"
+        },
+        "sourceName": {
+          "bsonType": "string"
+        },
+        "sourceProductKey": {
+          "bsonType": "string"
+        },
+        "sourceProductName": {
+          "bsonType": "string"
+        },
+        "storeBrandKey": {
+          "bsonType": "string"
+        },
+        "updatedAt": {
+          "bsonType": "string",
+          "description": "ISO date string"
+        }
+      },
+      "required": [
+        "countryCode",
+        "createdAt",
+        "id",
+        "origin",
+        "productId",
+        "productPageUrl",
+        "sourceName",
+        "sourceProductKey",
+        "sourceProductName",
+        "storeBrandKey",
+        "updatedAt"
+      ]
+    },
+    "product_tag_assignments": {
+      "additionalProperties": false,
+      "bsonType": "object",
+      "properties": {
+        "_id": {
+          "bsonType": "objectId"
+        },
+        "assignedAt": {
+          "bsonType": "string",
+          "description": "ISO date string"
+        },
+        "assignmentKind": {
+          "enum": [
+            "derived_keyword",
+            "manual",
+            "seed"
+          ]
+        },
+        "id": {
+          "bsonType": "string"
+        },
+        "origin": {
+          "additionalProperties": false,
+          "bsonType": "object",
+          "properties": {
+            "_id": {
+              "bsonType": "objectId"
+            },
+            "capturedAt": {
+              "bsonType": "string",
+              "description": "ISO date string"
+            },
+            "kind": {
+              "enum": [
+                "crawler",
+                "manual",
+                "processor",
+                "seed"
+              ]
+            },
+            "producer": {
+              "bsonType": "string"
+            },
+            "sourceName": {
+              "bsonType": "string"
+            },
+            "sourceRecordId": {
+              "bsonType": [
+                "null",
+                "string"
+              ]
+            },
+            "sourceUrl": {
+              "bsonType": [
+                "null",
+                "string"
+              ]
+            }
+          },
+          "required": [
+            "capturedAt",
+            "kind",
+            "producer",
+            "sourceName"
+          ]
+        },
+        "productId": {
+          "bsonType": "string"
+        },
+        "score": {
+          "bsonType": [
+            "double",
+            "int",
+            "long",
+            "decimal"
+          ]
+        },
+        "tagKey": {
+          "bsonType": "string"
+        }
+      },
+      "required": [
+        "assignedAt",
+        "assignmentKind",
+        "id",
+        "origin",
+        "productId",
+        "score",
+        "tagKey"
+      ]
+    },
+    "product_tags": {
+      "additionalProperties": false,
+      "bsonType": "object",
+      "properties": {
+        "_id": {
+          "bsonType": "objectId"
+        },
+        "createdAt": {
+          "bsonType": "string",
+          "description": "ISO date string"
+        },
+        "id": {
+          "bsonType": "string"
+        },
+        "key": {
+          "bsonType": "string"
+        },
+        "kind": {
+          "enum": [
+            "attribute",
+            "category",
+            "keyword"
+          ]
+        },
+        "label": {
+          "bsonType": "string"
+        },
+        "matcherTerms": {
+          "bsonType": "array",
+          "items": {
+            "bsonType": "string"
+          }
+        },
+        "origin": {
+          "additionalProperties": false,
+          "bsonType": "object",
+          "properties": {
+            "_id": {
+              "bsonType": "objectId"
+            },
+            "capturedAt": {
+              "bsonType": "string",
+              "description": "ISO date string"
+            },
+            "kind": {
+              "enum": [
+                "crawler",
+                "manual",
+                "processor",
+                "seed"
+              ]
+            },
+            "producer": {
+              "bsonType": "string"
+            },
+            "sourceName": {
+              "bsonType": "string"
+            },
+            "sourceRecordId": {
+              "bsonType": [
+                "null",
+                "string"
+              ]
+            },
+            "sourceUrl": {
+              "bsonType": [
+                "null",
+                "string"
+              ]
+            }
+          },
+          "required": [
+            "capturedAt",
+            "kind",
+            "producer",
+            "sourceName"
+          ]
+        },
+        "parentKey": {
+          "bsonType": [
+            "null",
+            "string"
+          ]
+        },
+        "status": {
+          "enum": [
+            "active",
+            "archived"
+          ]
+        },
+        "updatedAt": {
+          "bsonType": "string",
+          "description": "ISO date string"
+        }
+      },
+      "required": [
+        "createdAt",
+        "id",
+        "key",
+        "kind",
+        "label",
+        "matcherTerms",
+        "origin",
+        "status",
+        "updatedAt"
+      ]
+    },
+    "products": {
+      "additionalProperties": false,
+      "bsonType": "object",
+      "properties": {
+        "_id": {
+          "bsonType": "objectId"
+        },
+        "brandName": {
+          "bsonType": [
+            "null",
+            "string"
+          ]
+        },
+        "createdAt": {
+          "bsonType": "string",
+          "description": "ISO date string"
+        },
+        "id": {
+          "bsonType": "string"
+        },
+        "kind": {
+          "enum": [
+            "grocery",
+            "household_supply"
+          ]
+        },
+        "measurements": {
+          "bsonType": "array",
+          "items": {
+            "additionalProperties": false,
+            "bsonType": "object",
+            "properties": {
+              "_id": {
+                "bsonType": "objectId"
+              },
+              "normalizedUnit": {
+                "bsonType": [
+                  "null",
+                  "string"
+                ]
+              },
+              "normalizedValue": {
+                "bsonType": [
+                  "double",
+                  "int",
+                  "long",
+                  "decimal",
+                  "null"
+                ]
+              },
+              "unit": {
+                "bsonType": "string"
+              },
+              "value": {
+                "bsonType": [
+                  "double",
+                  "int",
+                  "long",
+                  "decimal"
+                ]
+              }
+            },
+            "required": [
+              "unit",
+              "value"
+            ]
+          }
+        },
+        "name": {
+          "bsonType": "string"
+        },
+        "normalizedName": {
+          "bsonType": "string"
+        },
+        "origin": {
+          "bsonType": "array",
+          "items": {
+            "additionalProperties": false,
+            "bsonType": "object",
+            "properties": {
+              "_id": {
+                "bsonType": "objectId"
+              },
+              "capturedAt": {
+                "bsonType": "string",
+                "description": "ISO date string"
+              },
+              "kind": {
+                "enum": [
+                  "crawler",
+                  "manual",
+                  "processor",
+                  "seed"
+                ]
+              },
+              "producer": {
+                "bsonType": "string"
+              },
+              "sourceName": {
+                "bsonType": "string"
+              },
+              "sourceRecordId": {
+                "bsonType": [
+                  "null",
+                  "string"
+                ]
+              },
+              "sourceUrl": {
+                "bsonType": [
+                  "null",
+                  "string"
+                ]
+              }
+            },
+            "required": [
+              "capturedAt",
+              "kind",
+              "producer",
+              "sourceName"
+            ]
+          },
+          "minItems": 1
+        },
+        "primaryCategoryKey": {
+          "bsonType": [
+            "null",
+            "string"
+          ]
+        },
+        "status": {
+          "enum": [
+            "active",
+            "archived"
+          ]
+        },
+        "updatedAt": {
+          "bsonType": "string",
+          "description": "ISO date string"
+        }
+      },
+      "required": [
+        "createdAt",
+        "id",
+        "kind",
+        "measurements",
+        "name",
+        "normalizedName",
+        "origin",
+        "status",
+        "updatedAt"
+      ]
+    },
+    "source_record_processing_states": {
+      "additionalProperties": false,
+      "bsonType": "object",
+      "properties": {
+        "_id": {
+          "bsonType": "objectId"
+        },
+        "attemptCount": {
+          "bsonType": [
+            "int",
+            "long"
+          ]
+        },
+        "createdAt": {
+          "bsonType": "string",
+          "description": "ISO date string"
+        },
+        "id": {
+          "bsonType": "string"
+        },
+        "lastErrorCode": {
+          "bsonType": [
+            "null",
+            "string"
+          ]
+        },
+        "lastErrorMessage": {
+          "bsonType": [
+            "null",
+            "string"
+          ]
+        },
+        "lastProcessedAt": {
+          "bsonType": [
+            "null",
+            "string"
+          ]
+        },
+        "processorName": {
+          "bsonType": "string"
+        },
+        "processorVersion": {
+          "bsonType": "string"
+        },
+        "recordFingerprint": {
+          "bsonType": "string"
+        },
+        "sourceName": {
+          "bsonType": "string"
+        },
+        "state": {
+          "enum": [
+            "failed",
+            "pending",
+            "processed",
+            "reset_requested",
+            "skipped",
+            "stale"
+          ]
+        },
+        "updatedAt": {
+          "bsonType": "string",
+          "description": "ISO date string"
+        }
+      },
+      "required": [
+        "attemptCount",
+        "createdAt",
+        "id",
+        "processorName",
+        "processorVersion",
+        "recordFingerprint",
+        "sourceName",
+        "state",
+        "updatedAt"
+      ]
+    },
+    "stocks": {
+      "additionalProperties": false,
+      "bsonType": "object",
+      "properties": {
+        "_id": {
+          "bsonType": "objectId"
+        },
+        "createdAt": {
+          "bsonType": "string",
+          "description": "ISO date string"
+        },
+        "expiryDate": {
+          "bsonType": [
+            "null",
+            "string"
+          ]
+        },
+        "id": {
+          "bsonType": "string"
+        },
+        "location": {
+          "additionalProperties": false,
+          "bsonType": "object",
+          "properties": {
+            "_id": {
+              "bsonType": "objectId"
+            },
+            "countryCode": {
+              "bsonType": [
+                "null",
+                "string"
+              ]
+            },
+            "kind": {
+              "enum": [
+                "global_shop_availability",
+                "household",
+                "shop_site"
+              ]
+            },
+            "label": {
+              "bsonType": "string"
+            },
+            "locationKey": {
+              "bsonType": "string"
+            },
+            "storeBrandKey": {
+              "bsonType": [
+                "null",
+                "string"
+              ]
+            }
+          },
+          "required": [
+            "kind",
+            "label",
+            "locationKey"
+          ]
+        },
+        "origin": {
+          "additionalProperties": false,
+          "bsonType": "object",
+          "properties": {
+            "_id": {
+              "bsonType": "objectId"
+            },
+            "capturedAt": {
+              "bsonType": "string",
+              "description": "ISO date string"
+            },
+            "kind": {
+              "enum": [
+                "crawler",
+                "manual",
+                "processor",
+                "seed"
+              ]
+            },
+            "producer": {
+              "bsonType": "string"
+            },
+            "sourceName": {
+              "bsonType": "string"
+            },
+            "sourceRecordId": {
+              "bsonType": [
+                "null",
+                "string"
+              ]
+            },
+            "sourceUrl": {
+              "bsonType": [
+                "null",
+                "string"
+              ]
+            }
+          },
+          "required": [
+            "capturedAt",
+            "kind",
+            "producer",
+            "sourceName"
+          ]
+        },
+        "price": {
+          "bsonType": [
+            "null",
+            "object"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "observedAt": {
+              "bsonType": "string",
+              "description": "ISO date string"
+            },
+            "price": {
+              "additionalProperties": false,
+              "bsonType": "object",
+              "properties": {
+                "_id": {
+                  "bsonType": "objectId"
+                },
+                "amount": {
+                  "bsonType": [
+                    "double",
+                    "int",
+                    "long",
+                    "decimal"
+                  ]
+                },
+                "currencyCode": {
+                  "bsonType": "string"
+                }
+              },
+              "required": [
+                "amount",
+                "currencyCode"
+              ]
+            },
+            "unitPrice": {
+              "bsonType": [
+                "null",
+                "object"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "_id": {
+                  "bsonType": "objectId"
+                },
+                "normalizedUnit": {
+                  "bsonType": [
+                    "null",
+                    "string"
+                  ]
+                },
+                "normalizedValue": {
+                  "bsonType": [
+                    "double",
+                    "int",
+                    "long",
+                    "decimal",
+                    "null"
+                  ]
+                },
+                "unit": {
+                  "bsonType": "string"
+                },
+                "value": {
+                  "bsonType": [
+                    "double",
+                    "int",
+                    "long",
+                    "decimal"
+                  ]
+                }
+              },
+              "required": [
+                "unit",
+                "value"
+              ]
+            }
+          },
+          "required": [
+            "observedAt",
+            "price"
+          ]
+        },
+        "productId": {
+          "bsonType": "string"
+        },
+        "quantity": {
+          "additionalProperties": false,
+          "bsonType": "object",
+          "properties": {
+            "_id": {
+              "bsonType": "objectId"
+            },
+            "amount": {
+              "bsonType": [
+                "double",
+                "int",
+                "long",
+                "decimal"
+              ]
+            },
+            "packageCount": {
+              "bsonType": [
+                "double",
+                "int",
+                "long",
+                "decimal",
+                "null"
+              ]
+            },
+            "unit": {
+              "bsonType": "string"
+            }
+          },
+          "required": [
+            "amount",
+            "unit"
+          ]
+        },
+        "status": {
+          "enum": [
+            "active",
+            "inactive"
+          ]
+        },
+        "updatedAt": {
+          "bsonType": "string",
+          "description": "ISO date string"
+        }
+      },
+      "required": [
+        "createdAt",
+        "id",
+        "location",
+        "origin",
+        "productId",
+        "quantity",
+        "status",
+        "updatedAt"
+      ]
+    }
+  }
+}

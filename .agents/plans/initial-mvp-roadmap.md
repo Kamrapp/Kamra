@@ -19,7 +19,7 @@ Roadmap priorities:
 | --- | --- | --- | --- |
 | Stage 1 | Legacy inventory and extraction | Completed (docs) | Discovery strengthened the Angular-retention assumption, shared-contract direction, and migration-ledger need. |
 | Stage 2 | Minimal serverless foundation | Completed | Vercel app/API and MongoDB connectivity are running; Stage 2 followups should be handled only when they block later stages. |
-| Stage 3 | Product model foundation and seeded data | Planned next | Finalize minimal product, source-product, stock-location, and processing-state contracts before crawler work. |
+| Stage 3 | Product model foundation and seeded data | Completed | Finalized versioned product contracts, seed data, smoke validation, and admin-only product inspection before crawler work. |
 | Stage 4 | Crawler intake and processing pipeline | Planned | Ingest only after raw, processing, and query contracts exist; keep workflow YAML small and move logic into scripts or modules. |
 | Stage 5 | Household stock foundation | Planned | Treat households as stock locations where useful, while preserving user-household authorization boundaries. |
 | Stage 6 | Shopping list and low-stock notices | Planned | Favor deterministic core logic over premature optimization. |
@@ -198,6 +198,10 @@ Validation:
 - model-shape changes have a visible migration-ledger or smoke-test update
 - seeded data is enough to test initial household stock queries before crawling exists
 - secrets and private runtime values remain outside source control
+
+Status:
+
+- completed in the current implementation slice; later crawler and household work should build on `catalog/v1` unless the product model itself changes
 
 Questions:
 

@@ -177,10 +177,14 @@ The current codebase does not yet match that direction. Existing .NET, Angular, 
 ## Current Repository Layout
 
 - `src/` currently contains the Angular browser application. `src/main.ts` is the frontend bootstrap entrypoint, not backend/server code.
+- `src/app/product-lookup/`, `src/app/household/`, `src/app/site-admin/`, and `src/app/dev-admin/` are the intended frontend concern areas. Keep new pages in the matching area instead of adding every component directly under `src/app/`.
 - `api/` contains thin Vercel Function entrypoints. Each file maps to a deployed `/api/*` route and should delegate to reusable server logic.
 - `packages/` contains first-party reusable workspace packages and must not be ignored globally. Downloaded dependencies belong in `node_modules/`; generated outputs such as `dist/`, `build/`, and `coverage/` should be ignored directly.
 - `packages/kamra-api-server/` contains the shared backend/server package used by both Vercel Function entrypoints and the local Node runner.
+- `packages/kamra-api-server/src/http/routes/` contains route slices behind the shared handler. Keep `app-handler.ts` as a small dispatcher instead of adding every endpoint branch there.
+- `packages/kamra-api-server/src/catalog/current/` is the active catalog implementation surface. Versioned catalog contracts belong under `packages/kamra-api-server/src/catalog/v*/`; do not encode roadmap stage names into runtime catalog filenames.
 - `scripts/local-api.ts` is the local API development runner. It starts a Node HTTP server and delegates to the same shared server handler used by the Vercel routes.
+- `ftpcontent/` contains static files for the separately hosted root-domain landing/redirect content. It is not part of the Vercel runtime app.
 
 Do not introduce a `tools/` directory for Vercel route code. Add one only when there is an actual manually runnable utility that is not a deployed route and not an application entrypoint.
 

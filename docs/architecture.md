@@ -54,6 +54,7 @@ The frontend should not own business-critical product matching or ingestion logi
 User-facing screens should focus on household workflows. Admin screens should focus on ingestion visibility, crawled/fetched product review, and data maintenance.
 
 Frontend localization should be treated as an early MVP concern, not a later polish item.
+Default application resources should come from files for stable content such as category labels, product names, and shell copy, while site-admin-managed database overrides can gradually fill in runtime translations and missing values.
 
 ### API Layer
 
