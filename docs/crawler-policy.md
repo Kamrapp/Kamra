@@ -6,6 +6,8 @@ Kamra uses crawlers and fetchers to collect grocery product and price informatio
 
 This policy is an engineering and operations guardrail, not legal advice. It exists to reduce risk, respect source systems, and make crawler behavior reviewable before any source is enabled.
 
+For current crawler-source research, source selection notes, and Stage 4 synthetic-source lessons, also read `.agents/learnings/crawler-source-research.md`. For reusable pipeline-shape lessons from legacy crawler work, read `.agents/learnings/crawler-pipeline-patterns.md`.
+
 ## Source Principles
 
 - Crawl only public product, price, offer, and availability data needed for Kamra features.
