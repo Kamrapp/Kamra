@@ -1,5 +1,7 @@
 import { computed, Injectable, signal } from "@angular/core";
 
+export type UserRole = "admin" | "user";
+
 interface LoginResponse {
   token: string;
   tokenType: "Bearer";
@@ -12,7 +14,7 @@ interface CurrentUserResponse {
 
 export interface AuthenticatedUser {
   email: string;
-  role: "admin";
+  role: UserRole;
 }
 
 export type LoginResult =

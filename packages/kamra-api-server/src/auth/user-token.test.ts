@@ -61,4 +61,29 @@ describe("user tokens", () => {
       new Date("2026-06-22T10:01:01.000Z")
     )).toEqual({ status: "expired" });
   });
+
+  it("verifies a signed non-admin user token", () => {
+    const token = createUserToken({
+      email: "user@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date("2026-06-22T10:00:00.000Z"),
+      role: "user",
+      secret: "test-secret"
+    });
+
+    expect(verifyUserToken(
+      token,
+      "test-secret",
+      new Date("2026-06-22T10:00:30.000Z")
+    )).toEqual({
+      payload: {
+        email: "user@kamra.test",
+        exp: 1782122460,
+        iat: 1782122400,
+        role: "user",
+        sub: "user@kamra.test"
+      },
+      status: "valid"
+    });
+  });
 });
