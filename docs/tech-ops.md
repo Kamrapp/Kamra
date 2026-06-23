@@ -176,6 +176,8 @@ The seed runner reads these shared database values from local environment files 
 
 The deployed `api/` Vercel Function entrypoints do not use a separate secrets layer inside the repository. They read runtime values from `process.env` through `readAppConfig()`, so the active Vercel environment must define the same variables that local development uses. Login and admin-only API checks also require `AUTH_TOKEN_SECRET`.
 
+Stage 2 health reporting intentionally uses `database` as the public health-check contract name even though the underlying connectivity check currently pings MongoDB. Keep the external shape platform-neutral unless a later plan deliberately adds store-specific or engine-specific diagnostics.
+
 Each seed owns its own optional env values. If all env values for an optional seed are present, that seed runs silently. If they are missing, `npm run seed` asks whether to run that seed and prompts for the missing values.
 
 Current seed particles:

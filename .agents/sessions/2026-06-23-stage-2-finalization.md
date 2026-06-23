@@ -12,6 +12,8 @@
 - Item: created the Stage 2 finalization session note
 - Item: completed Step 1 auth role-semantics cleanup
 - Item: completed Step 2 shell layout stabilization and toast-style login feedback
+- Item: completed Step 3 health contract cleanup around `database` naming
+- Item: moved the password-field reveal-eye quirk to low-priority followups because it currently looks like browser control behavior rather than a Stage 2 app bug
 
 ## Changed Files
 
@@ -28,6 +30,11 @@
 - Path: `src/app/home.component.ts`
 - Path: `src/app/health-check.component.ts`
 - Path: `src/styles.css`
+- Path: `packages/kamra-api-server/src/health/get-health-report.ts`
+- Path: `packages/kamra-api-server/src/health/get-health-report.test.ts`
+- Path: `src/app/health-check.component.ts`
+- Path: `docs/tech-ops.md`
+- Path: `.agents/plans/mvp-followups.md`
 
 ## Validation
 
@@ -45,6 +52,16 @@
 - Result: passed after Step 2 shell changes; Angular bundle generated and API build completed
 - Not run: visual browser confirmation of the fixed-shell behavior
 - Reason: this is the natural manual-check pause after the layout-focused commit-sized step
+- Ran: `npm run lint`
+- Result: passed after Step 3 health cleanup
+- Ran: `npm run typecheck`
+- Result: passed after Step 3 health cleanup
+- Ran: `npm run test`
+- Result: passed after Step 3 health cleanup; 19 test files and 62 tests green
+- Ran: `npm run build`
+- Result: passed after Step 3 health cleanup; Angular bundle generated and API build completed
+- Ran: local API smoke on port `3001` using `.env.local` seed admin credentials
+- Result: login plus health smoke did not complete; the local API stalled at initial MongoDB connection and then the server process exited with `querySrv ETIMEOUT _mongodb._tcp.kamrappcluster.lft3pkg.mongodb.net`
 
 ## Decisions
 
@@ -57,6 +74,8 @@
 - Impact: acceptable for Stage 2 finalization, but route naming should be revisited in a later auth cleanup if user-facing role breadth grows
 - Issue: Step 2 is validated by lint/typecheck/build, but the pinned-header and scroll-container behavior still deserves a manual browser look
 - Impact: continue only after a quick visual check or accept that any remaining issue may surface in the final review pass
+- Issue: local Step 3 login-to-health smoke is still not reliable from this environment
+- Impact: code-side health cleanup is complete, but the real end-to-end local smoke remains a final validation item because MongoDB SRV resolution timed out before login could complete
 
 ## Roadmap Or Plan Updates
 
@@ -65,8 +84,8 @@
 
 ## Next Step
 
-Commit Step 2, manually inspect the shell behavior, then continue with Step 3 health naming cleanup if no visual issues appear.
+Commit Step 3, then add the minimal read-only CI workflow in Step 4.
 
 ## Notes For Future Agent
 
-This session has finished two clean slices so far: Step 1 widened auth roles while keeping health admin-only, and Step 2 moved the app into a fixed-height shell with a dedicated page scroller and toast-like login feedback. The best next pause is a manual browser look before Step 3.
+This session has finished three slices so far: Step 1 widened auth roles while keeping health admin-only, Step 2 moved the app into a fixed-height shell with a dedicated page scroller and toast-like login feedback, and Step 3 removed the old `mongodb` alias from the health contract in favor of `database`. The remaining notable gap is a real local login-to-health smoke, which currently times out during MongoDB SRV resolution.

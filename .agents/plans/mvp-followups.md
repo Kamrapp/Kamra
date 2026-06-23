@@ -27,6 +27,7 @@ These are planning hints, not commitments. Re-score an item when product evidenc
 | Installable PWA or mobile-first shopping list | A shopping list is most useful in-store, so installable/mobile behavior can make the product feel real after the household loop exists. | 5/5 | High | Med | High |
 | Quick barcode and expiry-date scanning | Reduces friction when adding household items or expiry dates, but depends on having household inventory and product matching first. | 5/5 | High | High | Med |
 | Richer notification channels | Email, push, or other reminders for low-stock and buy-before warnings can increase usefulness after in-app notices prove valuable. | 4/5 | High | Med | Med |
+| Password-field reveal icon polish | Some browsers only re-show the native password reveal eye under specific field-state behavior. Unless a simple app-side cause appears later, treat this as low-value control polish rather than MVP work. | 1/5 | Low | Low | Low |
 
 ## Product Intelligence
 
