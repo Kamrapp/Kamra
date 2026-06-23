@@ -18,7 +18,7 @@ Roadmap priorities:
 | Milestone | Focus | Status | Drift / notes |
 | --- | --- | --- | --- |
 | Stage 1 | Legacy inventory and extraction | Completed (docs) | Discovery strengthened the Angular-retention assumption, shared-contract direction, and migration-ledger need. |
-| Stage 2 | Minimal serverless foundation | In progress | Final tightening is planned in `2026-06-23-finalize-stage-2-plan.md`; keep the remaining pass small. |
+| Stage 2 | Minimal serverless foundation | Ready for review | Core slices are implemented; remaining validation gap is the local MongoDB SRV timeout noted in `2026-06-23-stage-2-finalization.md`. |
 | Stage 3 | First simple ingestion job | Planned | Keep workflow YAML small and move logic into scripts or modules. |
 | Stage 4 | Product processing pipeline | Planned | Add contract and schema safeguards only when processing code exists. |
 | Stage 5 | Controlled demo access | Planned | Keep demo access admin-controlled and minimal; full invitation and email automation is deferred. |
@@ -360,8 +360,9 @@ Current direction:
 
 ## First Recommended Next Step
 
-Review and approve the Stage 2 finalization plan:
+Review the completed Stage 2 finalization work and decide whether the local MongoDB SRV timeout needs a targeted follow-up before Stage 3 planning:
 
 - `.agents/plans/2026-06-23-finalize-stage-2-plan.md`
+- `.agents/sessions/2026-06-23-stage-2-finalization.md`
 
-Implementation should not start until that plan is approved.
+After that review, the next planning focus is Stage 3.

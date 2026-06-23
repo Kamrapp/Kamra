@@ -15,6 +15,7 @@
 - Item: completed Step 3 health contract cleanup around `database` naming
 - Item: moved the password-field reveal-eye quirk to low-priority followups because it currently looks like browser control behavior rather than a Stage 2 app bug
 - Item: completed Step 4 by adding a small read-only Stage 2 app-check workflow
+- Item: completed Step 5 documentation closeout and marked Stage 2 ready for review
 
 ## Changed Files
 
@@ -37,6 +38,10 @@
 - Path: `docs/tech-ops.md`
 - Path: `.agents/plans/mvp-followups.md`
 - Path: `.github/workflows/stage-2-app-checks.yml`
+- Path: `.agents/plans/2026-06-23-finalize-stage-2-plan.md`
+- Path: `.agents/plans/initial-mvp-roadmap.md`
+- Path: `.agents/sessions/2026-06-22-stage-2-serverless-foundation.md`
+- Path: `.agents/sessions/2026-06-22-user-token-login-health-guard.md`
 
 ## Validation
 
@@ -88,16 +93,18 @@
 - Impact: code-side health cleanup is complete, but the real end-to-end local smoke remains a final validation item because MongoDB SRV resolution timed out before login could complete
 - Issue: the new GitHub workflow has only local script validation so far
 - Impact: workflow syntax and trigger logic should still be treated as needing the first real GitHub Actions run, even though the underlying commands are already green locally
+- Issue: Stage 2 is ready for review, not fully closed as perfect
+- Impact: the main remaining gap is the real local login-to-health smoke because MongoDB SRV resolution timed out in this environment
 
 ## Roadmap Or Plan Updates
 
-- Needed: none yet
-- Status: current plan remains valid
+- Needed: Stage 3 plan after Stage 2 review
+- Status: Stage 2 roadmap entry now reads as ready for review rather than still in progress
 
 ## Next Step
 
-Commit Step 4, then do the final Stage 2 documentation closeout and decide whether the local MongoDB SRV timeout needs a followup item beyond the current session note.
+Review Stage 2, decide whether the MongoDB SRV timeout should become a separate follow-up item, and then start Stage 3 planning.
 
 ## Notes For Future Agent
 
-This session has finished four slices so far: Step 1 widened auth roles while keeping health admin-only, Step 2 moved the app into a fixed-height shell with a dedicated page scroller and toast-like login feedback, Step 3 removed the old `mongodb` alias from the health contract in favor of `database`, and Step 4 added a secret-free read-only app-check workflow. The remaining notable gap is a real local login-to-health smoke, which currently times out during MongoDB SRV resolution.
+This session finished the full Stage 2 finalization plan in five slices. The main remaining validation gap is a real local login-to-health smoke, which currently times out during MongoDB SRV resolution even though the user-reported deployed path is working and the code-side validation is green.

@@ -1,5 +1,7 @@
 # Session State
 
+Status: Historical handoff. The auth, shell, and health follow-up work continued in `.agents/sessions/2026-06-23-stage-2-finalization.md`.
+
 ## Session
 
 - Date: 2026-06-22
@@ -81,17 +83,19 @@
 - Impact: database should replace mongodb to result in a platform-agnostic health check, still using mongodb connection check underneath
 - Issue: the header and the webpage is not static in size
 - Impact: switching between home and healthcheck moves the header, but it should be pinned on top; additionally, the login success dialog should be a proper toast, not a separate dialog.
+- Issue: clicking into the password field brings up the expected eye icon to show password, but clicking away and clicking into again does not bring it up again
+- Impact: this was later triaged into `.agents/plans/mvp-followups.md` as low-value browser-control polish unless a simple app-side cause becomes obvious
 
 ## Roadmap Or Plan Updates
 
 - Needed: split user authentication from admin authorization cleanly
 - Needed: replace the hard-coded admin role assumption with DB-driven user roles
 - Needed: re-run a full login-to-health browser validation after the API port issue is cleared
-- Status: not yet incorporated into the roadmap; should be captured in the next auth-focused pass
+- Status: these items were incorporated into the Stage 2 finalization work tracked in `.agents/sessions/2026-06-23-stage-2-finalization.md`
 
 ## Next Step
 
-Rename the auth model so any active DB user can log in with their own role, keep health admin-only, and re-test the full browser login flow end to end.
+See `.agents/sessions/2026-06-23-stage-2-finalization.md` for the completed follow-up slices and the remaining MongoDB SRV smoke gap.
 
 ## Notes For Future Agent
 
