@@ -80,6 +80,8 @@ npm run penny:ingest
 
 Experimental data-writing script. Use for local/smoke research only until PENNY source policy, schedule, and production safety are explicitly approved.
 
+It is experimental because the crawler is still a source-research crawler, not because we identified a legal issue. Keep treating it as subject to source-policy and terms review before any broader rollout.
+
 ### `remove-crawled-content.ts`
 
 Deletes ingestion run and raw snapshot records for one crawl run id.

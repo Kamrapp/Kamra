@@ -112,6 +112,21 @@ The workflow installs dependencies, typechecks API/scripts, runs ingestion tests
 
 This workflow writes ingestion data to the configured Smoke database. It should not be pointed at production-like data until the source, schedule, retention, and cleanup behavior are explicitly reviewed.
 
+`experimental` here means the PENNY crawler is working and locally verified, but it is not yet approved as a production crawler schedule. It is not a statement that we found a legal issue; it is a reminder that the source policy, terms, retention, and operational risk review still apply before broadening its use.
+
+## Penny Workflow
+
+`.github/workflows/penny-ingestion.yml` runs the Penny offers crawler against the `Smoke` environment.
+
+Triggers:
+
+- `workflow_dispatch`
+- nightly schedule at `02:29 UTC`
+
+The workflow installs dependencies, typechecks API/scripts, runs ingestion tests, then runs `npm run penny:ingest`.
+
+This workflow writes ingestion data to the configured Smoke database. Keep it in the same approval bucket as the source note in `docs/crawler-policy.md` before considering any production-like environment or wider schedule.
+
 ## Safety Notes
 
 - Do not run crawlers from API routes or user-facing handlers.

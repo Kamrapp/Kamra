@@ -2,7 +2,7 @@
 
 ## Status
 
-Initial testable slice implemented; experimental PENNY offers crawler in progress.
+Initial testable slice implemented; PENNY nightly workflow added.
 
 ## Current Goal
 
@@ -46,6 +46,7 @@ Move Stage 4 from planning toward a testable synthetic ingestion slice while pre
 - User validated `npm run synthetic:ingest` against MongoDB successfully on 2026-06-23. It inserted crawl run `synthetic-html-table-shop:simple_html_table_shop:2026-06-23` with 3 parsed rows.
 - User validated `npm run crawl:remove -- --crawl-run-id=synthetic-html-table-shop:simple_html_table_shop:2026-06-23` successfully on 2026-06-23. It removed 1 run and 1 snapshot.
 - `npm run penny:ingest` passed locally on 2026-06-23. It fetched `https://www.penny.hu/ajanlatok`, inserted crawl run `penny-hu-offers:penny_hu_offers:2026-06-23`, parsed 20 rows, and wrote snapshot `penny_hu_offers:offers-page-0:2026-06-23`.
+- The PENNY `experimental` labeling is an approval-state note, not a legal-issue finding; source-policy and terms review still apply before any wider rollout.
 
 ## Known Followups
 
