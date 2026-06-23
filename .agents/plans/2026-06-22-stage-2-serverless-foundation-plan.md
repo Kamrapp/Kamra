@@ -275,7 +275,7 @@ Remaining uncertainty:
 
 - Goal: add minimal PR checks for the app slice.
 - Files likely affected:
-  - `.github/workflows/stage-2-app-checks.yml`
+  - `.github/workflows/app-checks.yml`
   - package scripts
   - possibly `.github/workflows/README.md` or docs note
 - Validation:
@@ -284,7 +284,7 @@ Remaining uncertainty:
   - workflow runs install, lint, tests, build, and a local smoke check
   - workflow does not require private Vercel or Atlas secrets for PRs
   - workflow permissions are minimal and do not write back to branches
-- Commit message idea: `ci: add stage 2 app checks`
+- Commit message idea: `ci: add app checks`
 
 ### Step 8
 

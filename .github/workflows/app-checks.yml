@@ -1,9 +1,9 @@
-name: Stage 2 App Checks
+name: App Checks
 
 on:
   pull_request:
     paths:
-      - ".github/workflows/stage-2-app-checks.yml"
+      - ".github/workflows/app-checks.yml"
       - "angular.json"
       - "package.json"
       - "package-lock.json"
@@ -19,7 +19,7 @@ on:
       - "master"
       - "dev/**"
     paths:
-      - ".github/workflows/stage-2-app-checks.yml"
+      - ".github/workflows/app-checks.yml"
       - "angular.json"
       - "package.json"
       - "package-lock.json"

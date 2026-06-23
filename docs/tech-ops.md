@@ -184,6 +184,17 @@ Current seed particles:
 
 - `admin_identity` creates or updates one bootstrap admin identity in the `users` collection and records each run in `seed_ledger`
 - `admin_identity` reads `SEED_ADMINUSER_USERNAME` and `SEED_ADMINUSER_PASSWORD`
+- `catalog_v1_foundation` creates the first versioned catalog collections and synthetic grocery sample records
+- `catalog_v1_foundation` runs when `SEED_CATALOG_V1=1`, or interactively when accepted through `npm run seed`
+
+Catalog seed direction:
+
+- product-model seed data should be synthetic, clearly marked by source and environment metadata, and safe to inspect in the deployed app
+- product seeds should validate against the same JSON Schema or equivalent contract artifacts used by database smoke checks
+- seeded products, source products, price or availability observations, and stock-location examples should be enough to test household queries before crawler data exists
+- product seed refresh or cleanup behavior should be explicit so real database testing does not leave ambiguous sample records behind
+- catalog setup creates missing collections with the current JSON Schema validators, but normal seed and smoke runs do not modify validators on existing collections
+- validator changes on existing collections should be handled by a deliberate migration or admin-maintenance operation, because MongoDB `collMod` requires elevated database privileges beyond normal app read/write access
 
 Seeding rules:
 
@@ -231,7 +242,9 @@ The intended future CI shape is concern-specific and staged, not one large opaqu
 - lightweight smoke checks on code-changing PRs once the corresponding runtime surfaces exist
 - source-friendly scheduled crawler health checks on `main` once crawler paths exist
 
-Stage 2 now uses one small read-only app-check workflow for the current Angular/API slice. It should stay secret-free and limited to install, lint, typecheck, test, and build until a later plan explicitly adds deeper smoke or deployment validation.
+The current Angular/API slice uses one small read-only `App Checks` workflow. It should stay secret-free and limited to install, lint, typecheck, test, and build until a later plan explicitly adds deeper smoke or deployment validation.
+
+Catalog contract changes use a separate `Catalog Smoke` workflow. It uses the GitHub `Smoke` environment and expects `MONGODB_URI`, `MONGODB_DB_NAME`, and optionally `MONGODB_DNS_SERVERS` to point at `kamra_smoke`. The workflow regenerates the catalog v1 JSON Schema artifact, checks that it was committed, runs focused catalog tests, and runs `npm run smoke:catalog` against the configured smoke database.
 
 Dependency update automation and PR-branch writeback are followup items, not MVP roadmap requirements. Keep them in `.agents/plans/mvp-followups.md` until the app surface is stable enough to justify the extra workflow behavior.
 
@@ -265,6 +278,8 @@ When a roadmap stage grows too large for one implementation session, split it in
 ## Deployment Direction
 
 Frontend and API deployment should be URL-based through Vercel.
+
+The `ftpcontent/` directory is reserved for small static files hosted with the custom domain root, such as a simple index page or image assets that point visitors toward the Vercel app runtime. Keep it static, tiny, and free of secrets or environment-specific generated output.
 
 Ingestion should run through GitHub Actions schedules or manual dispatch.
 
