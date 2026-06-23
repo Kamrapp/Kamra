@@ -1,5 +1,7 @@
 # Stage 2 Serverless Foundation Plan
 
+Status: Mostly implemented; remaining completion work is narrowed in `.agents/plans/2026-06-23-finalize-stage-2-plan.md`.
+
 ## Objective
 
 Create Kamra's minimal deployable serverless foundation: an Angular frontend, thin Vercel API adapters, locally runnable shared API logic, MongoDB connectivity, admin-only credential login, structured database seeding, and small PR checks for the new app surface.

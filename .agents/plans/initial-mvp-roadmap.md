@@ -18,16 +18,15 @@ Roadmap priorities:
 | Milestone | Focus | Status | Drift / notes |
 | --- | --- | --- | --- |
 | Stage 1 | Legacy inventory and extraction | Completed (docs) | Discovery strengthened the Angular-retention assumption, shared-contract direction, and migration-ledger need. |
-| Stage 2 | Minimal serverless foundation | Planned | Keep Vercel-specific glue thin and the app runnable locally. |
+| Stage 2 | Minimal serverless foundation | In progress | Final tightening is planned in `2026-06-23-finalize-stage-2-plan.md`; keep the remaining pass small. |
 | Stage 3 | First simple ingestion job | Planned | Keep workflow YAML small and move logic into scripts or modules. |
 | Stage 4 | Product processing pipeline | Planned | Add contract and schema safeguards only when processing code exists. |
-| Stage 5 | Feature-flagged demo user whitelist | Planned | Keep invitation and cleanup behavior explicitly disabled by default. |
+| Stage 5 | Controlled demo access | Planned | Keep demo access admin-controlled and minimal; full invitation and email automation is deferred. |
 | Stage 6 | Household foundation | Planned | Keep household data boundaries simple and query-friendly first. |
 | Stage 7 | Shopping list and low-stock notices | Planned | Favor deterministic core logic over premature optimization. |
 | Stage 8 | Expiry and buffer logic | Planned | This is the first strong user-value milestone, not just ops maturity. |
-| Stage 9 | Crawler expansion | Planned | Add scheduled crawler-health validation only after real crawler paths exist. |
-| Stage 10 | Authentication upgrade | Planned | Better auth should extend a useful MVP, not delay it. |
-| Stage 11 | MVP finalization and repo hygiene | Planned | Delay PR autofix and similar repo automation until the functional application is in place. |
+
+Non-MVP and post-MVP ideas are tracked in `mvp-followups.md` so this roadmap stays focused on the shortest useful household grocery-planning MVP.
 
 When a later session changes stage ordering, validation strategy, platform posture, or key risks, update this roadmap or explicitly make that update the next required planning step. Do not leave durable direction only in session notes.
 
@@ -65,9 +64,8 @@ The intended direction is:
 - admin-only raw credential login first
 - admin view for crawled/fetched products
 - processed product pipeline before demo users
-- feature-flagged admin whitelist for demo user registration
+- minimal admin-controlled demo access before broader demo-user registration
 - household workflows for normal users
-- Google account sign-in as a later authentication extension
 - source-available public repository with secrets and private runtime data excluded
 - likely one collaborator, with the process still working if collaboration is intermittent
 
@@ -91,12 +89,18 @@ The intended direction is:
 - Keep crawler behavior source-friendly and easy to disable.
 - Keep recommendations independent from advertisements, seller sponsorship, or store agenda.
 
+## Roadmap Granularity
+
+Each roadmap stage is a product or architecture milestone, not necessarily one implementation session.
+
+Before implementation, split the active stage into commit-sized or one-shot agentic units. A good unit should fit in one normal execution session, have one domain concern, and leave the app runnable afterward. If a stage starts requiring multiple long sessions, update the stage plan with smaller slices and move lower-value work to `mvp-followups.md`.
+
 ## Delivery Risks And Mitigations
 
 - Platform lock-in risk: keep Vercel entrypoints and GitHub workflow files as thin adapters around app code and scripts that can also run locally.
 - CI sprawl risk: add checks only when a repo slice becomes real, and keep them scoped to the changed concern where possible.
 - MVP drag risk: avoid testing, pipeline work, or platform abstraction that exists only to look thorough; tie each addition to an actual code surface or operational risk.
-- Post-MVP cleanup risk: keep seams explicit now and evolve the roadmap when sessions reveal drift instead of burying new direction in handoff notes.
+- Followup sprawl risk: keep seams explicit now and move non-essential ideas to `mvp-followups.md` instead of stretching active stages.
 
 ## Stage 1: Legacy Inventory And Extraction
 
@@ -212,31 +216,28 @@ Validation:
 - contract or schema artifacts regenerate in PR-visible form when schema-relevant code exists
 - model-shape changes gain migration-ledger or backfill validation once those mechanisms are introduced
 
-## Stage 5: Feature-Flagged Demo User Whitelist
+## Stage 5: Controlled Demo Access
 
 Goal:
 
-- Let the admin create controlled demo-user access after there is processed product data worth demonstrating.
+- Let the admin create controlled demo-user access after there is processed product data worth demonstrating, without building the full communication workflow yet.
 
 Scope slice:
 
-- feature flag for whitelist registration
-- admin can add email addresses to a registration whitelist
-- whitelisted users can register only with the whitelisted email
-- whitelist entries expire after 30 days if unused
-- invitation email is sent when a whitelist entry is created
-- expiry email is sent if the user did not register before expiry
-- email sending and cleanup cron stay disabled until the whitelist feature flag is enabled
-- keep email and cleanup provider glue thin so provider swaps stay local to small adapters
+- minimal feature flag for demo access
+- admin can allow a small set of demo identities or create demo users through an explicit controlled path
+- no uncontrolled public registration
+- no automatic invitation email
+- no automatic expiry email
+- no whitelist cleanup cron
+- leave room for the fuller whitelist and email workflow in `mvp-followups.md`
 
 Validation:
 
-- registration fails for non-whitelisted emails
-- registration succeeds for a valid whitelisted email
-- expired whitelist entries cannot be used
-- emails are not sent while the feature flag is disabled
-- cleanup cron does not run while the feature flag is disabled
-- audit metadata records who created the whitelist entry
+- demo access fails for identities the admin has not allowed or created
+- demo access succeeds for the controlled identity path
+- feature flag disabled means no demo onboarding path is available
+- audit metadata records who created or allowed the demo access
 
 ## Stage 6: Household Foundation
 
@@ -302,73 +303,13 @@ Validation:
 - household users can understand why an item is suggested
 - notification channels beyond in-app notices are explicitly deferred unless planned
 
-## Stage 9: Crawler Expansion
+## Deferred Expansion
 
-Goal:
+Items that are valuable but not required for the first household/product MVP live in `mvp-followups.md`.
 
-- Add more sources and improve processing quality.
+This includes broader crawler expansion, richer product moderation, Google sign-in, repository automation, installable mobile/PWA work, route optimization, barcode scanning, floating mini-menu navigation, and similar product or workflow improvements.
 
-Scope:
-
-- additional crawlers
-- better normalization
-- identity resolution
-- admin moderation for uncertain matches
-- richer price history
-- limited-offer product discovery
-- scheduled crawler-health validation on `main`, kept source-friendly and lightweight
-- dependency update PR automation can be added by this point if package boundaries are stable and the noise stays low
-
-Validation:
-
-- each source has raw snapshots
-- source-specific parsing is isolated
-- canonical matching remains traceable
-- admin can inspect uncertain product mappings
-- crawler-health checks are scoped so they do not abuse external sources
-
-## Stage 10: Authentication Upgrade
-
-Goal:
-
-- Add Google account sign-in as a final authentication extension after the household/product MVP is already useful.
-
-Scope:
-
-- Google auth
-- no public registration beyond allowed sign-in rules
-- admin allowlist or role assignment
-- normal user role
-
-Validation:
-
-- unauthorized users cannot register into useful access
-- admin access remains protected
-- user identity remains linkable to household membership
-- existing admin and whitelist flows keep working
-
-## Stage 11: MVP Finalization And Repo Hygiene
-
-Goal:
-
-- Add late-stage repository automation and cleanup once the functional MVP is already working and the repo has stable enough boundaries to justify it.
-
-Scope:
-
-- add a basic linter path for the real app surfaces that exist by then
-- add an open-PR workflow that can run lint or similarly small hygiene checks on PR branches
-- allow one small auto-generated follow-up commit on the PR branch when the chosen automation is explicitly designed to write safe mechanical fixes
-- keep the workflow itself thin and push fix logic into checked-in scripts where practical
-- review the required GitHub token, permissions, and branch-write posture before enabling PR-branch writeback
-- merge any still-relevant deferred repo-hygiene items from earlier plans rather than scattering them across many tiny follow-up stages
-
-Validation:
-
-- lint or equivalent hygiene checks run only for the code surfaces that actually exist
-- PR automation remains scoped, predictable, and easy to disable
-- writeback behavior is limited to safe mechanical fixes, not broad code rewriting
-- required token, permissions, and branch protections are documented before enablement
-- the workflow does not become a substitute for normal review
+Promote those items back into this roadmap only when they directly support the next MVP milestone, remove a current blocker, or the user explicitly chooses the tradeoff.
 
 ## Cross-Cutting Data Questions
 
@@ -407,42 +348,20 @@ Current direction:
 
 - keep Angular as the frontend baseline unless a later plan proves it is blocking
 - use shared TypeScript contracts as the main app-facing source of truth
-- generate both JSON Schema and OpenAPI artifacts when cheap enough
 - keep workflows language-flexible per source
 - keep workflow YAML and host-specific handlers thin around locally runnable code
 - bootstrap admin login with Vercel-managed credentials while persisting admin identity in the database
 - use workflow-generated sample datasets for demo environments instead of exposing live internal data
-- use single-use tokens for whitelist registration links
-- require both PR-visible contract regeneration and seeded-database smoke validation for contract safety
 - prefer concern-specific PR checks plus lightweight smoke checks over one monolithic CI job
-- add automated dependency update PRs only after package boundaries stabilize and the update noise stays reviewable
-- add PR-branch autofix workflows such as lint writeback only as a late MVP-finalization step, after codebase boundaries and permissions are stable enough to keep the risk low
 - treat stock as location-connectable and offers as country-wide first, with room for later regional scope
 - represent country-wide offer scope with `regionCode = null`
 - treat store records as country-scoped at minimum, with a country-level no-region no-address store anchor per brand for the first country-wide stock model
 - model composition through quantity plus unit, including percentage-style composition via `%`
-- use a no-op or console/log email adapter before any real email provider is introduced
-
-## Post-MVP Horizons
-
-Keep these visible as direction, but out of the first product MVP unless a later plan explicitly promotes them:
-
-- mobile app or installable PWA shopping-list experience
-- route optimization with max-shop constraints and preferences for quickest, cheapest, or best quality
-- user-submitted price updates from shop photos
-- quick barcode and expiry-date scanning for existing household items
-- discovery of temporary Lidl/Aldi-style products
-- household baseline comparison to show commonly missing staples
-- similar or side-product recommendations when better offers exist
-- stronger quality, brand, dietary, and preference modeling
 
 ## First Recommended Next Step
 
-After roadmap review, create the Stage 2 plan:
+Review and approve the Stage 2 finalization plan:
 
-- define the minimal Angular-on-Vercel and Node.js serverless foundation slice
-- pin down the first local-run versus hosted-adapter boundaries
-- decide the first shared-contract package or artifact-generation approach
-- define the smallest meaningful frontend, API, and smoke validation checks for that slice
+- `.agents/plans/2026-06-23-finalize-stage-2-plan.md`
 
 Implementation should not start until that plan is approved.

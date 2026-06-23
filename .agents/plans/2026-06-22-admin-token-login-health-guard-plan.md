@@ -1,5 +1,9 @@
 # User Token Login And Health Guard Plan
 
+Status: Superseded by `.agents/plans/2026-06-22-user-token-login-health-guard-plan.md` and the Stage 2 finalization plan in `.agents/plans/2026-06-23-finalize-stage-2-plan.md`.
+
+This file is retained only because it existed in the workspace under a misleading admin-framed name. Do not resume work from this plan.
+
 ## Objective
 
 Add a minimal standardized login backed by the seeded `users` collection, issue signed user tokens persisted by the browser, restrict health-check content to authenticated admins, and reshape the navigation into a floating right-side slider.
