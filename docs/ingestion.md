@@ -15,6 +15,7 @@ source content -> parser -> raw snapshot -> later processor -> catalog records
 Implemented:
 
 - synthetic HTML source fixture
+- first experimental PENNY Hungary offers source
 - parsed source rows with product identity, stock availability, and separate price observations
 - `ingestion_runs`
 - `ingestion_raw_snapshots`
@@ -27,7 +28,7 @@ Not implemented yet:
 - `SimplePdfShop`
 - processing snapshots into catalog products/stocks
 - dedicated processed price-history collection
-- real shop crawling
+- production-approved real shop crawling
 - strict Mongo JSON schema validation for ingestion collections
 
 ## Run Identity
@@ -74,6 +75,12 @@ Run synthetic ingestion:
 npm run synthetic:ingest
 ```
 
+Run experimental PENNY offers ingestion:
+
+```powershell
+npm run penny:ingest
+```
+
 Remove crawled content for one crawl run:
 
 ```powershell
@@ -108,7 +115,8 @@ This workflow writes ingestion data to the configured Smoke database. It should 
 ## Safety Notes
 
 - Do not run crawlers from API routes or user-facing handlers.
-- Do not enable real retailer crawlers from this workflow without source-policy review.
+- Treat `npm run penny:ingest` as experimental source research. It fetches the public PENNY offers page and writes raw ingestion data, but it is not production-approved crawling yet.
+- Do not enable real retailer crawlers from a scheduled workflow without source-policy review.
 - Do not assume ingestion snapshots are canonical products.
 - Cleanup by crawl run id removes ingestion runs and raw snapshots for that run id only; it does not remove future processed catalog records.
 - Treat real source content as untrusted data even when fetched from a known retailer.

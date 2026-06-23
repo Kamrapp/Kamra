@@ -68,6 +68,18 @@ npm run synthetic:ingest
 
 Data-writing script. Uses same-day idempotency for the same source record.
 
+### `ingest-penny-offers.ts`
+
+Fetches `https://www.penny.hu/ajanlatok`, parses the public Nuxt product payload, and writes one raw ingestion snapshot.
+
+Command:
+
+```powershell
+npm run penny:ingest
+```
+
+Experimental data-writing script. Use for local/smoke research only until PENNY source policy, schedule, and production safety are explicitly approved.
+
 ### `remove-crawled-content.ts`
 
 Deletes ingestion run and raw snapshot records for one crawl run id.
