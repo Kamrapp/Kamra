@@ -102,7 +102,7 @@ Future standardization plans must explicitly decide:
 
 Workflow runtime should stay flexible per job. JavaScript or TypeScript is likely the most consistent default, but Python or C# should remain allowed when a crawler, parser, or transformation is materially better served by that toolchain.
 
-Shared contract generation should prefer a TypeScript source of truth with both JSON Schema and OpenAPI artifacts when the maintenance cost stays low enough. Those generated artifacts should be produced in CI or PR workflows and referenced from repository docs.
+When shared contract generation is promoted from followups, prefer a TypeScript source of truth with both JSON Schema and OpenAPI artifacts if the maintenance cost stays low enough. Those generated artifacts should be produced in CI or PR workflows and referenced from repository docs once they exist.
 
 ## Secrets
 
@@ -176,6 +176,8 @@ The seed runner reads these shared database values from local environment files 
 
 The deployed `api/` Vercel Function entrypoints do not use a separate secrets layer inside the repository. They read runtime values from `process.env` through `readAppConfig()`, so the active Vercel environment must define the same variables that local development uses. Login and admin-only API checks also require `AUTH_TOKEN_SECRET`.
 
+Stage 2 health reporting intentionally uses `database` as the public health-check contract name even though the underlying connectivity check currently pings MongoDB. Keep the external shape platform-neutral unless a later plan deliberately adds store-specific or engine-specific diagnostics.
+
 Each seed owns its own optional env values. If all env values for an optional seed are present, that seed runs silently. If they are missing, `npm run seed` asks whether to run that seed and prompts for the missing values.
 
 Current seed particles:
@@ -228,19 +230,37 @@ The intended future CI shape is concern-specific and staged, not one large opaqu
 - transformation or migration-ledger validation when processors or schema-evolution scripts change
 - lightweight smoke checks on code-changing PRs once the corresponding runtime surfaces exist
 - source-friendly scheduled crawler health checks on `main` once crawler paths exist
-- low-noise dependency update PR automation after package boundaries stabilize
 
-Late-stage hygiene automation may also include narrowly scoped PR-branch writeback, such as a linter or formatter creating one additional commit on the open PR branch. This should be deferred until the relevant codebase slice is stable enough to justify it.
+Stage 2 now uses one small read-only app-check workflow for the current Angular/API slice. It should stay secret-free and limited to install, lint, typecheck, test, and build until a later plan explicitly adds deeper smoke or deployment validation.
+
+Dependency update automation and PR-branch writeback are followup items, not MVP roadmap requirements. Keep them in `.agents/plans/mvp-followups.md` until the app surface is stable enough to justify the extra workflow behavior.
 
 Workflow files should mostly orchestrate scripts that can also be run locally. This keeps core logic easier to test, debug, and eventually move to other platforms if needed.
 
-Any workflow that writes back to a branch should be planned explicitly, with documented:
+Any future workflow that writes back to a branch should be planned explicitly, with documented:
 
 - GitHub token source and least-privilege permissions
 - branch protection and PR update behavior
 - exact commands allowed to modify files
 - guardrails that limit writeback to safe mechanical fixes
 - disable path if the workflow becomes noisy or surprising
+
+## Roadmap And Followup Triage
+
+The active MVP roadmap should stay focused on the smallest useful household grocery-planning product.
+
+Use `.agents/plans/mvp-followups.md` for valuable but non-essential ideas, including richer navigation concepts, authentication upgrades, repository automation, crawler expansion beyond the first useful sources, advanced recommendations, and mobile/PWA extensions.
+
+Followup entries should include:
+
+- added value, scored from `1/5` to `5/5` for market gain and user likability
+- effort, using `Low` or `High`
+- complexity, using `Low`, `Med`, or `High`
+- priority, using `Low`, `Med`, or `High`
+
+Promote a followup into an implementation plan only when it directly supports the next MVP milestone, removes a current operational or security blocker, or the user explicitly accepts the scope tradeoff.
+
+When a roadmap stage grows too large for one implementation session, split it into one-shot units by domain concern before implementation. Keep each unit small enough to validate and review independently, and move lower-value side work to followups.
 
 ## Deployment Direction
 
@@ -263,16 +283,11 @@ The first admin-only login should use Vercel-managed credentials or secrets as t
 
 Even after EF Core removal, Kamra should retain a migration-ledger mechanism so document-shape changes and scripted backfills remain traceable.
 
-Contract drift should be checked automatically where practical. A useful early safeguard is to validate sample or fixture documents against the generated contract artifacts and run smoke queries against a representative seeded database shape in CI.
-
-The preferred safeguard is both:
-
-- generated contract artifacts should be regenerated and surfaced in PR workflows when schema-relevant code changes
-- seeded snapshot-style database data should be validated through smoke queries against the current code
+Contract drift should be checked automatically where practical after shared contracts and schema-relevant code exist. Generated OpenAPI/JSON Schema artifacts are tracked as followup work until the API and model boundaries are stable enough to make them useful.
 
 Demo environments should run against generated sample datasets built by workflows from real ingestion/transformation logic, not against the live internal dataset directly.
 
-Whitelist cleanup may also run as a scheduled job, but only after the whitelist feature flag is enabled. Until then, no automatic whitelist expiry job or invitation email should run.
+Whitelist cleanup and invitation or expiry emails are followup work. Until explicitly planned, no automatic whitelist expiry job or invitation email should run.
 
 ## Licensing And Public Use
 
@@ -309,8 +324,8 @@ Standardized processor jobs should also be planned alongside crawlers where need
 These should be resolved by explicit planning before implementation:
 
 - exact serverless API framework
-- Google account authentication details after the admin-only phase
-- feature flag mechanism for whitelist registration
+- Google account authentication details when promoted from followups
+- feature flag mechanism for fuller whitelist registration when promoted from followups
 - minimal user, household, membership, and admin role model
 - MongoDB collection model
 - free-tier quota limits and acceptable demo data volume

@@ -50,6 +50,27 @@ describe("authenticateUser", () => {
     });
   });
 
+  it("authenticates an active non-admin user with the stored role", async () => {
+    const repository = new InMemoryUserRepository(
+      await createUser("correct-password", {
+        email: "user@kamra.test",
+        role: "user"
+      })
+    );
+
+    await expect(authenticateUser(
+      "user@kamra.test",
+      "correct-password",
+      repository
+    )).resolves.toEqual({
+      status: "authenticated",
+      user: {
+        email: "user@kamra.test",
+        role: "user"
+      }
+    });
+  });
+
   it("rejects a wrong password", async () => {
     const repository = new InMemoryUserRepository(
       await createUser("correct-password")

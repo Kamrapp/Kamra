@@ -77,6 +77,7 @@ import { Component } from "@angular/core";
       :host {
         display: grid;
         gap: var(--space-7);
+        min-height: 100%;
       }
 
       .home-board {

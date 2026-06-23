@@ -4,7 +4,7 @@
 
 This document describes the intended Kamra architecture.
 
-It should be read together with `docs/codebase-analysis.md`, because the current codebase contains legacy or prototype structures that do not fully match this target.
+For legacy reference notes, see `docs/codebase-analysis.md`, although current architecture has little to gain; some design concepts may be useful for evolving the successor structure.
 
 ## Target Model
 

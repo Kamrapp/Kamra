@@ -1,10 +1,12 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
+import type { UserRole } from "./user-auth.js";
+
 export interface UserTokenPayload {
   email: string;
   exp: number;
   iat: number;
-  role: "admin";
+  role: UserRole;
   sub: string;
 }
 
@@ -12,7 +14,7 @@ export interface CreateUserTokenInput {
   email: string;
   maxAgeSeconds: number;
   now?: Date;
-  role: "admin";
+  role: UserRole;
   secret: string;
 }
 
@@ -55,7 +57,7 @@ function isUserTokenPayload(value: unknown): value is UserTokenPayload {
   return typeof payload.email === "string"
     && typeof payload.exp === "number"
     && typeof payload.iat === "number"
-    && payload.role === "admin"
+    && (payload.role === "admin" || payload.role === "user")
     && typeof payload.sub === "string";
 }
 

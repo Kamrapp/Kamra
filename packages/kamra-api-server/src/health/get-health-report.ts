@@ -29,7 +29,6 @@ export interface HealthReport {
   checks: {
     api: ApiHealthCheck;
     database: DatabaseHealthCheck;
-    mongodb: DatabaseHealthCheck;
   };
   stage: "healthcheck";
   status: "degraded" | "ok";
@@ -115,8 +114,7 @@ function createHealthReport(
     checklist: [apiCheck, databaseCheck],
     checks: {
       api: apiCheck,
-      database: databaseCheck,
-      mongodb: databaseCheck
+      database: databaseCheck
     },
     stage: "healthcheck",
     status
@@ -133,7 +131,7 @@ export async function getHealthResult(
         databaseName: config.mongodb.databaseName,
         id: "database",
         label: "Database",
-        message: "MongoDB is missing MONGODB_URI or MONGODB_DB_NAME.",
+        message: "Database connection is missing MONGODB_URI or MONGODB_DB_NAME.",
         status: "not_configured"
       }),
       statusCode: 503
@@ -148,7 +146,7 @@ export async function getHealthResult(
         databaseName: config.mongodb.databaseName,
         id: "database",
         label: "Database",
-        message: "MongoDB ping completed successfully.",
+        message: "Database ping completed successfully.",
         status: "ok"
       }),
       statusCode: 200
@@ -162,7 +160,7 @@ export async function getHealthResult(
         error: toHealthCheckError(error),
         id: "database",
         label: "Database",
-        message: "MongoDB ping failed.",
+        message: "Database ping failed.",
         status: "connection_failed"
       }),
       statusCode: 503

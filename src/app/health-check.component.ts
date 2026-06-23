@@ -7,8 +7,7 @@ interface HealthReport {
   checklist?: HealthCheckItem[];
   checks: {
     api: HealthCheckItem;
-    database?: HealthCheckItem;
-    mongodb?: HealthCheckItem;
+    database: HealthCheckItem;
   };
   stage: string;
   status: string;
@@ -38,7 +37,7 @@ interface HealthCheckItem {
         <p class="eyebrow">Runtime</p>
         <h1 id="health-title">Health check</h1>
         <p>
-          Verify the shared API route and MongoDB connection path used by local
+          Verify the shared API route and database connection path used by local
           development and Vercel Functions.
         </p>
       </div>
@@ -117,6 +116,7 @@ interface HealthCheckItem {
     `
       :host {
         display: block;
+        min-height: 100%;
       }
 
       .health-page {
@@ -318,17 +318,14 @@ export class HealthCheckComponent implements OnInit {
       return report.checklist;
     }
 
-    return [
-      report.checks.api,
-      report.checks.database ?? report.checks.mongodb
-    ].filter((check): check is HealthCheckItem => Boolean(check));
+    return [report.checks.api, report.checks.database];
   });
   readonly healthSummary = computed(() => {
     const state = this.healthState();
     const report = this.healthReport();
 
     if (state === "loading") {
-      return "Checking API and MongoDB connectivity...";
+      return "Checking API and database connectivity...";
     }
 
     if (report) {
@@ -388,7 +385,7 @@ export class HealthCheckComponent implements OnInit {
 
       logBrowserEvent("info", "Health check response received", {
         httpStatus: response.status,
-        databaseStatus: report.checks.database?.status ?? report.checks.mongodb?.status,
+        databaseStatus: report.checks.database.status,
         status: report.status
       });
     } catch (error: unknown) {

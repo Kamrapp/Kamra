@@ -101,7 +101,7 @@ function readLoginPayload(bodyText: string | undefined):
   }
 }
 
-function authorizeUser(request: AppRequest): AuthenticatedUser | null {
+function authenticateRequestUser(request: AppRequest): AuthenticatedUser | null {
   const config = readAppConfig();
   if (!config.auth.tokenSecret) {
     return null;
@@ -113,7 +113,7 @@ function authorizeUser(request: AppRequest): AuthenticatedUser | null {
   }
 
   const result = verifyUserToken(token, config.auth.tokenSecret);
-  if (result.status !== "valid" || result.payload.role !== "admin") {
+  if (result.status !== "valid") {
     return null;
   }
 
@@ -123,10 +123,10 @@ function authorizeUser(request: AppRequest): AuthenticatedUser | null {
   };
 }
 
-function unauthorized(): AppResponse {
+function unauthorized(message = "Sign in to view this resource."): AppResponse {
   return json(401, {
     error: "unauthorized",
-    message: "Sign in as an admin to view this resource."
+    message
   });
 }
 
@@ -204,7 +204,7 @@ export async function handleAppRequest(request: AppRequest): Promise<AppResponse
   }
 
   if (request.method === "GET" && request.path === "/api/admin/me") {
-    const user = authorizeUser(request);
+    const user = authenticateRequestUser(request);
     if (!user) {
       return unauthorized();
     }
@@ -213,9 +213,9 @@ export async function handleAppRequest(request: AppRequest): Promise<AppResponse
   }
 
   if (request.method === "GET" && request.path === "/api/health") {
-    const user = authorizeUser(request);
-    if (!user) {
-      return unauthorized();
+    const user = authenticateRequestUser(request);
+    if (!user || user.role !== "admin") {
+      return unauthorized("Sign in as an admin to view this resource.");
     }
 
     const config = readAppConfig();

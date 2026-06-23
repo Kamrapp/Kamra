@@ -1,18 +1,20 @@
 import { verifyPassword, type PasswordHash } from "./password-hash.js";
 
+export type UserRole = "admin" | "user";
+
 export interface UserDocument {
   authProvider: "bootstrap_credentials";
   createdAt?: Date;
   email: string;
   passwordHash: PasswordHash;
-  role: "admin";
+  role: UserRole;
   status: "active" | "disabled";
   updatedAt?: Date;
 }
 
 export interface AuthenticatedUser {
   email: string;
-  role: "admin";
+  role: UserRole;
 }
 
 export interface UserRepository {
@@ -43,7 +45,7 @@ export async function authenticateUser(
   }
 
   const user = await repository.findActiveUserByEmail(normalizedEmail);
-  if (!user || user.role !== "admin") {
+  if (!user) {
     return { status: "invalid_credentials" };
   }
 

@@ -12,7 +12,6 @@ export class MongoUserRepository implements UserRepository {
   async findActiveUserByEmail(email: string): Promise<UserDocument | null> {
     return await this.usersCollection.findOne({
       email,
-      role: "admin",
       status: "active"
     });
   }

@@ -42,7 +42,7 @@ describe("getHealthResult", () => {
             databaseName: null,
             id: "database",
             label: "Database",
-            message: "MongoDB is missing MONGODB_URI or MONGODB_DB_NAME.",
+            message: "Database connection is missing MONGODB_URI or MONGODB_DB_NAME.",
             status: "not_configured"
           }
         ],
@@ -57,14 +57,7 @@ describe("getHealthResult", () => {
             databaseName: null,
             id: "database",
             label: "Database",
-            message: "MongoDB is missing MONGODB_URI or MONGODB_DB_NAME.",
-            status: "not_configured"
-          },
-          mongodb: {
-            databaseName: null,
-            id: "database",
-            label: "Database",
-            message: "MongoDB is missing MONGODB_URI or MONGODB_DB_NAME.",
+            message: "Database connection is missing MONGODB_URI or MONGODB_DB_NAME.",
             status: "not_configured"
           }
         },
@@ -101,7 +94,7 @@ describe("getHealthResult", () => {
             databaseName: "kamra",
             id: "database",
             label: "Database",
-            message: "MongoDB ping completed successfully.",
+            message: "Database ping completed successfully.",
             status: "ok"
           }
         ],
@@ -116,14 +109,7 @@ describe("getHealthResult", () => {
             databaseName: "kamra",
             id: "database",
             label: "Database",
-            message: "MongoDB ping completed successfully.",
-            status: "ok"
-          },
-          mongodb: {
-            databaseName: "kamra",
-            id: "database",
-            label: "Database",
-            message: "MongoDB ping completed successfully.",
+            message: "Database ping completed successfully.",
             status: "ok"
           }
         },
@@ -169,11 +155,10 @@ describe("getHealthResult", () => {
         },
         id: "database",
         label: "Database",
-        message: "MongoDB ping failed.",
+        message: "Database ping failed.",
         status: "connection_failed"
       }
     ]);
     expect(result.report.checks.database.error?.message).not.toContain("super-secret");
-    expect(result.report.checks.mongodb).toBe(result.report.checks.database);
   });
 });
