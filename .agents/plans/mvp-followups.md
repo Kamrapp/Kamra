@@ -72,6 +72,7 @@ These are planning hints, not commitments. Re-score an item when product evidenc
 | --- | --- | --- | --- | --- | --- |
 | Dependency update PR automation | Helpful after package boundaries stabilize; too noisy before the app surface settles. | 2/5 | Low | Med | Low |
 | PR-branch autofix/writeback workflow | Can save time for mechanical lint/format fixes, but write permissions and surprise commits are not worth it before MVP. | 2/5 | High | Med | Low |
+| Separate lint autofix workflow | A small workflow that only handles safe mechanical fixes such as lint autofixes could reduce avoidable CI failures by pushing a narrow follow-up commit. Keep it separate from read-only validation and only consider it once the exact autofix commands are proven predictable. | 2/5 | Low | Low | Med |
 | Legacy workflow retirement | Old `auto_push_*` workflows should be reviewed and removed or archived when the new PR workflow is trusted. | 3/5 | Low | Low | Med |
 | Documentation consistency checks | Useful if docs drift becomes frequent; should not block early product delivery. | 2/5 | Low | Low | Low |
 
