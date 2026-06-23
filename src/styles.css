@@ -30,6 +30,7 @@
 
 html,
 body {
+  height: 100%;
   margin: 0;
   min-height: 100%;
 }
@@ -40,6 +41,7 @@ body {
     radial-gradient(circle at 82% 20%, color-mix(in srgb, var(--color-accent-leaf) 32%, transparent), transparent 30%),
     linear-gradient(180deg, var(--color-background-soft) 0%, var(--color-background) 100%);
   color: var(--color-text);
+  overflow: hidden;
 }
 
 code,

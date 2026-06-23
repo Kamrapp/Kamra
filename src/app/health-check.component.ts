@@ -117,6 +117,7 @@ interface HealthCheckItem {
     `
       :host {
         display: block;
+        min-height: 100%;
       }
 
       .health-page {

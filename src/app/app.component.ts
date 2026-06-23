@@ -62,10 +62,21 @@ import { AuthService } from "./auth.service";
         }
       </header>
 
-      <router-outlet />
+      <section class="page-body" aria-label="Current page">
+        <div class="page-scroll">
+          <router-outlet />
+        </div>
+      </section>
 
       @if (loginMessage(); as message) {
-        <p class="login-message" aria-live="polite">{{ message }}</p>
+        <p
+          class="login-message"
+          [class.login-message-error]="loginMessageTone() === 'error'"
+          [class.login-message-success]="loginMessageTone() === 'success'"
+          aria-live="polite"
+        >
+          {{ message }}
+        </p>
       }
 
       <button
@@ -112,24 +123,35 @@ import { AuthService } from "./auth.service";
     `
       :host {
         display: block;
-        min-height: 100vh;
+        height: 100dvh;
       }
 
       .shell {
         display: grid;
-        gap: var(--space-7);
+        gap: var(--space-6);
+        grid-template-rows: auto minmax(0, 1fr);
+        height: 100dvh;
         margin: 0 auto;
-        min-height: 100vh;
+        max-height: 100dvh;
+        overflow: clip;
         padding: var(--space-page);
         width: min(100%, 76rem);
       }
 
       .topbar {
         align-items: center;
+        backdrop-filter: blur(14px);
+        background: rgb(248 244 241 / 76%);
+        border: 1px solid color-mix(in srgb, var(--color-wood) 16%, transparent);
+        border-radius: 8px;
+        box-shadow: 0 1rem 2.4rem rgb(48 43 50 / 8%);
         display: flex;
         gap: var(--space-4);
         justify-content: space-between;
         min-height: 4.5rem;
+        padding: 0.85rem 1rem;
+        position: relative;
+        z-index: 10;
       }
 
       .brand-link {
@@ -222,14 +244,43 @@ import { AuthService } from "./auth.service";
         padding: 0 0.45rem;
       }
 
+      .page-body {
+        min-height: 0;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .page-scroll {
+        display: grid;
+        gap: var(--space-6);
+        height: 100%;
+        min-height: 0;
+        overflow: auto;
+        padding: 0 0 max(var(--space-6), env(safe-area-inset-bottom));
+        scrollbar-gutter: stable both-edges;
+      }
+
       .login-message {
-        background: color-mix(in srgb, var(--color-surface) 86%, white 14%);
-        border: 1px solid color-mix(in srgb, var(--color-wood) 18%, transparent);
+        backdrop-filter: blur(12px);
         border-radius: 8px;
-        color: var(--color-text-muted);
-        justify-self: end;
-        margin: calc(var(--space-7) * -1) 0 0;
-        padding: 0.6rem 0.8rem;
+        bottom: max(var(--space-5), env(safe-area-inset-bottom));
+        box-shadow: 0 1rem 2.6rem rgb(48 43 50 / 14%);
+        color: var(--color-text);
+        max-width: min(24rem, calc(100vw - 2rem));
+        padding: 0.8rem 0.95rem;
+        position: fixed;
+        right: max(var(--space-5), env(safe-area-inset-right));
+        z-index: 45;
+      }
+
+      .login-message-success {
+        background: color-mix(in srgb, var(--color-accent-leaf) 18%, white 82%);
+        border: 1px solid color-mix(in srgb, var(--color-accent-leaf-strong) 32%, transparent);
+      }
+
+      .login-message-error {
+        background: color-mix(in srgb, var(--color-wood) 18%, white 82%);
+        border: 1px solid color-mix(in srgb, var(--color-wood-deep) 34%, transparent);
       }
 
       .menu-toggle {
@@ -243,7 +294,6 @@ import { AuthService } from "./auth.service";
         display: inline-flex;
         height: 3.2rem;
         justify-content: center;
-        padding: 0;
         padding: 0;
         position: fixed;
         right: 0;
@@ -331,6 +381,11 @@ import { AuthService } from "./auth.service";
       }
 
       @media (max-width: 520px) {
+        :host,
+        .shell {
+          height: 100dvh;
+        }
+
         .topbar {
           align-items: flex-start;
           flex-direction: column;
@@ -348,8 +403,10 @@ import { AuthService } from "./auth.service";
           width: min(100%, 16rem);
         }
 
-        .shell {
-          gap: var(--space-5);
+        .login-message {
+          left: var(--space-4);
+          max-width: none;
+          right: var(--space-4);
         }
       }
     `
@@ -358,11 +415,13 @@ import { AuthService } from "./auth.service";
 export class AppComponent implements OnInit {
   readonly auth = inject(AuthService);
   readonly loginMessage = signal("");
+  readonly loginMessageTone = signal<"error" | "success">("success");
   readonly loginState = signal<"idle" | "loading">("idle");
   isMenuOpen = false;
   loginEmail = "";
   loginPassword = "";
   private readonly router = inject(Router);
+  private loginMessageTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     this.router.events.subscribe((event) => {
@@ -391,22 +450,46 @@ export class AppComponent implements OnInit {
 
   async login(): Promise<void> {
     this.loginState.set("loading");
-    this.loginMessage.set("");
+    this.clearLoginToast();
 
     const result = await this.auth.login(this.loginEmail, this.loginPassword);
     this.loginState.set("idle");
 
     if (result.status === "error") {
-      this.loginMessage.set(result.message);
+      this.showLoginToast(result.message, "error");
       return;
     }
 
     this.loginPassword = "";
-    this.loginMessage.set("");
+    this.showLoginToast(`Signed in as ${this.auth.user()?.email ?? this.loginEmail}.`, "success");
   }
 
   async logout(): Promise<void> {
     await this.auth.logout();
+    this.loginPassword = "";
+    this.showLoginToast("Signed out.", "success");
+  }
+
+  private clearLoginToast(): void {
     this.loginMessage.set("");
+
+    if (this.loginMessageTimer !== null) {
+      clearTimeout(this.loginMessageTimer);
+      this.loginMessageTimer = null;
+    }
+  }
+
+  private showLoginToast(message: string, tone: "error" | "success"): void {
+    this.loginMessageTone.set(tone);
+    this.loginMessage.set(message);
+
+    if (this.loginMessageTimer !== null) {
+      clearTimeout(this.loginMessageTimer);
+    }
+
+    this.loginMessageTimer = setTimeout(() => {
+      this.loginMessage.set("");
+      this.loginMessageTimer = null;
+    }, 3200);
   }
 }
