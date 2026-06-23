@@ -13,6 +13,7 @@ It is used by both:
 
 - Keep route handling, request handling, config parsing, MongoDB connection code, health reports, auth/session logic, and focused server tests here.
 - Keep seed orchestration and seed persistence adapters here when they are reusable by local scripts, Vercel-safe code, or future workflow entrypoints.
+- Keep ingestion contracts, source parsers, processing logic, and ingestion persistence adapters here when they are reusable by scripts or workflow entrypoints.
 - Do not put Angular frontend code here.
 - Do not put manually runnable utility scripts here; use `scripts/` unless a package-owned script is explicitly planned.
 - Keep host-specific glue small enough that another serverless adapter could call the same server handler.
@@ -26,6 +27,7 @@ It is used by both:
 - Expected failures should be represented as explicit results where practical, not broad swallowed exceptions.
 - Seed names should describe the data they own, for example `admin_user`, and ledger records must not include raw credentials.
 - Each seed should be a separate definition with its own env names, prompts, validation, and tests; keep `scripts/seed.ts` as a thin registry runner.
+- Each ingestion source should have isolated parser/source code, tests, and local README guidance when its behavior is not obvious from `docs/ingestion.md`.
 
 ## Validation
 

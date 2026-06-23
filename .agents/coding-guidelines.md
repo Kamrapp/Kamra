@@ -19,6 +19,7 @@ It should evolve as the repository standardizes. Until then, prefer small, rever
 - Add comments only when they reduce real confusion.
 - Do not commit secrets.
 - Do not assume documentation reflects runtime behavior without checking code.
+- When adding a script, workflow, package area, app area, or operational command, update nearby docs with what it does, how to run it, required environment, validation, and whether it writes or deletes data.
 
 ## Architecture Rules
 
@@ -29,6 +30,7 @@ It should evolve as the repository standardizes. Until then, prefer small, rever
 - Treat serverless API routes as stateless.
 - Treat ingestion and transformation as batch or event-driven work.
 - Keep raw source data distinct from canonical product data.
+- Document data-writing and destructive maintenance scripts before or alongside implementation. The docs must state whether the script is safe for local, smoke, or production use.
 - Use feature flags for risky, operationally sensitive, or staged behavior such as emails, cron jobs, public access, and destructive maintenance.
 - Keep feature-flagged code explicit: the disabled path should be easy to see, safe by default, and covered by validation when the risk is meaningful.
 - Use dependency injection for swappable strategies where applicable, especially crawlers, parsers, normalizers, matchers, pricing logic, email providers, auth providers, and feature-flag providers.

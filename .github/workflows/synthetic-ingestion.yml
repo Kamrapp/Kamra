@@ -1,0 +1,41 @@
+name: Synthetic Ingestion
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 2 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic-ingestion:
+    runs-on: ubuntu-latest
+    environment: Smoke
+
+    env:
+      MONGODB_URI: ${{ vars.MONGODB_URI || secrets.MONGODB_URI }}
+      MONGODB_DB_NAME: ${{ vars.MONGODB_DB_NAME || secrets.MONGODB_DB_NAME }}
+      MONGODB_DNS_SERVERS: ${{ vars.MONGODB_DNS_SERVERS || secrets.MONGODB_DNS_SERVERS }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck API and scripts
+        run: tsc -p tsconfig.api.json --noEmit
+
+      - name: Run ingestion tests
+        run: npm test -- packages/kamra-api-server/src/ingestion
+
+      - name: Ingest synthetic HTML source
+        run: npm run synthetic:ingest

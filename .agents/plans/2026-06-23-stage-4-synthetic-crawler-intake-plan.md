@@ -138,6 +138,11 @@ This keeps raw source truth separate from compact catalog query data and gives r
 - Do not add crawler logic to API routes or user-facing request handlers.
 - Do not put raw HTML or PDF bytes into processed catalog collections.
 - Preserve raw snapshots in ingestion-owned collections with source name, run id, captured time, content type, content hash/fingerprint, source URL or fixture id, parser version, and retained payload metadata.
+- Give each crawl run an operator-friendly id based on workflow name, source name, and crawl date, for example `synthetic-html-table-shop:simple_html_table_shop:2026-06-23`.
+- Make crawled content removable by crawl run id with a locally runnable script during the MVP phase.
+- Make repeated same-day crawls idempotent for the same source record so retrying a workflow does not blindly duplicate or rewrite raw snapshots.
+- Keep price observations separate from source product identity in the crawler output contract. Products are relatively stable; prices are observations over time and must remain capable of historical tracking.
+- Treat the crawler output as a shop-specific raw/normalized contract between crawler and processor. Crawlers may keep source-specific parsing details, but each adapter should produce a stable parsed-row shape that its processor can validate.
 - Use strict schema validation for new ingestion collections where practical, matching the Stage 3 MongoDB style.
 - Use Result-style parser and processor outcomes for expected failures such as missing columns, unknown unit text, parse misses, duplicate rows, unsupported PDF layout, or disabled source.
 - Use exceptions only for unexpected infrastructure faults.
@@ -153,6 +158,7 @@ This keeps raw source truth separate from compact catalog query data and gives r
 - Keep HUF pricing and `countryCode: "HU"` explicit.
 - Model "infinite stock" as country-wide shop availability with a large or sentinel quantity only if the current `StockQuantity` contract can represent it cleanly. If not, record unlimited availability in raw/source metadata and use a normal active availability stock record with a documented quantity convention.
 - Do not enable schedules until manual ingestion and processing are proven.
+- Nightly synthetic ingestion may run against the Smoke environment only after the manually runnable scripts and ingestion tests are in place. Real-source schedules remain gated by source-policy review.
 - Do not introduce Playwright until a real source needs JavaScript rendering.
 - Do not introduce Python or .NET runtime paths for this first synthetic slice; TypeScript is the most consistent and lowest-friction default.
 
@@ -220,11 +226,13 @@ Included:
 - Should ingestion collection schemas be part of a new `ingestion/v1` artifact, or should Stage 4 create a broader `pipeline/v1` contract that includes raw, run, and processing concepts?
 - Should the synthetic PDF be committed as a small binary fixture, generated during tests, or both?
 - How should "infinite stock" be represented in the existing `StockQuantity` model: large finite number, `packageCount: null` plus a documented quantity, or a Stage 4 model extension?
+- Should same-day repeated crawls skip an already captured source record by default, or should they append a new snapshot when the content hash changed within the same day?
 - Should synthetic products use the same product names as Stage 3 seeds for continuity, or use a new product set to prove source-product creation from intake?
 - Should the first admin visibility step be API-only smoke output, a `site-admin` UI view, or a minimal extension of the current product lookup review page?
 - Should ingestion jobs write directly to the app database for the internal environment, or first write only to `kamra_smoke` until the pipeline is proven?
 - Should processor output overwrite matching synthetic records on each run, or preserve price observations as history from the first Stage 4 slice?
 - What is the minimum useful price-history shape before Stage 5/6 household work needs it?
+- Should Stage 4 add a first-class `price_observations` processed collection now, or retain price observations only in raw/normalized ingestion records until the processor step is approved?
 - Should real-source review for the first actual Hungarian retailer happen inside this Stage 4 plan after synthetic shops, or as a separate Stage 4 followup plan?
 
 ## Side Suggestions
@@ -233,6 +241,7 @@ Included:
 - Add a small source review checklist file under `.agents/plans/` or `docs/` before the first real shop, based on `docs/crawler-policy.md`.
 - Consider adding a fixture contract that both HTML and PDF sources are generated from, so parser tests can prove that different acquisition methods produce the same normalized rows.
 - Consider adding a `price_observations` collection in a later Stage 4 step if the current `stocks.price` field is not enough to preserve price history cleanly.
+- Keep batching as a planned followup: source adapters should be able to discover already captured same-day source records and skip them, which lets a future workflow retry or batch a source without recrawling everything.
 - Consider adding `site-admin/ingestion` UI once run records exist, rather than expanding the current product lookup screen too far.
 
 ## Steering Notes
@@ -247,6 +256,7 @@ Included:
 ### Step 1: Define Ingestion Contracts And Synthetic Source Fixture Model
 
 - Goal: Add versioned ingestion contracts for runs, raw snapshots, parsed product rows, source definitions, and source processing outcomes.
+- Include crawl-run identity, same-day source-record idempotency, cleanup-by-run expectations, and separate price observations in the parsed source row contract.
 - Files likely affected:
   - `packages/kamra-api-server/src/ingestion/v1/contracts.ts`
   - `packages/kamra-api-server/src/ingestion/v1/schemas.ts`
@@ -329,11 +339,13 @@ Included:
   - `scripts/ingest-synthetic-source.ts`
   - `scripts/process-ingestion.ts`
   - `scripts/ingestion-smoke.ts`
+  - `scripts/remove-crawled-content.ts`
   - `package.json`
 - Validation:
   - `npm run ingest:synthetic -- --source simple_html_table_shop`
   - `npm run ingest:synthetic -- --source simple_pdf_shop`
   - `npm run process:ingestion`
+  - `npm run crawl:remove -- --crawl-run-id=<workflow:source:yyyy-mm-dd>`
   - `npm run smoke:ingestion`
   - `npm run smoke:catalog`
 - Commit message idea:
@@ -341,12 +353,12 @@ Included:
 
 ### Step 7: Add Manual GitHub Actions Workflow
 
-- Goal: Add a manually dispatchable workflow for synthetic ingestion and processing against a configured environment.
+- Goal: Add a manually dispatchable workflow for synthetic ingestion and processing against a configured environment. Once tests and local scripts exist, allow a Smoke-only nightly schedule for synthetic sources.
 - Files likely affected:
   - `.github/workflows/synthetic-ingestion.yml`
   - `docs/tech-ops.md` if environment/secret names change
 - Validation:
-  - Workflow has `workflow_dispatch` only at first.
+  - Workflow has `workflow_dispatch` first, with nightly Smoke scheduling allowed after the initial synthetic script path is testable.
   - Workflow uses `permissions: contents: read`.
   - Workflow accepts a source choice input.
   - Workflow shells into `npm` scripts only.
