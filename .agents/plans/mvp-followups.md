@@ -23,7 +23,7 @@ These are planning hints, not commitments. Re-score an item when product evidenc
 
 | Followup | Why It Matters | AddedValue | Effort | Complexity | Priority |
 | --- | --- | --- | --- | --- | --- |
-| Floating mini-menu navigation | Replace the plain navigation with a small round floating icon that expands nearby small icons in a semicircle, similar in spirit to Overwolf-style overlay menus. It could separate household management, price tracking and shopping list generation, site-admin product/stock management, and deep developer/admin diagnostics like health checks. | 4/5 | High | Med | Med |
+| Four-corner floating module navigation | Replace the plain navigation with four small floating module launchers once the underlying app areas exist. The intended concerns are: a public or role-gated arukereso-style product lookup platform, household management, site-admin product merge and stock-staleness operations, and dev-admin diagnostics/user/database/health checks. Until alpha access exists, keep these concerns separated through basic navigation instead of rushing the floating UI. | 4/5 | High | Med | Med |
 | Installable PWA or mobile-first shopping list | A shopping list is most useful in-store, so installable/mobile behavior can make the product feel real after the household loop exists. | 5/5 | High | Med | High |
 | Quick barcode and expiry-date scanning | Reduces friction when adding household items or expiry dates, but depends on having household inventory and product matching first. | 5/5 | High | High | Med |
 | Richer notification channels | Email, push, or other reminders for low-stock and buy-before warnings can increase usefulness after in-app notices prove valuable. | 4/5 | High | Med | Med |

@@ -22,6 +22,17 @@ Kamra is intended to use a serverless-first architecture:
 - independent recommendations with no advertisement or seller agenda
 - pull requests for reviewed delivery
 
+## Application Concern Modules
+
+Kamra should keep four product concerns separate even while the early navigation remains simple:
+
+- Product lookup: a public or role-gated product checking surface, similar in purpose to an arukereso-style product search and comparison platform.
+- Household management: normal user workflows for household membership, household stock, shopping lists, low-stock notices, and later expiry/buy-before behavior.
+- Site administration: operator workflows for product identity review, merge candidates, source-product maintenance, offer or stock staleness, and ingestion visibility.
+- Developer administration: restricted diagnostics for health checks, database smoke status, migration ledgers, seed state, user insight summaries, and operational troubleshooting.
+
+The eventual UI may use four corner mini drawers or floating bubble launchers for these modules, but that is not required before the modules have useful screens. Until then, navigation should still group routes by these boundaries so access rules and product intent do not blur.
+
 ## Layers
 
 ### Frontend Layer

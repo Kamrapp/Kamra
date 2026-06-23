@@ -185,6 +185,13 @@ Current seed particles:
 - `admin_identity` creates or updates one bootstrap admin identity in the `users` collection and records each run in `seed_ledger`
 - `admin_identity` reads `SEED_ADMINUSER_USERNAME` and `SEED_ADMINUSER_PASSWORD`
 
+Planned Stage 3 seed direction:
+
+- product-model seed data should be synthetic, clearly marked by source and environment metadata, and safe to inspect in the deployed app
+- product seeds should validate against the same JSON Schema or equivalent contract artifacts used by database smoke checks
+- seeded products, source products, price or availability observations, and stock-location examples should be enough to test household queries before crawler data exists
+- product seed refresh or cleanup behavior should be explicit so real database testing does not leave ambiguous sample records behind
+
 Seeding rules:
 
 - raw admin passwords must never be committed, logged, or written to seed ledger details

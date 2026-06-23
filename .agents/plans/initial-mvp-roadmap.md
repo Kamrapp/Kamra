@@ -18,13 +18,13 @@ Roadmap priorities:
 | Milestone | Focus | Status | Drift / notes |
 | --- | --- | --- | --- |
 | Stage 1 | Legacy inventory and extraction | Completed (docs) | Discovery strengthened the Angular-retention assumption, shared-contract direction, and migration-ledger need. |
-| Stage 2 | Minimal serverless foundation | Ready for review | Core slices are implemented; remaining validation gap is the local MongoDB SRV timeout noted in `2026-06-23-stage-2-finalization.md`. |
-| Stage 3 | First simple ingestion job | Planned | Keep workflow YAML small and move logic into scripts or modules. |
-| Stage 4 | Product processing pipeline | Planned | Add contract and schema safeguards only when processing code exists. |
-| Stage 5 | Controlled demo access | Planned | Keep demo access admin-controlled and minimal; full invitation and email automation is deferred. |
-| Stage 6 | Household foundation | Planned | Keep household data boundaries simple and query-friendly first. |
-| Stage 7 | Shopping list and low-stock notices | Planned | Favor deterministic core logic over premature optimization. |
-| Stage 8 | Expiry and buffer logic | Planned | This is the first strong user-value milestone, not just ops maturity. |
+| Stage 2 | Minimal serverless foundation | Completed | Vercel app/API and MongoDB connectivity are running; Stage 2 followups should be handled only when they block later stages. |
+| Stage 3 | Product model foundation and seeded data | Planned next | Finalize minimal product, source-product, stock-location, and processing-state contracts before crawler work. |
+| Stage 4 | Crawler intake and processing pipeline | Planned | Ingest only after raw, processing, and query contracts exist; keep workflow YAML small and move logic into scripts or modules. |
+| Stage 5 | Household stock foundation | Planned | Treat households as stock locations where useful, while preserving user-household authorization boundaries. |
+| Stage 6 | Shopping list and low-stock notices | Planned | Favor deterministic core logic over premature optimization. |
+| Stage 7 | Controlled alpha access and app module shell | Planned | Move external demo access later, after household and list value exist; keep public/product, household, site-admin, and dev-admin concerns visibly separate. |
+| Stage 8 | Expiry and buffer logic | Planned | This completes the first strong product MVP loop with buy-before style usefulness. |
 
 Non-MVP and post-MVP ideas are tracked in `mvp-followups.md` so this roadmap stays focused on the shortest useful household grocery-planning MVP.
 
@@ -62,10 +62,12 @@ The intended direction is:
 - raw snapshots before processed product data
 - no public registration initially
 - admin-only raw credential login first
-- admin view for crawled/fetched products
-- processed product pipeline before demo users
-- minimal admin-controlled demo access before broader demo-user registration
+- product contract and seeded-data proof before crawler enablement
+- JSON validation and database smoke checks around model changes before real ingestion grows
+- admin view for seeded, crawled, fetched, or processed products
+- processed product pipeline before external alpha/demo users
 - household workflows for normal users
+- shopping-list value before external alpha/demo registration
 - source-available public repository with secrets and private runtime data excluded
 - likely one collaborator, with the process still working if collaboration is intermittent
 
@@ -155,91 +157,96 @@ Validation:
 - demo behavior does not expose private data
 - platform-specific glue is visibly limited and replaceable
 
-## Stage 3: First Simple Ingestion Job
+## Stage 3: Product Model Foundation And Seeded Data
 
 Goal:
 
-- Add one simple scheduled ingestion path.
+- Finalize the first minimal entity model and prove it with seeded product data before enabling crawlers.
+
+Why this comes before crawling:
+
+- crawler output needs a stable raw, processing, and query destination
+- the first product contracts should support household queries before real data volume grows
+- seeded data lets API, frontend, migration, and smoke-test behavior be validated without source-policy or crawler brittleness
+- raw source payloads can retain extra data so later processors can extract more fields without recrawling, but crawler contracts should not be forced to change for obvious first-use cases
 
 Scope slice:
 
-- one GitHub Actions cron job
-- one simple crawler/fetcher
-- raw snapshot collection in MongoDB
-- run metadata
-- country-aware and scope-aware offer or assortment capture
-- admin view showing crawled/fetched products or raw rows
-- workflow YAML stays minimal and shells into checked-in scripts or modules
-- ingestion entrypoints can run locally for debugging, not only inside GitHub Actions
-- add ingestion-related PR checks only for workflow or ingestion-script changes once those files exist
+- short research gate for grocery product model inputs before locking the first schema
+- decide exact naming for product, source or store product, offer or price observation, stock location, household stock item, and raw snapshot concepts
+- define minimal TypeScript contracts for canonical product query data and source-specific product data
+- define processing-state concepts for raw or staged records, including processor version, last processed time, failure details, and intentional reset or reprocess behavior
+- add JSON Schema or equivalent validation artifacts for seed fixtures and persisted model shapes
+- add a database validation path that can run against `kamra_smoke` and a configured real app database without committing secrets
+- add migration architecture concept for MongoDB document-shape changes, including a migration ledger and idempotent backfill scripts
+- seed a few invented grocery products, source products, price or availability observations, and stock-location examples into the real app database for admin testing
+- mark seed data clearly with source and environment metadata so it can be queried, refreshed, or removed intentionally
+- add the smallest admin-only product list query in the API and frontend so seeded products can be inspected from the deployed app
+- keep sample data non-private and synthetic unless a later source review allows real observed data
+
+Research gate:
+
+- use current primary sources only where they materially affect the model, such as common grocery identifiers, barcode/GTIN conventions, nutrition/allergen-style fields, MongoDB validation behavior, and the first candidate retailer source shape
+- prefer storing broadly useful source payload data in raw snapshots over prematurely promoting every possible attribute into the canonical product document
+- document which fields are first-class, which are retained only in raw/source payloads, and which are explicitly deferred
 
 Validation:
 
-- manual workflow dispatch works
-- scheduled workflow is defined
-- raw snapshot preserves source truth
-- admin can inspect the latest run
-- cron frequency stays within free-tier and source-friendly limits
+- seed fixtures validate before insertion
+- database smoke checks prove collection validation, seed insertion, query shape, and cleanup or refresh behavior
+- product-list API and frontend read from the same model contracts used by the seed path
+- model-shape changes have a visible migration-ledger or smoke-test update
+- seeded data is enough to test initial household stock queries before crawling exists
+- secrets and private runtime values remain outside source control
+
+Questions:
+
+- Is the first canonical query object closer to "product", "item", or "element" in code naming, and which terms should be reserved for household stock?
+- How much product source payload should be retained raw versus promoted into query documents?
+- Which fields should be indexed immediately for admin and household-query tests?
+- How should seeded data be distinguished from future crawled, processed, manually corrected, and demo-sample data?
+
+## Stage 4: Crawler Intake And Processing Pipeline
+
+Goal:
+
+- Collect source data and process it into the Stage 3 product contracts without losing traceability or requiring avoidable recrawls.
+
+Scope slice:
+
+- one manually dispatchable ingestion job before any scheduled cron is enabled
+- one first source chosen after crawler-policy review and source-method investigation
+- raw snapshot collection in MongoDB using the Stage 3 raw/source contract
+- run metadata for source, country, scope, adapter version, schedule/manual trigger, and result summary
+- source-friendly capture of country-aware and scope-aware offer or assortment data
+- processor that reads raw snapshots, respects processing state, and writes queryable product/source-product/price records
+- processing state prevents the same raw input from being processed repeatedly by the same processor version
+- intentional reprocessing path when processor logic changes, including version bump or explicit reset
+- admin view showing latest runs, raw/staged rows, processor failures, and processed product output
+- workflow YAML stays minimal and shells into checked-in scripts or modules
+- ingestion and processing entrypoints can run locally for debugging, not only inside GitHub Actions
+- add ingestion-related PR checks only for workflow, ingestion-script, or processor changes once those files exist
+
+Validation:
+
+- manual workflow dispatch works before schedule enablement
+- raw snapshot preserves source truth without unnecessary page noise or personal data
+- raw-to-processed trace exists
+- processing state prevents accidental duplicate processing and supports intentional reset
+- price observations can be tracked over time
+- product queries do not need full price history by default
+- snapshot or fixture tests protect stable transformation output
+- cron frequency, if enabled, stays within free-tier and source-friendly limits
 - workflow behavior is not trapped inside YAML-only logic
 
 Questions:
 
 - Which retailer or source should be the first enabled ingestion target after source-policy review and source-method investigation?
 - Which acquisition method is best for the first enabled source: browser automation, public API, PDF ingestion, or another source-specific approach?
-- Runtime: TypeScript/Playwright, lightweight fetch/parser, or selective .NET reuse only as temporary reference tooling?
+- Runtime: TypeScript/Playwright, lightweight fetch/parser, Python, or selective .NET reuse only as temporary reference tooling?
+- Which source fields should stay raw-only until real query needs justify promotion?
 
-## Stage 4: Product Processing Pipeline
-
-Goal:
-
-- Transform raw snapshots into queryable product records without losing traceability.
-
-Expected model direction:
-
-- raw snapshots stay separate
-- processed products are easy to query
-- store-specific products stay separate from canonical product identity
-- price history is separate from current query documents
-- current/collated values may be duplicated where frequent queries need them
-- transformation is deterministic and rerunnable
-- uncertain identity remains unlinked until verified
-- standardized processor jobs can maintain merge candidates, stale data, and similar hygiene tasks
-- schema-shaping logic stays explicit enough for later migration-ledger or backfill scripts
-- shared contracts or generated artifacts should remain cheap to refresh when model boundaries change
-
-Validation:
-
-- raw-to-processed trace exists
-- price observations can be tracked over time
-- product queries do not need full price history by default
-- snapshot or fixture tests protect stable transformation output
-- contract or schema artifacts regenerate in PR-visible form when schema-relevant code exists
-- model-shape changes gain migration-ledger or backfill validation once those mechanisms are introduced
-
-## Stage 5: Controlled Demo Access
-
-Goal:
-
-- Let the admin create controlled demo-user access after there is processed product data worth demonstrating, without building the full communication workflow yet.
-
-Scope slice:
-
-- minimal feature flag for demo access
-- admin can allow a small set of demo identities or create demo users through an explicit controlled path
-- no uncontrolled public registration
-- no automatic invitation email
-- no automatic expiry email
-- no whitelist cleanup cron
-- leave room for the fuller whitelist and email workflow in `mvp-followups.md`
-
-Validation:
-
-- demo access fails for identities the admin has not allowed or created
-- demo access succeeds for the controlled identity path
-- feature flag disabled means no demo onboarding path is available
-- audit metadata records who created or allowed the demo access
-
-## Stage 6: Household Foundation
+## Stage 5: Household Stock Foundation
 
 Goal:
 
@@ -248,20 +255,26 @@ Goal:
 Scope slice:
 
 - multiple users can belong to a household
+- model a household as a stock location where that reduces duplication, while keeping household membership and authorization separate from store/source locations
+- decide the shared "stock location" abstraction only after Stage 3 product naming is settled
 - household members can create household product or item entries
 - household entries can be manually created or linked to processed products where possible
 - each household item has `minLimit`
 - each household item has `currentAmount`
+- quantities preserve units and package-size ambiguity rather than collapsing values too early
 - minimal view for maintaining household item state
 - household queries and mutations should stay simple enough for focused API or domain tests once this slice exists
+- admin user can test household stock against seeded products before external users exist
 
 Validation:
 
 - users only access households they belong to
 - household item state is easy to query
 - data shape leaves room for units, package sizes, and product matching uncertainty
+- household stock can reference seeded products and still support unmatched manual items
+- store/source stock and household stock do not leak into each other's authorization or update paths
 
-## Stage 7: Shopping List And Low-Stock Notices
+## Stage 6: Shopping List And Low-Stock Notices
 
 Goal:
 
@@ -281,6 +294,36 @@ Validation:
 - deterministic output from household fixture data
 - common list-generation logic has focused tests
 - missing products and unknown units are explicit
+
+## Stage 7: Controlled Alpha Access And App Module Shell
+
+Goal:
+
+- Let a small number of external users see a useful alpha only after seeded/crawled products, household stock, and shopping-list basics exist.
+
+Scope slice:
+
+- minimal feature flag for controlled alpha or demo access
+- admin can allow a small set of demo identities or create demo users through an explicit controlled path
+- no uncontrolled public registration
+- no automatic invitation email
+- no automatic expiry email
+- no whitelist cleanup cron
+- audit metadata records who created or allowed access
+- preserve a basic navigation shell that keeps four concerns separate even before the richer floating menu exists:
+  - public or role-gated product checking, similar to an "arukereso" style product lookup surface
+  - household management for normal users
+  - site-admin product, merge, and stock-staleness operations
+  - dev-admin diagnostics, database management, user insights, and health checks
+- keep the eventual four-corner mini drawer or floating bubble menu in followups until the underlying modules are useful
+
+Validation:
+
+- alpha/demo access fails for identities the admin has not allowed or created
+- alpha/demo access succeeds for the controlled identity path
+- feature flag disabled means no onboarding path is available
+- external users cannot access admin, dev-admin, or other household data
+- navigation grouping keeps module boundaries visible even if the UI remains simple
 
 ## Stage 8: Expiry And Buffer Logic
 
@@ -307,7 +350,7 @@ Validation:
 
 Items that are valuable but not required for the first household/product MVP live in `mvp-followups.md`.
 
-This includes broader crawler expansion, richer product moderation, Google sign-in, repository automation, installable mobile/PWA work, route optimization, barcode scanning, floating mini-menu navigation, and similar product or workflow improvements.
+This includes broader crawler expansion, richer product moderation, Google sign-in, repository automation, installable mobile/PWA work, route optimization, barcode scanning, four-corner floating module navigation, and similar product or workflow improvements.
 
 Promote those items back into this roadmap only when they directly support the next MVP milestone, remove a current blocker, or the user explicitly chooses the tradeoff.
 
@@ -330,12 +373,18 @@ Ask during the relevant planning sessions:
 - How should unresolved identity or merge-candidate records be modeled so automated processors and later review can work safely?
 - What snapshot granularity is enough for price history and debugging?
 - What admin actions are needed before automatic product merging is trusted?
+- Which fields belong in seeded synthetic fixtures so household queries can be tested before crawling?
+- Which model changes require JSON Schema regeneration, database smoke checks, and migration-ledger entries?
+- How should raw/staged processing states represent pending, processed, failed, skipped, stale, and intentionally reset records?
+- What processor-versioning rule prevents duplicate processing while still allowing intentional reprocessing after logic changes?
+- Should household and store/source inventory share a stock-location abstraction in code, or only a smaller shared quantity/stock-value model?
 
 ## Cross-Cutting Product And Ops Questions
 
 Ask during the relevant planning sessions:
 
 - What should public demo users be able to see without risking private household data?
+- Which parts of the product lookup surface can become public later, and which must remain role-gated until alpha/demo access exists?
 - What usage limits are needed to stay inside free-tier boundaries?
 - What feature flags must remain off in public/demo deployments?
 - What should be documented for job-application reviewers?
@@ -343,6 +392,7 @@ Ask during the relevant planning sessions:
 - Which practices belong in global agent settings or reusable skills instead of this repo?
 - Which crawler sources are acceptable under `docs/crawler-policy.md`?
 - What license wording should be shown to portfolio reviewers so source availability is clear without implying clone-and-host permission?
+- Which navigation/module boundaries should be visible in the simple UI before the floating mini-menu concept is promoted?
 
 Current direction:
 
@@ -354,15 +404,24 @@ Current direction:
 - use workflow-generated sample datasets for demo environments instead of exposing live internal data
 - prefer concern-specific PR checks plus lightweight smoke checks over one monolithic CI job
 - treat stock as location-connectable and offers as country-wide first, with room for later regional scope
+- prove product, source-product, stock-location, and processing-state contracts with seeded synthetic data before enabling crawlers
+- keep seed data clearly marked by source/environment so it can support real database testing without becoming mistaken for crawled data
+- make JSON validation, schema artifacts, database smoke checks, and migration-ledger behavior part of the first product-model stage
+- move controlled external alpha/demo access until after household stock and shopping-list value exist
+- keep public product lookup, household management, site-admin operations, and dev-admin diagnostics as separate app concerns even if the first navigation remains simple
 - represent country-wide offer scope with `regionCode = null`
 - treat store records as country-scoped at minimum, with a country-level no-region no-address store anchor per brand for the first country-wide stock model
 - model composition through quantity plus unit, including percentage-style composition via `%`
 
 ## First Recommended Next Step
 
-Review the completed Stage 2 finalization work and decide whether the local MongoDB SRV timeout needs a targeted follow-up before Stage 3 planning:
+Plan Stage 3 as a product-model foundation slice:
 
-- `.agents/plans/2026-06-23-finalize-stage-2-plan.md`
-- `.agents/sessions/2026-06-23-stage-2-finalization.md`
+- run the short model research gate
+- choose initial names and collection boundaries
+- define contracts and validation artifacts
+- add seeded synthetic product data
+- add database smoke checks and migration-ledger concept
+- expose a minimal admin-only product list query in the deployed app
 
-After that review, the next planning focus is Stage 3.
+Treat crawler work as blocked until this Stage 3 foundation exists or the user explicitly accepts the recrawl and contract churn risk.
