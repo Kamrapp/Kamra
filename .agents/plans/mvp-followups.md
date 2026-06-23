@@ -23,11 +23,12 @@ These are planning hints, not commitments. Re-score an item when product evidenc
 
 | Followup | Why It Matters | AddedValue | Effort | Complexity | Priority |
 | --- | --- | --- | --- | --- | --- |
-| Floating mini-menu navigation | Replace the plain navigation with a small round floating icon that expands nearby small icons in a semicircle, similar in spirit to Overwolf-style overlay menus. It could separate household management, price tracking and shopping list generation, site-admin product/stock management, and deep developer/admin diagnostics like health checks. | 4/5 | High | Med | Med |
+| Four-corner floating module navigation | Replace the plain navigation with four small floating module launchers once the underlying app areas exist. The intended concerns are: a public or role-gated arukereso-style product lookup platform, household management, site-admin product merge and stock-staleness operations, and dev-admin diagnostics/user/database/health checks. Until alpha access exists, keep these concerns separated through basic navigation instead of rushing the floating UI. | 4/5 | High | Med | Med |
 | Installable PWA or mobile-first shopping list | A shopping list is most useful in-store, so installable/mobile behavior can make the product feel real after the household loop exists. | 5/5 | High | Med | High |
 | Quick barcode and expiry-date scanning | Reduces friction when adding household items or expiry dates, but depends on having household inventory and product matching first. | 5/5 | High | High | Med |
 | Richer notification channels | Email, push, or other reminders for low-stock and buy-before warnings can increase usefulness after in-app notices prove valuable. | 4/5 | High | Med | Med |
 | Password-field reveal icon polish | Some browsers only re-show the native password reveal eye under specific field-state behavior. Unless a simple app-side cause appears later, treat this as low-value control polish rather than MVP work. | 1/5 | Low | Low | Low |
+| Multi-tier localization resources | Keep obvious shared content such as categories, product names, and app shell text in default resource files, then let site-admins override or add translations in the database. The runtime lookup should check the database first, then fall back to the default resource so translations can be added gradually while the app still has a reliable base language. | 4/5 | High | Med | Low |
 
 ## Product Intelligence
 
@@ -62,6 +63,7 @@ These are planning hints, not commitments. Re-score an item when product evidenc
 | Followup | Why It Matters | AddedValue | Effort | Complexity | Priority |
 | --- | --- | --- | --- | --- | --- |
 | Product and stock management admin surface | Helps site admins inspect products, stock, offers, and uncertain mappings once ingestion exists. | 4/5 | High | Med | High |
+| Resource translation admin surface | Gives site admins a place to manage runtime overrides for localized app resources, including missing-value tracking and gradual translation backfill. | 4/5 | High | Med | Low |
 | Deep developer admin diagnostics | Keeps health checks, logs, seed status, and environment diagnostics away from normal product navigation. | 3/5 | Low | Med | Med |
 | Atlas network exposure tightening | Replaces the temporary broad access posture with a more durable security stance when free-tier constraints or hosting choices allow it. | 4/5 | High | Med | High |
 | Centralized hosted observability | Vercel logs are enough for Stage 2; richer retention and search can wait until real usage creates debugging pain. | 3/5 | High | Med | Low |

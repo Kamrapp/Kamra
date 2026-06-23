@@ -240,7 +240,7 @@ These do not block the implementation plan. If unresolved, document the chosen t
 
 - Goal: add a minimal read-only Stage 2 app check.
 - Files likely affected:
-  - `.github/workflows/stage-2-app-checks.yml`
+  - `.github/workflows/app-checks.yml`
   - possibly `docs/tech-ops.md`
 - Validation:
   - workflow runs on pull requests and pushes to the main development branch pattern used by the repo
@@ -248,7 +248,7 @@ These do not block the implementation plan. If unresolved, document the chosen t
   - workflow runs `npm ci`, `npm run lint`, `npm run typecheck`, `npm run test`, and `npm run build`
   - workflow does not require Vercel, Atlas, or seed secrets
   - workflow permissions are read-only and do not write back to branches
-- Commit message idea: `ci: add stage 2 app checks`
+- Commit message idea: `ci: add app checks`
 
 ### Step 5
 

@@ -14,7 +14,7 @@
 - Item: completed Step 2 shell layout stabilization and toast-style login feedback
 - Item: completed Step 3 health contract cleanup around `database` naming
 - Item: moved the password-field reveal-eye quirk to low-priority followups because it currently looks like browser control behavior rather than a Stage 2 app bug
-- Item: completed Step 4 by adding a small read-only Stage 2 app-check workflow
+- Item: completed Step 4 by adding a small read-only app-check workflow
 - Item: completed Step 5 documentation closeout and marked Stage 2 ready for review
 
 ## Changed Files
@@ -37,7 +37,7 @@
 - Path: `src/app/health-check.component.ts`
 - Path: `docs/tech-ops.md`
 - Path: `.agents/plans/mvp-followups.md`
-- Path: `.github/workflows/stage-2-app-checks.yml`
+- Path: `.github/workflows/app-checks.yml`
 - Path: `.agents/plans/2026-06-23-finalize-stage-2-plan.md`
 - Path: `.agents/plans/initial-mvp-roadmap.md`
 - Path: `.agents/sessions/2026-06-22-stage-2-serverless-foundation.md`

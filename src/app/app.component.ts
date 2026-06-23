@@ -115,6 +115,10 @@ import { AuthService } from "./auth.service";
             <span aria-hidden="true">02</span>
             Health check
           </a>
+          <a routerLink="/products" routerLinkActive="active" (click)="closeMenu()">
+            <span aria-hidden="true">03</span>
+            Products
+          </a>
         </nav>
       </aside>
     </main>

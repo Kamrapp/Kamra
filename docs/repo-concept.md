@@ -159,14 +159,17 @@ The current preferred sequence is:
 1. clean up and classify legacy code while preserving useful knowledge
 2. prove MongoDB connectivity from a minimal Vercel deployment
 3. add admin-only raw credential login with no public registration
-4. add one simple cron-based crawler/fetcher and raw snapshot storage
-5. process raw snapshots into queryable product data
-6. add feature-flagged whitelist registration for demo users
-7. add households with multiple users and product or item tracking
-8. generate shopping lists and low-stock notices from items below minimum limits
-9. add expiry dates, warning buffers, and buy-before notices
-10. expand crawlers and improve product processing
-11. add Google sign-in and richer auth only after the household/product MVP is useful
+4. finalize the first product, source-product, processing-state, and stock-location model contracts
+5. add JSON validation, database smoke checks, migration-ledger direction, and synthetic seeded products
+6. expose a minimal admin-only product list query so seeded products can be inspected in the deployed app
+7. add one source-friendly crawler/fetcher and raw snapshot storage only after the model destination exists
+8. process raw snapshots into queryable product data with traceable processing state
+9. add households with multiple users and product or item tracking
+10. generate shopping lists and low-stock notices from items below minimum limits
+11. add controlled alpha/demo access after the household and shopping-list loop has value
+12. add expiry dates, warning buffers, and buy-before notices
+13. expand crawlers and improve product processing
+14. add Google sign-in and richer auth only after the household/product MVP is useful
 
 ## Non-Goals For Early MVP
 
