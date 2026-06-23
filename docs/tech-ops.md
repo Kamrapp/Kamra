@@ -231,6 +231,8 @@ The intended future CI shape is concern-specific and staged, not one large opaqu
 - lightweight smoke checks on code-changing PRs once the corresponding runtime surfaces exist
 - source-friendly scheduled crawler health checks on `main` once crawler paths exist
 
+Stage 2 now uses one small read-only app-check workflow for the current Angular/API slice. It should stay secret-free and limited to install, lint, typecheck, test, and build until a later plan explicitly adds deeper smoke or deployment validation.
+
 Dependency update automation and PR-branch writeback are followup items, not MVP roadmap requirements. Keep them in `.agents/plans/mvp-followups.md` until the app surface is stable enough to justify the extra workflow behavior.
 
 Workflow files should mostly orchestrate scripts that can also be run locally. This keeps core logic easier to test, debug, and eventually move to other platforms if needed.
