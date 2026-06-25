@@ -1,3 +1,4 @@
+import { chromium } from "playwright";
 import { readAppConfig } from "../packages/kamra-api-server/src/config/app-config.js";
 import { closeMongoClient, getMongoClient } from "../packages/kamra-api-server/src/db/mongo-client.js";
 import { MongoIngestionRepository } from "../packages/kamra-api-server/src/ingestion/current/mongo-ingestion-repository.js";
@@ -12,6 +13,39 @@ import {
 } from "../packages/kamra-api-server/src/ingestion/sources/penny-hu-offers/source.js";
 import { createCrawlRunIdentity } from "../packages/kamra-api-server/src/ingestion/v1/run-identity.js";
 import { writeServerLog } from "../packages/kamra-api-server/src/logging/kamra-logger.js";
+
+async function fetchPennyOffersHtml(): Promise<string> {
+  const browser = await chromium.launch({ headless: true });
+
+  try {
+    const page = await browser.newPage({
+      locale: "hu-HU",
+      userAgent: "KamraCrawler/0.1 (+https://kamra.hu; grocery price research)"
+    });
+
+    const response = await page.goto(pennyHuOffersUrl, {
+      waitUntil: "domcontentloaded",
+      timeout: 30000
+    });
+
+    const html = await page.content();
+
+    if (!response || !response.ok()) {
+      writeServerLog("error", "PENNY offers page fetch failed", {
+        sourceUrl: pennyHuOffersUrl,
+        status: response?.status(),
+        statusText: response?.statusText(),
+        bodyStart: html.slice(0, 2000)
+      });
+
+      throw new Error(`PENNY offers fetch failed with HTTP ${response?.status() ?? "unknown"}.`);
+    }
+
+    return html;
+  } finally {
+    await browser.close();
+  }
+}
 
 async function ingestPennyOffers(): Promise<void> {
   const config = readAppConfig();
@@ -29,17 +63,8 @@ async function ingestPennyOffers(): Promise<void> {
     sourceUrl: pennyHuOffersUrl
   });
 
-  const response = await fetch(pennyHuOffersUrl, {
-    headers: {
-      "user-agent": "KamraCrawler/0.1 (+https://kamra.hu; grocery price research)"
-    }
-  });
+  const html = await fetchPennyOffersHtml();
 
-  if (!response.ok) {
-    throw new Error(`PENNY offers fetch failed with HTTP ${response.status}.`);
-  }
-
-  const html = await response.text();
   const parsedRows = parsePennyHuOffers(html, observedAt);
   const client = await getMongoClient(config.mongodb.uri, config.mongodb.dnsServers);
   const repository = new MongoIngestionRepository(client.db(config.mongodb.databaseName));
@@ -65,6 +90,7 @@ async function ingestPennyOffers(): Promise<void> {
     sourceRecordId: "offers-page-0",
     sourceUrl: pennyHuOffersUrl
   });
+
   await repository.completeRun(identity.crawlRunId, new Date().toISOString());
 
   writeServerLog("info", "PENNY offers ingestion completed", {
