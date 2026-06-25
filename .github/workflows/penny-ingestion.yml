@@ -37,5 +37,9 @@ jobs:
       - name: Run ingestion tests
         run: npm test -- packages/kamra-api-server/src/ingestion
 
+      - name: Install Playwright browser
+        run: |
+          npx playwright install --with-deps chromium
+
       - name: Ingest PENNY offers
         run: npm run penny:ingest
