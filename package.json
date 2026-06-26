@@ -18,6 +18,7 @@
     "lint": "eslint .",
     "seed": "node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/seed.ts",
 	"aldi:ingest": "node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/ingest-aldi-offers.ts",
+    "coop:ingest": "node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/ingest-coop-offers.ts",
     "penny:ingest": "node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/ingest-penny-offers.ts",
     "synthetic:ingest": "node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/ingest-synthetic-source.ts",
     "smoke:catalog": "node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/catalog-smoke.ts",
