@@ -22,6 +22,16 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Print debug context to inspect scheduled/triggered result difference
+        run: |
+          echo "event=${{ github.event_name }}"
+          echo "ref=${{ github.ref }}"
+          echo "sha=${{ github.sha }}"
+          echo "runner=${{ runner.name }}"
+          echo "os=${{ runner.os }}"
+          echo "public_ip=$(curl -s https://api.ipify.org)"
+          date -u
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -41,5 +51,38 @@ jobs:
         run: |
           npx playwright install --with-deps chromium
 
+      # Retry-loop to mitigate one-time failures in case of bot-timing
       - name: Ingest PENNY offers
+        shell: bash
+        run: |
+          set +e
+      
+          max_attempts=3
+      
+          for attempt in $(seq 1 "$max_attempts"); do
+            echo "PENNY ingestion attempt $attempt/$max_attempts"
+      
+            npm run penny:ingest
+            exit_code=$?
+      
+            if [ "$exit_code" -eq 0 ]; then
+              echo "PENNY ingestion succeeded on attempt $attempt"
+              exit 0
+            fi
+      
+            echo "PENNY ingestion failed with exit code $exit_code"
+      
+            if [ "$attempt" -lt "$max_attempts" ]; then
+              sleep_seconds=$((attempt * 30))
+              echo "Waiting $sleep_seconds seconds before retry"
+              sleep "$sleep_seconds"
+            fi
+          done
+      
+          echo "PENNY ingestion failed after $max_attempts attempts"
+          exit "$exit_code"
+
+        # Simple call disabled
+        - name: Ingest PENNY offers
+        if: false
         run: npm run penny:ingest
