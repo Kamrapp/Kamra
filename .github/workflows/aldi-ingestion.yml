@@ -3,7 +3,7 @@ name: ALDI Ingestion
 on:
   workflow_dispatch:
   schedule:
-    - cron: "43 2 * * *"
+    - cron: "43 1 * * *"
 
 permissions:
   contents: read

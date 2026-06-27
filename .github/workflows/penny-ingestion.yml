@@ -3,7 +3,7 @@ name: Penny Ingestion
 on:
   workflow_dispatch:
   schedule:
-    - cron: "29 2 * * *"
+    - cron: "29 1 * * *"
 
 permissions:
   contents: read
@@ -51,7 +51,6 @@ jobs:
         run: |
           npx playwright install --with-deps chromium
 
-      # Retry-loop to mitigate one-time failures in case of bot-timing
       - name: Ingest PENNY offers
         shell: bash
         run: |
@@ -82,7 +81,6 @@ jobs:
           echo "PENNY ingestion failed after $max_attempts attempts"
           exit "$exit_code"
 
-        # Simple call disabled
-        - name: Ingest PENNY offers
+      - name: Ingest PENNY offers
         if: false
         run: npm run penny:ingest
