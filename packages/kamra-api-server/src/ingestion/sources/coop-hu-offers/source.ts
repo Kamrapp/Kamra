@@ -29,6 +29,8 @@ interface CoopHuPriceMatch {
 
 interface ParsedCoopHuOfferDraft {
   couponPriceText: string | null;
+  couponPriceValueHuf: number | null;
+  couponUnitPriceText: string | null;
   description: string | null;
   displayName: string;
   observedAt: string;
@@ -117,6 +119,8 @@ export function parseCoopHuOffersText(visibleText: string, observedAt: string): 
     let cursor = index + 2;
     let unitPriceText: string | null = null;
     let couponPriceText: string | null = null;
+    let couponPriceValueHuf: number | null = null;
+    let couponUnitPriceText: string | null = null;
     const noteLines: string[] = [];
     const rawLines = [line, priceLine];
 
@@ -144,10 +148,6 @@ export function parseCoopHuOffersText(visibleText: string, observedAt: string): 
         break;
       }
 
-      if (isLikelyCoopHuProductNameLine(current) && isStandalonePriceLine(lines[cursor + 1] ?? "")) {
-        break;
-      }
-
       rawLines.push(current);
 
       if (/KUPONOS\s+ÁR/i.test(current)) {
@@ -158,17 +158,23 @@ export function parseCoopHuOffersText(visibleText: string, observedAt: string): 
 
           if (couponPrice) {
             couponPriceText = couponPrice.fullText;
+            couponPriceValueHuf = couponPrice.amountValueHuf;
             rawLines.push(couponPriceLine);
             cursor += 1;
 
             const couponUnitPriceLine = lines[cursor + 1];
 
             if (couponUnitPriceLine && isStandalonePriceLine(couponUnitPriceLine)) {
+              const couponUnitPrice = parseSinglePriceLine(couponUnitPriceLine);
+              couponUnitPriceText = couponUnitPrice?.unit === "db" ? null : couponUnitPrice?.fullText ?? null;
               rawLines.push(couponUnitPriceLine);
               cursor += 1;
             }
           }
         }
+      } else if (isLikelyCoopHuProductNameLine(current) && isStandalonePriceLine(lines[cursor + 1] ?? "")) {
+        rawLines.pop();
+        break;
       } else if (!isStandalonePriceLine(current)) {
         noteLines.push(current);
       }
@@ -181,6 +187,8 @@ export function parseCoopHuOffersText(visibleText: string, observedAt: string): 
 
     rows.push({
       couponPriceText,
+      couponPriceValueHuf,
+      couponUnitPriceText,
       description: noteLines.length > 0 ? noteLines.join(" ") : null,
       displayName: line,
       observedAt,
@@ -332,7 +340,7 @@ function isLikelyCoopHuProductNameLine(line: string): boolean {
     return false;
   }
 
-  if (/^(Érvényes|KUPONOS ÁR|TÖRZSVÁSÁRLÓI|Ajánlatkereső|Üzletkereső|Belépés|Cégünkről)$/i.test(line)) {
+  if (/^(Érvényes|KUPONOS ÁR!?|TÖRZSVÁSÁRLÓI|Ajánlatkereső|Üzletkereső|Belépés|Cégünkről)$/i.test(line)) {
     return false;
   }
 
@@ -374,6 +382,31 @@ function createSourceRecordId(
 }
 
 function toParsedShopProductRow(draft: ParsedCoopHuOfferDraft): ParsedShopProductRow {
+  const priceObservations = [
+    draft.priceValueHuf === null
+      ? null
+      : {
+          currencyCode: "HUF" as const,
+          observedAt: draft.observedAt,
+          price: draft.priceValueHuf,
+          priceKind: "offer" as const,
+          unitPriceLabel: draft.unitPriceText,
+          validFrom: draft.validFrom,
+          validTo: draft.validTo
+        },
+    draft.couponPriceValueHuf === null
+      ? null
+      : {
+          currencyCode: "HUF" as const,
+          observedAt: draft.observedAt,
+          price: draft.couponPriceValueHuf,
+          priceKind: "coupon" as const,
+          unitPriceLabel: draft.couponUnitPriceText,
+          validFrom: draft.validFrom,
+          validTo: draft.validTo
+        }
+  ].filter((observation): observation is NonNullable<typeof observation> => observation !== null);
+
   return {
     sourceName: coopHuOffersSourceName,
     sourceUrl: coopHuOffersUrl,
@@ -386,11 +419,13 @@ function toParsedShopProductRow(draft: ParsedCoopHuOfferDraft): ParsedShopProduc
     currency: "HUF",
     priceText: draft.priceText,
     priceValue: draft.priceValueHuf,
+    priceObservations,
     unitPriceText: draft.unitPriceText,
     validFrom: draft.validFrom,
     validTo: draft.validTo,
     metadata: {
       couponPriceText: draft.couponPriceText,
+      couponUnitPriceText: draft.couponUnitPriceText,
       parserName: coopHuOffersParserName,
       parserVersion: coopHuOffersParserVersion,
       rawText: draft.rawText,

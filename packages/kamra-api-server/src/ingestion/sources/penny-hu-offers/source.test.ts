@@ -37,9 +37,22 @@ describe("PENNY HU offers source", () => {
             currencyCode: "HUF",
             observedAt: "2026-06-23T15:30:00.000Z",
             price: 1499,
+            priceKind: "offer",
             unitPriceLabel: "999 Ft/kg",
             validFrom: "2026-06-18",
             validTo: "2026-06-24"
+          }
+        ],
+        productIdentifiers: [
+          {
+            issuer: "penny.hu",
+            kind: "retailer_item_number",
+            value: "86-100016"
+          },
+          {
+            issuer: "penny.hu",
+            kind: "retailer_product_id",
+            value: "product-id-1"
           }
         ],
         sourceProductKey: "86-100016",

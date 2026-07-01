@@ -291,10 +291,25 @@ function createSourceRecordId(
 }
 
 function toParsedShopProductRow(draft: ParsedAldiOfferDraft): ParsedShopProductRow {
+  const priceObservations = draft.priceValueHuf === null
+    ? []
+    : [
+        {
+          currencyCode: "HUF" as const,
+          observedAt: draft.observedAt,
+          price: draft.priceValueHuf,
+          priceKind: "offer" as const,
+          unitPriceLabel: draft.unitPriceText,
+          validFrom: draft.validFrom,
+          validTo: draft.validTo
+        }
+      ];
+
   return {
     sourceName: aldiHuOffersSourceName,
     sourceUrl: aldiHuOffersUrl,
     sourceRecordId: draft.sourceRecordId,
+    sourceProductKey: draft.itemNumbers[0],
     observedAt: draft.observedAt,
     displayName: draft.displayName,
     rawName: draft.displayName,
@@ -303,6 +318,12 @@ function toParsedShopProductRow(draft: ParsedAldiOfferDraft): ParsedShopProductR
     currency: "HUF",
     priceText: draft.priceText,
     priceValue: draft.priceValueHuf,
+    priceObservations,
+    productIdentifiers: draft.itemNumbers.map((itemNumber) => ({
+      issuer: "aldi.hu",
+      kind: "retailer_item_number",
+      value: itemNumber
+    })),
     unitPriceText: draft.unitPriceText,
     validFrom: draft.validFrom,
     validTo: draft.validTo,

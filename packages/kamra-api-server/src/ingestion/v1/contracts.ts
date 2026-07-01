@@ -38,6 +38,12 @@ export interface ParsedShopPriceObservation {
   validTo?: string | null;
 }
 
+export interface ParsedShopProductIdentifier {
+  kind: "gtin" | "national_code" | "retailer_item_number" | "retailer_product_id" | "unknown";
+  value: string;
+  issuer?: string | null;
+}
+
 export interface ParsedShopProductRow {
   categoryLabel?: string | null;
   countryCode: "HU";
@@ -47,6 +53,7 @@ export interface ParsedShopProductRow {
   metadata?: Record<string, unknown>;
   observedAt?: string;
   packageLabel?: string | null;
+  productIdentifiers?: ParsedShopProductIdentifier[];
   priceObservations?: ParsedShopPriceObservation[];
   priceText?: string | null;
   priceValue?: number | null;

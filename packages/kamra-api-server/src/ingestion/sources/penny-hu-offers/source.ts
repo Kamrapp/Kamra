@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import type { ParsedShopProductRow } from "../../v1/contracts.js";
+import type { ParsedShopProductIdentifier, ParsedShopProductRow } from "../../v1/contracts.js";
 
 export const pennyHuOffersSourceName = "penny_hu_offers";
 export const pennyHuOffersWorkflowName = "penny-hu-offers";
@@ -123,11 +123,13 @@ function toParsedRow(product: PennyProduct, observedAt: string): ParsedShopProdu
         currencyCode: "HUF",
         observedAt,
         price: price / 100,
+        priceKind: "offer",
         unitPriceLabel: formatUnitPrice(product.price),
         validFrom: product.price?.validityStart ?? null,
         validTo: product.price?.validityEnd ?? null
       }
     ],
+    productIdentifiers: createPennyProductIdentifiers(product),
     sourceProductKey,
     stock: {
       availability: "infinite",
@@ -135,6 +137,27 @@ function toParsedRow(product: PennyProduct, observedAt: string): ParsedShopProdu
     },
     storeBrandKey: "penny-hu"
   };
+}
+
+function createPennyProductIdentifiers(product: PennyProduct): ParsedShopProductIdentifier[] {
+  const identifiers: Array<ParsedShopProductIdentifier | null> = [
+    product.sku
+      ? {
+          issuer: "penny.hu",
+          kind: "retailer_item_number",
+          value: product.sku
+        }
+      : null,
+    product.productId
+      ? {
+          issuer: "penny.hu",
+          kind: "retailer_product_id",
+          value: product.productId
+      }
+      : null
+  ];
+
+  return identifiers.filter((identifier): identifier is ParsedShopProductIdentifier => identifier !== null);
 }
 
 function formatUnitPrice(price: PennyProduct["price"]): string | null {

@@ -73,7 +73,7 @@ Products may stay stable while prices change over time. The crawler should there
 
 The catalog model now has a dedicated `price_observations` collection. `stocks.price` remains a compact current/collated value for query convenience; it is not the full price history.
 
-Retailer-local item ids should be written to `product_source_identifiers` during processing. GTIN or other common identifiers may use the same collection, but only when the source clearly exposes them.
+Crawler rows can expose identifiers through `productIdentifiers`. Retailer-local item ids should be written to `product_source_identifiers` during processing. GTIN or other common identifiers may use the same collection, but only when the source clearly exposes them. Existing snapshots may still carry older source-local ids in metadata only, so processors should read both shapes during the transition.
 
 ## Local Commands
 
@@ -160,7 +160,7 @@ Triggers:
 
 The workflow installs dependencies, typechecks API/scripts, runs ingestion tests, then runs `npm run aldi:ingest`.
 
-ALDI rows may include source-local `Cikkszám` item numbers and visible validity or unit-price text while missing a primary shelf price. Downstream processors must keep those identifiers source-local and must not treat unit price as a product price.
+ALDI rows may include source-local `Cikkszám` item numbers in `productIdentifiers` and visible validity or unit-price text while missing a primary shelf price. Downstream processors must keep those identifiers source-local and must not treat unit price as a product price.
 
 ## COOP Workflow
 
@@ -173,7 +173,7 @@ Triggers:
 
 The workflow installs dependencies, typechecks API/scripts, runs ingestion tests, then runs `npm run coop:ingest`.
 
-COOP rows can include coupon or loyalty-style price text and store-scope notes. Processors must keep coupon/loyalty prices separate from default prices and must not assume every COOP offer is nationally valid.
+COOP rows can include coupon or loyalty-style price observations and store-scope notes. Processors must keep coupon/loyalty prices separate from default prices and must not assume every COOP offer is nationally valid.
 
 ## Next Planned Sources
 

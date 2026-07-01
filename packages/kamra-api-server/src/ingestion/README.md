@@ -25,7 +25,7 @@ Ingestion is separate from catalog:
 - Keep crawler output capable of tracking multiple price observations over time.
 - Keep source product identity separate from price observations.
 - Preserve distinct price semantics: base/shelf, dated offer, coupon, loyalty-card, and old/original prices should remain separate when the source exposes them separately.
-- Keep source-local product identifiers in source metadata until a processor intentionally maps them into catalog source records. GTIN or other common identifiers can be promoted only when the source clearly provides them.
+- Put source-local identifiers and clearly exposed common codes in `productIdentifiers` when possible, while preserving source metadata for traceability. Processors decide whether to map retailer-local ids, GTINs, or national codes into catalog source identifier records.
 - Keep shop-specific parsing inside source adapters.
 - Keep processor assumptions out of source parsers where practical.
 - Preserve enough metadata for traceability: source name, source record id, crawl run id, crawl date, parser name/version, content hash, and capture time.
