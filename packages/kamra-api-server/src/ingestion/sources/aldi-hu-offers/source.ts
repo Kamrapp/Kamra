@@ -5,7 +5,7 @@ import type { ParsedShopProductRow } from "../../v1/contracts.js";
 export const aldiHuOffersSourceName = "aldi-hu-offers";
 export const aldiHuOffersWorkflowName = "aldi-hu-offers-crawl";
 export const aldiHuOffersParserName = "aldi-hu-offers-visible-text-parser";
-export const aldiHuOffersParserVersion = "0.1.0";
+export const aldiHuOffersParserVersion = "0.2.1";
 export const aldiHuOffersUrl = "https://www.aldi.hu/szuper-akciok-mindennap";
 
 interface AldiHuOffersPayload {
@@ -88,7 +88,8 @@ export function parseAldiHuOffersText(visibleText: string, observedAt: string): 
     const unitPriceText = extractUnitPriceText(line);
     const priceText = extractPrimaryPriceText(line);
     const priceValueHuf = priceText ? parseHungarianPriceNumber(priceText) : null;
-    const description = extractDescription(line);
+    const rawDescription = extractDescription(line);
+    const description = rawDescription && rawDescription !== displayName ? rawDescription : null;
     const sourceRecordId = createSourceRecordId(itemNumbers, displayName, activeValidity);
 
     rows.push({
@@ -175,7 +176,11 @@ function inferProductName(lines: string[], itemNumberLineIndex: number): string 
 
   const sameLineCandidate = cleanupProductName(itemNumberLine.split("Cikkszám:")[0] ?? "");
 
-  if (isLikelyProductName(sameLineCandidate) && !sameLineCandidate.includes("Ft/")) {
+  if (
+    isLikelyProductName(sameLineCandidate)
+    && !sameLineCandidate.includes("Ft/")
+    && !isLikelyProductDetailLine(sameLineCandidate)
+  ) {
     return sameLineCandidate;
   }
 
@@ -223,6 +228,26 @@ function isLikelyProductName(value: string): boolean {
   }
 
   return true;
+}
+
+function isLikelyProductDetailLine(value: string): boolean {
+  if (/^[,;:()]/.test(value)) {
+    return true;
+  }
+
+  if (/^\d/.test(value)) {
+    return true;
+  }
+
+  if (/^[a-záéíóöőúüű]/u.test(value)) {
+    return true;
+  }
+
+  if (/%|\bvagy\b|ízű|ízesítésű|zsírtartalom|alkoholtartalom|többféle|szeletelt|hámozott|frissen/iu.test(value)) {
+    return true;
+  }
+
+  return false;
 }
 
 function extractItemNumbers(line: string): string[] {
@@ -273,7 +298,11 @@ function parseHungarianPriceNumber(priceText: string): number | null {
 function extractDescription(line: string): string | null {
   const withoutItemNumbers = line.replace(/,?\s*Cikkszám\s*:.*$/i, "").trim();
   const withoutUnitPrice = withoutItemNumbers.replace(/\([^)]*Ft\/[^)]*\)/gi, "").trim();
-  const cleaned = withoutUnitPrice.replace(/[,\s]+$/g, "").trim();
+  const cleaned = withoutUnitPrice
+    .replace(/^[,\s]+/g, "")
+    .replace(/[,\s]+$/g, "")
+    .replace(/^\(([^)]+)\)$/g, "$1")
+    .trim();
 
   return cleaned.length > 0 ? cleaned : null;
 }

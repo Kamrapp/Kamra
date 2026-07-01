@@ -5,7 +5,7 @@
 - Date: 2026-07-01
 - Plan: `.agents/plans/2026-06-23-stage-4-synthetic-crawler-intake-plan.md`
 - Branch: `dev/bg/sync`
-- Current objective: Implement Stage 4 Step 5 source-specific processors for current raw ingestion snapshots.
+- Current objective: Finalize ALDI source parsing cleanup after product table offer filters/resizing.
 
 ## Completed
 
@@ -58,6 +58,28 @@
 - Updated the product catalog UI from a card list into a fixed-row virtualized table showing product metadata, latest price chips, source counts/names, identifiers, and freshness/state columns.
 - Updated the admin catalog route test to include offer-shaped data.
 - Attempted in-app browser visual verification, but no in-app browser instances were available in this session.
+- Committed frontend product table follow-up as `2742247` (`Add product offer table filters and resizing`):
+  - offer-source checkbox filter, including `none`
+  - resizable virtual table columns
+  - build/typecheck/diff validation
+- Investigated ALDI malformed catalog product names where descriptors such as `1,5 % zsírtartalom`, `citrom-lime ízű`, and `, (töltőtömeg)` were promoted to product names.
+- Re-ran ALDI crawling locally against the configured dev database; the crawler stored 97 rows for a new 2026-07-01 snapshot.
+- Confirmed the defect was already present in ALDI raw parsed rows, not in the processor or frontend query.
+- Fixed the ALDI visible-text parser:
+  - bumped parser version to `0.2.1`
+  - same-line item-number text that looks like a descriptor now falls back to the previous product heading
+  - descriptor text is still preserved as `description`
+  - punctuation-wrapped descriptor lines such as `(töltőtömeg)` are cleaned without becoming display names
+- Added ALDI parser regression coverage for milk, ice cream flavor, and white-bean fill-weight descriptor cases.
+- Re-parsed all stored ALDI raw snapshots in `kamra_dev`; all 5 ALDI snapshots now use parser version `0.2.1` and contain 349 parsed rows.
+- Reprocessed ALDI snapshots with `--reprocess`; result was 5 processed snapshots / 349 rows / 0 failures.
+- Removed stale ALDI catalog artifacts that were left by older source-key shapes and one confirmed unreferenced orphan product (`product_name_toltotomeg`).
+- Verified targeted ALDI catalog records now resolve item keys to real product names:
+  - `62908` -> `MILSANI Laktózmentes UHT tej, 1 l/doboz`
+  - `755944` -> `MILSANI ESL Tej, 1 l/doboz`
+  - `35055` -> `HÚSMESTER Friss darált sertéshús, 500 g/tálca`
+  - `737294` -> `MUCCI Jégkrém, 900 ml/doboz`
+  - `846186` -> `KING’S CROWN Fehér bab, 800 g (530 g)/doboz`
 
 ## Changed Files
 
@@ -76,6 +98,8 @@
 - `packages/kamra-api-server/src/http/app-handler.test.ts`
 - `src/app/product-lookup/product-catalog.service.ts`
 - `src/app/product-lookup/product-catalog.component.ts`
+- `packages/kamra-api-server/src/ingestion/sources/aldi-hu-offers/source.ts`
+- `packages/kamra-api-server/src/ingestion/sources/aldi-hu-offers/source.test.ts`
 
 ## Validation
 
@@ -113,6 +137,28 @@
 - Result: passed.
 - Ran frontend/API validation: `git -c safe.directory=D:/Code/Kamra diff --check`
 - Result: passed.
+- Ran product table follow-up validation: `npm run typecheck`
+- Result: passed.
+- Ran product table follow-up validation: `npm run build:web`
+- Result: passed.
+- Ran product table follow-up validation: `git -c safe.directory=D:/Code/Kamra diff --check`
+- Result: passed.
+- Ran ALDI crawler manually: `npm run aldi:ingest`
+- Result: passed; stored a new 2026-07-01 ALDI snapshot with 97 parsed rows.
+- Ran ALDI parser validation: `npm test -- packages/kamra-api-server/src/ingestion/sources/aldi-hu-offers/source.test.ts`
+- Result: passed.
+- Ran ALDI reprocess: `npm run process:ingestion -- --source=aldi-hu-offers --limit=20 --reprocess`
+- Result: passed; 5 snapshots / 349 rows / 0 failures.
+- Ran ingestion validation after ALDI fix: `npm test -- packages/kamra-api-server/src/ingestion`
+- Result: passed, 5 files / 15 tests.
+- Ran typecheck after ALDI fix: `npm run typecheck`
+- Result: passed.
+- Ran DB processed-side validation after ALDI fix: `npm run validate:processed-ingestion`
+- Result: passed; 0 missing processed states and 0 failed states.
+- Ran DB catalog smoke after ALDI fix: `npm run smoke:catalog`
+- Result: passed; catalog counts included 186 price observations, 315 source identifiers, 182 product sources, 197 products, 18 processing states, 182 stocks.
+- Ran targeted ALDI catalog verification.
+- Result: bad descriptor-only product names were absent; all 5 ALDI raw snapshots reported parser `0.2.1`.
 
 ## Decisions
 
@@ -137,6 +183,8 @@
 - Impact: ALDI creates product/source/identifier/stock records but no price observations until the parser can capture a primary price or another source exposes it.
 - Issue: In-app browser was unavailable (`agent.browsers.list()` returned `[]`).
 - Impact: UI was validated by typecheck/build/tests, but not visually inspected in browser during this session.
+- Issue: ALDI parser cleanup updated existing dev raw snapshots and processed catalog records manually.
+- Impact: This is correct for the current dev database; repeat the reparse/reprocess workflow if another database contains ALDI snapshots parsed before version `0.2.1`.
 
 ## Roadmap Or Plan Updates
 
@@ -145,8 +193,8 @@
 
 ## Next Step
 
-Commit the frontend/API virtual table enhancement as a separate commit. Optionally start a local dev server for the user after the commit.
+Commit the ALDI parser cleanup as a separate commit. Then continue Stage 4 processing/UI work from the active plan.
 
 ## Notes For Future Agent
 
-Continue from the active Stage 4 plan Step 5. The user wants careful implementation plus frequent handoff updates. Do not add more crawlers in this session. Favor a pure processor first; add local script orchestration only if it remains comfortably commit-sized.
+Continue from the active Stage 4 plan. The user wants careful implementation plus frequent handoff updates. The next unfinished item after this ALDI cleanup is the broader processor/UI follow-through from the active plan, not adding more crawlers unless explicitly resumed.
