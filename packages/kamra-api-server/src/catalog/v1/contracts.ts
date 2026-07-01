@@ -229,6 +229,7 @@ export interface CatalogV1SeedDataset {
 }
 
 export interface CatalogProductListItem {
+  offers: CatalogProductOfferListItem[];
   brandName?: string | null;
   householdStockCount: number;
   id: string;
@@ -237,5 +238,34 @@ export interface CatalogProductListItem {
   primaryCategoryKey?: string | null;
   sourceNames: string[];
   tagKeys: string[];
+}
+
+export interface CatalogProductOfferPrice {
+  amount: number;
+  currencyCode: string;
+  observedAt: string;
+  programName?: string | null;
+  unitPriceLabel?: string | null;
+  validFrom?: string | null;
+  validTo?: string | null;
+}
+
+export interface CatalogProductOfferIdentifier {
+  kind: ProductSourceIdentifierRecord["kind"];
+  value: string;
+}
+
+export interface CatalogProductOfferListItem {
+  currentCategoryLabel?: string | null;
+  identifiers: CatalogProductOfferIdentifier[];
+  latestObservedAt?: string | null;
+  locationKey?: string | null;
+  locationLabel?: string | null;
+  prices: Partial<Record<PriceObservationKind, CatalogProductOfferPrice>>;
+  productSourceId: string;
+  sourceName: string;
+  sourceProductKey: string;
+  sourceProductName: string;
+  storeBrandKey: string;
 }
 

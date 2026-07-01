@@ -52,6 +52,12 @@
   - `0.2.0` processed states by source: ALDI 4, COOP 3, old COOP 1, PENNY 6
   - catalog product source counts included ALDI 63, COOP 6, old COOP 6, PENNY 42
   - catalog price observations included COOP 18 offer, old COOP 6 offer, PENNY 160 offer; ALDI currently has no price observations because current parsed rows lack primary prices
+- Committed WIP finalization as `43f37a3` (`Finalize ingestion processing orchestration`).
+- Started frontend/API product table unit.
+- Extended catalog product review DTOs with compact `offers` rows containing source product data, identifiers, latest price observations by kind, and location labels.
+- Updated the product catalog UI from a card list into a fixed-row virtualized table showing product metadata, latest price chips, source counts/names, identifiers, and freshness/state columns.
+- Updated the admin catalog route test to include offer-shaped data.
+- Attempted in-app browser visual verification, but no in-app browser instances were available in this session.
 
 ## Changed Files
 
@@ -65,6 +71,11 @@
 - `scripts/validate-processed-ingestion.ts`
 - `scripts/README.md`
 - `package.json`
+- `packages/kamra-api-server/src/catalog/v1/contracts.ts`
+- `packages/kamra-api-server/src/catalog/current/mongo-catalog-repository.ts`
+- `packages/kamra-api-server/src/http/app-handler.test.ts`
+- `src/app/product-lookup/product-catalog.service.ts`
+- `src/app/product-lookup/product-catalog.component.ts`
 
 ## Validation
 
@@ -96,6 +107,12 @@
 - Result: passed; 0 missing processed states and 0 failed states.
 - Ran DB catalog smoke: `npm run smoke:catalog`
 - Result: passed; catalog counts included 186 price observations, 187 source identifiers, 120 product sources, 124 products, 17 processing states, 120 stocks.
+- Ran frontend/API validation: `npm test`
+- Result: passed, 17 files / 52 tests.
+- Ran frontend/API validation: `npm run build`
+- Result: passed.
+- Ran frontend/API validation: `git -c safe.directory=D:/Code/Kamra diff --check`
+- Result: passed.
 
 ## Decisions
 
@@ -118,6 +135,8 @@
 - Impact: A processing script will need either a new repository read method or direct collection access.
 - Issue: ALDI current parsed rows expose item numbers/unit prices but no primary prices.
 - Impact: ALDI creates product/source/identifier/stock records but no price observations until the parser can capture a primary price or another source exposes it.
+- Issue: In-app browser was unavailable (`agent.browsers.list()` returned `[]`).
+- Impact: UI was validated by typecheck/build/tests, but not visually inspected in browser during this session.
 
 ## Roadmap Or Plan Updates
 
@@ -126,7 +145,7 @@
 
 ## Next Step
 
-Commit the WIP finalization as a new commit, then start the separate frontend product table enhancement.
+Commit the frontend/API virtual table enhancement as a separate commit. Optionally start a local dev server for the user after the commit.
 
 ## Notes For Future Agent
 

@@ -2,8 +2,11 @@ import type { AnyBulkWriteOperation, Collection, Db, Document, Filter } from "mo
 
 import type {
   CatalogProductListItem,
+  CatalogProductOfferListItem,
+  CatalogProductOfferPrice,
   MigrationLedgerRecord,
   PriceObservationRecord,
+  PriceObservationKind,
   ProductRecord,
   ProductSourceIdentifierRecord,
   ProductSourceRecord,
@@ -204,6 +207,15 @@ export class MongoCurrentCatalogRepository {
         status: "active"
       }).toArray()
     ]);
+    const productSourceIds = productSources.map((source) => source.id);
+    const [productSourceIdentifiers, priceObservations] = await Promise.all([
+      this.productSourceIdentifiersCollection.find({
+        productSourceId: { $in: productSourceIds }
+      }).toArray(),
+      this.priceObservationsCollection.find({
+        productSourceId: { $in: productSourceIds }
+      }).sort({ observedAt: -1 }).toArray()
+    ]);
 
     const tagsByProductId = new Map<string, string[]>();
     for (const assignment of productTagAssignments) {
@@ -213,10 +225,58 @@ export class MongoCurrentCatalogRepository {
     }
 
     const sourcesByProductId = new Map<string, string[]>();
+    const offerRowsByProductId = new Map<string, CatalogProductOfferListItem[]>();
+    const identifiersByProductSourceId = new Map<string, ProductSourceIdentifierRecord[]>();
+    const pricesByProductSourceId = new Map<string, Partial<Record<PriceObservationKind, CatalogProductOfferPrice>>>();
+
+    for (const identifier of productSourceIdentifiers) {
+      const values = identifiersByProductSourceId.get(identifier.productSourceId) ?? [];
+      values.push(identifier);
+      identifiersByProductSourceId.set(identifier.productSourceId, values);
+    }
+
+    for (const priceObservation of priceObservations) {
+      const prices = pricesByProductSourceId.get(priceObservation.productSourceId) ?? {};
+      if (!prices[priceObservation.priceKind]) {
+        prices[priceObservation.priceKind] = {
+          amount: priceObservation.price.amount,
+          currencyCode: priceObservation.price.currencyCode,
+          observedAt: priceObservation.observedAt,
+          programName: priceObservation.programName,
+          unitPriceLabel: priceObservation.unitPriceLabel,
+          validFrom: priceObservation.validFrom,
+          validTo: priceObservation.validTo
+        };
+      }
+      pricesByProductSourceId.set(priceObservation.productSourceId, prices);
+    }
+
     for (const source of productSources) {
       const values = sourcesByProductId.get(source.productId) ?? [];
       values.push(source.sourceName);
       sourcesByProductId.set(source.productId, values);
+
+      const offers = offerRowsByProductId.get(source.productId) ?? [];
+      const prices = pricesByProductSourceId.get(source.id) ?? {};
+      const identifiers = identifiersByProductSourceId.get(source.id) ?? [];
+      const latestLocation = latestOfferLocation(priceObservations, source.id);
+      offers.push({
+        currentCategoryLabel: source.currentCategoryLabel,
+        identifiers: identifiers.map((identifier) => ({
+          kind: identifier.kind,
+          value: identifier.value
+        })),
+        latestObservedAt: latestOfferObservedAt(prices),
+        locationKey: latestLocation?.locationKey ?? null,
+        locationLabel: latestLocation?.label ?? null,
+        prices,
+        productSourceId: source.id,
+        sourceName: source.sourceName,
+        sourceProductKey: source.sourceProductKey,
+        sourceProductName: source.sourceProductName,
+        storeBrandKey: source.storeBrandKey
+      });
+      offerRowsByProductId.set(source.productId, offers);
     }
 
     const householdStockCountByProductId = new Map<string, number>();
@@ -233,6 +293,7 @@ export class MongoCurrentCatalogRepository {
       id: product.id,
       measurements: product.measurements,
       name: product.name,
+      offers: (offerRowsByProductId.get(product.id) ?? []).sort(compareOffers),
       primaryCategoryKey: product.primaryCategoryKey,
       sourceNames: [...new Set(sourcesByProductId.get(product.id) ?? [])].sort(),
       tagKeys: [...new Set(tagsByProductId.get(product.id) ?? [])].sort()
@@ -372,4 +433,26 @@ export class MongoCurrentCatalogRepository {
 
     await collection.bulkWrite(operations);
   }
+}
+
+function latestOfferObservedAt(
+  prices: Partial<Record<PriceObservationKind, CatalogProductOfferPrice>>
+): string | null {
+  return Object.values(prices)
+    .map((price) => price?.observedAt)
+    .filter((observedAt): observedAt is string => typeof observedAt === "string")
+    .sort()
+    .at(-1) ?? null;
+}
+
+function latestOfferLocation(
+  priceObservations: PriceObservationRecord[],
+  productSourceId: string
+): PriceObservationRecord["location"] | null {
+  return priceObservations.find((observation) => observation.productSourceId === productSourceId)?.location ?? null;
+}
+
+function compareOffers(left: CatalogProductOfferListItem, right: CatalogProductOfferListItem): number {
+  return left.sourceName.localeCompare(right.sourceName, "hu-HU")
+    || left.sourceProductName.localeCompare(right.sourceProductName, "hu-HU");
 }

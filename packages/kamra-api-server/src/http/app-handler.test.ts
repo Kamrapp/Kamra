@@ -166,6 +166,32 @@ describe("handleAppRequest auth guards", () => {
               id: "product_uht_milk_2_8_1l",
               measurements: [],
               name: "UHT tej 2,8%",
+              offers: [
+                {
+                  identifiers: [
+                    {
+                      kind: "retailer_product_id",
+                      value: "lidl-pilos-uht-tej-28-1l"
+                    }
+                  ],
+                  latestObservedAt: "2026-06-23T12:00:00.000Z",
+                  locationKey: "availability:lidl-hu",
+                  locationLabel: "Lidl Hungary",
+                  prices: {
+                    base: {
+                      amount: 469,
+                      currencyCode: "HUF",
+                      observedAt: "2026-06-23T12:00:00.000Z",
+                      unitPriceLabel: "469 Ft/l"
+                    }
+                  },
+                  productSourceId: "product_source_lidl_hu_pilos_uht_28_1l",
+                  sourceName: "lidl-hu",
+                  sourceProductKey: "lidl-pilos-uht-tej-28-1l",
+                  sourceProductName: "Pilos UHT tej 2,8% 1 l",
+                  storeBrandKey: "lidl"
+                }
+              ],
               sourceNames: ["lidl-hu"],
               tagKeys: ["category.kitchen.dairy"]
             }
@@ -180,14 +206,40 @@ describe("handleAppRequest auth guards", () => {
     expect(response.status).toBe(200);
     expect(JSON.parse(response.body)).toEqual({
       products: [
-        {
-          householdStockCount: 1,
-          id: "product_uht_milk_2_8_1l",
-          measurements: [],
-          name: "UHT tej 2,8%",
-          sourceNames: ["lidl-hu"],
-          tagKeys: ["category.kitchen.dairy"]
-        }
+          {
+            householdStockCount: 1,
+            id: "product_uht_milk_2_8_1l",
+            measurements: [],
+            name: "UHT tej 2,8%",
+            offers: [
+              {
+                identifiers: [
+                  {
+                    kind: "retailer_product_id",
+                    value: "lidl-pilos-uht-tej-28-1l"
+                  }
+                ],
+                latestObservedAt: "2026-06-23T12:00:00.000Z",
+                locationKey: "availability:lidl-hu",
+                locationLabel: "Lidl Hungary",
+                prices: {
+                  base: {
+                    amount: 469,
+                    currencyCode: "HUF",
+                    observedAt: "2026-06-23T12:00:00.000Z",
+                    unitPriceLabel: "469 Ft/l"
+                  }
+                },
+                productSourceId: "product_source_lidl_hu_pilos_uht_28_1l",
+                sourceName: "lidl-hu",
+                sourceProductKey: "lidl-pilos-uht-tej-28-1l",
+                sourceProductName: "Pilos UHT tej 2,8% 1 l",
+                storeBrandKey: "lidl"
+              }
+            ],
+            sourceNames: ["lidl-hu"],
+            tagKeys: ["category.kitchen.dairy"]
+          }
       ]
     });
   });
