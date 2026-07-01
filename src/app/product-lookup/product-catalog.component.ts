@@ -16,6 +16,12 @@ interface VisibleProductRow {
   product: CatalogProductListItem;
 }
 
+type ProductTableColumnKey = "product" | "prices" | "sources" | "identifiers" | "state";
+
+type ProductTableColumnWidths = Record<ProductTableColumnKey, number>;
+
+const noOfferSourceKey = "__none__";
+
 @Component({
   selector: "app-product-catalog",
   standalone: true,
@@ -29,12 +35,12 @@ interface VisibleProductRow {
 
         <dl class="summary-strip" aria-label="Catalog summary">
           <div>
-            <dt>Products</dt>
-            <dd>{{ products().length }}</dd>
+            <dt>Shown</dt>
+            <dd>{{ filteredProducts().length }}</dd>
           </div>
           <div>
             <dt>Offers</dt>
-            <dd>{{ totalOfferCount() }}</dd>
+            <dd>{{ totalFilteredOfferCount() }}</dd>
           </div>
           <div>
             <dt>Sources</dt>
@@ -67,19 +73,49 @@ interface VisibleProductRow {
         </section>
 
         @if (products().length) {
+          <section class="filter-panel surface-panel" aria-label="Offer source filters">
+            <div>
+              <p class="ui-kicker">Offer sources</p>
+              <p class="filter-summary">{{ filteredProducts().length }} of {{ products().length }} products shown</p>
+            </div>
+
+            <div class="source-filter-list">
+              @for (source of offerSourceOptions(); track source.key) {
+                <label class="source-filter-option">
+                  <input
+                    type="checkbox"
+                    [checked]="selectedOfferSources().has(source.key)"
+                    (change)="toggleOfferSource(source.key)"
+                  >
+                  <span>{{ source.label }}</span>
+                </label>
+              }
+            </div>
+          </section>
+        }
+
+        @if (products().length) {
           <section class="offer-table surface-panel" aria-label="Product offer table">
-            <div class="table-head" role="row">
-              <span role="columnheader">Product</span>
-              <span role="columnheader">Prices</span>
-              <span role="columnheader">Sources</span>
-              <span role="columnheader">Identifiers</span>
-              <span role="columnheader">State</span>
+            <div class="table-head" role="row" [style.grid-template-columns]="columnTemplate()">
+              @for (column of tableColumns; track column.key) {
+                <span class="column-header" role="columnheader">
+                  {{ column.label }}
+                  <button
+                    class="column-resize-handle"
+                    type="button"
+                    title="Resize column"
+                    [attr.aria-label]="'Resize ' + column.label + ' column'"
+                    (pointerdown)="startColumnResize($event, column.key)"
+                  ></button>
+                </span>
+              }
             </div>
 
             <div
               class="table-viewport"
               role="table"
               [style.--row-height]="rowHeight + 'px'"
+              [style.--table-width]="tableWidth() + 'px'"
               (scroll)="onTableScroll($event)"
             >
               <div class="table-spacer" [style.height.px]="tableHeight()">
@@ -87,6 +123,7 @@ interface VisibleProductRow {
                   <article
                     class="product-row"
                     role="row"
+                    [style.grid-template-columns]="columnTemplate()"
                     [style.transform]="'translateY(' + row.offset + 'px)'"
                   >
                     <div class="product-main" role="cell">
@@ -106,7 +143,7 @@ interface VisibleProductRow {
                     </div>
 
                     <div class="source-cell" role="cell">
-                      <p class="row-strong">{{ row.product.offers.length }} offers · {{ row.product.sourceNames.length }} sources</p>
+                      <p class="row-strong">{{ filteredOffers(row.product).length }} offers · {{ filteredSourceNames(row.product).length }} sources</p>
                       <p class="row-muted">{{ formatSources(row.product) }}</p>
                       <p class="row-muted">{{ formatOfferNames(row.product) }}</p>
                     </div>
@@ -209,6 +246,46 @@ interface VisibleProductRow {
         color: var(--color-text-muted);
       }
 
+      .filter-panel {
+        align-items: center;
+        display: grid;
+        gap: var(--space-4);
+        grid-template-columns: minmax(12rem, 0.4fr) minmax(0, 1fr);
+        padding: clamp(1rem, 2.2vw, 1.25rem);
+      }
+
+      .filter-summary {
+        color: var(--color-text-muted);
+        font-size: 0.88rem;
+      }
+
+      .source-filter-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        justify-content: flex-end;
+      }
+
+      .source-filter-option {
+        align-items: center;
+        background: color-mix(in srgb, var(--color-accent-sky) 18%, white 82%);
+        border: 1px solid color-mix(in srgb, var(--color-wood) 14%, transparent);
+        border-radius: 8px;
+        color: var(--color-text);
+        display: inline-flex;
+        font-size: 0.84rem;
+        font-weight: 800;
+        gap: 0.45rem;
+        min-height: 2rem;
+        padding: 0.35rem 0.55rem;
+      }
+
+      .source-filter-option input {
+        accent-color: var(--color-accent-leaf-strong);
+        height: 1rem;
+        width: 1rem;
+      }
+
       .offer-table {
         overflow: hidden;
       }
@@ -217,12 +294,6 @@ interface VisibleProductRow {
       .product-row {
         display: grid;
         gap: var(--space-3);
-        grid-template-columns:
-          minmax(13rem, 1.25fr)
-          minmax(14rem, 1.2fr)
-          minmax(13rem, 1fr)
-          minmax(11rem, 0.9fr)
-          minmax(10rem, 0.8fr);
       }
 
       .table-head {
@@ -236,6 +307,34 @@ interface VisibleProductRow {
         text-transform: uppercase;
       }
 
+      .column-header {
+        align-items: center;
+        display: flex;
+        justify-content: space-between;
+        min-width: 0;
+        position: relative;
+      }
+
+      .column-resize-handle {
+        background: color-mix(in srgb, var(--color-wood-deep) 22%, transparent);
+        border: 0;
+        border-radius: 8px;
+        cursor: col-resize;
+        height: 1.5rem;
+        margin-left: 0.5rem;
+        padding: 0;
+        position: relative;
+        width: 0.45rem;
+      }
+
+      .column-resize-handle::after {
+        background: color-mix(in srgb, var(--color-wood-deep) 42%, transparent);
+        border-radius: 999px;
+        content: "";
+        inset: 0.25rem 0.16rem;
+        position: absolute;
+      }
+
       .table-viewport {
         height: min(64vh, 44rem);
         min-height: 24rem;
@@ -244,7 +343,7 @@ interface VisibleProductRow {
       }
 
       .table-spacer {
-        min-width: 68rem;
+        min-width: var(--table-width);
         position: relative;
       }
 
@@ -322,6 +421,15 @@ interface VisibleProductRow {
           flex-direction: column;
         }
 
+        .filter-panel {
+          align-items: stretch;
+          grid-template-columns: 1fr;
+        }
+
+        .source-filter-list {
+          justify-content: flex-start;
+        }
+
         .summary-strip {
           grid-template-columns: repeat(3, minmax(0, 1fr));
           min-width: 0;
@@ -340,19 +448,59 @@ export class ProductCatalogComponent implements OnInit {
   readonly errorMessage = signal("");
   readonly loadState = signal<"idle" | "loading" | "success" | "error">("idle");
   readonly products = signal<CatalogProductListItem[]>([]);
+  readonly selectedOfferSources = signal<Set<string>>(new Set([noOfferSourceKey]));
+  readonly tableColumns: Array<{ key: ProductTableColumnKey; label: string }> = [
+    { key: "product", label: "Product" },
+    { key: "prices", label: "Prices" },
+    { key: "sources", label: "Sources" },
+    { key: "identifiers", label: "Identifiers" },
+    { key: "state", label: "State" }
+  ];
+  readonly columnWidths = signal<ProductTableColumnWidths>({
+    identifiers: 220,
+    prices: 260,
+    product: 300,
+    sources: 280,
+    state: 190
+  });
   readonly rowHeight = 92;
   readonly scrollTop = signal(0);
   readonly statusMessage = signal("No product snapshot has been loaded yet.");
   readonly viewportHeight = 704;
-  readonly tableHeight = computed(() => this.products().length * this.rowHeight);
+  readonly columnTemplate = computed(() =>
+    this.tableColumns.map((column) => `${this.columnWidths()[column.key]}px`).join(" ")
+  );
+  readonly tableWidth = computed(() =>
+    Object.values(this.columnWidths()).reduce((total, width) => total + width, 0)
+      + (this.tableColumns.length - 1) * 12
+  );
+  readonly offerSourceOptions = computed(() => [
+    ...[...new Set(this.products().flatMap((product) => product.offers.map((offer) => offer.sourceName)))]
+      .sort((left, right) => left.localeCompare(right, "hu-HU"))
+      .map((sourceName) => ({
+        key: sourceName,
+        label: sourceName
+      })),
+    {
+      key: noOfferSourceKey,
+      label: "none"
+    }
+  ]);
+  readonly filteredProducts = computed(() =>
+    this.products().filter((product) => this.productMatchesSelectedSources(product))
+  );
+  readonly tableHeight = computed(() => this.filteredProducts().length * this.rowHeight);
   readonly totalOfferCount = computed(() =>
     this.products().reduce((total, product) => total + product.offers.length, 0)
   );
+  readonly totalFilteredOfferCount = computed(() =>
+    this.filteredProducts().reduce((total, product) => total + this.filteredOffers(product).length, 0)
+  );
   readonly totalSourceCount = computed(() =>
-    new Set(this.products().flatMap((product) => product.sourceNames)).size
+    new Set(this.filteredProducts().flatMap((product) => this.filteredSourceNames(product))).size
   );
   readonly visibleRows = computed<VisibleProductRow[]>(() => {
-    const products = this.products();
+    const products = this.filteredProducts();
     const overscan = 5;
     const start = Math.max(0, Math.floor(this.scrollTop() / this.rowHeight) - overscan);
     const visibleCount = Math.ceil(this.viewportHeight / this.rowHeight) + overscan * 2;
@@ -370,8 +518,19 @@ export class ProductCatalogComponent implements OnInit {
     }
   }
 
+  filteredOffers(product: CatalogProductListItem): CatalogProductOfferListItem[] {
+    const selectedSources = this.selectedOfferSources();
+    const offers = product.offers.filter((offer) => selectedSources.has(offer.sourceName));
+
+    return offers;
+  }
+
+  filteredSourceNames(product: CatalogProductListItem): string[] {
+    return [...new Set(this.filteredOffers(product).map((offer) => offer.sourceName))].sort();
+  }
+
   formatIdentifiers(product: CatalogProductListItem): string {
-    const values = product.offers
+    const values = this.filteredOffers(product)
       .flatMap((offer) => offer.identifiers)
       .map((identifier) => `${identifier.kind}:${identifier.value}`);
     const uniqueValues = [...new Set(values)].slice(0, 4);
@@ -380,7 +539,7 @@ export class ProductCatalogComponent implements OnInit {
   }
 
   formatLatestObserved(product: CatalogProductListItem): string {
-    const latest = product.offers
+    const latest = this.filteredOffers(product)
       .flatMap((offer) => [
         offer.latestObservedAt,
         ...Object.values(offer.prices).map((price) => price?.observedAt)
@@ -401,7 +560,7 @@ export class ProductCatalogComponent implements OnInit {
   }
 
   formatOfferNames(product: CatalogProductListItem): string {
-    const offerNames = product.offers
+    const offerNames = this.filteredOffers(product)
       .map((offer) => offer.sourceProductName)
       .filter((name, index, names) => names.indexOf(name) === index)
       .slice(0, 2);
@@ -410,7 +569,9 @@ export class ProductCatalogComponent implements OnInit {
   }
 
   formatSources(product: CatalogProductListItem): string {
-    return product.sourceNames.length ? product.sourceNames.join(" · ") : "no source";
+    const sources = this.filteredSourceNames(product);
+
+    return sources.length ? sources.join(" · ") : "no source";
   }
 
   onTableScroll(event: Event): void {
@@ -432,7 +593,7 @@ export class ProductCatalogComponent implements OnInit {
       "old"
     ];
 
-    for (const offer of product.offers) {
+    for (const offer of this.filteredOffers(product)) {
       for (const kind of priceOrder) {
         const price = offer.prices[kind];
         if (!price) {
@@ -448,6 +609,41 @@ export class ProductCatalogComponent implements OnInit {
     }
 
     return chips.slice(0, 4);
+  }
+
+  startColumnResize(event: PointerEvent, columnKey: ProductTableColumnKey): void {
+    event.preventDefault();
+    const startX = event.clientX;
+    const startWidth = this.columnWidths()[columnKey];
+    const onPointerMove = (moveEvent: PointerEvent): void => {
+      const nextWidth = Math.max(140, Math.min(640, startWidth + moveEvent.clientX - startX));
+      this.columnWidths.update((widths) => ({
+        ...widths,
+        [columnKey]: nextWidth
+      }));
+    };
+    const onPointerUp = (): void => {
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+    };
+
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp, { once: true });
+  }
+
+  toggleOfferSource(sourceKey: string): void {
+    this.selectedOfferSources.update((selectedSources) => {
+      const next = new Set(selectedSources);
+
+      if (next.has(sourceKey)) {
+        next.delete(sourceKey);
+      } else {
+        next.add(sourceKey);
+      }
+
+      return next;
+    });
+    this.scrollTop.set(0);
   }
 
   async loadProducts(): Promise<void> {
@@ -475,6 +671,7 @@ export class ProductCatalogComponent implements OnInit {
       }
 
       this.products.set(result.products);
+      this.selectedOfferSources.set(new Set(this.offerSourceOptions().map((source) => source.key)));
       this.scrollTop.set(0);
       this.loadState.set("success");
       this.statusMessage.set(`Loaded ${result.products.length} products with ${this.totalOfferCount()} offers.`);
@@ -491,6 +688,16 @@ export class ProductCatalogComponent implements OnInit {
 
       logBrowserEvent("error", "Product catalog request failed", error);
     }
+  }
+
+  private productMatchesSelectedSources(product: CatalogProductListItem): boolean {
+    const selectedSources = this.selectedOfferSources();
+
+    if (product.offers.length === 0) {
+      return selectedSources.has(noOfferSourceKey);
+    }
+
+    return product.offers.some((offer) => selectedSources.has(offer.sourceName));
   }
 }
 
