@@ -82,6 +82,30 @@ Experimental data-writing script. Use for local/smoke research only until PENNY 
 
 It is experimental because the crawler is still a source-research crawler, not because we identified a legal issue. Keep treating it as subject to source-policy and terms review before any broader rollout.
 
+### `ingest-aldi-offers.ts`
+
+Fetches `https://www.aldi.hu/szuper-akciok-mindennap`, parses rendered public offer-page text, and writes one raw ingestion snapshot.
+
+Command:
+
+```powershell
+npm run aldi:ingest
+```
+
+Experimental data-writing script. ALDI can expose source-local `Cikkszám` item numbers, validity windows, and unit-price text while some rows lack a primary shelf price. Downstream processing must keep those semantics explicit.
+
+### `ingest-coop-offers.ts`
+
+Fetches `https://www.coop.hu/akcios-termekek/`, parses rendered public offer-page text, and writes one raw ingestion snapshot.
+
+Command:
+
+```powershell
+npm run coop:ingest
+```
+
+Experimental data-writing script. COOP rows can include coupon, loyalty, purchase-condition, or store-scope notes. Downstream processing must keep coupon/loyalty prices separate from default prices.
+
 ### `remove-crawled-content.ts`
 
 Deletes ingestion run and raw snapshot records for one crawl run id.

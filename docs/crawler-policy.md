@@ -19,6 +19,8 @@ For current crawler-source research, source selection notes, and Stage 4 synthet
 - Do not collect personal data from shoppers, employees, reviews, accounts, or tracking surfaces.
 - Do not scrape private or user-specific prices from authenticated customer accounts.
 - Disable or remove a source promptly if a store objects or if terms become unclear.
+- Keep coupon, loyalty-card, member-only, quantity-limited, or store-scope prices distinct from default prices. Do not present them as generally available unless the source clearly supports that.
+- Keep retailer-local identifiers separate from canonical product identifiers. Promote GTIN or other common product codes only when the source clearly provides them.
 
 ## Review Checklist
 
@@ -31,6 +33,8 @@ Before adding or enabling a crawler source, the plan should record:
 - user agent or identification strategy
 - data retained in raw snapshots
 - fields promoted into canonical products or price observations
+- how normal, offer, coupon, loyalty/card, and original/old prices are distinguished
+- whether source identifiers are retailer-local, GTIN/common product identifiers, or unknown
 - failure mode when pages change or access is denied
 - rollback switch or feature flag
 

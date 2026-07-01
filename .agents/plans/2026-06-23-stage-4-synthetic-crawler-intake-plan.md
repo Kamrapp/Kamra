@@ -1,15 +1,17 @@
 # Stage 4 Synthetic Crawler Intake Plan
 
-Status: Draft for user review
+Status: Active, being revised after initial ingestion sources landed
 
 ## Objective
 
-Plan Stage 4 crawler intake around controlled synthetic sources first:
+Plan Stage 4 crawler intake around controlled sources first, then extend into reviewed real-source offer crawlers:
 
 - `SimpleHtmlTableShop`: a synthetic Hungarian shop page with a stable HTML product table, HUF prices, country-wide availability, and effectively infinite stock.
 - `SimplePdfShop`: a synthetic Hungarian shop PDF with similar product and price content.
+- real Hungarian retailer offer sources, currently PENNY, ALDI, and COOP raw ingestion.
+- next planned real sources: Tesco Zirc supermarket static/location offer page, then Lidl PDF/brochure ingestion when PDF processing is ready.
 
-The goal is to prove ingestion, raw snapshots, processing, workflow orchestration, tests, and admin/operator visibility before connecting to real shops, real website crawling, or broader PDF processing.
+The goal is to prove ingestion, raw snapshots, processing, workflow orchestration, tests, and admin/operator visibility before relying on broad crawling or public product lookup value.
 
 ## Context Read
 
@@ -40,6 +42,7 @@ The goal is to prove ingestion, raw snapshots, processing, workflow orchestratio
 Repository state check:
 
 - `git -c safe.directory=D:/Code/Kamra status --short` was clean before this plan file was added.
+- 2026-07-01 documentation refresh found a clean worktree before updates.
 
 ## Research Gate
 
@@ -113,16 +116,25 @@ Remaining uncertainty:
 - GitHub workflow precedent exists in `catalog-smoke.yml`: install dependencies, run checked-in scripts, typecheck, test, then smoke against MongoDB.
 - No current Playwright dependency exists in the Node app package.
 - Legacy crawler concepts exist in historical docs, but no new Stage 4 runtime code exists yet.
+- Stage 4 runtime code now exists for:
+  - `SimpleHtmlTableShop`
+  - `penny_hu_offers`
+  - `aldi-hu-offers`
+  - `coop-hu-offers`
+- The real-source crawlers currently write raw ingestion snapshots only; they do not yet process into catalog records.
+- ALDI and COOP source parsers currently cast richer, source-specific parsed rows into `ParsedShopProductRow`, which is a signal that the ingestion row contract has drifted from real crawler needs.
+- There is still no `SimplePdfShop`, no Lidl PDF ingestion, and no processor pipeline.
+- `docs/ingestion.md`, `.github/workflows/*-ingestion.yml`, `scripts/README.md`, and `.agents/learnings/crawler-source-research.md` should be treated as live context for implemented source status.
 
 ## Intended Direction
 
-Stage 4 should introduce an ingestion layer next to the catalog layer:
+Stage 4 introduces an ingestion layer next to the catalog layer:
 
 ```text
 synthetic source fixture
   -> source adapter
   -> raw ingestion snapshot
-  -> deterministic processor
+  -> source-specific deterministic processor
   -> catalog_v1 products/product_sources/stocks/processing states
   -> admin/operator query
 ```
@@ -142,6 +154,9 @@ This keeps raw source truth separate from compact catalog query data and gives r
 - Make crawled content removable by crawl run id with a locally runnable script during the MVP phase.
 - Make repeated same-day crawls idempotent for the same source record so retrying a workflow does not blindly duplicate or rewrite raw snapshots.
 - Keep price observations separate from source product identity in the crawler output contract. Products are relatively stable; prices are observations over time and must remain capable of historical tracking.
+- Support multiple prices for the same source product/location when the source exposes them, including base/shelf price, normal dated offer price, coupon price, and loyalty/card price. Do not silently collapse Clubcard-like prices into the default price.
+- Keep source-local identifiers such as ALDI `Cikkszám`, Tesco item identifiers, or brochure/viewer ids on source/shop records or source metadata, not as canonical product ids. Promote GTIN or other common national identifiers to canonical identity only when the source provides them clearly.
+- Treat conservative merging as a processor rule: merge across shops by GTIN/common code first, by exact normalized name only when it is a 100% match, and otherwise create separate source-linked products or merge candidates.
 - Treat the crawler output as a shop-specific raw/normalized contract between crawler and processor. Crawlers may keep source-specific parsing details, but each adapter should produce a stable parsed-row shape that its processor can validate.
 - Use strict schema validation for new ingestion collections where practical, matching the Stage 3 MongoDB style.
 - Use Result-style parser and processor outcomes for expected failures such as missing columns, unknown unit text, parse misses, duplicate rows, unsupported PDF layout, or disabled source.
@@ -199,11 +214,15 @@ Included:
 - Focused tests for parser output, snapshot fingerprinting, processor output, and idempotency.
 - A manually dispatchable GitHub Actions workflow after local scripts pass.
 - Admin/operator visibility for latest ingestion runs and synthetic processed output, scoped as a later step inside this plan.
+- Model revisit for products, source products, stocks, and price observations based on current raw crawler data.
+- Tesco offers crawler using a configurable location tag, initially `tesco-szupermarket-zirc`.
+- Source-specific processors for each crawled shop so parser quirks and promotion semantics remain isolated.
+- Compact product/shop-offer table UI showing connected source offers and prices.
 
 ## Non-Goals
 
-- No live retailer crawling in the first implementation slice.
-- No scheduled cron enablement in the first implementation slice.
+- No additional live retailer crawling without source-policy and source-method review.
+- No production crawler schedule enablement before raw-to-processed behavior and disable paths are reviewed.
 - No CAPTCHA, authentication, account-specific pricing, geolocation bypass, or anti-bot handling.
 - No broad real-world PDF table extraction support.
 - No product merge automation for uncertain real retailer records.
@@ -222,7 +241,12 @@ Included:
 
 ## Open Questions
 
-- Should `raw_snapshots` and `ingestion_runs` be new generic collections, or should their names be namespaced as `ingestion_raw_snapshots` and `ingestion_runs`?
+- What processed model should represent multiple prices per shop/location: a new `price_observations` collection, a `prices` array under stock/source offer records, or both historical observations plus current-collated values?
+- Should source products and stock/offers be split more explicitly so source-local identifiers do not bloat canonical products?
+- Should Tesco Clubcard prices be stored as a `loyalty_card` price observation with `programName: "Clubcard"` and the normal price as a separate base or offer observation?
+- Should offer validity windows live on price observations, stock records, or source-offer records?
+- How should stock location records represent country-wide, store-format, and exact store-scope offers when a source only exposes partial location scope?
+- Should `raw_snapshots` and `ingestion_runs` stay as `ingestion_raw_snapshots` and `ingestion_runs`? Current implementation already uses those names.
 - Should ingestion collection schemas be part of a new `ingestion/v1` artifact, or should Stage 4 create a broader `pipeline/v1` contract that includes raw, run, and processing concepts?
 - Should the synthetic PDF be committed as a small binary fixture, generated during tests, or both?
 - How should "infinite stock" be represented in the existing `StockQuantity` model: large finite number, `packageCount: null` plus a documented quantity, or a Stage 4 model extension?
@@ -233,7 +257,7 @@ Included:
 - Should processor output overwrite matching synthetic records on each run, or preserve price observations as history from the first Stage 4 slice?
 - What is the minimum useful price-history shape before Stage 5/6 household work needs it?
 - Should Stage 4 add a first-class `price_observations` processed collection now, or retain price observations only in raw/normalized ingestion records until the processor step is approved?
-- Should real-source review for the first actual Hungarian retailer happen inside this Stage 4 plan after synthetic shops, or as a separate Stage 4 followup plan?
+- Should Lidl and SPAR brochure/PDF handling share one generic brochure discovery layer, or stay source-specific until the first two PDF sources prove repeated patterns?
 
 ## Side Suggestions
 
@@ -255,6 +279,8 @@ Included:
 
 ### Step 1: Define Ingestion Contracts And Synthetic Source Fixture Model
 
+Status: Completed for the initial synthetic shape; needs revision for real-source row drift and multiple price kinds.
+
 - Goal: Add versioned ingestion contracts for runs, raw snapshots, parsed product rows, source definitions, and source processing outcomes.
 - Include crawl-run identity, same-day source-record idempotency, cleanup-by-run expectations, and separate price observations in the parsed source row contract.
 - Files likely affected:
@@ -271,6 +297,8 @@ Included:
 
 ### Step 2: Add Mongo Persistence For Ingestion Runs And Raw Snapshots
 
+Status: Partially completed. Collections, indexes, idempotent writes, and cleanup exist; strict Mongo JSON schema validation remains open.
+
 - Goal: Create ingestion repositories that set up schema-validated collections, indexes, and idempotent raw snapshot writes.
 - Files likely affected:
   - `packages/kamra-api-server/src/ingestion/current/mongo-ingestion-repository.ts`
@@ -286,6 +314,8 @@ Included:
 
 ### Step 3: Implement SimpleHtmlTableShop
 
+Status: Completed.
+
 - Goal: Add a synthetic HTML table fixture and a parser that produces normalized product rows from exactly the table content.
 - Files likely affected:
   - `packages/kamra-api-server/src/ingestion/sources/simple-html-table-shop/source.ts`
@@ -299,7 +329,96 @@ Included:
 - Commit message idea:
   - `Add synthetic HTML shop parser`
 
-### Step 4: Implement SimplePdfShop
+### Step 4: Revisit Product, Source Product, Stock, And Price Models
+
+- Goal: Adjust catalog and ingestion contracts before adding more crawlers so current and future sources can represent multiple shops, locations, stock scopes, identifiers, and simultaneous price kinds without lossy casts.
+- Include:
+  - multiple price observations per source product/location
+  - promotion/loyalty/coupon price kind
+  - validity windows per price observation
+  - source-local item ids separate from canonical product identity
+  - optional GTIN/common product codes when source-provided
+  - conservative cross-shop merge rules
+  - seed data and database smoke updates
+- Files likely affected:
+  - `packages/kamra-api-server/src/catalog/v1/contracts.ts`
+  - `packages/kamra-api-server/src/catalog/v1/fixtures.ts`
+  - `packages/kamra-api-server/src/catalog/v1/schemas.ts`
+  - `packages/kamra-api-server/src/catalog/v1/generated/catalog-schemas.json`
+  - `packages/kamra-api-server/src/ingestion/v1/contracts.ts`
+  - source parser tests where casts currently hide shape drift
+  - `scripts/seed.ts` or catalog smoke fixtures if needed
+  - documentation in `docs/ingestion.md` and `packages/kamra-api-server/src/catalog/README.md`
+- Validation:
+  - `npm run contracts:catalog`
+  - `npm test -- packages/kamra-api-server/src/catalog packages/kamra-api-server/src/ingestion`
+  - `npm run typecheck`
+  - smoke/seed against the configured database after user-approved environment check
+- Commit message idea:
+  - `Extend catalog model for source offer prices`
+
+### Step 5: Implement Tesco Zirc Offers Crawler
+
+- Goal: Add a source-specific Tesco crawler for `https://www.tesco.hu/akciok/akcios-termekek/<locationTag>` with `locationTag` configured separately from the base offers URL.
+- Initial source configuration:
+  - base URL: `https://www.tesco.hu/akciok/akcios-termekek`
+  - initial location tag: `tesco-szupermarket-zirc`
+- Include:
+  - normal/base price and Clubcard price as separate price observations when both appear
+  - source URL and source record id
+  - source-local identifiers if exposed
+  - GTIN/common identifiers only when explicitly exposed
+  - location/store-format metadata from the configured tag
+- Validation:
+  - parser tests from saved visible-text/HTML fixtures
+  - `npm run tesco:ingest` local/smoke path
+  - workflow remains manually dispatchable and Smoke-scoped first
+- Commit message idea:
+  - `Add Tesco Zirc offers ingestion`
+
+### Step 6: Implement Source-Specific Processors
+
+- Goal: Process pending snapshots for each crawled shop into catalog/source offer records while preserving source semantics.
+- Include processors for:
+  - `simple_html_table_shop`
+  - `penny_hu_offers`
+  - `aldi-hu-offers`
+  - `coop-hu-offers`
+  - `tesco-hu-offers` after the crawler lands
+- Processing rules:
+  - merge by GTIN/common code when present
+  - merge by exact normalized name only when it is a complete match
+  - otherwise create separate products or merge candidates
+  - keep normal, offer, coupon, and loyalty/card prices distinct
+  - update `source_record_processing_states`
+- Validation:
+  - snapshot-style processor tests per source
+  - idempotency tests for same snapshot and processor version
+  - processor-version reprocessing test
+  - smoke path that proves raw-to-catalog output
+- Commit message idea:
+  - `Process crawled offers into catalog records`
+
+### Step 7: Add Compact Product Offer Table UI
+
+- Goal: Extend the product inspection surface so admins can see all products and connected shop offers/prices in a compact table.
+- Include:
+  - source/shop name
+  - source product name
+  - location/scope label
+  - normal/offer/loyalty prices
+  - validity window
+  - observed time
+  - processing/source status
+- Keep it in `src/app/site-admin/` or the existing product lookup/admin surface according to current app routing boundaries.
+- Validation:
+  - API route tests if a new route is added
+  - frontend build
+  - local UI check
+- Commit message idea:
+  - `Show processed shop offers in admin product table`
+
+### Step 8: Implement SimplePdfShop And Brochure/PDF Foundation
 
 - Goal: Add deterministic synthetic PDF generation and parsing that produces the same normalized row contract as the HTML source.
 - Files likely affected:
@@ -315,24 +434,25 @@ Included:
 - Commit message idea:
   - `Add synthetic PDF shop parser`
 
-### Step 5: Process Synthetic Rows Into Catalog V1
+### Step 9: Add Lidl Brochure/PDF Ingestion
 
-- Goal: Convert normalized synthetic rows into `catalog_v1` records with traceable origins, product sources, country-wide stock availability, HUF prices, and processing state.
-- Files likely affected:
-  - `packages/kamra-api-server/src/ingestion/processing/synthetic-shop-catalog-processor.ts`
-  - `packages/kamra-api-server/src/ingestion/processing/synthetic-shop-catalog-processor.test.ts`
-  - `packages/kamra-api-server/src/catalog/current/mongo-catalog-repository.ts`
-  - possibly `packages/kamra-api-server/src/catalog/v1/contracts.ts` only if price history or infinite-stock representation requires a planned extension
+- Goal: Discover current Lidl flyers from `https://www.lidl.hu/c/szorolap/s10013623`, download allowed brochure/PDF content when technically and policy appropriate, and parse product offer text through the PDF pipeline.
+- 2026-07-01 quick check: the page lists current/upcoming flyer links such as 27th-week and 26th-week brochures; a later implementation pass must inspect the linked viewer/download behavior directly before coding.
 - Validation:
-  - Snapshot-style processor tests for stable catalog output.
-  - Idempotency tests for same snapshot and same processor version.
-  - Reprocessing test for processor version bump or reset state.
-  - `npm test -- packages/kamra-api-server/src/ingestion packages/kamra-api-server/src/catalog`
-  - `npm run smoke:catalog`
+  - source-review checklist entry
+  - saved flyer fixture or deterministic sample for parser tests
+  - local/smoke ingestion path
 - Commit message idea:
-  - `Process synthetic shop rows into catalog`
+  - `Add Lidl brochure ingestion`
 
-### Step 6: Add Local Orchestration Scripts
+### Step 10: Revisit SPAR Brochure Source
+
+- Goal: Evaluate `https://www.spar.hu/ajanlatok` as a brochure/PDF source before using the older `akcioterv` page.
+- 2026-07-01 quick check: `spar.hu/ajanlatok` lists downloadable and viewable PDF brochures for SPAR, INTERSPAR, SPAR market, City SPAR, and special catalogues, so this is likely a better future source than the minimal `akcioterv` content.
+- Commit message idea:
+  - `Document SPAR brochure ingestion path`
+
+### Step 11: Add Local Orchestration Scripts
 
 - Goal: Add local scripts that can ingest one source, process pending snapshots, and print run summaries without requiring GitHub Actions.
 - Files likely affected:
@@ -351,7 +471,7 @@ Included:
 - Commit message idea:
   - `Add local synthetic ingestion scripts`
 
-### Step 7: Add Manual GitHub Actions Workflow
+### Step 12: Add Manual GitHub Actions Workflow
 
 - Goal: Add a manually dispatchable workflow for synthetic ingestion and processing against a configured environment. Once tests and local scripts exist, allow a Smoke-only nightly schedule for synthetic sources.
 - Files likely affected:
@@ -366,7 +486,7 @@ Included:
 - Commit message idea:
   - `Add manual synthetic ingestion workflow`
 
-### Step 8: Add Minimal Operator Visibility
+### Step 13: Add Minimal Operator Visibility
 
 - Goal: Expose latest ingestion runs and processing failures to an admin/operator without mixing this into household workflows.
 - Files likely affected:

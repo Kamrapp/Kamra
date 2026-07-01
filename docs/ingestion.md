@@ -4,7 +4,7 @@
 
 Kamra ingestion collects source-shop product and price observations outside user-facing request handlers.
 
-The Stage 4 implementation currently proves this with `SimpleHtmlTableShop`, a synthetic Hungarian shop source. It is intentionally small, but it uses the same shape planned for real crawlers:
+The Stage 4 implementation currently proves this with `SimpleHtmlTableShop`, plus experimental PENNY, ALDI, and COOP Hungary offer crawlers. The synthetic source is intentionally small, but it uses the same raw snapshot/run shape planned for real crawlers:
 
 ```text
 source content -> parser -> raw snapshot -> later processor -> catalog records
@@ -16,12 +16,15 @@ Implemented:
 
 - synthetic HTML source fixture
 - first experimental PENNY Hungary offers source
+- experimental ALDI Hungary offers source
+- experimental COOP Hungary offers source
 - parsed source rows with product identity, stock availability, and separate price observations
 - `ingestion_runs`
 - `ingestion_raw_snapshots`
 - same-day source-record idempotency
 - cleanup by crawl run id
 - manual and nightly Smoke workflow for synthetic ingestion
+- manually dispatchable workflows for PENNY, ALDI, and COOP
 
 Not implemented yet:
 
@@ -30,6 +33,7 @@ Not implemented yet:
 - dedicated processed price-history collection
 - production-approved real shop crawling
 - strict Mongo JSON schema validation for ingestion collections
+- a revised parsed-row contract for richer real-source metadata and multiple price kinds
 
 ## Run Identity
 
@@ -81,6 +85,18 @@ Run experimental PENNY offers ingestion:
 npm run penny:ingest
 ```
 
+Run experimental ALDI offers ingestion:
+
+```powershell
+npm run aldi:ingest
+```
+
+Run experimental COOP offers ingestion:
+
+```powershell
+npm run coop:ingest
+```
+
 Remove crawled content for one crawl run:
 
 ```powershell
@@ -116,7 +132,7 @@ This workflow writes ingestion data to the configured Smoke database. It should 
 
 ## Penny Workflow
 
-`.github/workflows/penny-ingestion.yml` runs the Penny offers crawler against the `Smoke` environment.
+`.github/workflows/penny-ingestion.yml` runs the Penny offers crawler against the configured `Dev` environment.
 
 Triggers:
 
@@ -127,12 +143,45 @@ The workflow installs dependencies, typechecks API/scripts, runs ingestion tests
 
 This workflow writes ingestion data to the configured Smoke database. Keep it in the same approval bucket as the source note in `docs/crawler-policy.md` before considering any production-like environment or wider schedule.
 
+## ALDI Workflow
+
+`.github/workflows/aldi-ingestion.yml` runs the ALDI offers crawler against the configured `Dev` environment.
+
+Triggers:
+
+- `workflow_dispatch`
+- nightly schedule
+
+The workflow installs dependencies, typechecks API/scripts, runs ingestion tests, then runs `npm run aldi:ingest`.
+
+ALDI rows may include source-local `Cikkszám` item numbers and visible validity or unit-price text while missing a primary shelf price. Downstream processors must keep those identifiers source-local and must not treat unit price as a product price.
+
+## COOP Workflow
+
+`.github/workflows/coop-ingestion.yml` runs the COOP offers crawler against the configured `Dev` environment.
+
+Triggers:
+
+- `workflow_dispatch`
+- nightly schedule
+
+The workflow installs dependencies, typechecks API/scripts, runs ingestion tests, then runs `npm run coop:ingest`.
+
+COOP rows can include coupon or loyalty-style price text and store-scope notes. Processors must keep coupon/loyalty prices separate from default prices and must not assume every COOP offer is nationally valid.
+
+## Next Planned Sources
+
+- Tesco Hungary offers should be added before Lidl PDF work if the model revision lands cleanly. The first planned URL is `https://www.tesco.hu/akciok/akcios-termekek/tesco-szupermarket-zirc`, with `tesco-szupermarket-zirc` stored as a configurable `locationTag` rather than hard-coded into parser logic.
+- Lidl Hungary should be treated as brochure/PDF ingestion from `https://www.lidl.hu/c/szorolap/s10013623`, after the PDF pipeline is ready.
+- SPAR Hungary should be revisited through `https://www.spar.hu/ajanlatok`, which lists viewable/downloadable brochures, rather than prioritizing the older minimal `akcioterv` page.
+
 ## Safety Notes
 
 - Do not run crawlers from API routes or user-facing handlers.
-- Treat `npm run penny:ingest` as experimental source research. It fetches the public PENNY offers page and writes raw ingestion data, but it is not production-approved crawling yet.
+- Treat `npm run penny:ingest`, `npm run aldi:ingest`, and `npm run coop:ingest` as experimental source research. They fetch public offer pages and write raw ingestion data, but they are not production-approved crawling yet.
 - Do not enable real retailer crawlers from a scheduled workflow without source-policy review.
 - Do not assume ingestion snapshots are canonical products.
+- Do not collapse normal, offer, coupon, or loyalty/card prices into one field when a source exposes them separately.
 - Cleanup by crawl run id removes ingestion runs and raw snapshots for that run id only; it does not remove future processed catalog records.
 - Treat real source content as untrusted data even when fetched from a known retailer.
 

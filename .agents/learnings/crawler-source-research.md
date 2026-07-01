@@ -38,9 +38,9 @@ Stage 4 should prove the crawler pipeline with controlled sources before live re
 
 ## Real Source Implementation Notes
 
-Implementation update date: 2026-06-26.
+Implementation update date: 2026-07-01.
 
-Assumption for these notes: the PENNY, ALDI, and COOP crawlers currently run successfully against their target public pages.
+Assumption for these notes: the PENNY, ALDI, and COOP crawlers currently run successfully against their target public pages. Recheck current MongoDB run counts and row samples before using them as model-proof data.
 
 The implemented real-source crawlers follow the same conservative acquisition pattern:
 
@@ -184,13 +184,18 @@ These findings are scouting and implementation notes, not legal/source approvals
 
 ### SPAR Hungary
 
-- Candidate path: `https://www.spar.hu/akcioterv`
+- Older candidate path: `https://www.spar.hu/akcioterv`
+- Preferred current candidate path: `https://www.spar.hu/ajanlatok`
+- Quick check date: 2026-07-01.
 - Observed shape:
-  - The page exposes offer text, product names, package or unit information, unit prices, and some promotion details.
-  - Extraction looked less consistently structured; some headline price information may be image-heavy or less direct.
+  - The older `akcioterv` page exposes limited offer text, product names, package or unit information, unit prices, and some promotion details.
+  - The `ajanlatok` page lists many viewable/downloadable brochures for SPAR, INTERSPAR, SPAR market, City SPAR, and special catalogues.
+  - On 2026-07-01 it listed current and upcoming PDFs with validity windows such as 06.25-07.01 and 07.02-07.08.
+  - The page includes both "Mutasd PDF-ben" viewer links and "Letöltés" download links through `szorolap.spar.hu`.
 - Recommendation:
-  - Defer until the static HTML parser and PDF paths are proven.
-  - Revisit with a browser/text extraction check before choosing as a real source.
+  - Prefer the `ajanlatok` brochure/PDF path over the older `akcioterv` content.
+  - Defer implementation until the PDF/brochure pipeline is proven with simpler sources.
+  - Preserve brochure title, validity, flyer type/store format, viewer/download URL, content hash, and parser version.
 
 ### Lidl Hungary
 
@@ -201,11 +206,35 @@ These findings are scouting and implementation notes, not legal/source approvals
 - Observed shape:
   - The site exposes clear offer and brochure navigation.
   - The brochure page lists current and upcoming flyers.
+  - On 2026-07-01 the brochure page listed current/upcoming flyer links including "Akciós újság" and "Nonfood kínálatunk" entries for weeks 26 and 27.
   - The offer page did not expose product offer details cleanly in the fetched static text during the research pass; it looked more client-rendered or data-backed.
   - Robots disallowed some search/assets/numeric paths, but the checked offer and brochure paths were not obviously blocked from the fetched robots text.
 - Recommendation:
-  - Do not start here for the first real source.
-  - Investigate PDF/brochure extraction, an official data path, or browser automation only after simpler HTML sources are done.
+  - Do not start here before the model revisit and Tesco/simple HTML-like source work.
+  - Treat Lidl as a PDF/brochure discovery and extraction candidate, not a simple static product-offer page.
+  - Investigate linked flyer viewer/download behavior and source policy before coding the crawler.
+
+### Tesco Hungary
+
+- Candidate base path: `https://www.tesco.hu/akciok/akcios-termekek`
+- Initial location URL: `https://www.tesco.hu/akciok/akcios-termekek/tesco-szupermarket-zirc`
+- Quick check date: 2026-07-01.
+- Planned source:
+  - Source name: likely `tesco-hu-offers`.
+  - Acquisition method: public location-tagged offers page, preferably static/rendered page parsing before any PDF or internal API work.
+  - Initial location tag: `tesco-szupermarket-zirc`.
+- Data to capture if visible:
+  - Product display name and source product key/id.
+  - Normal/base price.
+  - Clubcard price as a separate loyalty-card price observation with the program name captured.
+  - Unit-price text.
+  - Validity window or promotion labels.
+  - Configured `locationTag`, source URL, country code `HU`, currency `HUF`, parser metadata, and raw snippets for debugging.
+  - GTIN/common product codes only if explicitly exposed.
+- Recommendation:
+  - Good next real-source candidate before Lidl because the source is location-tagged and should exercise multiple price kinds without requiring PDF parsing first.
+  - Keep the location tag configurable in source/workflow configuration rather than hard-coding `tesco-szupermarket-zirc` into parser logic.
+  - Do not merge Tesco products across shops unless GTIN/common identifiers match or the normalized product name is an exact complete match.
 
 ## Implemented Real Source Order
 
@@ -214,8 +243,9 @@ After the synthetic sources are implemented and reviewed, the current real-sourc
 1. PENNY public offers page: strongest first source for parseable current offers.
 2. ALDI public offers page: useful second source, especially for validity windows, unit prices, and item numbers, but primary price coverage may be incomplete.
 3. COOP public offers page: small/noisy backup source, useful for source diversity and parser hardening.
-4. Revisit SPAR after parser maturity improves.
-5. Revisit Lidl when the project is ready for brochure parsing, browser automation, or source-specific API research.
+4. Tesco Zirc supermarket offers page: next planned source after the model revisit because it should expose location-tagged offers and Clubcard prices.
+5. Revisit Lidl when the project is ready for brochure/PDF parsing, browser automation, or source-specific API research.
+6. Revisit SPAR through `spar.hu/ajanlatok` brochures after the PDF/brochure path is proven.
 
 ## Cross-Source Comparison Caveats
 
@@ -231,6 +261,8 @@ The first three real crawlers do not yet produce fully equivalent commercial tru
 - `sourceRecordId` values are source-local, not cross-retailer product IDs.
 - Product names are retailer text, not canonical product names. Matching needs a later normalization/entity-resolution stage.
 - Original/old prices are incomplete and retailer-dependent. Do not build savings claims until old-price semantics are explicitly modeled.
+- Loyalty/card prices such as Tesco Clubcard and coupon prices such as COOP coupon offers are not default prices. Store them as separate price observations with eligibility metadata.
+- Store-specific or location-tagged offers should remain tied to the source location/scope; do not silently promote them to country-wide availability.
 - No crawler currently captures inventory, stock, replacement products, store-specific assortment, delivery availability, basket constraints, images, nutrition data, allergens, or legal product detail pages.
 - Retained raw snapshots allow reprocessing after parser improvements, but downstream catalog rows should stay compact and explicitly versioned by parser/source.
 
