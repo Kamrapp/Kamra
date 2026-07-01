@@ -2,11 +2,11 @@
 
 ## Status
 
-Initial testable slice implemented; PENNY, ALDI, and COOP raw ingestion added; Stage 4 plan is being revised for model and processor work.
+Initial testable slice implemented; PENNY, ALDI, and COOP raw ingestion added; Stage 4 plan finalized for processor pipeline next.
 
 ## Current Goal
 
-Continue Stage 4 from raw ingestion toward processed catalog output. The immediate next work is to revisit product/source/stock/price models before adding Tesco, processor pipelines, PDF/brochure ingestion, and compact product-offer UI.
+Wrap this session and continue next time from `.agents/plans/2026-06-23-stage-4-synthetic-crawler-intake-plan.md`. The immediate next implementation step is the source-specific processor pipeline, followed by local processing scripts and compact product-offer UI.
 
 ## Decisions Captured
 
@@ -22,6 +22,7 @@ Continue Stage 4 from raw ingestion toward processed catalog output. The immedia
 - Cross-shop product merging should be conservative: GTIN/common code first, exact normalized name only when it is a complete match, otherwise keep records separate or create future merge candidates.
 - Model decision on 2026-07-01: use dedicated catalog collections for processed `price_observations` and `product_source_identifiers`. Keep old `stocks.price` as an optional current/collated convenience and avoid changing existing validated `product_sources`/`stocks` document shapes until a privileged migration path exists.
 - Atlas `kamra_dev` user cannot run `collMod`, so schema changes to non-empty validated collections must either use new collections, a privileged migration, or a deliberate collection rebuild plan.
+- Tesco decision on 2026-07-01: no documented public Tesco Hungary product/offers API or feed was found. The Zirc location-tagged offers page returned HTTP 403 from the crawler runner. Defer Tesco live product crawling; later revisit only as catalogue/PDF work or with explicit API/permission.
 
 ## Changed Files In This Session
 
@@ -47,15 +48,13 @@ Continue Stage 4 from raw ingestion toward processed catalog output. The immedia
   - `docs/ingestion.md`
   - root `README.md`
 
-## Next Validation
+## Next Session Bootstrap
 
-- Query current MongoDB ingestion data to inspect raw row shapes and source counts.
-- Update catalog/ingestion models for multiple source locations and multiple prices per source product/location.
-- Regenerate catalog schema artifacts and update seed/demo content.
-- Run seed/smoke against the configured database after confirming the target environment.
-- Add Tesco crawler with configurable `locationTag`, initially `tesco-szupermarket-zirc`.
-- Add source-specific processors into catalog records.
-- Add compact UI for products with connected shop offers/prices.
+- Load `AGENTS.md`.
+- Load `.agents/plans/2026-06-23-stage-4-synthetic-crawler-intake-plan.md`.
+- Treat this session note and `.agents/learnings/crawler-source-research.md` as optional only if a detail is missing from the plan.
+- Start with plan Step 5: source-specific processors for `simple_html_table_shop`, `penny_hu_offers`, `aldi-hu-offers`, and `coop-hu-offers`.
+- Do not add Tesco/Lidl/SPAR crawlers before the processor pipeline and compact processed-offer UI land.
 
 ## Validation Completed
 
@@ -67,7 +66,7 @@ Continue Stage 4 from raw ingestion toward processed catalog output. The immedia
 - `npm run penny:ingest` passed locally on 2026-06-23. It fetched `https://www.penny.hu/ajanlatok`, inserted crawl run `penny-hu-offers:penny_hu_offers:2026-06-23`, parsed 20 rows, and wrote snapshot `penny_hu_offers:offers-page-0:2026-06-23`.
 - The PENNY `experimental` labeling is an approval-state note, not a legal-issue finding; source-policy and terms review still apply before any wider rollout.
 - ALDI and COOP raw ingestion scripts/workflows are present as of the 2026-07-01 documentation sync. Revalidate current run counts against MongoDB before using them for model decisions.
-- 2026-07-01 quick source check found Lidl's brochure page listing current/upcoming flyer links, Tesco's Zirc supermarket URL as the planned simpler next source, and SPAR's `ajanlatok` page listing viewable/downloadable brochures.
+- 2026-07-01 quick source check found Lidl's brochure page listing current/upcoming flyer links, SPAR's `ajanlatok` page listing viewable/downloadable brochures, and Tesco's Zirc supermarket URL as initially interesting but later deferred after the 403/API-feed check.
 - 2026-07-01 Mongo query against `kamra_dev` found raw ingestion snapshots for `penny_hu_offers`, `aldi-hu-offers`, `coop-hu-offers`, and one older `coop-offers` source name. Latest sample rows confirmed PENNY uses `priceObservations`, while ALDI/COOP used richer flattened source-specific fields.
 - 2026-07-01 model validation completed:
   - `npm run contracts:catalog`
@@ -77,16 +76,19 @@ Continue Stage 4 from raw ingestion toward processed catalog output. The immedia
   - `npm run seed`
   - final `npm run smoke:catalog`
 - Final `kamra_dev` catalog smoke counts included `price_observations: 2` and `product_source_identifiers: 3`.
+- 2026-07-01 Tesco check:
+  - `https://www.tesco.hu/akciok/akcios-termekek/tesco-szupermarket-zirc` returned HTTP 403 from the crawler runner.
+  - Public search and official-page checks did not find a documented Tesco Hungary product/offers API or feed.
+  - `https://www.tesco.hu/akciok/katalogusok` lists catalogues with online viewing/download affordances, so Tesco is a later catalogue/PDF candidate.
 
 ## Known Followups
 
 - Add strict Mongo JSON schema validation for ingestion collections.
 - Add `SimplePdfShop`.
 - Add processor pipeline from ingestion snapshots into catalog records.
-- Add Tesco Zirc crawler before Lidl PDF if model work lands cleanly.
 - Add Lidl brochure/PDF ingestion after the PDF pipeline is in place.
 - Revisit SPAR through `https://www.spar.hu/ajanlatok` brochures rather than prioritizing the older `akcioterv` content.
+- Revisit Tesco only as catalogue/PDF work or with explicit API/permission.
 - Extend admin UI with a compact table of products, connected shop offers, source locations, price kinds, and validity windows.
 - Review and harden the PENNY parser before treating it as production source crawling.
-- Decide whether processed price history needs a dedicated `price_observations` collection.
 - Decide whether changed same-day source content should append a new snapshot or update existing same-day snapshot metadata.

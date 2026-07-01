@@ -69,7 +69,7 @@ This is deliberately simple. A later batching design can decide whether changed 
 
 Crawler output keeps price observations separate from source product identity.
 
-Products may stay stable while prices change over time. The crawler should therefore emit a stable `sourceProductKey` plus one or more `priceObservations`. The later processor decides how observations become catalog stock prices or a dedicated price-history collection.
+Products may stay stable while prices change over time. The crawler should therefore emit a stable source identity plus one or more price observations. Processors write historical/source prices into catalog `price_observations`.
 
 The catalog model now has a dedicated `price_observations` collection. `stocks.price` remains a compact current/collated value for query convenience; it is not the full price history.
 
@@ -177,7 +177,9 @@ COOP rows can include coupon or loyalty-style price text and store-scope notes. 
 
 ## Next Planned Sources
 
-- Tesco Hungary offers should be added before Lidl PDF work if the model revision lands cleanly. The first planned URL is `https://www.tesco.hu/akciok/akcios-termekek/tesco-szupermarket-zirc`, with `tesco-szupermarket-zirc` stored as a configurable `locationTag` rather than hard-coded into parser logic.
+- Do not add more live retailer crawlers before the processor pipeline and compact processed-offer UI are in place.
+- Tesco Hungary live product crawling is deferred. No documented public Tesco Hungary product/offers API or feed was found, and `https://www.tesco.hu/akciok/akcios-termekek/tesco-szupermarket-zirc` returned HTTP 403 from the crawler runner.
+- Tesco may be revisited later through `https://www.tesco.hu/akciok/katalogusok` as brochure/catalogue work if public catalogue media can be fetched normally or if Tesco provides permission/API documentation.
 - Lidl Hungary should be treated as brochure/PDF ingestion from `https://www.lidl.hu/c/szorolap/s10013623`, after the PDF pipeline is ready.
 - SPAR Hungary should be revisited through `https://www.spar.hu/ajanlatok`, which lists viewable/downloadable brochures, rather than prioritizing the older minimal `akcioterv` page.
 

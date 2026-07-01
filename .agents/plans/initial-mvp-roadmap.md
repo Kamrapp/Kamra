@@ -20,7 +20,7 @@ Roadmap priorities:
 | Stage 1 | Legacy inventory and extraction | Completed (docs) | Discovery strengthened the Angular-retention assumption, shared-contract direction, and migration-ledger need. |
 | Stage 2 | Minimal serverless foundation | Completed | Vercel app/API and MongoDB connectivity are running; Stage 2 followups should be handled only when they block later stages. |
 | Stage 3 | Product model foundation and seeded data | Completed | Finalized versioned product contracts, seed data, smoke validation, and admin-only product inspection before crawler work. |
-| Stage 4 | Crawler intake and processing pipeline | In progress | Raw ingestion exists for synthetic HTML plus PENNY, ALDI, and COOP offer pages; next work is product/price model adjustment, Tesco crawler, processor pipeline, PDF/brochure ingestion, and compact admin product-offer visibility. |
+| Stage 4 | Crawler intake and processing pipeline | In progress | Raw ingestion exists for synthetic HTML plus PENNY, ALDI, and COOP offer pages; product/price model adjustment is done; next work is processor pipeline and compact admin product-offer visibility before more source acquisition. |
 | Stage 5 | Household stock foundation | Planned | Treat households as stock locations where useful, while preserving user-household authorization boundaries. |
 | Stage 6 | Shopping list and low-stock notices | Planned | Favor deterministic core logic over premature optimization. |
 | Stage 7 | Controlled alpha access and app module shell | Planned | Move external demo access later, after household and list value exist; keep public/product, household, site-admin, and dev-admin concerns visibly separate. |
@@ -236,8 +236,8 @@ Current status:
 - `SimpleHtmlTableShop`, PENNY, ALDI, and COOP crawlers write ingestion runs and raw snapshots.
 - The crawlers do not yet process snapshots into queryable catalog records.
 - The current catalog model can show one stock price, but Stage 4 now needs first-class representation for multiple locations and multiple concurrent price kinds per source product, including base price, dated offer price, and loyalty/card price.
-- Tesco Zirc supermarket is the next lower-friction crawler candidate because its public offers page is location-tagged and appears more structured than PDF brochures.
-- Lidl and SPAR should be treated as PDF/brochure work, not as simple static offer-page parsing.
+- Tesco live product crawling is deferred because no documented public product/offers API/feed was found and the location-tagged offers page returned HTTP 403 from the crawler runner.
+- Lidl, SPAR, and possibly Tesco should be treated as PDF/brochure/catalogue work after processors and UI prove the raw-to-catalog path.
 
 Validation:
 
@@ -253,9 +253,9 @@ Validation:
 
 Questions:
 
-- Which model shape should store multiple simultaneous prices for one source product at one shop/location: dedicated processed `price_observations`, embedded stock price observations, or both current-collated and historical records?
-- How should source-local item identifiers, GTINs, and national/common product codes be separated between canonical products and source/shop stock records?
-- Which acquisition method is best for each next enabled source: Tesco static/location HTML, Lidl PDF/brochure discovery, SPAR brochure viewer/PDF, or another source-specific approach?
+- How should processors choose current/collated stock prices from multiple price observations without hiding coupon or loyalty restrictions?
+- What compact admin view is enough to review processed product/source/price records before broader source acquisition?
+- Which acquisition method is best for each later source: Lidl PDF/brochure discovery, SPAR brochure viewer/PDF, Tesco catalogue/PDF, or another documented/approved source-specific path?
 - Runtime: TypeScript/Playwright, lightweight fetch/parser, Python, or selective .NET reuse only as temporary reference tooling?
 - Which source fields should stay raw-only until real query needs justify promotion?
 

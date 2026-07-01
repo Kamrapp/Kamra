@@ -210,7 +210,7 @@ These findings are scouting and implementation notes, not legal/source approvals
   - The offer page did not expose product offer details cleanly in the fetched static text during the research pass; it looked more client-rendered or data-backed.
   - Robots disallowed some search/assets/numeric paths, but the checked offer and brochure paths were not obviously blocked from the fetched robots text.
 - Recommendation:
-  - Do not start here before the model revisit and Tesco/simple HTML-like source work.
+  - Do not start here before the processor pipeline and processed-offer UI are working.
   - Treat Lidl as a PDF/brochure discovery and extraction candidate, not a simple static product-offer page.
   - Investigate linked flyer viewer/download behavior and source policy before coding the crawler.
 
@@ -219,22 +219,19 @@ These findings are scouting and implementation notes, not legal/source approvals
 - Candidate base path: `https://www.tesco.hu/akciok/akcios-termekek`
 - Initial location URL: `https://www.tesco.hu/akciok/akcios-termekek/tesco-szupermarket-zirc`
 - Quick check date: 2026-07-01.
-- Planned source:
-  - Source name: likely `tesco-hu-offers`.
-  - Acquisition method: public location-tagged offers page, preferably static/rendered page parsing before any PDF or internal API work.
-  - Initial location tag: `tesco-szupermarket-zirc`.
-- Data to capture if visible:
-  - Product display name and source product key/id.
-  - Normal/base price.
-  - Clubcard price as a separate loyalty-card price observation with the program name captured.
-  - Unit-price text.
-  - Validity window or promotion labels.
-  - Configured `locationTag`, source URL, country code `HU`, currency `HUF`, parser metadata, and raw snippets for debugging.
-  - GTIN/common product codes only if explicitly exposed.
+- Catalog path checked: `https://www.tesco.hu/akciok/katalogusok`
+- API/feed check date: 2026-07-01.
+- Findings:
+  - No documented public Tesco Hungary product/offers API or feed was found.
+  - The location-tagged offers page returned HTTP 403 from the crawler runner.
+  - The Tesco Hungary homepage and catalog page expose public catalogue/leaflet navigation.
+  - The catalog page lists current/upcoming hypermarket and supermarket leaflets with online viewing and download affordances.
+  - `bevasarlas.tesco.hu` is an online grocery application, but no public API documentation was found. Treat app endpoints as internal/public-app APIs unless Tesco documents or permits them.
 - Recommendation:
-  - Good next real-source candidate before Lidl because the source is location-tagged and should exercise multiple price kinds without requiring PDF parsing first.
-  - Keep the location tag configurable in source/workflow configuration rather than hard-coding `tesco-szupermarket-zirc` into parser logic.
-  - Do not merge Tesco products across shops unless GTIN/common identifiers match or the normalized product name is an exact complete match.
+  - Defer Tesco live product crawling.
+  - Do not attempt header, IP, geolocation, or browser-fingerprint bypasses for the 403.
+  - Revisit Tesco later as a brochure/PDF/catalogue source if the public catalogue media can be fetched normally or if Tesco provides permission/API documentation.
+  - If Tesco returns later, keep Clubcard prices as `loyalty_card` observations with `programName: "Clubcard"` rather than default prices.
 
 ## Implemented Real Source Order
 
@@ -243,9 +240,11 @@ After the synthetic sources are implemented and reviewed, the current real-sourc
 1. PENNY public offers page: strongest first source for parseable current offers.
 2. ALDI public offers page: useful second source, especially for validity windows, unit prices, and item numbers, but primary price coverage may be incomplete.
 3. COOP public offers page: small/noisy backup source, useful for source diversity and parser hardening.
-4. Tesco Zirc supermarket offers page: next planned source after the model revisit because it should expose location-tagged offers and Clubcard prices.
-5. Revisit Lidl when the project is ready for brochure/PDF parsing, browser automation, or source-specific API research.
-6. Revisit SPAR through `spar.hu/ajanlatok` brochures after the PDF/brochure path is proven.
+4. Processor pipeline for existing PENNY/ALDI/COOP snapshots before adding more sources.
+5. Compact processed-offer UI so crawled prices can be reviewed before broader acquisition.
+6. Revisit Lidl when the project is ready for brochure/PDF parsing, browser automation, or source-specific API research.
+7. Revisit SPAR through `spar.hu/ajanlatok` brochures after the PDF/brochure path is proven.
+8. Revisit Tesco as catalogue/PDF work only if public catalogue media or explicit API/permission is available.
 
 ## Cross-Source Comparison Caveats
 
