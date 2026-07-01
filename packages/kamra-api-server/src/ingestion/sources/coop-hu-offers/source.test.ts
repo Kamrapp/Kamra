@@ -21,6 +21,14 @@ describe("COOP HU offers source", () => {
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({
       countryCode: "HU",
+      crawlContext: [
+        "Pannónia sajt szeletelt",
+        "999 Ft/db",
+        "1 998 Ft/kg",
+        "KUPONOS ÁR!",
+        "899 Ft/db",
+        "1 798 Ft/kg"
+      ].join("\n"),
       displayName: "Pannónia sajt szeletelt",
       priceText: "999 Ft/db",
       priceValue: 999,

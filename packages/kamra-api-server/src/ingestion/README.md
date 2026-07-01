@@ -31,6 +31,7 @@ Ingestion is separate from catalog:
 - Keep shop-specific parsing inside source adapters.
 - Keep processor assumptions out of source parsers where practical.
 - Processors must tolerate older snapshots with missing richer fields and use as much source data as is available.
+- Populate `crawlContext` with the closest per-product source block when available: the product card HTML/text, structured product object, or rendered-text offer window. Treat it as investigation context, not normalized processor input.
 - Preserve enough metadata for traceability: source name, source record id, crawl run id, crawl date, parser name/version, content hash, and capture time.
 
 ## Validation

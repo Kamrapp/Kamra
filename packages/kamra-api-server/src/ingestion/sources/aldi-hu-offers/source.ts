@@ -5,7 +5,7 @@ import type { ParsedShopProductRow } from "../../v1/contracts.js";
 export const aldiHuOffersSourceName = "aldi-hu-offers";
 export const aldiHuOffersWorkflowName = "aldi-hu-offers-crawl";
 export const aldiHuOffersParserName = "aldi-hu-offers-visible-text-parser";
-export const aldiHuOffersParserVersion = "0.2.1";
+export const aldiHuOffersParserVersion = "0.3.0";
 export const aldiHuOffersUrl = "https://www.aldi.hu/szuper-akciok-mindennap";
 
 interface AldiHuOffersPayload {
@@ -20,6 +20,7 @@ interface AldiValidityWindow {
 }
 
 interface ParsedAldiOfferDraft {
+  crawlContext: string | null;
   description: string | null;
   displayName: string;
   itemNumbers: string[];
@@ -66,7 +67,6 @@ export function parseAldiHuOffersText(visibleText: string, observedAt: string): 
       continue;
     }
 
-
     const validity = parseValidityWindow(line);
 
     if (validity) {
@@ -93,6 +93,7 @@ export function parseAldiHuOffersText(visibleText: string, observedAt: string): 
     const sourceRecordId = createSourceRecordId(itemNumbers, displayName, activeValidity);
 
     rows.push({
+      crawlContext: extractCrawlContext(lines, index),
       description,
       displayName,
       itemNumbers,
@@ -288,6 +289,15 @@ function extractPrimaryPriceText(line: string): string | null {
   return `${price.replace(/\s+/g, " ").trim()} Ft`;
 }
 
+function extractCrawlContext(lines: string[], itemNumberLineIndex: number): string | null {
+  const contextLines = lines.slice(
+    Math.max(0, itemNumberLineIndex - 6),
+    Math.min(lines.length, itemNumberLineIndex + 4)
+  );
+
+  return contextLines.length > 0 ? contextLines.join("\n") : null;
+}
+
 function parseHungarianPriceNumber(priceText: string): number | null {
   const normalized = priceText.replace(/Ft/gi, "").replace(/\s/g, "").replace(",", ".").trim();
   const value = Number(normalized);
@@ -340,6 +350,7 @@ function toParsedShopProductRow(draft: ParsedAldiOfferDraft): ParsedShopProductR
     sourceRecordId: draft.sourceRecordId,
     sourceProductKey: draft.itemNumbers[0],
     observedAt: draft.observedAt,
+    crawlContext: draft.crawlContext,
     displayName: draft.displayName,
     rawName: draft.displayName,
     description: draft.description,

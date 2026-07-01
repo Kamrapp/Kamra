@@ -96,68 +96,68 @@ const noOfferSourceKey = "__none__";
 
         @if (products().length) {
           <section class="offer-table surface-panel" aria-label="Product offer table">
-            <div class="table-head" role="row" [style.grid-template-columns]="columnTemplate()">
-              @for (column of tableColumns; track column.key) {
-                <span class="column-header" role="columnheader">
-                  {{ column.label }}
-                  <button
-                    class="column-resize-handle"
-                    type="button"
-                    title="Resize column"
-                    [attr.aria-label]="'Resize ' + column.label + ' column'"
-                    (pointerdown)="startColumnResize($event, column.key)"
-                  ></button>
-                </span>
-              }
-            </div>
-
-            <div
-              class="table-viewport"
-              role="table"
-              [style.--row-height]="rowHeight + 'px'"
-              [style.--table-width]="tableWidth() + 'px'"
-              (scroll)="onTableScroll($event)"
-            >
-              <div class="table-spacer" [style.height.px]="tableHeight()">
-                @for (row of visibleRows(); track row.product.id) {
-                  <article
-                    class="product-row"
-                    role="row"
-                    [style.grid-template-columns]="columnTemplate()"
-                    [style.transform]="'translateY(' + row.offset + 'px)'"
-                  >
-                    <div class="product-main" role="cell">
-                      <p class="row-title">{{ row.product.name }}</p>
-                      <p class="row-muted">
-                        {{ row.product.brandName || "unbranded" }} · {{ formatMeasurements(row.product.measurements) }}
-                      </p>
-                      <p class="row-muted">{{ row.product.primaryCategoryKey || "uncategorized" }}</p>
-                    </div>
-
-                    <div class="price-cell" role="cell">
-                      @for (price of priceChips(row.product); track price) {
-                        <span class="price-chip">{{ price }}</span>
-                      } @empty {
-                        <span class="quiet-chip">no price yet</span>
-                      }
-                    </div>
-
-                    <div class="source-cell" role="cell">
-                      <p class="row-strong">{{ filteredOffers(row.product).length }} offers · {{ filteredSourceNames(row.product).length }} sources</p>
-                      <p class="row-muted">{{ formatSources(row.product) }}</p>
-                      <p class="row-muted">{{ formatOfferNames(row.product) }}</p>
-                    </div>
-
-                    <div class="identifier-cell" role="cell">
-                      <p class="row-muted">{{ formatIdentifiers(row.product) }}</p>
-                    </div>
-
-                    <div class="state-cell" role="cell">
-                      <p class="row-strong">{{ formatLatestObserved(row.product) }}</p>
-                      <p class="row-muted">{{ row.product.householdStockCount }} household · {{ row.product.tagKeys.length }} tags</p>
-                    </div>
-                  </article>
+            <div class="table-x-scroll" role="table" [style.--table-width]="tableWidth() + 'px'">
+              <div class="table-head" role="row" [style.grid-template-columns]="columnTemplate()">
+                @for (column of tableColumns; track column.key) {
+                  <span class="column-header" role="columnheader">
+                    {{ column.label }}
+                    <button
+                      class="column-resize-handle"
+                      type="button"
+                      title="Resize column"
+                      [attr.aria-label]="'Resize ' + column.label + ' column'"
+                      (pointerdown)="startColumnResize($event, column.key)"
+                    ></button>
+                  </span>
                 }
+              </div>
+
+              <div
+                class="table-viewport"
+                [style.--row-height]="rowHeight + 'px'"
+                (scroll)="onTableScroll($event)"
+              >
+                <div class="table-spacer" [style.height.px]="tableHeight()">
+                  @for (row of visibleRows(); track row.product.id) {
+                    <article
+                      class="product-row"
+                      role="row"
+                      [style.grid-template-columns]="columnTemplate()"
+                      [style.transform]="'translateY(' + row.offset + 'px)'"
+                    >
+                      <div class="product-main" role="cell">
+                        <p class="row-title">{{ row.product.name }}</p>
+                        <p class="row-muted">
+                          {{ row.product.brandName || "unbranded" }} · {{ formatMeasurements(row.product.measurements) }}
+                        </p>
+                        <p class="row-muted">{{ row.product.primaryCategoryKey || "uncategorized" }}</p>
+                      </div>
+
+                      <div class="price-cell" role="cell">
+                        @for (price of priceChips(row.product); track price) {
+                          <span class="price-chip">{{ price }}</span>
+                        } @empty {
+                          <span class="quiet-chip">no price yet</span>
+                        }
+                      </div>
+
+                      <div class="source-cell" role="cell">
+                        <p class="row-strong">{{ filteredOffers(row.product).length }} offers · {{ filteredSourceNames(row.product).length }} sources</p>
+                        <p class="row-muted">{{ formatSources(row.product) }}</p>
+                        <p class="row-muted">{{ formatOfferNames(row.product) }}</p>
+                      </div>
+
+                      <div class="identifier-cell" role="cell">
+                        <p class="row-muted">{{ formatIdentifiers(row.product) }}</p>
+                      </div>
+
+                      <div class="state-cell" role="cell">
+                        <p class="row-strong">{{ formatLatestObserved(row.product) }}</p>
+                        <p class="row-muted">{{ row.product.householdStockCount }} household · {{ row.product.tagKeys.length }} tags</p>
+                      </div>
+                    </article>
+                  }
+                </div>
               </div>
             </div>
           </section>
@@ -290,10 +290,16 @@ const noOfferSourceKey = "__none__";
         overflow: hidden;
       }
 
+      .table-x-scroll {
+        overflow-x: auto;
+      }
+
       .table-head,
       .product-row {
+        box-sizing: border-box;
         display: grid;
         gap: var(--space-3);
+        min-width: var(--table-width);
       }
 
       .table-head {
@@ -338,12 +344,14 @@ const noOfferSourceKey = "__none__";
       .table-viewport {
         height: min(64vh, 44rem);
         min-height: 24rem;
-        overflow: auto;
+        min-width: var(--table-width);
+        overflow-x: hidden;
+        overflow-y: auto;
         position: relative;
       }
 
       .table-spacer {
-        min-width: var(--table-width);
+        min-width: 100%;
         position: relative;
       }
 

@@ -36,6 +36,8 @@ describe("ALDI HU offers source", () => {
       ]
     });
     expect(rows[0]?.priceObservations).toEqual([]);
+    expect(rows[0]?.crawlContext).toContain("Magyar trappista sajt");
+    expect(rows[0]?.crawlContext).toContain("Cikkszám: 123456 / 789012");
   });
 
   it("uses the previous product heading when the item-number line is only a descriptor", () => {
@@ -59,6 +61,8 @@ describe("ALDI HU offers source", () => {
       sourceProductKey: "62908",
       unitPriceText: "239 Ft/l"
     });
+    expect(rows[0]?.crawlContext).toContain("MILSANI Laktózmentes UHT tej, 1 l/doboz");
+    expect(rows[0]?.crawlContext).toContain("1,5 % zsírtartalom");
     expect(rows[1]).toMatchObject({
       description: "citrom-lime ízű",
       displayName: "MUCCI Jégkrém, 900 ml/doboz",

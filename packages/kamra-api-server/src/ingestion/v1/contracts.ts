@@ -47,6 +47,7 @@ export interface ParsedShopProductIdentifier {
 export interface ParsedShopProductRow {
   categoryLabel?: string | null;
   countryCode: "HU";
+  crawlContext?: string | null;
   currency?: "HUF";
   description?: string | null;
   displayName: string;

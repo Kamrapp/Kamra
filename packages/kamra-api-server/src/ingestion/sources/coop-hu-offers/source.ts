@@ -5,7 +5,7 @@ import type { ParsedShopProductRow } from "../../v1/contracts.js";
 export const coopHuOffersSourceName = "coop-hu-offers";
 export const coopHuOffersWorkflowName = "coop-hu-offers-crawl";
 export const coopHuOffersParserName = "coop-hu-offers-visible-text-parser";
-export const coopHuOffersParserVersion = "0.2.0";
+export const coopHuOffersParserVersion = "0.3.0";
 export const coopHuOffersUrl = "https://www.coop.hu/akcios-termekek/";
 
 interface CoopHuOffersPayload {
@@ -412,6 +412,7 @@ function toParsedShopProductRow(draft: ParsedCoopHuOfferDraft): ParsedShopProduc
     sourceUrl: coopHuOffersUrl,
     sourceRecordId: draft.sourceRecordId,
     observedAt: draft.observedAt,
+    crawlContext: draft.rawText,
     displayName: draft.displayName,
     rawName: draft.displayName,
     description: draft.description,

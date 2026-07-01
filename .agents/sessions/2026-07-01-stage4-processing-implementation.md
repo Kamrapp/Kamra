@@ -5,7 +5,7 @@
 - Date: 2026-07-01
 - Plan: `.agents/plans/2026-06-23-stage-4-synthetic-crawler-intake-plan.md`
 - Branch: `dev/bg/sync`
-- Current objective: Finalize ALDI source parsing cleanup after product table offer filters/resizing.
+- Current objective: Finalize product table horizontal header scrolling and crawler debug context capture.
 
 ## Completed
 
@@ -80,6 +80,29 @@
   - `35055` -> `HÚSMESTER Friss darált sertéshús, 500 g/tálca`
   - `737294` -> `MUCCI Jégkrém, 900 ml/doboz`
   - `846186` -> `KING’S CROWN Fehér bab, 800 g (530 g)/doboz`
+- Committed ALDI parser cleanup as `02f39ea` (`Fix ALDI offer product name parsing`).
+- Fixed the virtual product table so horizontal scrolling applies to both the header and body; the body still owns vertical scrolling for row virtualization.
+- Added optional parsed-row `crawlContext` for future crawler investigations.
+- Populated `crawlContext` for current crawlers:
+  - simple HTML table source stores the raw product `<tr>`
+  - PENNY stores the resolved per-product Nuxt object as formatted text
+  - ALDI stores the nearby rendered-text offer window
+  - COOP stores the parsed offer text block
+- Bumped parser versions for the `crawlContext` output shape:
+  - simple HTML table `1.1.0`
+  - PENNY `0.2.0`
+  - ALDI `0.3.0`
+  - COOP `0.3.0`
+- Committed table/crawler context update as `1b2695b` (`Preserve crawler offer context`).
+- Investigated apparent no-source products including `ACTIVE COLOR MOSÓGÉL`, `LENOR SENSITIVE ÖBLÍTŐ DUOPACK`, and `MÁTYÁS KENYERE`.
+- Confirmed those names were valid PENNY raw crawler rows with source product keys, but stale catalog products remained from the pre-package-aware processor product id shape.
+- Cleaned `kamra_dev` catalog-side stale no-source artifacts only:
+  - deleted 22 no-source PENNY processor products
+  - deleted 40 stale price observations attached to those old product ids
+  - deleted no raw ingestion snapshots or current product source records
+- Verified active no-source products are now 0 and price observation product ids match their product source product ids.
+- Updated ingestion package docs to describe `crawlContext` as debug context, not normalized processor input.
+- Added parser tests asserting source rows preserve useful crawl context.
 
 ## Changed Files
 
@@ -100,6 +123,13 @@
 - `src/app/product-lookup/product-catalog.component.ts`
 - `packages/kamra-api-server/src/ingestion/sources/aldi-hu-offers/source.ts`
 - `packages/kamra-api-server/src/ingestion/sources/aldi-hu-offers/source.test.ts`
+- `packages/kamra-api-server/src/ingestion/v1/contracts.ts`
+- `packages/kamra-api-server/src/ingestion/sources/coop-hu-offers/source.ts`
+- `packages/kamra-api-server/src/ingestion/sources/coop-hu-offers/source.test.ts`
+- `packages/kamra-api-server/src/ingestion/sources/penny-hu-offers/source.ts`
+- `packages/kamra-api-server/src/ingestion/sources/penny-hu-offers/source.test.ts`
+- `packages/kamra-api-server/src/ingestion/sources/simple-html-table-shop/source.ts`
+- `packages/kamra-api-server/src/ingestion/sources/simple-html-table-shop/source.test.ts`
 
 ## Validation
 
@@ -159,6 +189,26 @@
 - Result: passed; catalog counts included 186 price observations, 315 source identifiers, 182 product sources, 197 products, 18 processing states, 182 stocks.
 - Ran targeted ALDI catalog verification.
 - Result: bad descriptor-only product names were absent; all 5 ALDI raw snapshots reported parser `0.2.1`.
+- Ran crawler context/table validation: `npm test -- packages/kamra-api-server/src/ingestion/sources packages/kamra-api-server/src/ingestion/processing`
+- Result: passed, 5 files / 15 tests.
+- Ran crawler context/table validation: `npm run typecheck`
+- Result: passed.
+- Ran crawler context/table validation: `npm run build:web`
+- Result: passed.
+- Ran crawler context/table validation: `git -c safe.directory=D:/Code/Kamra diff --check`
+- Result: passed.
+- Ran no-source product investigation query for `ACTIVE COLOR MOSÓGÉL`, `LENOR SENSITIVE ÖBLÍTŐ DUOPACK`, and `MÁTYÁS KENYERE`.
+- Result: all three were present in PENNY raw snapshots and had current source-connected `_darab` product ids plus stale no-source product ids from older processing.
+- Ran catalog cleanup query for no-source PENNY processor products.
+- Result: deleted 22 products and 40 price observations; deleted 0 stocks and 0 tag assignments.
+- Ran targeted cleanup verification.
+- Result: the three named products now exist only as source-connected PENNY products; mismatched price/source product id count is 0.
+- Ran broad active no-source product scan.
+- Result: active no-source product count is 0.
+- Ran post-cleanup DB processed-side validation: `npm run validate:processed-ingestion`
+- Result: passed; 0 missing processed states and 0 failed states.
+- Ran post-cleanup DB catalog smoke: `npm run smoke:catalog`
+- Result: passed; catalog counts included 146 price observations, 315 source identifiers, 182 product sources, 175 products, 18 processing states, 182 stocks.
 
 ## Decisions
 
@@ -172,6 +222,10 @@
 - Reason: It proves source/location availability without collapsing offer/coupon/loyalty observations into one misleading current stock price.
 - Decision: Processor state fingerprint uses the raw snapshot `contentHash`; deterministic IDs include source name, source record id/key, observed time, and price kind where applicable.
 - Reason: Reprocessing the same snapshot with the same processor version should upsert the same records instead of duplicating output.
+- Decision: `crawlContext` is optional and source-owned.
+- Reason: Older snapshots must keep working, and processors should use normalized fields rather than debug-only source context.
+- Decision: Do not delete raw PENNY ingestion rows for the no-source cleanup.
+- Reason: The raw crawler rows were valid source truth; only stale processed catalog products had lost source links after processor identity changed.
 
 ## Open Issues
 
@@ -185,6 +239,8 @@
 - Impact: UI was validated by typecheck/build/tests, but not visually inspected in browser during this session.
 - Issue: ALDI parser cleanup updated existing dev raw snapshots and processed catalog records manually.
 - Impact: This is correct for the current dev database; repeat the reparse/reprocess workflow if another database contains ALDI snapshots parsed before version `0.2.1`.
+- Issue: `validate:processed-ingestion` did not catch stale no-source products or price observations whose `productId` differed from their `productSourceId` record's `productId`.
+- Impact: Add this consistency check before relying on the validator as a full processed-catalog integrity check.
 
 ## Roadmap Or Plan Updates
 
@@ -193,7 +249,7 @@
 
 ## Next Step
 
-Commit the ALDI parser cleanup as a separate commit. Then continue Stage 4 processing/UI work from the active plan.
+Add processed-catalog consistency checks for source-connected products and price/source product id mismatches, then continue Stage 4 processing/UI work from the active plan.
 
 ## Notes For Future Agent
 

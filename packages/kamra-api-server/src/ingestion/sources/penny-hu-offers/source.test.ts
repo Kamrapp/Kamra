@@ -30,6 +30,7 @@ describe("PENNY HU offers source", () => {
       {
         categoryLabel: "Friss húsok",
         countryCode: "HU",
+        crawlContext: expect.stringContaining('"sku": "86-100016"'),
         displayName: "GRILLKOLBÁSZ MIX",
         packageLabel: "darab",
         priceObservations: [

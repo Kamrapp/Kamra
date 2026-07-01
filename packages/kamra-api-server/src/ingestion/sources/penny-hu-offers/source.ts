@@ -5,7 +5,7 @@ import type { ParsedShopProductIdentifier, ParsedShopProductRow } from "../../v1
 export const pennyHuOffersSourceName = "penny_hu_offers";
 export const pennyHuOffersWorkflowName = "penny-hu-offers";
 export const pennyHuOffersParserName = "PennyHuOffersParser";
-export const pennyHuOffersParserVersion = "0.1.0";
+export const pennyHuOffersParserVersion = "0.2.0";
 export const pennyHuOffersUrl = "https://www.penny.hu/ajanlatok";
 
 type NuxtValue = null | boolean | number | string | NuxtValue[] | { [key: string]: NuxtValue };
@@ -116,6 +116,7 @@ function toParsedRow(product: PennyProduct, observedAt: string): ParsedShopProdu
   return {
     categoryLabel: product.category ?? null,
     countryCode: "HU",
+    crawlContext: JSON.stringify(product, null, 2),
     displayName,
     packageLabel: product.packageLabel ?? "darab",
     priceObservations: [
