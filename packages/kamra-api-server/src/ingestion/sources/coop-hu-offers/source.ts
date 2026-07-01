@@ -396,5 +396,5 @@ function toParsedShopProductRow(draft: ParsedCoopHuOfferDraft): ParsedShopProduc
       rawText: draft.rawText,
       validityLabel: draft.validityLabel
     }
-  } as unknown as ParsedShopProductRow;
+  };
 }

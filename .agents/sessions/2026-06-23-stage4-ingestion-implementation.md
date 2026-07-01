@@ -20,6 +20,8 @@ Continue Stage 4 from raw ingestion toward processed catalog output. The immedia
 - Multiple concurrent prices must remain separate: base/shelf price, dated offer price, coupon price, and Clubcard-like loyalty price.
 - Source-local shop identifiers belong on source/shop records or stock/offer metadata, not on canonical products. GTIN/common codes may be promoted to canonical identity when clearly provided.
 - Cross-shop product merging should be conservative: GTIN/common code first, exact normalized name only when it is a complete match, otherwise keep records separate or create future merge candidates.
+- Model decision on 2026-07-01: use dedicated catalog collections for processed `price_observations` and `product_source_identifiers`. Keep old `stocks.price` as an optional current/collated convenience and avoid changing existing validated `product_sources`/`stocks` document shapes until a privileged migration path exists.
+- Atlas `kamra_dev` user cannot run `collMod`, so schema changes to non-empty validated collections must either use new collections, a privileged migration, or a deliberate collection rebuild plan.
 
 ## Changed Files In This Session
 
@@ -66,6 +68,15 @@ Continue Stage 4 from raw ingestion toward processed catalog output. The immedia
 - The PENNY `experimental` labeling is an approval-state note, not a legal-issue finding; source-policy and terms review still apply before any wider rollout.
 - ALDI and COOP raw ingestion scripts/workflows are present as of the 2026-07-01 documentation sync. Revalidate current run counts against MongoDB before using them for model decisions.
 - 2026-07-01 quick source check found Lidl's brochure page listing current/upcoming flyer links, Tesco's Zirc supermarket URL as the planned simpler next source, and SPAR's `ajanlatok` page listing viewable/downloadable brochures.
+- 2026-07-01 Mongo query against `kamra_dev` found raw ingestion snapshots for `penny_hu_offers`, `aldi-hu-offers`, `coop-hu-offers`, and one older `coop-offers` source name. Latest sample rows confirmed PENNY uses `priceObservations`, while ALDI/COOP used richer flattened source-specific fields.
+- 2026-07-01 model validation completed:
+  - `npm run contracts:catalog`
+  - `npm test -- packages/kamra-api-server/src/catalog packages/kamra-api-server/src/ingestion`
+  - `npx tsc -p tsconfig.api.json --noEmit`
+  - `npm run smoke:catalog`
+  - `npm run seed`
+  - final `npm run smoke:catalog`
+- Final `kamra_dev` catalog smoke counts included `price_observations: 2` and `product_source_identifiers: 3`.
 
 ## Known Followups
 

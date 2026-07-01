@@ -31,6 +31,8 @@ export interface ParsedShopPriceObservation {
   currencyCode: "HUF";
   observedAt: string;
   price: number;
+  priceKind?: "base" | "coupon" | "loyalty_card" | "offer" | "old";
+  programName?: string | null;
   unitPriceLabel?: string | null;
   validFrom?: string | null;
   validTo?: string | null;
@@ -39,15 +41,28 @@ export interface ParsedShopPriceObservation {
 export interface ParsedShopProductRow {
   categoryLabel?: string | null;
   countryCode: "HU";
+  currency?: "HUF";
+  description?: string | null;
   displayName: string;
-  packageLabel: string;
-  priceObservations: ParsedShopPriceObservation[];
-  sourceProductKey: string;
-  stock: {
+  metadata?: Record<string, unknown>;
+  observedAt?: string;
+  packageLabel?: string | null;
+  priceObservations?: ParsedShopPriceObservation[];
+  priceText?: string | null;
+  priceValue?: number | null;
+  rawName?: string | null;
+  sourceName?: string;
+  sourceProductKey?: string;
+  sourceRecordId?: string;
+  sourceUrl?: string;
+  stock?: {
     availability: "infinite";
     countryCode: "HU";
   };
-  storeBrandKey: string;
+  storeBrandKey?: string;
+  unitPriceText?: string | null;
+  validFrom?: string | null;
+  validTo?: string | null;
 }
 
 export interface IngestionRawSnapshotRecord extends CrawlRunIdentity {

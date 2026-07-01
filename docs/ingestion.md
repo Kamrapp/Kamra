@@ -21,6 +21,8 @@ Implemented:
 - parsed source rows with product identity, stock availability, and separate price observations
 - `ingestion_runs`
 - `ingestion_raw_snapshots`
+- processed `price_observations` catalog collection for historical/source price records
+- processed `product_source_identifiers` catalog collection for retailer-local ids and future GTIN/common ids
 - same-day source-record idempotency
 - cleanup by crawl run id
 - manual and nightly Smoke workflow for synthetic ingestion
@@ -30,10 +32,10 @@ Not implemented yet:
 
 - `SimplePdfShop`
 - processing snapshots into catalog products/stocks
-- dedicated processed price-history collection
+- processors that write crawler rows into processed `price_observations`
 - production-approved real shop crawling
 - strict Mongo JSON schema validation for ingestion collections
-- a revised parsed-row contract for richer real-source metadata and multiple price kinds
+- strict validation for richer real-source parsed rows
 
 ## Run Identity
 
@@ -68,6 +70,10 @@ This is deliberately simple. A later batching design can decide whether changed 
 Crawler output keeps price observations separate from source product identity.
 
 Products may stay stable while prices change over time. The crawler should therefore emit a stable `sourceProductKey` plus one or more `priceObservations`. The later processor decides how observations become catalog stock prices or a dedicated price-history collection.
+
+The catalog model now has a dedicated `price_observations` collection. `stocks.price` remains a compact current/collated value for query convenience; it is not the full price history.
+
+Retailer-local item ids should be written to `product_source_identifiers` during processing. GTIN or other common identifiers may use the same collection, but only when the source clearly exposes them.
 
 ## Local Commands
 

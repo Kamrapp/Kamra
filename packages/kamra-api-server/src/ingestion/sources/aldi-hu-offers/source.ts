@@ -313,5 +313,5 @@ function toParsedShopProductRow(draft: ParsedAldiOfferDraft): ParsedShopProductR
       priceCaptureStatus: draft.priceText ? "primary-price-text-found" : "primary-price-text-not-found",
       validityLabel: draft.validityLabel
     }
-  } as unknown as ParsedShopProductRow;
+  };
 }

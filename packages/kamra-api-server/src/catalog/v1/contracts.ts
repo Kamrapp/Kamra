@@ -1,5 +1,7 @@
 export const catalogV1CollectionNames = [
   "migration_ledger",
+  "price_observations",
+  "product_source_identifiers",
   "product_sources",
   "product_tag_assignments",
   "product_tags",
@@ -25,6 +27,9 @@ export type StockLocationKind = (typeof stockLocationKinds)[number];
 
 export const stockStatuses = ["active", "inactive"] as const;
 export type StockStatus = (typeof stockStatuses)[number];
+
+export const priceObservationKinds = ["base", "coupon", "loyalty_card", "offer", "old"] as const;
+export type PriceObservationKind = (typeof priceObservationKinds)[number];
 
 export const tagKinds = ["attribute", "category", "keyword"] as const;
 export type TagKind = (typeof tagKinds)[number];
@@ -94,6 +99,17 @@ export interface ProductSourceRecord {
   updatedAt: string;
 }
 
+export interface ProductSourceIdentifierRecord {
+  createdAt: string;
+  id: string;
+  kind: "gtin" | "national_code" | "retailer_item_number" | "retailer_product_id" | "unknown";
+  origin: RecordOrigin;
+  productSourceId: string;
+  sourceName: string;
+  updatedAt: string;
+  value: string;
+}
+
 export interface ProductTagRecord {
   createdAt: string;
   id: string;
@@ -155,6 +171,25 @@ export interface StockRecord {
   updatedAt: string;
 }
 
+export interface PriceObservationRecord {
+  createdAt: string;
+  id: string;
+  location: StockLocationReference;
+  observedAt: string;
+  origin: RecordOrigin;
+  price: MoneyAmount;
+  priceKind: PriceObservationKind;
+  productId: string;
+  productSourceId: string;
+  programName?: string | null;
+  sourceName: string;
+  sourceProductKey: string;
+  unitPriceLabel?: string | null;
+  updatedAt: string;
+  validFrom?: string | null;
+  validTo?: string | null;
+}
+
 export interface SourceRecordProcessingStateRecord {
   attemptCount: number;
   createdAt: string;
@@ -183,6 +218,8 @@ export interface MigrationLedgerRecord {
 
 export interface CatalogV1SeedDataset {
   migrationLedger: MigrationLedgerRecord[];
+  priceObservations: PriceObservationRecord[];
+  productSourceIdentifiers: ProductSourceIdentifierRecord[];
   productSources: ProductSourceRecord[];
   productTagAssignments: ProductTagAssignmentRecord[];
   productTags: ProductTagRecord[];

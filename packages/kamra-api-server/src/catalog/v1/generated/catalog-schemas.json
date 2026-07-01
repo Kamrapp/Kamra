@@ -51,6 +51,290 @@
         "status"
       ]
     },
+    "price_observations": {
+      "additionalProperties": false,
+      "bsonType": "object",
+      "properties": {
+        "_id": {
+          "bsonType": "objectId"
+        },
+        "createdAt": {
+          "bsonType": "string",
+          "description": "ISO date string"
+        },
+        "id": {
+          "bsonType": "string"
+        },
+        "location": {
+          "additionalProperties": false,
+          "bsonType": "object",
+          "properties": {
+            "_id": {
+              "bsonType": "objectId"
+            },
+            "countryCode": {
+              "bsonType": [
+                "null",
+                "string"
+              ]
+            },
+            "kind": {
+              "enum": [
+                "global_shop_availability",
+                "household",
+                "shop_site"
+              ]
+            },
+            "label": {
+              "bsonType": "string"
+            },
+            "locationKey": {
+              "bsonType": "string"
+            },
+            "storeBrandKey": {
+              "bsonType": [
+                "null",
+                "string"
+              ]
+            }
+          },
+          "required": [
+            "kind",
+            "label",
+            "locationKey"
+          ]
+        },
+        "observedAt": {
+          "bsonType": "string",
+          "description": "ISO date string"
+        },
+        "origin": {
+          "additionalProperties": false,
+          "bsonType": "object",
+          "properties": {
+            "_id": {
+              "bsonType": "objectId"
+            },
+            "capturedAt": {
+              "bsonType": "string",
+              "description": "ISO date string"
+            },
+            "kind": {
+              "enum": [
+                "crawler",
+                "manual",
+                "processor",
+                "seed"
+              ]
+            },
+            "producer": {
+              "bsonType": "string"
+            },
+            "sourceName": {
+              "bsonType": "string"
+            },
+            "sourceRecordId": {
+              "bsonType": [
+                "null",
+                "string"
+              ]
+            },
+            "sourceUrl": {
+              "bsonType": [
+                "null",
+                "string"
+              ]
+            }
+          },
+          "required": [
+            "capturedAt",
+            "kind",
+            "producer",
+            "sourceName"
+          ]
+        },
+        "price": {
+          "additionalProperties": false,
+          "bsonType": "object",
+          "properties": {
+            "_id": {
+              "bsonType": "objectId"
+            },
+            "amount": {
+              "bsonType": [
+                "double",
+                "int",
+                "long",
+                "decimal"
+              ]
+            },
+            "currencyCode": {
+              "bsonType": "string"
+            }
+          },
+          "required": [
+            "amount",
+            "currencyCode"
+          ]
+        },
+        "priceKind": {
+          "enum": [
+            "base",
+            "coupon",
+            "loyalty_card",
+            "offer",
+            "old"
+          ]
+        },
+        "productId": {
+          "bsonType": "string"
+        },
+        "productSourceId": {
+          "bsonType": "string"
+        },
+        "programName": {
+          "bsonType": [
+            "null",
+            "string"
+          ]
+        },
+        "sourceName": {
+          "bsonType": "string"
+        },
+        "sourceProductKey": {
+          "bsonType": "string"
+        },
+        "unitPriceLabel": {
+          "bsonType": [
+            "null",
+            "string"
+          ]
+        },
+        "updatedAt": {
+          "bsonType": "string",
+          "description": "ISO date string"
+        },
+        "validFrom": {
+          "bsonType": [
+            "null",
+            "string"
+          ]
+        },
+        "validTo": {
+          "bsonType": [
+            "null",
+            "string"
+          ]
+        }
+      },
+      "required": [
+        "createdAt",
+        "id",
+        "location",
+        "observedAt",
+        "origin",
+        "price",
+        "priceKind",
+        "productId",
+        "productSourceId",
+        "sourceName",
+        "sourceProductKey",
+        "updatedAt"
+      ]
+    },
+    "product_source_identifiers": {
+      "additionalProperties": false,
+      "bsonType": "object",
+      "properties": {
+        "_id": {
+          "bsonType": "objectId"
+        },
+        "createdAt": {
+          "bsonType": "string",
+          "description": "ISO date string"
+        },
+        "id": {
+          "bsonType": "string"
+        },
+        "kind": {
+          "enum": [
+            "gtin",
+            "national_code",
+            "retailer_item_number",
+            "retailer_product_id",
+            "unknown"
+          ]
+        },
+        "origin": {
+          "additionalProperties": false,
+          "bsonType": "object",
+          "properties": {
+            "_id": {
+              "bsonType": "objectId"
+            },
+            "capturedAt": {
+              "bsonType": "string",
+              "description": "ISO date string"
+            },
+            "kind": {
+              "enum": [
+                "crawler",
+                "manual",
+                "processor",
+                "seed"
+              ]
+            },
+            "producer": {
+              "bsonType": "string"
+            },
+            "sourceName": {
+              "bsonType": "string"
+            },
+            "sourceRecordId": {
+              "bsonType": [
+                "null",
+                "string"
+              ]
+            },
+            "sourceUrl": {
+              "bsonType": [
+                "null",
+                "string"
+              ]
+            }
+          },
+          "required": [
+            "capturedAt",
+            "kind",
+            "producer",
+            "sourceName"
+          ]
+        },
+        "productSourceId": {
+          "bsonType": "string"
+        },
+        "sourceName": {
+          "bsonType": "string"
+        },
+        "updatedAt": {
+          "bsonType": "string",
+          "description": "ISO date string"
+        },
+        "value": {
+          "bsonType": "string"
+        }
+      },
+      "required": [
+        "createdAt",
+        "id",
+        "kind",
+        "origin",
+        "productSourceId",
+        "sourceName",
+        "updatedAt",
+        "value"
+      ]
+    },
     "product_sources": {
       "additionalProperties": false,
       "bsonType": "object",

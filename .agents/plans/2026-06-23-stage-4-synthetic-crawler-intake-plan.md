@@ -331,6 +331,15 @@ Status: Completed.
 
 ### Step 4: Revisit Product, Source Product, Stock, And Price Models
 
+Status: Completed for the first processor-ready slice on 2026-07-01.
+
+Decision:
+
+- Add processed `price_observations` for historical/source prices.
+- Add processed `product_source_identifiers` for retailer-local ids and future GTIN/common ids.
+- Keep `stocks.price` as a compact current/collated convenience.
+- Avoid changing existing non-empty validated collection shapes until a privileged migration/rebuild path exists, because the current Atlas user cannot run `collMod`.
+
 - Goal: Adjust catalog and ingestion contracts before adding more crawlers so current and future sources can represent multiple shops, locations, stock scopes, identifiers, and simultaneous price kinds without lossy casts.
 - Include:
   - multiple price observations per source product/location

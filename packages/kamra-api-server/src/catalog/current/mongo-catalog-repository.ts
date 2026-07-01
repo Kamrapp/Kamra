@@ -3,7 +3,9 @@ import type { AnyBulkWriteOperation, Collection, Db, Document, Filter } from "mo
 import type {
   CatalogProductListItem,
   MigrationLedgerRecord,
+  PriceObservationRecord,
   ProductRecord,
+  ProductSourceIdentifierRecord,
   ProductSourceRecord,
   ProductTagAssignmentRecord,
   ProductTagRecord,
@@ -25,11 +27,41 @@ const collectionPlans: CollectionIndexPlan[] = [
   {
     indexes: [
       {
+        key: { productId: 1, observedAt: -1 },
+        options: { name: "price_observations_product_observed_at" }
+      },
+      {
+        key: { productSourceId: 1, priceKind: 1, observedAt: -1 },
+        options: { name: "price_observations_source_kind_observed_at" }
+      },
+      {
+        key: { sourceName: 1, sourceProductKey: 1, observedAt: -1 },
+        options: { name: "price_observations_source_product_observed_at" }
+      }
+    ],
+    name: "price_observations"
+  },
+  {
+    indexes: [
+      {
         key: { migrationId: 1 },
         options: { name: "migration_ledger_migration_id_unique", unique: true }
       }
     ],
     name: "migration_ledger"
+  },
+  {
+    indexes: [
+      {
+        key: { productSourceId: 1, kind: 1, value: 1 },
+        options: { name: "product_source_identifiers_source_kind_value_unique", unique: true }
+      },
+      {
+        key: { sourceName: 1, kind: 1, value: 1 },
+        options: { name: "product_source_identifiers_source_value" }
+      }
+    ],
+    name: "product_source_identifiers"
   },
   {
     indexes: [
@@ -126,6 +158,8 @@ export interface CurrentCatalogSmokeCheckResult {
 
 export class MongoCurrentCatalogRepository {
   private readonly migrationLedgerCollection: Collection<MigrationLedgerRecord>;
+  private readonly priceObservationsCollection: Collection<PriceObservationRecord>;
+  private readonly productSourceIdentifiersCollection: Collection<ProductSourceIdentifierRecord>;
   private readonly productSourcesCollection: Collection<ProductSourceRecord>;
   private readonly productTagAssignmentsCollection: Collection<ProductTagAssignmentRecord>;
   private readonly productTagsCollection: Collection<ProductTagRecord>;
@@ -135,6 +169,10 @@ export class MongoCurrentCatalogRepository {
 
   constructor(private readonly database: Db) {
     this.migrationLedgerCollection = database.collection<MigrationLedgerRecord>("migration_ledger");
+    this.priceObservationsCollection = database.collection<PriceObservationRecord>("price_observations");
+    this.productSourceIdentifiersCollection = database.collection<ProductSourceIdentifierRecord>(
+      "product_source_identifiers"
+    );
     this.productSourcesCollection = database.collection<ProductSourceRecord>("product_sources");
     this.productTagAssignmentsCollection = database.collection<ProductTagAssignmentRecord>("product_tag_assignments");
     this.productTagsCollection = database.collection<ProductTagRecord>("product_tags");
@@ -204,8 +242,10 @@ export class MongoCurrentCatalogRepository {
   async runSmokeCheck(): Promise<CurrentCatalogSmokeCheckResult> {
     await this.setupCollections();
 
-    const [migrationLedgerCount, productSourceCount, productTagAssignmentCount, productTagCount, productCount, processingStateCount, stockCount, sampleProducts] = await Promise.all([
+    const [migrationLedgerCount, priceObservationCount, productSourceIdentifierCount, productSourceCount, productTagAssignmentCount, productTagCount, productCount, processingStateCount, stockCount, sampleProducts] = await Promise.all([
       this.migrationLedgerCollection.countDocuments(),
+      this.priceObservationsCollection.countDocuments(),
+      this.productSourceIdentifiersCollection.countDocuments(),
       this.productSourcesCollection.countDocuments(),
       this.productTagAssignmentsCollection.countDocuments(),
       this.productTagsCollection.countDocuments(),
@@ -218,6 +258,8 @@ export class MongoCurrentCatalogRepository {
     return {
       collectionCounts: {
         migration_ledger: migrationLedgerCount,
+        price_observations: priceObservationCount,
+        product_source_identifiers: productSourceIdentifierCount,
         product_sources: productSourceCount,
         product_tag_assignments: productTagAssignmentCount,
         product_tags: productTagCount,
@@ -285,6 +327,8 @@ export class MongoCurrentCatalogRepository {
 
   async upsertCatalogSeedDataset(dataset: CatalogV1SeedDataset): Promise<void> {
     await this.upsertMany(this.migrationLedgerCollection, dataset.migrationLedger);
+    await this.upsertMany(this.priceObservationsCollection, dataset.priceObservations);
+    await this.upsertMany(this.productSourceIdentifiersCollection, dataset.productSourceIdentifiers);
     await this.upsertMany(this.productSourcesCollection, dataset.productSources);
     await this.upsertMany(this.productTagAssignmentsCollection, dataset.productTagAssignments);
     await this.upsertMany(this.productTagsCollection, dataset.productTags);
