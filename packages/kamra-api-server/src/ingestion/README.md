@@ -17,6 +17,8 @@ Ingestion is separate from catalog:
   - synthetic HTML source fixture, parser, and tests
 - `sources/*-offers/`
   - source-specific real retailer parsers for public offer pages
+- `processing/`
+  - deterministic processors that convert raw ingestion snapshots into catalog write sets
 - `current/`
   - MongoDB repository for `ingestion_runs` and `ingestion_raw_snapshots`
 
@@ -28,6 +30,7 @@ Ingestion is separate from catalog:
 - Put source-local identifiers and clearly exposed common codes in `productIdentifiers` when possible, while preserving source metadata for traceability. Processors decide whether to map retailer-local ids, GTINs, or national codes into catalog source identifier records.
 - Keep shop-specific parsing inside source adapters.
 - Keep processor assumptions out of source parsers where practical.
+- Processors must tolerate older snapshots with missing richer fields and use as much source data as is available.
 - Preserve enough metadata for traceability: source name, source record id, crawl run id, crawl date, parser name/version, content hash, and capture time.
 
 ## Validation
