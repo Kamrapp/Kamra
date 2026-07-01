@@ -32,6 +32,11 @@ export interface IngestionCleanupResult {
   deletedSnapshots: number;
 }
 
+export interface ListRawSnapshotsOptions {
+  limit?: number;
+  sourceName?: string;
+}
+
 export class MongoIngestionRepository {
   private readonly rawSnapshotsCollection: Collection<IngestionRawSnapshotRecord>;
   private readonly runsCollection: Collection<IngestionRunRecord>;
@@ -145,6 +150,18 @@ export class MongoIngestionRepository {
 
   async countSnapshotsForRun(crawlRunId: string): Promise<number> {
     return this.rawSnapshotsCollection.countDocuments({ crawlRunId });
+  }
+
+  async listRawSnapshots(options: ListRawSnapshotsOptions = {}): Promise<IngestionRawSnapshotRecord[]> {
+    const filter: Filter<IngestionRawSnapshotRecord> = options.sourceName
+      ? { sourceName: options.sourceName }
+      : {};
+
+    return this.rawSnapshotsCollection
+      .find(filter)
+      .sort({ capturedAt: -1 })
+      .limit(options.limit ?? 50)
+      .toArray();
   }
 
   private async incrementRun(

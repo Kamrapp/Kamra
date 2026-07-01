@@ -106,6 +106,37 @@ npm run coop:ingest
 
 Experimental data-writing script. COOP rows can include coupon, loyalty, purchase-condition, or store-scope notes. Downstream processing must keep coupon/loyalty prices separate from default prices.
 
+### `process-ingestion.ts`
+
+Processes raw ingestion snapshots into catalog products, product sources, source identifiers, price observations, availability stocks, and source processing states.
+
+Command:
+
+```powershell
+npm run process:ingestion
+```
+
+Useful filters:
+
+```powershell
+npm run process:ingestion -- --source=penny_hu_offers --limit=10
+npm run process:ingestion -- --source=coop-hu-offers --reprocess
+```
+
+Data-writing script. It skips snapshots already processed by the same processor version unless `--reprocess` is passed. It keeps coupon/loyalty prices as separate price observations and leaves shop availability stock prices empty for now.
+
+### `validate-processed-ingestion.ts`
+
+Validates that raw ingestion snapshots have processed catalog-side states for the current source-offer processor version, then prints source-level catalog counts.
+
+Command:
+
+```powershell
+npm run validate:processed-ingestion
+```
+
+Read-only MongoDB validation script. Use it after processing snapshots to confirm catalog-side products, product sources, price observations, and processing states exist for the crawled sources.
+
 ### `remove-crawled-content.ts`
 
 Deletes ingestion run and raw snapshot records for one crawl run id.

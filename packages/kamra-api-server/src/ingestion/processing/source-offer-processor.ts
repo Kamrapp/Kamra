@@ -2,15 +2,11 @@ import { createHash } from "node:crypto";
 
 import type {
   CatalogV1SeedDataset,
-  PriceObservationKind,
   ProductMeasurement,
-  ProductRecord,
   ProductSourceIdentifierRecord,
-  ProductSourceRecord,
   RecordOrigin,
   SourceRecordProcessingStateRecord,
   StockLocationReference,
-  StockRecord
 } from "../../catalog/v1/contracts.js";
 import type {
   IngestionRawSnapshotRecord,
@@ -20,7 +16,7 @@ import type {
 } from "../v1/contracts.js";
 
 export const sourceOfferProcessorName = "SourceOfferCatalogProcessor";
-export const sourceOfferProcessorVersion = "0.1.0";
+export const sourceOfferProcessorVersion = "0.2.0";
 
 interface SourceProcessingConfig {
   defaultStoreBrandKey: string;
@@ -32,6 +28,21 @@ export interface SourceOfferProcessingResult {
   dataset: CatalogV1SeedDataset;
   processedRowCount: number;
   skippedRowCount: number;
+}
+
+export function createFailedSourceOfferProcessingDataset(
+  snapshot: IngestionRawSnapshotRecord,
+  processedAt: string,
+  error: { code: string; message: string }
+): CatalogV1SeedDataset {
+  const dataset = createEmptyDataset();
+  dataset.sourceRecordProcessingStates.push(createProcessingState(snapshot, processedAt, {
+    lastErrorCode: error.code,
+    lastErrorMessage: error.message,
+    state: "failed"
+  }));
+
+  return dataset;
 }
 
 const sourceConfigs: Record<string, SourceProcessingConfig> = {
@@ -62,6 +73,7 @@ export function processSourceOfferSnapshot(
   processedAt = new Date().toISOString()
 ): SourceOfferProcessingResult {
   const dataset = createEmptyDataset();
+  const productsById = new Map<string, CatalogV1SeedDataset["products"][number]>();
   let processedRowCount = 0;
   let skippedRowCount = 0;
 
@@ -82,7 +94,7 @@ export function processSourceOfferSnapshot(
     const location = createLocation(sourceName, storeBrandKey);
     const priceObservations = createPriceObservations(row);
 
-    dataset.products.push({
+    const product = {
       brandName: null,
       createdAt: processedAt,
       id: productId,
@@ -94,7 +106,9 @@ export function processSourceOfferSnapshot(
       primaryCategoryKey: null,
       status: "active",
       updatedAt: processedAt
-    });
+    } satisfies CatalogV1SeedDataset["products"][number];
+
+    upsertDatasetProduct(dataset, productsById, product);
 
     dataset.productSources.push({
       countryCode: row.countryCode,
@@ -113,13 +127,13 @@ export function processSourceOfferSnapshot(
     });
 
     dataset.productSourceIdentifiers.push(
-      ...createProductSourceIdentifiers(row, sourceName, productSourceId, origin, processedAt)
+      ...createProductSourceIdentifiers(row, sourceName, sourceProductKey, productSourceId, origin, processedAt)
     );
 
     dataset.priceObservations.push(
       ...priceObservations.map((observation, observationIndex) => ({
         createdAt: processedAt,
-        id: createPriceObservationId(snapshot, rowIndex, observationIndex, observation),
+        id: createPriceObservationId(snapshot, sourceName, sourceProductKey, observationIndex, observation),
         location,
         observedAt: observation.observedAt,
         origin,
@@ -159,7 +173,11 @@ export function processSourceOfferSnapshot(
     processedRowCount += 1;
   }
 
-  dataset.sourceRecordProcessingStates.push(createProcessingState(snapshot, processedAt));
+  dataset.sourceRecordProcessingStates.push(createProcessingState(snapshot, processedAt, {
+    lastErrorCode: null,
+    lastErrorMessage: null,
+    state: "processed"
+  }));
 
   return {
     dataset,
@@ -180,6 +198,34 @@ function createEmptyDataset(): CatalogV1SeedDataset {
     sourceRecordProcessingStates: [],
     stocks: []
   };
+}
+
+function upsertDatasetProduct(
+  dataset: CatalogV1SeedDataset,
+  productsById: Map<string, CatalogV1SeedDataset["products"][number]>,
+  product: CatalogV1SeedDataset["products"][number]
+): void {
+  const existing = productsById.get(product.id);
+
+  if (!existing) {
+    productsById.set(product.id, product);
+    dataset.products.push(product);
+    return;
+  }
+
+  for (const origin of product.origin) {
+    if (!existing.origin.some((existingOrigin) => sameOrigin(existingOrigin, origin))) {
+      existing.origin.push(origin);
+    }
+  }
+}
+
+function sameOrigin(left: RecordOrigin, right: RecordOrigin): boolean {
+  return left.capturedAt === right.capturedAt
+    && left.producer === right.producer
+    && left.sourceName === right.sourceName
+    && left.sourceRecordId === right.sourceRecordId
+    && left.sourceUrl === right.sourceUrl;
 }
 
 function createProcessorOrigin(
@@ -227,7 +273,10 @@ function createProductId(row: ParsedShopProductRow, normalizedName: string): str
     return `product_${commonIdentifier.kind}_${stableSlug(commonIdentifier.value)}`;
   }
 
-  return `product_name_${stableSlug(normalizedName)}`;
+  const packageIdentity = normalizePackageIdentity(row.packageLabel);
+  const identity = packageIdentity ? `${normalizedName} ${packageIdentity}` : normalizedName;
+
+  return `product_name_${stableSlug(identity)}`;
 }
 
 function createSourceProductKey(
@@ -253,11 +302,12 @@ function createProductSourceId(sourceName: string, sourceProductKey: string): st
 function createProductSourceIdentifiers(
   row: ParsedShopProductRow,
   sourceName: string,
+  sourceProductKey: string,
   productSourceId: string,
   origin: RecordOrigin,
   processedAt: string
 ): ProductSourceIdentifierRecord[] {
-  return collectProductIdentifiers(row).map((identifier) => ({
+  return collectProductIdentifiers(row, sourceProductKey).map((identifier) => ({
     createdAt: processedAt,
     id: `product_source_identifier_${stableSlug(sourceName)}_${stableSlug(productSourceId)}_${stableSlug(identifier.kind)}_${stableSlug(identifier.value)}`,
     kind: identifier.kind,
@@ -269,13 +319,21 @@ function createProductSourceIdentifiers(
   }));
 }
 
-function collectProductIdentifiers(row: ParsedShopProductRow): ParsedShopProductIdentifier[] {
+function collectProductIdentifiers(
+  row: ParsedShopProductRow,
+  sourceProductKey: string
+): ParsedShopProductIdentifier[] {
   const identifiers = row.productIdentifiers ?? [];
   const itemNumbers = Array.isArray(row.metadata?.["itemNumbers"])
     ? row.metadata["itemNumbers"]
     : [];
 
   return [
+    {
+      issuer: null,
+      kind: "retailer_product_id" as const,
+      value: sourceProductKey
+    },
     ...identifiers,
     ...itemNumbers
       .filter((itemNumber): itemNumber is string => typeof itemNumber === "string" && itemNumber.trim().length > 0)
@@ -328,11 +386,12 @@ function latestObservedAt(priceObservations: ParsedShopPriceObservation[]): stri
 
 function createPriceObservationId(
   snapshot: IngestionRawSnapshotRecord,
-  rowIndex: number,
+  sourceName: string,
+  sourceProductKey: string,
   observationIndex: number,
   observation: ParsedShopPriceObservation
 ): string {
-  return `price_observation_${stableSlug(snapshot.sourceName)}_${stableSlug(snapshot.sourceRecordId)}_${stableSlug(observation.priceKind ?? "offer")}_${stableSlug(observation.observedAt)}_${rowIndex}_${observationIndex}`;
+  return `price_observation_${stableSlug(sourceName)}_${stableSlug(sourceProductKey)}_${stableSlug(observation.priceKind ?? "offer")}_${stableSlug(observation.observedAt)}_${stableSlug(String(observation.price))}_${stableSlug(observation.validFrom ?? "open")}_${stableSlug(observation.validTo ?? "open")}_${observationIndex}`;
 }
 
 function createStockId(sourceName: string, sourceProductKey: string): string {
@@ -341,22 +400,27 @@ function createStockId(sourceName: string, sourceProductKey: string): string {
 
 function createProcessingState(
   snapshot: IngestionRawSnapshotRecord,
-  processedAt: string
+  processedAt: string,
+  outcome: Pick<SourceRecordProcessingStateRecord, "lastErrorCode" | "lastErrorMessage" | "state">
 ): SourceRecordProcessingStateRecord {
   return {
     attemptCount: 1,
     createdAt: processedAt,
-    id: `processing_state_${stableSlug(snapshot.sourceName)}_${stableSlug(sourceOfferProcessorName)}_${stableSlug(sourceOfferProcessorVersion)}_${hashText(snapshot.contentHash).slice(0, 12)}`,
-    lastErrorCode: null,
-    lastErrorMessage: null,
-    lastProcessedAt: processedAt,
+    id: `processing_state_${stableSlug(snapshot.sourceName)}_${stableSlug(sourceOfferProcessorName)}_${stableSlug(sourceOfferProcessorVersion)}_${hashText(createSourceOfferRecordFingerprint(snapshot)).slice(0, 12)}`,
+    lastErrorCode: outcome.lastErrorCode,
+    lastErrorMessage: outcome.lastErrorMessage,
+    lastProcessedAt: outcome.state === "processed" ? processedAt : null,
     processorName: sourceOfferProcessorName,
     processorVersion: sourceOfferProcessorVersion,
-    recordFingerprint: snapshot.contentHash,
+    recordFingerprint: createSourceOfferRecordFingerprint(snapshot),
     sourceName: snapshot.sourceName,
-    state: "processed",
+    state: outcome.state,
     updatedAt: processedAt
   };
+}
+
+export function createSourceOfferRecordFingerprint(snapshot: IngestionRawSnapshotRecord): string {
+  return `${snapshot.id}:${snapshot.contentHash}`;
 }
 
 function parsePackageMeasurements(packageLabel: string | null | undefined): ProductMeasurement[] {
@@ -412,6 +476,16 @@ function normalizedValue(value: number, unit: string): number {
 
 function normalizeProductName(value: string): string {
   return value.toLocaleLowerCase("hu-HU").replace(/\s+/g, " ").trim();
+}
+
+function normalizePackageIdentity(value: string | null | undefined): string | null {
+  if (!value) {
+    return null;
+  }
+
+  const normalized = value.toLocaleLowerCase("hu-HU").replace(/\s+/g, " ").trim();
+
+  return normalized.length > 0 ? normalized : null;
 }
 
 function stableSlug(value: string): string {

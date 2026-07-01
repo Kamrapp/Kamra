@@ -19,6 +19,39 @@
 - Added focused processor tests covering coupon price separation, source-local identifiers, exact-name/common-code product identity, legacy flat price fallback, and deterministic ids.
 - Ran targeted processor test and API typecheck successfully.
 - Updated ingestion package README to document the new `processing/` area and backward-compatible processing expectation.
+- Committed pure processor slice as `8f22848` (`Add source offer catalog processor`).
+- Added local processing orchestration:
+  - `MongoIngestionRepository.listRawSnapshots`
+  - `MongoCurrentCatalogRepository.findProcessingState`
+  - `scripts/process-ingestion.ts`
+  - `npm run process:ingestion`
+  - `scripts/README.md` usage notes
+- User resumed after committing the orchestration changes as WIP commit `34ce684` (`WIP feat: add process ingestion`).
+- Reviewed WIP commit and found finalization items before processing all sources:
+  - script should exit non-zero when any snapshot fails
+  - processing fingerprints should distinguish same-content snapshots from different snapshot records/days
+  - product fallback identity should include package label when no common identifier exists
+  - processor output should avoid duplicate product records in one write set
+- Fixed WIP review items:
+  - bumped source offer processor version to `0.2.0`
+  - changed processing fingerprint to `${snapshot.id}:${snapshot.contentHash}`
+  - added failed-state dataset helper and non-zero script failure behavior
+  - made fallback product IDs package-aware
+  - de-duplicated product records while preserving multiple origins/source records
+- Added more processor tests; focused processor test file now has 9 tests.
+- Added `scripts/validate-processed-ingestion.ts` and `npm run validate:processed-ingestion`.
+- Processed all current raw snapshots in `kamra_dev` with `SourceOfferCatalogProcessor` version `0.2.0`:
+  - snapshots processed: 14
+  - parsed rows processed: 396
+  - failed snapshots: 0
+- Re-ran processing with `--limit=200`; all 14 snapshots skipped as already processed.
+- Validated processed catalog-side output:
+  - no failed `0.2.0` processing states
+  - no missing processed states
+  - raw snapshots by source: `aldi-hu-offers` 4 / 252 rows, `coop-hu-offers` 3 / 18 rows, `coop-offers` 1 / 6 rows, `penny_hu_offers` 6 / 120 rows
+  - `0.2.0` processed states by source: ALDI 4, COOP 3, old COOP 1, PENNY 6
+  - catalog product source counts included ALDI 63, COOP 6, old COOP 6, PENNY 42
+  - catalog price observations included COOP 18 offer, old COOP 6 offer, PENNY 160 offer; ALDI currently has no price observations because current parsed rows lack primary prices
 
 ## Changed Files
 
@@ -26,6 +59,12 @@
 - `packages/kamra-api-server/src/ingestion/processing/source-offer-processor.ts`
 - `packages/kamra-api-server/src/ingestion/processing/source-offer-processor.test.ts`
 - `packages/kamra-api-server/src/ingestion/README.md`
+- `packages/kamra-api-server/src/ingestion/current/mongo-ingestion-repository.ts`
+- `packages/kamra-api-server/src/catalog/current/mongo-catalog-repository.ts`
+- `scripts/process-ingestion.ts`
+- `scripts/validate-processed-ingestion.ts`
+- `scripts/README.md`
+- `package.json`
 
 ## Validation
 
@@ -35,8 +74,28 @@
 - Result: passed, 1 file / 5 tests.
 - Ran: `npx tsc -p tsconfig.api.json --noEmit`
 - Result: passed.
-- Not run yet: broader ingestion tests/full typecheck after README update.
-- Reason: next action.
+- Ran: `npm test -- packages/kamra-api-server/src/ingestion`
+- Result: passed, 5 files / 10 tests.
+- Ran: `npm run typecheck`
+- Result: passed.
+- Ran: `git -c safe.directory=D:/Code/Kamra diff --check`
+- Result: passed.
+- Ran after WIP fixes: `npm test -- packages/kamra-api-server/src/ingestion/processing/source-offer-processor.test.ts`
+- Result: passed, 1 file / 9 tests.
+- Ran after WIP fixes: `npx tsc -p tsconfig.api.json --noEmit`
+- Result: passed.
+- Ran after WIP fixes: `npm test -- packages/kamra-api-server/src/ingestion packages/kamra-api-server/src/catalog`
+- Result: passed, 7 files / 18 tests.
+- Ran after WIP fixes: `npm run typecheck`
+- Result: passed.
+- Ran DB processing: `npm run process:ingestion -- --limit=200`
+- Result: passed; processed 14 snapshots / 396 rows / 0 failures.
+- Ran idempotency check: `npm run process:ingestion -- --limit=200`
+- Result: passed; skipped 14 already processed snapshots.
+- Ran DB processed-side validation: `npm run validate:processed-ingestion`
+- Result: passed; 0 missing processed states and 0 failed states.
+- Ran DB catalog smoke: `npm run smoke:catalog`
+- Result: passed; catalog counts included 186 price observations, 187 source identifiers, 120 product sources, 124 products, 17 processing states, 120 stocks.
 
 ## Decisions
 
@@ -57,8 +116,8 @@
 - Impact: Step 5 and Step 6 may be split depending on implementation size.
 - Issue: Existing ingestion repository has cleanup/count methods but no pending snapshot query method yet.
 - Impact: A processing script will need either a new repository read method or direct collection access.
-- Issue: Need broader validation and commit for the pure processor slice.
-- Impact: Do not start DB orchestration until this first slice is committed or intentionally folded forward.
+- Issue: ALDI current parsed rows expose item numbers/unit prices but no primary prices.
+- Impact: ALDI creates product/source/identifier/stock records but no price observations until the parser can capture a primary price or another source exposes it.
 
 ## Roadmap Or Plan Updates
 
@@ -67,7 +126,7 @@
 
 ## Next Step
 
-Run broader ingestion tests and full typecheck, then commit the pure processor slice.
+Commit the WIP finalization as a new commit, then start the separate frontend product table enhancement.
 
 ## Notes For Future Agent
 

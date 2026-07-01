@@ -340,6 +340,20 @@ export class MongoCurrentCatalogRepository {
     await this.upsertMany(this.stocksCollection, dataset.stocks);
   }
 
+  async findProcessingState(input: {
+    processorName: string;
+    processorVersion: string;
+    recordFingerprint: string;
+    sourceName: string;
+  }): Promise<SourceRecordProcessingStateRecord | null> {
+    return this.sourceRecordProcessingStatesCollection.findOne({
+      processorName: input.processorName,
+      processorVersion: input.processorVersion,
+      recordFingerprint: input.recordFingerprint,
+      sourceName: input.sourceName
+    });
+  }
+
   private async upsertMany<T extends { id: string }>(
     collection: Collection<T>,
     records: readonly T[]

@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import { assertCatalogV1SeedDataset } from "../../catalog/v1/validation.js";
 import type { IngestionRawSnapshotRecord, ParsedShopProductRow } from "../v1/contracts.js";
-import { processSourceOfferSnapshot } from "./source-offer-processor.js";
+import {
+  createFailedSourceOfferProcessingDataset,
+  createSourceOfferRecordFingerprint,
+  processSourceOfferSnapshot,
+  sourceOfferProcessorVersion
+} from "./source-offer-processor.js";
 
 const capturedAt = "2026-07-01T08:00:00.000Z";
 const processedAt = "2026-07-01T09:00:00.000Z";
@@ -90,18 +95,88 @@ describe("Source offer catalog processor", () => {
     expect(() => assertCatalogV1SeedDataset(result.dataset)).not.toThrow();
     expect(result.dataset.priceObservations).toEqual([]);
     expect(result.dataset.products[0]?.id).toBe("product_name_magyar_trappista_sajt");
-    expect(result.dataset.productSourceIdentifiers).toMatchObject([
-      {
+    expect(result.dataset.productSourceIdentifiers).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        kind: "retailer_product_id",
+        sourceName: "aldi-hu-offers",
+        value: "aldi-record-1"
+      }),
+      expect.objectContaining({
         kind: "retailer_item_number",
         sourceName: "aldi-hu-offers",
         value: "123456"
-      },
-      {
+      }),
+      expect.objectContaining({
         kind: "retailer_item_number",
         sourceName: "aldi-hu-offers",
         value: "789012"
+      })
+    ]));
+  });
+
+  it("keeps package-different same-name rows as separate fallback products", () => {
+    const snapshot = createSnapshot("simple_html_table_shop", "simple-package-record", [
+      {
+        countryCode: "HU",
+        displayName: "Kamra tej",
+        packageLabel: "1 l",
+        sourceProductKey: "SHTS-MILK-1L"
+      },
+      {
+        countryCode: "HU",
+        displayName: "Kamra tej",
+        packageLabel: "500 ml",
+        sourceProductKey: "SHTS-MILK-500ML"
       }
     ]);
+
+    const result = processSourceOfferSnapshot(snapshot, processedAt);
+
+    expect(() => assertCatalogV1SeedDataset(result.dataset)).not.toThrow();
+    expect(result.dataset.products.map((product) => product.id)).toEqual([
+      "product_name_kamra_tej_1_l",
+      "product_name_kamra_tej_500_ml"
+    ]);
+  });
+
+  it("deduplicates product records while keeping separate source records", () => {
+    const snapshot = createSnapshot("mixed-source-test", "mixed-record-1", [
+      {
+        countryCode: "HU",
+        displayName: "Kamra tej 1,5%",
+        productIdentifiers: [
+          {
+            kind: "retailer_item_number",
+            value: "retailer-a-1"
+          }
+        ],
+        sourceName: "penny_hu_offers",
+        sourceProductKey: "penny-milk"
+      },
+      {
+        countryCode: "HU",
+        displayName: "Kamra tej 1,5%",
+        productIdentifiers: [
+          {
+            kind: "retailer_item_number",
+            value: "retailer-b-1"
+          }
+        ],
+        sourceName: "aldi-hu-offers",
+        sourceProductKey: "aldi-milk"
+      }
+    ]);
+
+    const result = processSourceOfferSnapshot(snapshot, processedAt);
+
+    expect(() => assertCatalogV1SeedDataset(result.dataset)).not.toThrow();
+    expect(result.dataset.products).toHaveLength(1);
+    expect(result.dataset.products[0]).toMatchObject({
+      id: "product_name_kamra_tej_1_5",
+      normalizedName: "kamra tej 1,5%"
+    });
+    expect(result.dataset.products[0]?.origin).toHaveLength(2);
+    expect(result.dataset.productSources).toHaveLength(2);
   });
 
   it("merges only by common identifiers or exact normalized names", () => {
@@ -149,7 +224,6 @@ describe("Source offer catalog processor", () => {
     expect(() => assertCatalogV1SeedDataset(result.dataset)).not.toThrow();
     expect(result.dataset.products.map((product) => product.id)).toEqual([
       "product_name_kamra_tej_1_5",
-      "product_name_kamra_tej_1_5",
       "product_gtin_5991234567890"
     ]);
   });
@@ -173,7 +247,7 @@ describe("Source offer catalog processor", () => {
 
     expect(() => assertCatalogV1SeedDataset(result.dataset)).not.toThrow();
     expect(result.dataset.products[0]).toMatchObject({
-      id: "product_name_durum_spaghetti",
+      id: "product_name_durum_spaghetti_500_g",
       measurements: [
         {
           normalizedUnit: "g",
@@ -222,6 +296,36 @@ describe("Source offer catalog processor", () => {
     const second = processSourceOfferSnapshot(snapshot, processedAt);
 
     expect(second.dataset).toEqual(first.dataset);
+  });
+
+  it("uses snapshot-specific processing fingerprints", () => {
+    const first = createSnapshot("penny_hu_offers", "record-a", []);
+    const second = {
+      ...createSnapshot("penny_hu_offers", "record-b", []),
+      contentHash: first.contentHash
+    };
+
+    expect(createSourceOfferRecordFingerprint(first)).not.toBe(createSourceOfferRecordFingerprint(second));
+  });
+
+  it("creates failed processing states for bad snapshots", () => {
+    const snapshot = createSnapshot("penny_hu_offers", "broken-record", []);
+    const dataset = createFailedSourceOfferProcessingDataset(snapshot, processedAt, {
+      code: "snapshot_processing_failed",
+      message: "Example failure."
+    });
+
+    expect(() => assertCatalogV1SeedDataset(dataset)).not.toThrow();
+    expect(dataset.sourceRecordProcessingStates).toMatchObject([
+      {
+        lastErrorCode: "snapshot_processing_failed",
+        lastErrorMessage: "Example failure.",
+        lastProcessedAt: null,
+        processorVersion: sourceOfferProcessorVersion,
+        recordFingerprint: createSourceOfferRecordFingerprint(snapshot),
+        state: "failed"
+      }
+    ]);
   });
 });
 

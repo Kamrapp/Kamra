@@ -20,10 +20,12 @@
 	"aldi:ingest": "node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/ingest-aldi-offers.ts",
     "coop:ingest": "node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/ingest-coop-offers.ts",
     "penny:ingest": "node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/ingest-penny-offers.ts",
+    "process:ingestion": "node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/process-ingestion.ts",
     "synthetic:ingest": "node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/ingest-synthetic-source.ts",
     "smoke:catalog": "node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/catalog-smoke.ts",
     "test": "vitest run",
-    "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.api.json --noEmit"
+    "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.api.json --noEmit",
+    "validate:processed-ingestion": "node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/validate-processed-ingestion.ts"
   },
   "dependencies": {
     "@angular/common": "^22.0.0",
