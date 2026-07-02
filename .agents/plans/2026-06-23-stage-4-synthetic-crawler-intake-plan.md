@@ -483,7 +483,10 @@ Status: Moved out of Stage 4.
 
 ### Step 10: Add Manual Processing Workflow
 
+Status: Completed.
+
 - Goal: Add a manually dispatchable workflow for processing pending snapshots against a configured environment. Once tests and local scripts exist, allow a Smoke/Dev-only schedule for processors if desired.
+- 2026-07-02 implementation note: `.github/workflows/process-ingestion.yml` runs against `Dev`, defaults to all pending raw snapshots, supports source-specific dispatch for every current crawled source including `lidl-hu-brochure`, accepts `limit` and `reprocess`, and validates processed output after processing.
 - Files likely affected:
   - `.github/workflows/process-ingestion.yml`
   - `docs/tech-ops.md` if environment/secret names change

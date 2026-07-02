@@ -115,6 +115,12 @@ Run experimental Lidl brochure ingestion:
 npm run lidl:ingest
 ```
 
+Process all pending raw ingestion snapshots:
+
+```powershell
+npm run process:ingestion
+```
+
 Remove crawled content for one crawl run:
 
 ```powershell
@@ -149,6 +155,23 @@ This workflow writes ingestion data to the configured Smoke database. It should 
 `SimplePdfShop` currently has a local script but no workflow. It generates a deterministic synthetic PDF with `pdf-lib`, extracts text with PDF.js, parses the extracted rows into the same normalized crawler row shape as the HTML synthetic source, and stores extracted text as the snapshot payload while hashing the PDF bytes. The committed `fixture.pdf` is for visual review and parser regression tests; the runtime script regenerates PDF bytes so the generator path is also covered.
 
 `experimental` here means the PENNY crawler is working and locally verified, but it is not yet approved as a production crawler schedule. It is not a statement that we found a legal issue; it is a reminder that the source policy, terms, retention, and operational risk review still apply before broadening its use.
+
+## Processing Workflow
+
+`.github/workflows/process-ingestion.yml` processes raw ingestion snapshots into catalog records against the configured `Dev` environment.
+
+Triggers:
+
+- `workflow_dispatch`
+- nightly schedule
+
+Manual inputs:
+
+- `source`: `all`, `simple_html_table_shop`, `simple_pdf_shop`, `penny_hu_offers`, `aldi-hu-offers`, `coop-hu-offers`, or `lidl-hu-brochure`
+- `limit`: maximum raw snapshots to inspect
+- `reprocess`: whether to reprocess snapshots already marked processed by the current processor version
+
+The workflow installs dependencies, typechecks API/scripts, runs ingestion tests, runs `npm run process:ingestion`, and then runs `npm run validate:processed-ingestion`.
 
 ## Penny Workflow
 
