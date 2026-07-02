@@ -119,6 +119,10 @@ import { AuthService } from "./auth.service";
             <span aria-hidden="true">03</span>
             Products
           </a>
+          <a routerLink="/admin/ingestion" routerLinkActive="active" (click)="closeMenu()">
+            <span aria-hidden="true">04</span>
+            Crawls
+          </a>
         </nav>
       </aside>
     </main>

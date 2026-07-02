@@ -501,15 +501,19 @@ Status: Completed.
 
 ### Step 11: Add Minimal Operator Visibility
 
+Status: Completed for the first operator visibility slice.
+
 - Goal: Expose latest ingestion runs, crawl snapshots, parsed rows, processing failures, and manual crawl processing actions to an admin/operator without mixing this into household workflows.
+- 2026-07-02 implementation note: the first slice adds an admin-only crawl snapshot API, a one-snapshot processing action, and a `site-admin` crawl view with snapshot list, detail panel, parsed row table, processing state, and process button.
+- Deferred from the first slice: manual processing-state mutation and row-data editing. These need a reviewed correction/audit model so browser edits do not silently rewrite raw source truth.
 - Include:
   - a `site-admin` crawl-run/snapshot table
   - a detail flyout for one crawl entry
   - crawl header data plus parsed crawl rows
-  - admin controls to manually change process state where safe
-  - initial row-edit affordances for source row data such as corrected names, scoped so raw source truth remains traceable
   - API support and a UI button to process exactly one crawl snapshot by id
   - source/shop-aware row presentation where contracts differ
+  - later admin controls to manually change process state where safe
+  - later row-edit affordances for source row data such as corrected names, scoped so raw source truth remains traceable
 - Files likely affected:
   - `packages/kamra-api-server/src/http/routes/ingestion-routes.ts`
   - `packages/kamra-api-server/src/http/app-handler.ts`

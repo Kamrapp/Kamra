@@ -164,6 +164,10 @@ export class MongoIngestionRepository {
       .toArray();
   }
 
+  async findRawSnapshotById(id: string): Promise<IngestionRawSnapshotRecord | null> {
+    return await this.rawSnapshotsCollection.findOne({ id });
+  }
+
   private async incrementRun(
     crawlRunId: string,
     increments: Partial<Pick<IngestionRunRecord, "failedCount" | "insertedSnapshotCount" | "skippedSnapshotCount">>

@@ -9,6 +9,7 @@ import {
 import { catalogProductsRoute } from "./routes/catalog-routes.js";
 import { currentUserRoute, loginRoute, logoutRoute } from "./routes/auth-routes.js";
 import { healthRoute } from "./routes/health-route.js";
+import { ingestionSnapshotsRoute, processIngestionSnapshotRoute } from "./routes/ingestion-routes.js";
 import { logRoute } from "./routes/log-route.js";
 
 export type { AppRequest, AppResponse } from "./app-route-context.js";
@@ -19,7 +20,9 @@ const appRoutes: AppRoute[] = [
   logoutRoute,
   currentUserRoute,
   healthRoute,
-  catalogProductsRoute
+  catalogProductsRoute,
+  ingestionSnapshotsRoute,
+  processIngestionSnapshotRoute
 ];
 
 export async function handleAppRequest(

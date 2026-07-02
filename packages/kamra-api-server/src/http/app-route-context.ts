@@ -4,8 +4,11 @@ import type { MongoUserRepository } from "../auth/mongo-user-repository.js";
 import type { AuthenticatedUser } from "../auth/user-auth.js";
 import { verifyUserToken } from "../auth/user-token.js";
 import { MongoCurrentCatalogRepository } from "../catalog/current/mongo-catalog-repository.js";
+import type { CatalogV1SeedDataset, SourceRecordProcessingStateRecord } from "../catalog/v1/contracts.js";
 import { readAppConfig, type AppConfig } from "../config/app-config.js";
 import { getMongoClient } from "../db/mongo-client.js";
+import { MongoIngestionRepository } from "../ingestion/current/mongo-ingestion-repository.js";
+import type { IngestionRawSnapshotRecord } from "../ingestion/v1/contracts.js";
 
 export interface AppRequest {
   headers: Record<string, string | string[] | undefined>;
@@ -22,7 +25,20 @@ export interface AppResponse {
 
 export interface AppHandlerDependencies {
   createCatalogRepository?: (database: Db) => {
+    findProcessingState?(input: {
+      processorName: string;
+      processorVersion: string;
+      recordFingerprint: string;
+      sourceName: string;
+    }): Promise<SourceRecordProcessingStateRecord | null>;
     listCatalogProductsForReview(limit?: number): Promise<unknown[]>;
+    setupCollections?(): Promise<unknown>;
+    upsertCatalogSeedDataset?(dataset: CatalogV1SeedDataset): Promise<void>;
+  };
+  createIngestionRepository?: (database: Db) => {
+    findRawSnapshotById(id: string): Promise<IngestionRawSnapshotRecord | null>;
+    listRawSnapshots(options?: { limit?: number; sourceName?: string }): Promise<IngestionRawSnapshotRecord[]>;
+    setupCollections?(): Promise<unknown>;
   };
   createUserRepository?: (database: Db) => MongoUserRepository;
   getMongoClient?: typeof getMongoClient;
@@ -135,4 +151,8 @@ function authenticateRequestUser(
 
 export function createDefaultCatalogRepository(database: Db): MongoCurrentCatalogRepository {
   return new MongoCurrentCatalogRepository(database);
+}
+
+export function createDefaultIngestionRepository(database: Db): MongoIngestionRepository {
+  return new MongoIngestionRepository(database);
 }
