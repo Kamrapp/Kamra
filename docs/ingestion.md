@@ -193,7 +193,16 @@ COOP rows can include coupon or loyalty-style price observations and store-scope
 
 `npm run lidl:ingest` discovers public brochure links from `https://www.lidl.hu/c/szorolap/s10013623`, resolves flyer metadata through the Lidl leaflet viewer API, ignores Nonfood brochures, downloads the current food PDF brochures, extracts page text with PDF.js, and stores one raw snapshot per brochure.
 
-Lidl PDF text is noisy: prices, product names, item numbers, validity labels, and page boilerplate are interleaved. The first parser emits rows anchored by Lidl item numbers and only writes price observations when a nearby offer price is clear. Rows without confident prices are still retained as source rows for later parser improvement.
+`.github/workflows/lidl-ingestion.yml` runs the Lidl brochure crawler against the configured `Dev` environment.
+
+Triggers:
+
+- `workflow_dispatch`
+- nightly schedule
+
+The workflow installs dependencies, typechecks API/scripts, runs ingestion tests, then runs `npm run lidl:ingest`.
+
+Lidl PDF text is noisy: prices, product names, item numbers, validity labels, and page boilerplate are interleaved. The parser emits rows anchored by Lidl item numbers, filters obvious brochure noise, and only writes price observations when a nearby offer price is clear. Rows without confident prices are still retained as source rows for later parser improvement.
 
 ## Next Planned Sources
 

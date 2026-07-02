@@ -1,0 +1,78 @@
+name: Lidl Ingestion
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "59 1 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  lidl-ingestion:
+    runs-on: ubuntu-latest
+    environment: Dev
+
+    env:
+      MONGODB_URI: ${{ vars.MONGODB_URI || secrets.MONGODB_URI }}
+      MONGODB_DB_NAME: ${{ vars.MONGODB_DB_NAME || secrets.MONGODB_DB_NAME }}
+      MONGODB_DNS_SERVERS: ${{ vars.MONGODB_DNS_SERVERS || secrets.MONGODB_DNS_SERVERS }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Print debug context to inspect scheduled/triggered result difference
+        run: |
+          echo "event=${{ github.event_name }}"
+          echo "ref=${{ github.ref }}"
+          echo "sha=${{ github.sha }}"
+          echo "runner=${{ runner.name }}"
+          echo "os=${{ runner.os }}"
+          echo "public_ip=$(curl -s https://api.ipify.org)"
+          date -u
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck API and scripts
+        run: tsc -p tsconfig.api.json --noEmit
+
+      - name: Run ingestion tests
+        run: npm test -- packages/kamra-api-server/src/ingestion
+
+      - name: Ingest Lidl brochures
+        shell: bash
+        run: |
+          set +e
+
+          max_attempts=3
+
+          for attempt in $(seq 1 "$max_attempts"); do
+            echo "Lidl ingestion attempt $attempt/$max_attempts"
+
+            npm run lidl:ingest
+            exit_code=$?
+
+            if [ "$exit_code" -eq 0 ]; then
+              echo "Lidl ingestion succeeded on attempt $attempt"
+              exit 0
+            fi
+
+            echo "Lidl ingestion failed with exit code $exit_code"
+
+            if [ "$attempt" -lt "$max_attempts" ]; then
+              sleep_seconds=$((attempt * 30))
+              echo "Waiting $sleep_seconds seconds before retry"
+              sleep "$sleep_seconds"
+            fi
+          done
+
+          echo "Lidl ingestion failed after $max_attempts attempts"
+          exit "$exit_code"

@@ -316,14 +316,23 @@ function collectItemNumberGroup(lines: string[], itemNumberIndex: number): {
   endIndex: number;
   lines: string[];
 } {
-  const group = [lines[itemNumberIndex]];
+  const firstLine = lines[itemNumberIndex];
+
+  if (!firstLine) {
+    return {
+      endIndex: itemNumberIndex,
+      lines: []
+    };
+  }
+
+  const group = [firstLine];
   let endIndex = itemNumberIndex;
 
   for (let index = itemNumberIndex + 1; index < lines.length; index += 1) {
     const previousLine = lines[index - 1];
     const line = lines[index];
 
-    if (!previousLine.endsWith("/") || !isLidlItemNumberLine(line)) {
+    if (!previousLine || !line || !previousLine.endsWith("/") || !isLidlItemNumberLine(line)) {
       break;
     }
 
@@ -338,18 +347,24 @@ function collectItemNumberGroup(lines: string[], itemNumberIndex: number): {
 }
 
 function isLidlItemNumberContinuation(lines: string[], index: number): boolean {
-  return index > 0 && lines[index - 1].endsWith("/") && isLidlItemNumberLine(lines[index - 1]);
+  const previousLine = lines[index - 1];
+
+  return Boolean(previousLine?.endsWith("/") && isLidlItemNumberLine(previousLine));
 }
 
 function isLikelyPriceAfterItemNumber(lines: string[], index: number): boolean {
   const line = lines[index];
 
-  if (!/^\d{4}$/.test(line)) {
+  if (!line || !/^\d{4}$/.test(line)) {
     return false;
   }
 
   for (let previousIndex = index - 1; previousIndex >= 0 && previousIndex >= index - 4; previousIndex -= 1) {
     const previousLine = lines[previousIndex];
+
+    if (!previousLine) {
+      continue;
+    }
 
     if (isLidlItemNumberLine(previousLine)) {
       return true;
@@ -441,12 +456,20 @@ function isSplitUnitPriceTail(lines: string[], index: number): boolean {
   const line = lines[index];
   const previousLine = lines[index - 1] ?? "";
 
+  if (!line) {
+    return false;
+  }
+
   return /^\d[\d\s]*(?:,\d{1,2})?\s*Ft$/i.test(line) && /\b1\s*(?:kg|l|db)\s*=\s*[\d\s]*$/i.test(previousLine);
 }
 
 function isSplitPackageQuantityLine(lines: string[], index: number): boolean {
   const line = lines[index];
   const nextLine = lines[index + 1] ?? "";
+
+  if (!line) {
+    return false;
+  }
 
   return /^\d+(?:[,.]\d+)?$/.test(line) && /^(?:g|kg|ml|l|db)(?:\b|;)/i.test(nextLine);
 }
