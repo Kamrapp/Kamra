@@ -15,6 +15,8 @@ Ingestion is separate from catalog:
   - shared ingestion contracts and crawl-run identity helpers
 - `sources/simple-html-table-shop/`
   - synthetic HTML source fixture, parser, and tests
+- `sources/simple-pdf-shop/`
+  - synthetic PDF generator, committed fixture, PDF text parser, and tests
 - `sources/*-offers/`
   - source-specific real retailer parsers for public offer pages
 - `processing/`

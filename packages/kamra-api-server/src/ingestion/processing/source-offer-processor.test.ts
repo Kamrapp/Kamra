@@ -139,6 +139,31 @@ describe("Source offer catalog processor", () => {
     ]);
   });
 
+  it("uses the SimplePdfShop availability location for PDF source rows", () => {
+    const snapshot = createSnapshot("simple_pdf_shop", "weekly-product-pdf", [
+      {
+        countryCode: "HU",
+        displayName: "Kamra tej 1,5%",
+        packageLabel: "1 l",
+        sourceProductKey: "SPS-MILK-15",
+        storeBrandKey: "simple-pdf-shop"
+      }
+    ]);
+
+    const result = processSourceOfferSnapshot(snapshot, processedAt);
+
+    expect(() => assertCatalogV1SeedDataset(result.dataset)).not.toThrow();
+    expect(result.dataset.stocks).toMatchObject([
+      {
+        location: {
+          label: "SimplePdfShop",
+          locationKey: "availability:simple-pdf-shop",
+          storeBrandKey: "simple-pdf-shop"
+        }
+      }
+    ]);
+  });
+
   it("deduplicates product records while keeping separate source records", () => {
     const snapshot = createSnapshot("mixed-source-test", "mixed-record-1", [
       {

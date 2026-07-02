@@ -68,6 +68,18 @@ npm run synthetic:ingest
 
 Data-writing script. Uses same-day idempotency for the same source record.
 
+### `ingest-synthetic-pdf-source.ts`
+
+Generates the synthetic `SimplePdfShop` PDF, extracts its text, parses product rows, and writes one PDF-backed raw ingestion snapshot.
+
+Command:
+
+```powershell
+npm run synthetic:pdf:ingest
+```
+
+Data-writing script. Uses same-day idempotency for the same source record. Stores extracted PDF text in the ingestion payload and hashes the generated PDF bytes.
+
 ### `ingest-penny-offers.ts`
 
 Fetches `https://www.penny.hu/ajanlatok`, parses the public Nuxt product payload, and writes one raw ingestion snapshot.

@@ -4,7 +4,7 @@
 
 Kamra ingestion collects source-shop product and price observations outside user-facing request handlers.
 
-The Stage 4 implementation currently proves this with `SimpleHtmlTableShop`, plus experimental PENNY, ALDI, and COOP Hungary offer crawlers. The synthetic source is intentionally small, but it uses the same raw snapshot/run shape planned for real crawlers:
+The Stage 4 implementation currently proves this with `SimpleHtmlTableShop`, `SimplePdfShop`, plus experimental PENNY, ALDI, and COOP Hungary offer crawlers. The synthetic sources are intentionally small, but they use the same raw snapshot/run shape planned for real crawlers:
 
 ```text
 source content -> parser -> raw snapshot -> later processor -> catalog records
@@ -15,6 +15,7 @@ source content -> parser -> raw snapshot -> later processor -> catalog records
 Implemented:
 
 - synthetic HTML source fixture
+- synthetic PDF source fixture, generator, and parser
 - first experimental PENNY Hungary offers source
 - experimental ALDI Hungary offers source
 - experimental COOP Hungary offers source
@@ -23,6 +24,7 @@ Implemented:
 - `ingestion_raw_snapshots`
 - processed `price_observations` catalog collection for historical/source price records
 - processed `product_source_identifiers` catalog collection for retailer-local ids and future GTIN/common ids
+- processing snapshots into catalog products, product sources, stocks, identifiers, prices, and processing states
 - same-day source-record idempotency
 - cleanup by crawl run id
 - manual and nightly Smoke workflow for synthetic ingestion
@@ -30,9 +32,6 @@ Implemented:
 
 Not implemented yet:
 
-- `SimplePdfShop`
-- processing snapshots into catalog products/stocks
-- processors that write crawler rows into processed `price_observations`
 - production-approved real shop crawling
 - strict Mongo JSON schema validation for ingestion collections
 - strict validation for richer real-source parsed rows
@@ -85,6 +84,12 @@ Run synthetic ingestion:
 npm run synthetic:ingest
 ```
 
+Run synthetic PDF ingestion:
+
+```powershell
+npm run synthetic:pdf:ingest
+```
+
 Run experimental PENNY offers ingestion:
 
 ```powershell
@@ -134,6 +139,8 @@ The workflow installs dependencies, typechecks API/scripts, runs ingestion tests
 
 This workflow writes ingestion data to the configured Smoke database. It should not be pointed at production-like data until the source, schedule, retention, and cleanup behavior are explicitly reviewed.
 
+`SimplePdfShop` currently has a local script but no workflow. It generates a deterministic synthetic PDF with `pdf-lib`, extracts text with PDF.js, parses the extracted rows into the same normalized crawler row shape as the HTML synthetic source, and stores extracted text as the snapshot payload while hashing the PDF bytes. The committed `fixture.pdf` is for visual review and parser regression tests; the runtime script regenerates PDF bytes so the generator path is also covered.
+
 `experimental` here means the PENNY crawler is working and locally verified, but it is not yet approved as a production crawler schedule. It is not a statement that we found a legal issue; it is a reminder that the source policy, terms, retention, and operational risk review still apply before broadening its use.
 
 ## Penny Workflow
@@ -177,7 +184,7 @@ COOP rows can include coupon or loyalty-style price observations and store-scope
 
 ## Next Planned Sources
 
-- Do not add more live retailer crawlers before the processor pipeline and compact processed-offer UI are in place.
+- Do not add more live retailer crawlers before the synthetic PDF path and Lidl brochure/PDF path are reviewed.
 - Tesco Hungary live product crawling is deferred. No documented public Tesco Hungary product/offers API or feed was found, and `https://www.tesco.hu/akciok/akcios-termekek/tesco-szupermarket-zirc` returned HTTP 403 from the crawler runner.
 - Tesco may be revisited later through `https://www.tesco.hu/akciok/katalogusok` as brochure/catalogue work if public catalogue media can be fetched normally or if Tesco provides permission/API documentation.
 - Lidl Hungary should be treated as brochure/PDF ingestion from `https://www.lidl.hu/c/szorolap/s10013623`, after the PDF pipeline is ready.

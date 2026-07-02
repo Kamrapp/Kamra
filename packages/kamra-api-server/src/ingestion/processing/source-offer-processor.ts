@@ -65,6 +65,11 @@ const sourceConfigs: Record<string, SourceProcessingConfig> = {
     defaultStoreBrandKey: "simple-html-table-shop",
     locationLabel: "SimpleHtmlTableShop",
     locationKey: "availability:simple-html-table-shop"
+  },
+  "simple_pdf_shop": {
+    defaultStoreBrandKey: "simple-pdf-shop",
+    locationLabel: "SimplePdfShop",
+    locationKey: "availability:simple-pdf-shop"
   }
 };
 
