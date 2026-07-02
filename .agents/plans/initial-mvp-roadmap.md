@@ -20,7 +20,7 @@ Roadmap priorities:
 | Stage 1 | Legacy inventory and extraction | Completed (docs) | Discovery strengthened the Angular-retention assumption, shared-contract direction, and migration-ledger need. |
 | Stage 2 | Minimal serverless foundation | Completed | Vercel app/API and MongoDB connectivity are running; Stage 2 followups should be handled only when they block later stages. |
 | Stage 3 | Product model foundation and seeded data | Completed | Finalized versioned product contracts, seed data, smoke validation, and admin-only product inspection before crawler work. |
-| Stage 4 | Crawler intake and processing pipeline | In progress | Raw ingestion exists for synthetic HTML plus PENNY, ALDI, and COOP offer pages; product/price model adjustment is done; next work is processor pipeline and compact admin product-offer visibility before more source acquisition. |
+| Stage 4 | Crawler intake and processing pipeline | In progress | Raw ingestion exists for synthetic HTML plus PENNY, ALDI, and COOP offer pages; processor/local orchestration and compact product-offer visibility are in place; next work is synthetic PDF, Lidl brochure/PDF ingestion, manual processing workflow, and focused operator UI. SPAR and Tesco are delayed until current crawled-shop data has supported product and household feature work. |
 | Stage 5 | Household stock foundation | Planned | Treat households as stock locations where useful, while preserving user-household authorization boundaries. |
 | Stage 6 | Shopping list and low-stock notices | Planned | Favor deterministic core logic over premature optimization. |
 | Stage 7 | Controlled alpha access and app module shell | Planned | Move external demo access later, after household and list value exist; keep public/product, household, site-admin, and dev-admin concerns visibly separate. |
@@ -234,10 +234,11 @@ Scope slice:
 Current status:
 
 - `SimpleHtmlTableShop`, PENNY, ALDI, and COOP crawlers write ingestion runs and raw snapshots.
-- The crawlers do not yet process snapshots into queryable catalog records.
-- The current catalog model can show one stock price, but Stage 4 now needs first-class representation for multiple locations and multiple concurrent price kinds per source product, including base price, dated offer price, and loyalty/card price.
+- Source-specific processing now writes queryable catalog records, source identifiers, price observations, stocks, and processing states for the current raw snapshot set.
+- Price observations preserve offer history and restrictions; processors may write a current/collated `stocks.price` only when a safe default price is clear.
 - Tesco live product crawling is deferred because no documented public product/offers API/feed was found and the location-tagged offers page returned HTTP 403 from the crawler runner.
-- Lidl, SPAR, and possibly Tesco should be treated as PDF/brochure/catalogue work after processors and UI prove the raw-to-catalog path.
+- Next source work is controlled PDF support through `SimplePdfShop`, followed by Lidl brochure/PDF ingestion.
+- SPAR and Tesco brochure/catalogue work is intentionally deferred until current crawled-shop data has supported product and household feature work.
 
 Validation:
 
@@ -253,9 +254,8 @@ Validation:
 
 Questions:
 
-- How should processors choose current/collated stock prices from multiple price observations without hiding coupon or loyalty restrictions?
-- What compact admin view is enough to review processed product/source/price records before broader source acquisition?
-- Which acquisition method is best for each later source: Lidl PDF/brochure discovery, SPAR brochure viewer/PDF, Tesco catalogue/PDF, or another documented/approved source-specific path?
+- What compact `site-admin` crawl-run view is enough to inspect snapshots, parsed rows, processing state, and one-snapshot manual processing before household work resumes?
+- Which source-specific acquisition method is best for Lidl PDF/brochure discovery now, and for SPAR brochure viewer/PDF or Tesco catalogue/PDF when those sources are later promoted back into scope?
 - Runtime: TypeScript/Playwright, lightweight fetch/parser, Python, or selective .NET reuse only as temporary reference tooling?
 - Which source fields should stay raw-only until real query needs justify promotion?
 
@@ -428,13 +428,11 @@ Current direction:
 
 ## First Recommended Next Step
 
-Plan Stage 3 as a product-model foundation slice:
+Continue Stage 4 from the active Stage 4 plan:
 
-- run the short model research gate
-- choose initial names and collection boundaries
-- define contracts and validation artifacts
-- add seeded synthetic product data
-- add database smoke checks and migration-ledger concept
-- expose a minimal admin-only product list query in the deployed app
+- implement `SimplePdfShop` and the controlled PDF foundation
+- add Lidl brochure/PDF ingestion after the synthetic PDF path is proven
+- add manual processing workflow and focused `site-admin` crawl/operator visibility
+- keep SPAR and Tesco deferred until current crawled-shop data has supported product and household feature work
 
-Treat crawler work as blocked until this Stage 3 foundation exists or the user explicitly accepts the recrawl and contract churn risk.
+Treat broader crawler expansion as deliberately paused unless a later plan promotes a source back into active scope.
