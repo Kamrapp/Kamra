@@ -7,8 +7,10 @@ import {
   type IngestionRowPreview,
   type IngestionSnapshotListItem
 } from "./ingestion-admin.service";
+import { ResizableTableComponent, type ResizableTableColumn } from "../shared/resizable-table.component";
 
 @Component({
+  imports: [ResizableTableComponent],
   selector: "app-ingestion-admin",
   standalone: true,
   template: `
@@ -58,39 +60,48 @@ import {
           }
         </section>
 
-        <section class="crawl-workspace">
-          <div class="snapshot-list surface-panel" role="table" aria-label="Crawl snapshots">
-            <div class="snapshot-head" role="row">
-              <span role="columnheader">Source</span>
-              <span role="columnheader">Captured</span>
-              <span role="columnheader">Rows</span>
-              <span role="columnheader">State</span>
-            </div>
-
-            <div class="snapshot-body">
-              @for (snapshot of snapshots(); track snapshot.id) {
-                <button
-                  class="snapshot-row"
-                  type="button"
-                  role="row"
-                  [class.snapshot-row-selected]="selectedSnapshotId() === snapshot.id"
-                  (click)="selectSnapshot(snapshot.id)"
-                >
-                  <span role="cell">
-                    <strong>{{ snapshot.sourceName }}</strong>
-                    <small>{{ snapshot.sourceRecordId }}</small>
-                  </span>
-                  <span role="cell">{{ formatDate(snapshot.capturedAt) }}</span>
-                  <span role="cell">{{ snapshot.parsedRowCount }}</span>
-                  <span role="cell">{{ processingStateLabel(snapshot) }}</span>
-                </button>
-              } @empty {
-                <p class="empty-list">No crawl snapshots loaded.</p>
-              }
-            </div>
-          </div>
+        <section
+          class="crawl-workspace"
+          [class.crawl-workspace-single]="!selectedSnapshot()"
+          [style.--crawl-list-fr]="crawlListWidthPercent() + 'fr'"
+          [style.--crawl-detail-fr]="100 - crawlListWidthPercent() + 'fr'"
+        >
+          <app-resizable-table #snapshotTable class="snapshot-list" ariaLabel="Crawl snapshots" [columns]="snapshotColumns">
+              <div class="snapshot-body">
+                @for (snapshot of snapshots(); track snapshot.id) {
+                  <button
+                    class="snapshot-row"
+                    type="button"
+                    role="row"
+                    [class.snapshot-row-selected]="selectedSnapshotId() === snapshot.id"
+                    (click)="selectSnapshot(snapshot.id)"
+                    [style.grid-template-columns]="snapshotTable.columnTemplate()"
+                  >
+                    <span role="cell">
+                      <strong>{{ snapshot.sourceName }}</strong>
+                      <small>{{ snapshot.sourceRecordId }}</small>
+                    </span>
+                    <span role="cell">{{ formatDate(snapshot.capturedAt) }}</span>
+                    <span role="cell">{{ snapshot.parsedRowCount }}</span>
+                    <span role="cell">{{ processingStateLabel(snapshot) }}</span>
+                  </button>
+                } @empty {
+                  <p class="empty-list">No crawl snapshots loaded.</p>
+                }
+              </div>
+          </app-resizable-table>
 
           @if (selectedSnapshot(); as snapshot) {
+            <button
+              class="workspace-resizer"
+              type="button"
+              aria-label="Resize crawl list and detail panels"
+              title="Resize panels"
+              (pointerdown)="startWorkspaceResize($event)"
+            >
+              <span aria-hidden="true"></span>
+            </button>
+
             <aside class="detail-panel surface-panel" aria-label="Selected crawl snapshot">
               <header class="detail-header">
                 <div>
@@ -132,28 +143,21 @@ import {
                 <p class="error-message">{{ lastErrorMessage }}</p>
               }
 
-              <div class="row-table" role="table" aria-label="Parsed crawl rows">
-                <div class="row-head" role="row">
-                  <span role="columnheader">Product</span>
-                  <span role="columnheader">Key</span>
-                  <span role="columnheader">Price</span>
-                  <span role="columnheader">Validity</span>
-                </div>
-
-                <div class="row-body">
-                  @for (row of snapshot.rows; track row.sourceRecordId || row.sourceProductKey || row.displayName) {
-                    <article class="parsed-row" role="row">
-                      <span role="cell">
-                        <strong>{{ row.displayName }}</strong>
-                        <small>{{ row.packageLabel || "no package" }}</small>
-                      </span>
-                      <span role="cell">{{ row.sourceProductKey || "none" }}</span>
-                      <span role="cell">{{ formatPrice(row) }}</span>
-                      <span role="cell">{{ formatValidity(row) }}</span>
-                    </article>
-                  }
-                </div>
-              </div>
+              <app-resizable-table #rowTable class="row-table" ariaLabel="Parsed crawl rows" [columns]="rowColumns">
+                  <div class="row-body">
+                    @for (row of snapshot.rows; track row.sourceRecordId || row.sourceProductKey || row.displayName) {
+                      <article class="parsed-row" role="row" [style.grid-template-columns]="rowTable.columnTemplate()">
+                        <span role="cell">
+                          <strong>{{ row.displayName }}</strong>
+                          <small>{{ row.packageLabel || "no package" }}</small>
+                        </span>
+                        <span role="cell">{{ row.sourceProductKey || "none" }}</span>
+                        <span role="cell">{{ formatPrice(row) }}</span>
+                        <span role="cell">{{ formatValidity(row) }}</span>
+                      </article>
+                    }
+                  </div>
+              </app-resizable-table>
             </aside>
           }
         </section>
@@ -256,46 +260,49 @@ import {
       }
 
       .crawl-workspace {
+        --crawl-detail-fr: 58fr;
+        --crawl-list-fr: 42fr;
         display: grid;
-        gap: var(--space-5);
-        grid-template-columns: minmax(24rem, 0.8fr) minmax(0, 1.2fr);
+        gap: var(--space-3);
+        grid-template-columns: minmax(20rem, var(--crawl-list-fr)) 0.75rem minmax(24rem, var(--crawl-detail-fr));
         min-height: 42rem;
+        min-width: 0;
       }
 
-      .snapshot-list,
+      .crawl-workspace-single {
+        grid-template-columns: 1fr;
+      }
+
       .detail-panel {
+        min-width: 0;
         overflow: hidden;
       }
 
-      .snapshot-head,
-      .row-head,
+      .snapshot-list,
+      .row-table {
+        min-width: 0;
+      }
+
       .snapshot-row,
       .parsed-row {
+        box-sizing: border-box;
         display: grid;
         gap: var(--space-3);
       }
 
-      .snapshot-head,
-      .row-head {
-        background: color-mix(in srgb, var(--color-wood-deep) 12%, var(--color-surface) 88%);
-        border-bottom: 1px solid color-mix(in srgb, var(--color-wood) 22%, transparent);
-        color: var(--color-text-muted);
-        font-size: 0.74rem;
-        font-weight: 800;
-        letter-spacing: 0;
-        padding: 0.75rem 1rem;
-        text-transform: uppercase;
-      }
-
-      .snapshot-head,
       .snapshot-row {
-        grid-template-columns: minmax(13rem, 1fr) 6rem 4rem 6.5rem;
+        min-width: var(--table-width);
       }
 
       .snapshot-body,
       .row-body {
         max-height: 36rem;
-        overflow: auto;
+        overflow-x: hidden;
+        overflow-y: auto;
+      }
+
+      .snapshot-body {
+        min-width: var(--table-width);
       }
 
       .snapshot-row {
@@ -314,6 +321,33 @@ import {
       .snapshot-row-selected,
       .snapshot-row:hover {
         background: color-mix(in srgb, var(--color-accent-sky) 22%, white 78%);
+      }
+
+      .workspace-resizer {
+        align-items: center;
+        align-self: stretch;
+        background: transparent;
+        border: 0;
+        cursor: col-resize;
+        display: flex;
+        justify-content: center;
+        min-width: 0.75rem;
+        padding: 0;
+      }
+
+      .workspace-resizer span {
+        background: color-mix(in srgb, var(--color-wood-deep) 22%, transparent);
+        border-radius: 999px;
+        display: block;
+        height: min(18rem, 46vh);
+        transition: background 160ms ease, width 160ms ease;
+        width: 0.22rem;
+      }
+
+      .workspace-resizer:hover span,
+      .workspace-resizer:focus-visible span {
+        background: color-mix(in srgb, var(--color-accent-leaf-strong) 72%, var(--color-wood-deep) 28%);
+        width: 0.34rem;
       }
 
       strong,
@@ -338,6 +372,7 @@ import {
       .detail-panel {
         display: grid;
         gap: var(--space-4);
+        grid-template-columns: minmax(0, 1fr);
         padding: clamp(1rem, 2.2vw, 1.25rem);
       }
 
@@ -347,9 +382,12 @@ import {
         grid-template-columns: repeat(4, minmax(0, 1fr));
       }
 
-      .row-head,
       .parsed-row {
-        grid-template-columns: minmax(18rem, 1fr) 8rem 7rem 9rem;
+        min-width: var(--table-width);
+      }
+
+      .row-body {
+        min-width: var(--table-width);
       }
 
       .parsed-row {
@@ -372,14 +410,17 @@ import {
           grid-template-columns: 1fr;
         }
 
+        .crawl-workspace {
+          gap: var(--space-5);
+        }
+
+        .workspace-resizer {
+          display: none;
+        }
+
         .summary-strip {
           grid-template-columns: repeat(3, minmax(0, 1fr));
           min-width: 0;
-        }
-
-        .snapshot-list,
-        .detail-panel {
-          overflow-x: auto;
         }
       }
     `
@@ -388,9 +429,22 @@ import {
 export class IngestionAdminComponent implements OnInit {
   readonly auth = inject(AuthService);
   readonly ingestion = inject(IngestionAdminService);
+  readonly snapshotColumns: readonly ResizableTableColumn[] = [
+    { key: "source", label: "Source", minWidth: 80, maxWidth: 640, width: 300 },
+    { key: "captured", label: "Captured", minWidth: 80, maxWidth: 640, width: 120 },
+    { key: "rows", label: "Rows", minWidth: 80, maxWidth: 640, width: 84 },
+    { key: "state", label: "State", minWidth: 80, maxWidth: 640, width: 132 }
+  ];
+  readonly rowColumns: readonly ResizableTableColumn[] = [
+    { key: "product", label: "Product", minWidth: 120, maxWidth: 820, width: 440 },
+    { key: "key", label: "Key", minWidth: 120, maxWidth: 760, width: 240 },
+    { key: "price", label: "Price", minWidth: 110, maxWidth: 760, width: 170 },
+    { key: "validity", label: "Validity", minWidth: 130, maxWidth: 760, width: 240 }
+  ];
   readonly errorMessage = signal("");
   readonly loadState = signal<"idle" | "loading" | "success" | "error">("idle");
   readonly processState = signal<"idle" | "loading">("idle");
+  readonly crawlListWidthPercent = signal(42);
   readonly snapshots = signal<IngestionSnapshotListItem[]>([]);
   readonly statusMessage = signal("No crawl snapshots have been loaded yet.");
   readonly selectedSnapshotId = signal<string | null>(null);
@@ -440,6 +494,32 @@ export class IngestionAdminComponent implements OnInit {
 
   selectSnapshot(snapshotId: string): void {
     this.selectedSnapshotId.set(snapshotId);
+  }
+
+  startWorkspaceResize(event: PointerEvent): void {
+    event.preventDefault();
+    const workspace = (event.currentTarget as HTMLElement).closest(".crawl-workspace");
+
+    if (!(workspace instanceof HTMLElement)) {
+      return;
+    }
+
+    const bounds = workspace.getBoundingClientRect();
+    const updateWidth = (clientX: number): void => {
+      const nextPercent = ((clientX - bounds.left) / bounds.width) * 100;
+      this.crawlListWidthPercent.set(Math.max(28, Math.min(64, nextPercent)));
+    };
+    const onPointerMove = (moveEvent: PointerEvent): void => {
+      updateWidth(moveEvent.clientX);
+    };
+    const onPointerUp = (): void => {
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+    };
+
+    updateWidth(event.clientX);
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp, { once: true });
   }
 
   async loadSnapshots(): Promise<void> {

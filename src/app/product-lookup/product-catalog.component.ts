@@ -9,6 +9,7 @@ import {
   type CatalogProductOfferPrice,
   type ProductMeasurement
 } from "./product-catalog.service";
+import { ResizableTableComponent, type ResizableTableColumn } from "../shared/resizable-table.component";
 
 interface VisibleProductRow {
   index: number;
@@ -16,13 +17,10 @@ interface VisibleProductRow {
   product: CatalogProductListItem;
 }
 
-type ProductTableColumnKey = "product" | "prices" | "sources" | "identifiers" | "state";
-
-type ProductTableColumnWidths = Record<ProductTableColumnKey, number>;
-
 const noOfferSourceKey = "__none__";
 
 @Component({
+  imports: [ResizableTableComponent],
   selector: "app-product-catalog",
   standalone: true,
   template: `
@@ -95,23 +93,7 @@ const noOfferSourceKey = "__none__";
         }
 
         @if (products().length) {
-          <section class="offer-table surface-panel" aria-label="Product offer table">
-            <div class="table-x-scroll" role="table" [style.--table-width]="tableWidth() + 'px'">
-              <div class="table-head" role="row" [style.grid-template-columns]="columnTemplate()">
-                @for (column of tableColumns; track column.key) {
-                  <span class="column-header" role="columnheader">
-                    {{ column.label }}
-                    <button
-                      class="column-resize-handle"
-                      type="button"
-                      title="Resize column"
-                      [attr.aria-label]="'Resize ' + column.label + ' column'"
-                      (pointerdown)="startColumnResize($event, column.key)"
-                    ></button>
-                  </span>
-                }
-              </div>
-
+          <app-resizable-table #productTable ariaLabel="Product offer table" [columns]="tableColumns">
               <div
                 class="table-viewport"
                 [style.--row-height]="rowHeight + 'px'"
@@ -122,7 +104,7 @@ const noOfferSourceKey = "__none__";
                     <article
                       class="product-row"
                       role="row"
-                      [style.grid-template-columns]="columnTemplate()"
+                      [style.grid-template-columns]="productTable.columnTemplate()"
                       [style.transform]="'translateY(' + row.offset + 'px)'"
                     >
                       <div class="product-main" role="cell">
@@ -159,8 +141,7 @@ const noOfferSourceKey = "__none__";
                   }
                 </div>
               </div>
-            </div>
-          </section>
+          </app-resizable-table>
         }
       }
     </section>
@@ -286,59 +267,11 @@ const noOfferSourceKey = "__none__";
         width: 1rem;
       }
 
-      .offer-table {
-        overflow: hidden;
-      }
-
-      .table-x-scroll {
-        overflow-x: auto;
-      }
-
-      .table-head,
       .product-row {
         box-sizing: border-box;
         display: grid;
         gap: var(--space-3);
         min-width: var(--table-width);
-      }
-
-      .table-head {
-        background: color-mix(in srgb, var(--color-wood-deep) 12%, var(--color-surface) 88%);
-        border-bottom: 1px solid color-mix(in srgb, var(--color-wood) 22%, transparent);
-        color: var(--color-text-muted);
-        font-size: 0.76rem;
-        font-weight: 800;
-        letter-spacing: 0;
-        padding: 0.8rem 1rem;
-        text-transform: uppercase;
-      }
-
-      .column-header {
-        align-items: center;
-        display: flex;
-        justify-content: space-between;
-        min-width: 0;
-        position: relative;
-      }
-
-      .column-resize-handle {
-        background: color-mix(in srgb, var(--color-wood-deep) 22%, transparent);
-        border: 0;
-        border-radius: 8px;
-        cursor: col-resize;
-        height: 1.5rem;
-        margin-left: 0.5rem;
-        padding: 0;
-        position: relative;
-        width: 0.45rem;
-      }
-
-      .column-resize-handle::after {
-        background: color-mix(in srgb, var(--color-wood-deep) 42%, transparent);
-        border-radius: 999px;
-        content: "";
-        inset: 0.25rem 0.16rem;
-        position: absolute;
       }
 
       .table-viewport {
@@ -457,31 +390,17 @@ export class ProductCatalogComponent implements OnInit {
   readonly loadState = signal<"idle" | "loading" | "success" | "error">("idle");
   readonly products = signal<CatalogProductListItem[]>([]);
   readonly selectedOfferSources = signal<Set<string>>(new Set([noOfferSourceKey]));
-  readonly tableColumns: Array<{ key: ProductTableColumnKey; label: string }> = [
-    { key: "product", label: "Product" },
-    { key: "prices", label: "Prices" },
-    { key: "sources", label: "Sources" },
-    { key: "identifiers", label: "Identifiers" },
-    { key: "state", label: "State" }
+  readonly tableColumns: readonly ResizableTableColumn[] = [
+    { key: "product", label: "Product", minWidth: 140, maxWidth: 640, width: 300 },
+    { key: "prices", label: "Prices", minWidth: 140, maxWidth: 640, width: 260 },
+    { key: "sources", label: "Sources", minWidth: 140, maxWidth: 640, width: 280 },
+    { key: "identifiers", label: "Identifiers", minWidth: 140, maxWidth: 640, width: 220 },
+    { key: "state", label: "State", minWidth: 140, maxWidth: 640, width: 190 }
   ];
-  readonly columnWidths = signal<ProductTableColumnWidths>({
-    identifiers: 220,
-    prices: 260,
-    product: 300,
-    sources: 280,
-    state: 190
-  });
   readonly rowHeight = 92;
   readonly scrollTop = signal(0);
   readonly statusMessage = signal("No product snapshot has been loaded yet.");
   readonly viewportHeight = 704;
-  readonly columnTemplate = computed(() =>
-    this.tableColumns.map((column) => `${this.columnWidths()[column.key]}px`).join(" ")
-  );
-  readonly tableWidth = computed(() =>
-    Object.values(this.columnWidths()).reduce((total, width) => total + width, 0)
-      + (this.tableColumns.length - 1) * 12
-  );
   readonly offerSourceOptions = computed(() => [
     ...[...new Set(this.products().flatMap((product) => product.offers.map((offer) => offer.sourceName)))]
       .sort((left, right) => left.localeCompare(right, "hu-HU"))
@@ -617,26 +536,6 @@ export class ProductCatalogComponent implements OnInit {
     }
 
     return chips.slice(0, 4);
-  }
-
-  startColumnResize(event: PointerEvent, columnKey: ProductTableColumnKey): void {
-    event.preventDefault();
-    const startX = event.clientX;
-    const startWidth = this.columnWidths()[columnKey];
-    const onPointerMove = (moveEvent: PointerEvent): void => {
-      const nextWidth = Math.max(140, Math.min(640, startWidth + moveEvent.clientX - startX));
-      this.columnWidths.update((widths) => ({
-        ...widths,
-        [columnKey]: nextWidth
-      }));
-    };
-    const onPointerUp = (): void => {
-      window.removeEventListener("pointermove", onPointerMove);
-      window.removeEventListener("pointerup", onPointerUp);
-    };
-
-    window.addEventListener("pointermove", onPointerMove);
-    window.addEventListener("pointerup", onPointerUp, { once: true });
   }
 
   toggleOfferSource(sourceKey: string): void {
