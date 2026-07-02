@@ -12,8 +12,25 @@ function writeResponse(response: ServerResponse, appResponse: AppResponse): void
   response.end(appResponse.body);
 }
 
-function toAppPath(urlValue: string | undefined): string {
-  return new URL(urlValue ?? "/", "http://localhost").pathname;
+function toAppUrl(urlValue: string | undefined): URL {
+  return new URL(urlValue ?? "/", "http://localhost");
+}
+
+function toAppQuery(searchParams: URLSearchParams): Record<string, string | string[] | undefined> {
+  const query: Record<string, string | string[] | undefined> = {};
+
+  for (const [key, value] of searchParams.entries()) {
+    const currentValue = query[key];
+    if (Array.isArray(currentValue)) {
+      currentValue.push(value);
+    } else if (typeof currentValue === "string") {
+      query[key] = [currentValue, value];
+    } else {
+      query[key] = value;
+    }
+  }
+
+  return query;
 }
 
 async function readRequestBody(request: IncomingMessage): Promise<string> {
@@ -30,11 +47,13 @@ export async function handleNodeRequest(
   request: IncomingMessage,
   response: ServerResponse
 ): Promise<void> {
+  const appUrl = toAppUrl(request.url);
   const appResponse = await handleAppRequest({
+    bodyText: await readRequestBody(request),
     headers: request.headers,
     method: request.method ?? "GET",
-    path: toAppPath(request.url),
-    bodyText: await readRequestBody(request)
+    path: appUrl.pathname,
+    query: toAppQuery(appUrl.searchParams)
   });
 
   writeResponse(response, appResponse);

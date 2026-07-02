@@ -26,6 +26,17 @@ interface CollectionIndexPlan {
   name: string;
 }
 
+export interface CatalogProductReviewPageOptions {
+  limit?: number;
+  offset?: number;
+  sourceNames?: string[];
+}
+
+export interface CatalogProductReviewPage {
+  products: CatalogProductListItem[];
+  totalCount: number;
+}
+
 const collectionPlans: CollectionIndexPlan[] = [
   {
     indexes: [
@@ -186,12 +197,35 @@ export class MongoCurrentCatalogRepository {
     this.stocksCollection = database.collection<StockRecord>("stocks");
   }
 
-  async listCatalogProductsForReview(limit = 200): Promise<CatalogProductListItem[]> {
-    const products = await this.productsCollection
-      .find({ status: "active" })
-      .sort({ name: 1 })
-      .limit(limit)
-      .toArray();
+  async listCatalogProductsForReview(
+    options: CatalogProductReviewPageOptions = {}
+  ): Promise<CatalogProductReviewPage> {
+    const requestedSourceNames = [...new Set(options.sourceNames ?? [])].filter((sourceName) => sourceName.length > 0);
+    const productFilter: Filter<ProductRecord> = { status: "active" };
+
+    if (requestedSourceNames.length > 0) {
+      const productIdsForSources = await this.productSourcesCollection.distinct("productId", {
+        sourceName: { $in: requestedSourceNames }
+      });
+      productFilter.id = { $in: productIdsForSources };
+    }
+
+    let productQuery = this.productsCollection
+      .find(productFilter)
+      .sort({ name: 1 });
+
+    if (typeof options.offset === "number" && options.offset > 0) {
+      productQuery = productQuery.skip(options.offset);
+    }
+
+    if (typeof options.limit === "number" && options.limit > 0) {
+      productQuery = productQuery.limit(options.limit);
+    }
+
+    const [products, totalCount] = await Promise.all([
+      productQuery.toArray(),
+      this.productsCollection.countDocuments(productFilter)
+    ]);
 
     const productIds = products.map((product) => product.id);
     const [productTagAssignments, productSources, householdStocks] = await Promise.all([
@@ -287,17 +321,26 @@ export class MongoCurrentCatalogRepository {
       );
     }
 
-    return products.map((product) => ({
-      brandName: product.brandName,
-      householdStockCount: householdStockCountByProductId.get(product.id) ?? 0,
-      id: product.id,
-      measurements: product.measurements,
-      name: product.name,
-      offers: (offerRowsByProductId.get(product.id) ?? []).sort(compareOffers),
-      primaryCategoryKey: product.primaryCategoryKey,
-      sourceNames: [...new Set(sourcesByProductId.get(product.id) ?? [])].sort(),
-      tagKeys: [...new Set(tagsByProductId.get(product.id) ?? [])].sort()
-    }));
+    return {
+      products: products.map((product) => ({
+        brandName: product.brandName,
+        householdStockCount: householdStockCountByProductId.get(product.id) ?? 0,
+        id: product.id,
+        measurements: product.measurements,
+        name: product.name,
+        offers: (offerRowsByProductId.get(product.id) ?? []).sort(compareOffers),
+        primaryCategoryKey: product.primaryCategoryKey,
+        sourceNames: [...new Set(sourcesByProductId.get(product.id) ?? [])].sort(),
+        tagKeys: [...new Set(tagsByProductId.get(product.id) ?? [])].sort()
+      })),
+      totalCount
+    };
+  }
+
+  async listCatalogOfferSourceNames(): Promise<string[]> {
+    const sourceNames = await this.productSourcesCollection.distinct("sourceName");
+
+    return sourceNames.sort((left, right) => left.localeCompare(right, "hu-HU"));
   }
 
   async runSmokeCheck(): Promise<CurrentCatalogSmokeCheckResult> {
