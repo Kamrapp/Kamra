@@ -4,7 +4,7 @@
 
 Kamra ingestion collects source-shop product and price observations outside user-facing request handlers.
 
-The Stage 4 implementation currently proves this with `SimpleHtmlTableShop`, `SimplePdfShop`, plus experimental PENNY, ALDI, and COOP Hungary offer crawlers. The synthetic sources are intentionally small, but they use the same raw snapshot/run shape planned for real crawlers:
+The Stage 4 implementation currently proves this with `SimpleHtmlTableShop`, `SimplePdfShop`, plus experimental PENNY, ALDI, COOP, and Lidl Hungary crawlers. The synthetic sources are intentionally small, but they use the same raw snapshot/run shape planned for real crawlers:
 
 ```text
 source content -> parser -> raw snapshot -> later processor -> catalog records
@@ -19,6 +19,7 @@ Implemented:
 - first experimental PENNY Hungary offers source
 - experimental ALDI Hungary offers source
 - experimental COOP Hungary offers source
+- experimental Lidl Hungary brochure/PDF source
 - parsed source rows with product identity, stock availability, and separate price observations
 - `ingestion_runs`
 - `ingestion_raw_snapshots`
@@ -108,6 +109,12 @@ Run experimental COOP offers ingestion:
 npm run coop:ingest
 ```
 
+Run experimental Lidl brochure ingestion:
+
+```powershell
+npm run lidl:ingest
+```
+
 Remove crawled content for one crawl run:
 
 ```powershell
@@ -182,18 +189,23 @@ The workflow installs dependencies, typechecks API/scripts, runs ingestion tests
 
 COOP rows can include coupon or loyalty-style price observations and store-scope notes. Processors must keep coupon/loyalty prices separate from default prices and must not assume every COOP offer is nationally valid.
 
+## Lidl Brochure Script
+
+`npm run lidl:ingest` discovers public brochure links from `https://www.lidl.hu/c/szorolap/s10013623`, resolves flyer metadata through the Lidl leaflet viewer API, ignores Nonfood brochures, downloads the current food PDF brochures, extracts page text with PDF.js, and stores one raw snapshot per brochure.
+
+Lidl PDF text is noisy: prices, product names, item numbers, validity labels, and page boilerplate are interleaved. The first parser emits rows anchored by Lidl item numbers and only writes price observations when a nearby offer price is clear. Rows without confident prices are still retained as source rows for later parser improvement.
+
 ## Next Planned Sources
 
-- Do not add more live retailer crawlers before the synthetic PDF path and Lidl brochure/PDF path are reviewed.
+- Do not add more live retailer crawlers before the Lidl brochure/PDF output is reviewed.
 - Tesco Hungary live product crawling is deferred. No documented public Tesco Hungary product/offers API or feed was found, and `https://www.tesco.hu/akciok/akcios-termekek/tesco-szupermarket-zirc` returned HTTP 403 from the crawler runner.
 - Tesco may be revisited later through `https://www.tesco.hu/akciok/katalogusok` as brochure/catalogue work if public catalogue media can be fetched normally or if Tesco provides permission/API documentation.
-- Lidl Hungary should be treated as brochure/PDF ingestion from `https://www.lidl.hu/c/szorolap/s10013623`, after the PDF pipeline is ready.
 - SPAR Hungary should be revisited through `https://www.spar.hu/ajanlatok`, which lists viewable/downloadable brochures, rather than prioritizing the older minimal `akcioterv` page.
 
 ## Safety Notes
 
 - Do not run crawlers from API routes or user-facing handlers.
-- Treat `npm run penny:ingest`, `npm run aldi:ingest`, and `npm run coop:ingest` as experimental source research. They fetch public offer pages and write raw ingestion data, but they are not production-approved crawling yet.
+- Treat `npm run penny:ingest`, `npm run aldi:ingest`, `npm run coop:ingest`, and `npm run lidl:ingest` as experimental source research. They fetch public offer pages or brochures and write raw ingestion data, but they are not production-approved crawling yet.
 - Do not enable real retailer crawlers from a scheduled workflow without source-policy review.
 - Do not assume ingestion snapshots are canonical products.
 - Do not collapse normal, offer, coupon, or loyalty/card prices into one field when a source exposes them separately.

@@ -203,16 +203,39 @@ These findings are scouting and implementation notes, not legal/source approvals
 - Offer path checked: `https://www.lidl.hu/c/akcioink-csutortoktol/a10096929`
 - Brochure path checked: `https://www.lidl.hu/c/szorolap/s10013623`
 - Robots path checked: `https://www.lidl.hu/robots.txt`
+- Implemented source:
+  - Source name: `lidl-hu-brochure`
+  - Acquisition method: public brochure index discovery, Lidl leaflet viewer API metadata, public PDF download, PDF.js text extraction.
+  - Raw snapshot shape: one snapshot per food brochure PDF per crawl day, keyed by brochure slug and retaining extracted page text plus brochure metadata.
 - Observed shape:
   - The site exposes clear offer and brochure navigation.
   - The brochure page lists current and upcoming flyers.
   - On 2026-07-01 the brochure page listed current/upcoming flyer links including "Akciós újság" and "Nonfood kínálatunk" entries for weeks 26 and 27.
+  - On 2026-07-02 the public leaflet viewer API returned `pdfUrl`, flyer validity, page metadata, and related flyer metadata.
+  - The PDF text is extractable but noisy: product names, prices, item numbers, validity labels, and boilerplate are interleaved.
   - The offer page did not expose product offer details cleanly in the fetched static text during the research pass; it looked more client-rendered or data-backed.
   - Robots disallowed some search/assets/numeric paths, but the checked offer and brochure paths were not obviously blocked from the fetched robots text.
+- Data currently crawled/promoted:
+  - Food brochure PDF metadata, including flyer id, slug, title, source URL, PDF URL, and validity window.
+  - Lidl retailer item numbers as source-local identifiers where the parser can anchor a row.
+  - Product-like display names reconstructed from nearby PDF text.
+  - Package/unit-price label where a nearby package line exposes it.
+  - Offer price observations only when the parser can identify a nearby price without guessing.
+  - Source page number and raw nearby PDF text in row metadata/crawl context.
+- Missing or intentionally not crawled:
+  - Nonfood brochure PDFs are ignored for now.
+  - Online-only pages or non-page metadata are ignored.
+  - No product image ingestion.
+  - No exact layout-coordinate parsing yet.
+  - No guarantee that every item-number row is a clean product offer; review/noise filtering remains needed.
+- Limitations:
+  - The first parser prioritizes recall and traceability over perfect commercial semantics.
+  - Many rows become product/source records without price observations because the nearby PDF text does not expose a confidently parseable price.
+  - Item numbers are retailer-local, not cross-shop product identifiers.
 - Recommendation:
-  - Do not start here before the processor pipeline and processed-offer UI are working.
-  - Treat Lidl as a PDF/brochure discovery and extraction candidate, not a simple static product-offer page.
-  - Investigate linked flyer viewer/download behavior and source policy before coding the crawler.
+  - Keep Lidl as a source-specific PDF/brochure crawler.
+  - Review processed Lidl rows in admin UI before relying on them for price comparison.
+  - Improve parser confidence with layout-aware extraction or page-image/OCR review only after the operator view makes noise easy to inspect.
 
 ### Tesco Hungary
 
@@ -242,8 +265,8 @@ After the synthetic sources are implemented and reviewed, the current real-sourc
 3. COOP public offers page: small/noisy backup source, useful for source diversity and parser hardening.
 4. Processor pipeline for existing PENNY/ALDI/COOP snapshots before adding more sources.
 5. Compact processed-offer UI so crawled prices can be reviewed before broader acquisition.
-6. Revisit Lidl when the project is ready for brochure/PDF parsing, browser automation, or source-specific API research.
-7. Revisit SPAR through `spar.hu/ajanlatok` brochures after the PDF/brochure path is proven.
+6. Lidl public brochure/PDF ingestion: implemented as first source-specific PDF source; needs admin review and parser-noise improvements before price comparisons rely on it.
+7. Revisit SPAR through `spar.hu/ajanlatok` brochures after current data supports product/household feature work.
 8. Revisit Tesco as catalogue/PDF work only if public catalogue media or explicit API/permission is available.
 
 ## Cross-Source Comparison Caveats

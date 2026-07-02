@@ -164,6 +164,30 @@ describe("Source offer catalog processor", () => {
     ]);
   });
 
+  it("uses the Lidl Hungary availability location for Lidl brochure rows", () => {
+    const snapshot = createSnapshot("lidl-hu-brochure", "akcios-ujsag-27-het-2026", [
+      {
+        countryCode: "HU",
+        displayName: "FLORA Vajízű kenhető keverék",
+        sourceProductKey: "191660",
+        storeBrandKey: "lidl-hu"
+      }
+    ]);
+
+    const result = processSourceOfferSnapshot(snapshot, processedAt);
+
+    expect(() => assertCatalogV1SeedDataset(result.dataset)).not.toThrow();
+    expect(result.dataset.stocks).toMatchObject([
+      {
+        location: {
+          label: "Lidl Hungary",
+          locationKey: "availability:lidl-hu",
+          storeBrandKey: "lidl-hu"
+        }
+      }
+    ]);
+  });
+
   it("deduplicates product records while keeping separate source records", () => {
     const snapshot = createSnapshot("mixed-source-test", "mixed-record-1", [
       {

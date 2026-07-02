@@ -19,6 +19,8 @@ Ingestion is separate from catalog:
   - synthetic PDF generator, committed fixture, PDF text parser, and tests
 - `sources/*-offers/`
   - source-specific real retailer parsers for public offer pages
+- `sources/lidl-hu-brochure/`
+  - source-specific Lidl public brochure discovery and PDF text parsing
 - `processing/`
   - deterministic processors that convert raw ingestion snapshots into catalog write sets
 - `current/`

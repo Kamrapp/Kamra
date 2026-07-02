@@ -122,13 +122,15 @@ Remaining uncertainty:
 - Legacy crawler concepts exist in historical docs, but no new Stage 4 runtime code exists yet.
 - Stage 4 runtime code now exists for:
   - `SimpleHtmlTableShop`
+  - `SimplePdfShop`
   - `penny_hu_offers`
   - `aldi-hu-offers`
   - `coop-hu-offers`
-- The real-source crawlers currently write raw ingestion snapshots only; they do not yet process into catalog records.
+  - `lidl-hu-brochure`
+- The source crawlers write raw ingestion snapshots that can now be processed into catalog records.
 - ALDI and COOP source parsers previously cast richer, source-specific parsed rows into `ParsedShopProductRow`; the ingestion row contract has been loosened so those rows are now first-class.
 - The processor pipeline and compact processed-offer UI exist for the current raw crawler data.
-- There is still no `SimplePdfShop`, Lidl PDF ingestion, SPAR PDF ingestion, Tesco catalog/PDF ingestion, manual processing workflow, or dedicated crawl-run admin view.
+- There is still no SPAR PDF ingestion, Tesco catalog/PDF ingestion, manual processing workflow, or dedicated crawl-run admin view.
 - `docs/ingestion.md`, `.github/workflows/*-ingestion.yml`, `scripts/README.md`, and `.agents/learnings/crawler-source-research.md` should be treated as live context for implemented source status.
 
 ## Intended Direction
@@ -438,7 +440,7 @@ Status: Completed for compact processed product/source/price review. Dedicated c
 
 ### Step 8: Implement SimplePdfShop And Brochure/PDF Foundation
 
-Status: Next approved implementation slice.
+Status: Completed.
 
 - Goal: Add deterministic synthetic PDF generation and parsing that produces the same normalized row contract as the HTML source.
 - Include both a generated runtime PDF path and a small committed PDF fixture after visual review.
@@ -457,11 +459,11 @@ Status: Next approved implementation slice.
 
 ### Step 9: Add Lidl Brochure/PDF Ingestion
 
-Status: Planned after Step 8.
+Status: Completed for first experimental source-specific ingestion and processing.
 
 - Goal: Discover current Lidl flyers from `https://www.lidl.hu/c/szorolap/s10013623`, download allowed brochure/PDF content when technically and policy appropriate, and parse product offer text through the PDF pipeline.
 - Keep Lidl source-specific. Do not introduce a generic brochure discovery abstraction yet.
-- 2026-07-01 quick check: the page lists current/upcoming flyer links such as 27th-week and 26th-week brochures; a later implementation pass must inspect the linked viewer/download behavior directly before coding.
+- 2026-07-02 implementation note: the public brochure index listed current and previous food/nonfood flyers. The source resolves food flyers through the public Lidl leaflet viewer API, ignores Nonfood flyers, downloads the PDF files, extracts PDF text, and emits rows anchored by Lidl item numbers. The first parser is intentionally conservative: it records many source rows and only creates price observations where a nearby offer price is clear.
 - Validation:
   - source-review checklist entry
   - saved flyer fixture or deterministic sample for parser tests
@@ -597,4 +599,4 @@ Manual review:
 
 ## Approval Checkpoint
 
-Current next approved direction: implement Step 8, `SimplePdfShop` and the controlled PDF foundation, then Step 9 Lidl brochure/PDF ingestion. SPAR and Tesco are intentionally deferred until after product and household feature work can use the already crawled shops.
+Current next approved direction: continue with Step 12 manual processing workflow and Step 13 focused operator visibility/UI improvements. SPAR and Tesco are intentionally deferred until after product and household feature work can use the already crawled shops.

@@ -56,6 +56,11 @@ const sourceConfigs: Record<string, SourceProcessingConfig> = {
     locationLabel: "COOP Hungary",
     locationKey: "availability:coop-hu"
   },
+  "lidl-hu-brochure": {
+    defaultStoreBrandKey: "lidl-hu",
+    locationLabel: "Lidl Hungary",
+    locationKey: "availability:lidl-hu"
+  },
   "penny_hu_offers": {
     defaultStoreBrandKey: "penny-hu",
     locationLabel: "PENNY Hungary",

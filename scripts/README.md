@@ -118,6 +118,18 @@ npm run coop:ingest
 
 Experimental data-writing script. COOP rows can include coupon, loyalty, purchase-condition, or store-scope notes. Downstream processing must keep coupon/loyalty prices separate from default prices.
 
+### `ingest-lidl-brochures.ts`
+
+Fetches `https://www.lidl.hu/c/szorolap/s10013623`, discovers public food brochure entries, downloads their PDF files, extracts page text, and writes one raw ingestion snapshot per food brochure.
+
+Command:
+
+```powershell
+npm run lidl:ingest
+```
+
+Experimental data-writing script. It ignores Nonfood brochures, keeps Lidl item numbers source-local, and only emits prices where the PDF text parser can identify a nearby offer price without guessing.
+
 ### `process-ingestion.ts`
 
 Processes raw ingestion snapshots into catalog products, product sources, source identifiers, price observations, availability stocks, and source processing states.
