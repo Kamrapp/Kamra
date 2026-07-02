@@ -44,6 +44,7 @@ These are planning hints, not commitments. Re-score an item when product evidenc
 | Followup | Why It Matters | AddedValue | Effort | Complexity | Priority |
 | --- | --- | --- | --- | --- | --- |
 | Crawler expansion beyond the first source | More sources make price tracking meaningful, but every source needs policy review, source-friendly limits, and isolated parsing. | 5/5 | High | High | High |
+| End-of-MVP SPAR/Tesco brochure expansion | Revisit SPAR brochure/PDF and Tesco catalogue/PDF ingestion after the current crawled shops have supported product lookup, household stock, and shopping-list or notice features. Keep source review, no-bypass rules, and source-specific parsers. | 4/5 | Med | Med | Med |
 | Temporary Lidl/Aldi-style product discovery | Limited-offer products are useful for grocery planning, but source behavior and identity matching should be proven first. | 4/5 | High | Med | Med |
 | User-submitted price updates from shop photos | Can fill gaps where crawler coverage is weak, but raises moderation, trust, privacy, and image-processing concerns. | 4/5 | High | High | Low |
 | Generated OpenAPI and JSON Schema artifacts | Useful once API and model boundaries stabilize; premature during Stage 2 because contracts are still small. | 3/5 | High | Med | Med |

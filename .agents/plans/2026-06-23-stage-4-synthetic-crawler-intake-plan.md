@@ -11,7 +11,7 @@ Plan Stage 4 crawler intake around controlled sources first, then extend into re
 - real Hungarian retailer offer sources, currently PENNY, ALDI, and COOP raw ingestion.
 - processed catalog pipeline and compact product-offer UI before more live retailer acquisition.
 - Lidl brochure/PDF ingestion after the synthetic PDF path is proven.
-- SPAR and Tesco brochure/catalogue work later, after current crawled shops provide enough data for product and household feature work.
+- SPAR and Tesco brochure/catalogue work moved out of Stage 4 and into end-of-MVP expansion, after current crawled shops have supported product and household feature work.
 
 The goal is to prove ingestion, raw snapshots, processing, workflow orchestration, tests, and admin/operator visibility before relying on broad crawling or public product lookup value.
 
@@ -130,7 +130,8 @@ Remaining uncertainty:
 - The source crawlers write raw ingestion snapshots that can now be processed into catalog records.
 - ALDI and COOP source parsers previously cast richer, source-specific parsed rows into `ParsedShopProductRow`; the ingestion row contract has been loosened so those rows are now first-class.
 - The processor pipeline and compact processed-offer UI exist for the current raw crawler data.
-- There is still no SPAR PDF ingestion, Tesco catalog/PDF ingestion, manual processing workflow, or dedicated crawl-run admin view.
+- There is still no manual processing workflow or dedicated crawl-run admin view.
+- SPAR PDF ingestion and Tesco catalog/PDF ingestion are explicitly out of Stage 4 scope and should be revisited near the end of the MVP.
 - `docs/ingestion.md`, `.github/workflows/*-ingestion.yml`, `scripts/README.md`, and `.agents/learnings/crawler-source-research.md` should be treated as live context for implemented source status.
 
 ## Intended Direction
@@ -225,7 +226,7 @@ Included:
 - Source-specific processors for each crawled shop so parser quirks and promotion semantics remain isolated.
 - Compact product/shop-offer table UI showing connected source offers and prices.
 - Lidl brochure/PDF acquisition.
-- Deferred source notes for SPAR and Tesco brochure/PDF acquisition.
+- Deferred end-of-MVP source notes for SPAR and Tesco brochure/PDF acquisition.
 
 ## Non-Goals
 
@@ -262,10 +263,10 @@ Included:
 - Processors may write current/collated `stocks.price` from the latest usable default price observation when this reduces query cost and does not hide coupon, loyalty, or other restricted prices.
 - Lidl and future SPAR brochure/PDF handling stay source-specific. Avoid a generic brochure discovery layer until repeated patterns justify it.
 
-## Step 13 Implementation Notes
+## Step 11 Implementation Notes
 
-- Step 13 should add a `site-admin` crawl-run view, not only API smoke output. The initial UI should list crawl runs/snapshots, open each entry into a detail flyout, show parsed crawl rows below crawl header data, and allow manual operator actions such as process-state changes and row data edits where safely scoped.
-- Step 13 should also extend the API so an admin can trigger processing for one crawl snapshot by id, then expose that action as a button in the crawl detail view.
+- Step 11 should add a `site-admin` crawl-run view, not only API smoke output. The initial UI should list crawl runs/snapshots, open each entry into a detail flyout, show parsed crawl rows below crawl header data, and allow manual operator actions such as process-state changes and row data edits where safely scoped.
+- Step 11 should also extend the API so an admin can trigger processing for one crawl snapshot by id, then expose that action as a button in the crawl detail view.
 - The crawl detail view may need shop/source-specific row rendering because raw row contracts differ. Keep the first version generic where possible, but do not force all shops into a lossy shared table.
 
 ## Side Suggestions
@@ -418,7 +419,7 @@ Status: Completed for local processing and validation.
 
 ### Step 7: Add Processed Offer API And Compact Product Offer Table UI
 
-Status: Completed for compact processed product/source/price review. Dedicated crawl-run visibility remains Step 13.
+Status: Completed for compact processed product/source/price review. Dedicated crawl-run visibility remains Step 11.
 
 - Goal: Extend the product inspection surface so admins can see all products and connected shop offers/prices in a compact table.
 - Include:
@@ -471,31 +472,16 @@ Status: Completed for first experimental source-specific ingestion and processin
 - Commit message idea:
   - `Add Lidl brochure ingestion`
 
-### Step 10: Revisit SPAR Brochure Source
+### Deferred End-Of-MVP Source Expansion: SPAR And Tesco
 
-Status: Deferred until after enough current crawled-shop data exists for product and household feature work.
+Status: Moved out of Stage 4.
 
-- Goal when revisited: Evaluate `https://www.spar.hu/ajanlatok` as a brochure/PDF source before using the older `akcioterv` page.
-- 2026-07-01 quick check: `spar.hu/ajanlatok` lists downloadable and viewable PDF brochures for SPAR, INTERSPAR, SPAR market, City SPAR, and special catalogues, so this is likely a better future source than the minimal `akcioterv` content.
-- Commit message idea:
-  - `Document SPAR brochure ingestion path`
+- SPAR and Tesco are no longer active Stage 4 implementation steps.
+- Revisit them near the end of the MVP, after current crawled-shop data has supported product lookup, household stock, and shopping-list/notice features.
+- SPAR future note: evaluate `https://www.spar.hu/ajanlatok` as a brochure/PDF source before using the older `akcioterv` page. The page lists downloadable and viewable PDF brochures for SPAR, INTERSPAR, SPAR market, City SPAR, and special catalogues.
+- Tesco future note: treat Tesco as a brochure/PDF/catalogue source through `https://www.tesco.hu/akciok/katalogusok` unless Tesco documents or grants a product/offers API/feed. Do not retry the location-tagged product page with header/IP/geolocation bypasses.
 
-### Step 11: Revisit Tesco As Brochure/Catalog Source
-
-- Status: Deferred until after enough current crawled-shop data exists for product and household feature work.
-- Findings:
-  - No documented public Tesco Hungary product/offers API or feed was found.
-  - `https://www.tesco.hu/akciok/akcios-termekek/tesco-szupermarket-zirc` returned HTTP 403 from the crawler runner.
-  - `https://www.tesco.hu/akciok/katalogusok` publicly lists current/upcoming catalogues with online viewing and download affordances.
-- Goal if revisited: treat Tesco as a brochure/PDF/catalogue source, not as a live location-tagged product crawler, unless Tesco documents or grants a product/offers API/feed.
-- Validation:
-  - source-review checklist entry
-  - only use accessible catalog/leaflet media or explicit permission
-  - no header/IP/geolocation bypass
-- Commit message idea:
-  - `Document Tesco catalogue source path`
-
-### Step 12: Add Manual Processing Workflow
+### Step 10: Add Manual Processing Workflow
 
 - Goal: Add a manually dispatchable workflow for processing pending snapshots against a configured environment. Once tests and local scripts exist, allow a Smoke/Dev-only schedule for processors if desired.
 - Files likely affected:
@@ -510,7 +496,7 @@ Status: Deferred until after enough current crawled-shop data exists for product
 - Commit message idea:
   - `Add manual ingestion processing workflow`
 
-### Step 13: Add Minimal Operator Visibility
+### Step 11: Add Minimal Operator Visibility
 
 - Goal: Expose latest ingestion runs, crawl snapshots, parsed rows, processing failures, and manual crawl processing actions to an admin/operator without mixing this into household workflows.
 - Include:
@@ -599,4 +585,4 @@ Manual review:
 
 ## Approval Checkpoint
 
-Current next approved direction: continue with Step 12 manual processing workflow and Step 13 focused operator visibility/UI improvements. SPAR and Tesco are intentionally deferred until after product and household feature work can use the already crawled shops.
+Current next approved direction: continue with Step 10 manual processing workflow and Step 11 focused operator visibility/UI improvements. SPAR and Tesco are moved out of Stage 4 and should be revisited near the end of the MVP after product and household feature work can use the already crawled shops.

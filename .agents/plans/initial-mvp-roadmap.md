@@ -20,7 +20,7 @@ Roadmap priorities:
 | Stage 1 | Legacy inventory and extraction | Completed (docs) | Discovery strengthened the Angular-retention assumption, shared-contract direction, and migration-ledger need. |
 | Stage 2 | Minimal serverless foundation | Completed | Vercel app/API and MongoDB connectivity are running; Stage 2 followups should be handled only when they block later stages. |
 | Stage 3 | Product model foundation and seeded data | Completed | Finalized versioned product contracts, seed data, smoke validation, and admin-only product inspection before crawler work. |
-| Stage 4 | Crawler intake and processing pipeline | In progress | Raw ingestion exists for synthetic HTML plus PENNY, ALDI, and COOP offer pages; processor/local orchestration and compact product-offer visibility are in place; next work is synthetic PDF, Lidl brochure/PDF ingestion, manual processing workflow, and focused operator UI. SPAR and Tesco are delayed until current crawled-shop data has supported product and household feature work. |
+| Stage 4 | Crawler intake and processing pipeline | In progress | Raw ingestion exists for synthetic HTML plus PENNY, ALDI, COOP, and Lidl brochure/PDF sources; processor/local orchestration and compact product-offer visibility are in place; next work is manual processing workflow and focused operator UI. SPAR and Tesco are moved out of Stage 4 and should be revisited near the end of the MVP. |
 | Stage 5 | Household stock foundation | Planned | Treat households as stock locations where useful, while preserving user-household authorization boundaries. |
 | Stage 6 | Shopping list and low-stock notices | Planned | Favor deterministic core logic over premature optimization. |
 | Stage 7 | Controlled alpha access and app module shell | Planned | Move external demo access later, after household and list value exist; keep public/product, household, site-admin, and dev-admin concerns visibly separate. |
@@ -237,8 +237,8 @@ Current status:
 - Source-specific processing now writes queryable catalog records, source identifiers, price observations, stocks, and processing states for the current raw snapshot set.
 - Price observations preserve offer history and restrictions; processors may write a current/collated `stocks.price` only when a safe default price is clear.
 - Tesco live product crawling is deferred because no documented public product/offers API/feed was found and the location-tagged offers page returned HTTP 403 from the crawler runner.
-- Next source work is controlled PDF support through `SimplePdfShop`, followed by Lidl brochure/PDF ingestion.
-- SPAR and Tesco brochure/catalogue work is intentionally deferred until current crawled-shop data has supported product and household feature work.
+- Controlled PDF support through `SimplePdfShop` and Lidl brochure/PDF ingestion are in place.
+- SPAR and Tesco brochure/catalogue work is intentionally moved out of Stage 4. Revisit them near the end of the MVP, after the current crawled-shop data has supported product lookup, household stock, and shopping-list/notice features.
 
 Validation:
 
@@ -255,7 +255,7 @@ Validation:
 Questions:
 
 - What compact `site-admin` crawl-run view is enough to inspect snapshots, parsed rows, processing state, and one-snapshot manual processing before household work resumes?
-- Which source-specific acquisition method is best for Lidl PDF/brochure discovery now, and for SPAR brochure viewer/PDF or Tesco catalogue/PDF when those sources are later promoted back into scope?
+- Which source-specific acquisition method is best for SPAR brochure viewer/PDF or Tesco catalogue/PDF when those sources are promoted back into scope near the end of the MVP?
 - Runtime: TypeScript/Playwright, lightweight fetch/parser, Python, or selective .NET reuse only as temporary reference tooling?
 - Which source fields should stay raw-only until real query needs justify promotion?
 
@@ -430,9 +430,7 @@ Current direction:
 
 Continue Stage 4 from the active Stage 4 plan:
 
-- implement `SimplePdfShop` and the controlled PDF foundation
-- add Lidl brochure/PDF ingestion after the synthetic PDF path is proven
 - add manual processing workflow and focused `site-admin` crawl/operator visibility
-- keep SPAR and Tesco deferred until current crawled-shop data has supported product and household feature work
+- keep SPAR and Tesco out of Stage 4 until near the end of the MVP
 
 Treat broader crawler expansion as deliberately paused unless a later plan promotes a source back into active scope.
