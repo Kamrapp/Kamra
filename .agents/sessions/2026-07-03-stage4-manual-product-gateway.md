@@ -18,6 +18,13 @@
 - Item: Fix validated with `npm test -- packages/kamra-api-server/src/catalog/current`, `npm run typecheck`, and `npm run build`.
 - Item: Crawl startup was still failing on Atlas collMod permissions, so the catalog setup now avoids startup validator writes and relies on read-side fallback for legacy products.
 - Item: Fix validated with `npm test -- packages/kamra-api-server/src/catalog/current`, `npm run typecheck`, and `npm run build`.
+- Item: Added a one-time Health-view maintenance action that bulk-marks legacy products as unvalidated when they still have no validation state.
+- Item: Validated with `npm test -- packages/kamra-api-server/src/http/app-handler.test.ts packages/kamra-api-server/src/catalog/current`, `npm run typecheck`, and `npm run build`.
+- Item: Moved the page-summary and control chrome for Crawls and Product offers into compact left-side sidebars.
+- Item: Validated with `npm test -- packages/kamra-api-server/src/http/app-handler.test.ts packages/kamra-api-server/src/catalog/current`, `npm run typecheck`, and `npm run build`.
+- Item: Corrected the page chrome move so the catalog and crawl summary blocks live under the global left rail context instead of inside the page body.
+- Item: Validated with `npm run typecheck` and `npm run build`.
+- Item: Tightened the global left rail layout: summary metrics are vertical rows, the left rail scrolls, redundant current-state blocks are removed, and the product/crawl tables use the full main body width again.
 
 ## Changed Files
 
@@ -46,6 +53,14 @@
 - Path: `packages/kamra-api-server/src/test-support/fake-mongo.ts`
 - Path: `packages/kamra-api-server/src/catalog/current/mongo-catalog-repository.ts`
 - Path: `packages/kamra-api-server/src/catalog/current/mongo-catalog-repository.test.ts`
+- Path: `packages/kamra-api-server/src/http/routes/health-route.ts`
+- Path: `packages/kamra-api-server/src/http/app-handler.ts`
+- Path: `packages/kamra-api-server/src/http/app-route-context.ts`
+- Path: `packages/kamra-api-server/src/http/app-handler.test.ts`
+- Path: `src/app/health-check.component.ts`
+- Path: `packages/kamra-api-server/src/test-support/fake-mongo.ts`
+- Path: `src/app/product-lookup/product-catalog.component.ts`
+- Path: `src/app/site-admin/ingestion-admin.component.ts`
 
 ## Validation
 
@@ -61,6 +76,18 @@
 - Result: passed
 - Not run: manual browser checks
 - Reason: this fix was a startup validator compatibility correction and read-side fallback verification
+- Ran: `npm test -- packages/kamra-api-server/src/http/app-handler.test.ts packages/kamra-api-server/src/catalog/current`, `npm run typecheck`, `npm run build`
+- Result: passed
+- Not run: manual browser checks
+- Reason: this step was an API and UI wiring change validated through route tests and build checks
+- Ran: `npm test -- packages/kamra-api-server/src/http/app-handler.test.ts packages/kamra-api-server/src/catalog/current`, `npm run typecheck`, `npm run build`
+- Result: passed
+- Not run: manual browser checks
+- Reason: this step was a UI layout move validated through compile and route checks
+- Ran: `npm run typecheck`, `npm run build`
+- Result: passed
+- Not run: manual browser checks
+- Reason: this correction was a shell/layout adjustment verified through compile and build checks
 
 ## Decisions
 
@@ -85,6 +112,8 @@
 - Impact: step 2 needs to turn the contract into stored reality.
 - Issue: one-admin-only concurrency limitation remains only documented, not enforced.
 - Impact: later UI/API steps should still assume a single active admin reviewer.
+- Issue: the product/crawl editor workflow is not implemented yet.
+- Impact: crawled-item migration review and existing-product editing still need explicit table action columns, with small edit/process icons at the beginning of the tables rather than the end.
 
 ## Roadmap Or Plan Updates
 

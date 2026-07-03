@@ -10,6 +10,7 @@ import {
 
 import { logBrowserEvent } from "./browser-logger";
 import { AuthService } from "./auth.service";
+import { PageRailService } from "./shared/page-rail.service";
 
 @Component({
   imports: [FormsModule, RouterLink, RouterLinkActive, RouterOutlet],
@@ -36,6 +37,120 @@ import { AuthService } from "./auth.service";
           <p class="rail-kicker">Context</p>
           <p class="rail-title">{{ currentPageTitle() }}</p>
         </section>
+
+        @for (section of pageRail.sections(); track section.key) {
+          <section class="page-context-card page-rail-card" [attr.aria-label]="section.kicker">
+            @switch (section.kind) {
+              @case ("summary") {
+                <div class="rail-section-header">
+                  <div>
+                    <p class="rail-kicker">{{ section.kicker }}</p>
+                    @if (section.title) {
+                      <p class="rail-title rail-section-title">{{ section.title }}</p>
+                    }
+                  </div>
+
+                  @if (section.actionLabel && section.onAction) {
+                    <button class="ui-action-button rail-action" type="button" [disabled]="section.actionDisabled" (click)="section.onAction()">
+                      {{ section.actionLabel }}
+                    </button>
+                  }
+                </div>
+
+                @if (section.items?.length) {
+                  <dl class="rail-summary-grid">
+                    @for (item of section.items; track item.label) {
+                      <div>
+                        <dt>{{ item.label }}</dt>
+                        <dd>{{ item.value }}</dd>
+                      </div>
+                    }
+                  </dl>
+                }
+
+                @if (section.note) {
+                  <p class="rail-message">{{ section.note }}</p>
+                }
+
+                @if (section.error) {
+                  <p class="error-message">{{ section.error }}</p>
+                }
+              }
+
+              @case ("status") {
+                <div class="rail-section-header">
+                  <div>
+                    <p class="rail-kicker">{{ section.kicker }}</p>
+                    @if (section.title) {
+                      <p class="rail-title rail-section-title">{{ section.title }}</p>
+                    }
+                  </div>
+
+                  @if (section.actionLabel && section.onAction) {
+                    <button class="ui-action-button rail-action" type="button" [disabled]="section.actionDisabled" (click)="section.onAction()">
+                      {{ section.actionLabel }}
+                    </button>
+                  }
+                </div>
+
+                @if (section.message) {
+                  <p class="rail-message">{{ section.message }}</p>
+                }
+
+                @if (section.error) {
+                  <p class="error-message">{{ section.error }}</p>
+                }
+              }
+
+              @case ("filters") {
+                <div class="rail-section-header">
+                  <div>
+                    <p class="rail-kicker">{{ section.kicker }}</p>
+                    @if (section.title) {
+                      <p class="rail-title rail-section-title">{{ section.title }}</p>
+                    }
+                  </div>
+                </div>
+
+                @if (section.options?.length) {
+                  <div class="rail-filter-list">
+                    @for (option of section.options; track option.key) {
+                      <label class="rail-filter-option">
+                        <input type="checkbox" [checked]="option.checked" (change)="option.onToggle()" />
+                        <span>{{ option.label }}</span>
+                      </label>
+                    }
+                  </div>
+                }
+              }
+
+              @case ("action") {
+                <div class="rail-section-header">
+                  <div>
+                    <p class="rail-kicker">{{ section.kicker }}</p>
+                    @if (section.title) {
+                      <p class="rail-title rail-section-title">{{ section.title }}</p>
+                    }
+                  </div>
+                </div>
+
+                @if (section.note) {
+                  <p class="rail-message">{{ section.note }}</p>
+                }
+
+                @if (section.error) {
+                  <p class="error-message">{{ section.error }}</p>
+                }
+
+                @if (section.actionLabel && section.onAction) {
+                  <button class="ui-action-button rail-action" type="button" [disabled]="section.actionDisabled" (click)="section.onAction()">
+                    {{ section.actionLabel }}
+                  </button>
+                }
+              }
+            }
+          </section>
+        }
       </aside>
 
       <section class="page-body" aria-label="Current page">
@@ -156,6 +271,13 @@ import { AuthService } from "./auth.service";
         min-width: 0;
       }
 
+      .left-rail {
+        max-height: 100%;
+        overflow: auto;
+        padding-right: 0.15rem;
+        scrollbar-gutter: stable;
+      }
+
       .brand-card,
       .auth-card,
       .page-context-card {
@@ -214,6 +336,10 @@ import { AuthService } from "./auth.service";
         padding: 0.65rem 0.75rem;
       }
 
+      .page-rail-card {
+        gap: 0.55rem;
+      }
+
       .rail-kicker,
       .rail-title {
         margin: 0;
@@ -232,6 +358,90 @@ import { AuthService } from "./auth.service";
         font-size: 1.05rem;
         font-weight: 800;
         line-height: 1.1;
+      }
+
+      .rail-section-title {
+        font-size: 0.93rem;
+      }
+
+      .rail-section-header {
+        align-items: start;
+        display: flex;
+        gap: var(--space-3);
+        justify-content: space-between;
+      }
+
+      .rail-summary-grid {
+        display: grid;
+        gap: var(--space-2);
+        grid-template-columns: 1fr;
+        margin: 0;
+      }
+
+      .rail-summary-grid div {
+        align-items: center;
+        background: color-mix(in srgb, var(--color-background-soft) 72%, white 28%);
+        border: 1px solid color-mix(in srgb, var(--color-wood) 14%, transparent);
+        border-radius: 8px;
+        display: grid;
+        gap: var(--space-2);
+        grid-template-columns: minmax(0, 1fr) auto;
+        min-height: 3rem;
+        padding: 0.42rem 0.55rem;
+      }
+
+      .rail-summary-grid dd,
+      .rail-summary-grid dt {
+        margin: 0;
+        min-width: 0;
+      }
+
+      .rail-summary-grid dd {
+        color: var(--color-text);
+        font-size: 0.95rem;
+        font-weight: 800;
+        overflow-wrap: anywhere;
+        text-align: right;
+      }
+
+      .rail-summary-grid dt {
+        font-size: 0.68rem;
+      }
+
+      .rail-message {
+        color: var(--color-text-muted);
+        font-size: 0.82rem;
+        line-height: 1.35;
+      }
+
+      .rail-action {
+        min-height: 2rem;
+        padding: 0.35rem 0.55rem;
+      }
+
+      .rail-filter-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+      }
+
+      .rail-filter-option {
+        align-items: center;
+        background: color-mix(in srgb, var(--color-accent-sky) 18%, white 82%);
+        border: 1px solid color-mix(in srgb, var(--color-wood) 14%, transparent);
+        border-radius: 8px;
+        display: inline-flex;
+        font-size: 0.8rem;
+        font-weight: 800;
+        gap: 0.42rem;
+        min-height: 1.9rem;
+        padding: 0.28rem 0.5rem;
+      }
+
+      .rail-filter-option input {
+        accent-color: var(--color-accent-leaf-strong);
+        height: 0.95rem;
+        width: 0.95rem;
       }
 
       .login-form,
@@ -463,6 +673,11 @@ import { AuthService } from "./auth.service";
         .login-form input {
           width: min(11rem, 28vw);
         }
+
+        .left-rail {
+          max-height: none;
+          overflow: visible;
+        }
       }
 
       @media (max-width: 520px) {
@@ -525,6 +740,7 @@ import { AuthService } from "./auth.service";
 })
 export class AppComponent implements OnInit {
   readonly auth = inject(AuthService);
+  readonly pageRail = inject(PageRailService);
   readonly currentPageTitle = signal("Home");
   readonly loginMessage = signal("");
   readonly loginMessageTone = signal<"error" | "success">("success");
