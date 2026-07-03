@@ -6,6 +6,7 @@ import { verifyUserToken } from "../auth/user-token.js";
 import {
   MongoCurrentCatalogRepository,
   type CatalogValidatorUpgradeResult,
+  type CreateCatalogProductFromReviewCandidateResult,
   type DeleteCatalogProductResult,
   type MarkLegacyProductsUnvalidatedResult
 } from "../catalog/current/mongo-catalog-repository.js";
@@ -49,6 +50,58 @@ export interface AppHandlerDependencies {
     }): Promise<SourceRecordProcessingStateRecord | null>;
     markLegacyProductsUnvalidated?(): Promise<MarkLegacyProductsUnvalidatedResult>;
     deleteCatalogProduct?(id: string): Promise<DeleteCatalogProductResult>;
+    createCatalogProductFromReviewCandidate?(input: {
+      candidate: {
+        origin: {
+          capturedAt: string;
+          sourceName: string;
+          sourceRecordId: string;
+          sourceUrl?: string | null;
+        };
+        priceObservations: Array<{
+          currencyCode: string;
+          observedAt: string;
+          price: number;
+          priceKind?: string | null;
+          programName?: string | null;
+          unitPriceLabel?: string | null;
+          validFrom?: string | null;
+          validTo?: string | null;
+        }>;
+        product: {
+          brandName?: string | null;
+          kind: "grocery" | "household_supply";
+          measurements: Array<{
+            normalizedUnit?: string | null;
+            normalizedValue?: number | null;
+            unit: string;
+            value: number;
+          }>;
+          name: string;
+          normalizedName: string;
+          primaryCategoryKey?: string | null;
+        };
+        source: {
+          countryCode: string;
+          currentCategoryLabel?: string | null;
+          productPageUrl?: string | null;
+          sourceName: string;
+          sourceProductKey: string;
+          sourceProductName: string;
+          storeBrandKey: string;
+        };
+        sourceProductIdentifiers: Array<{
+          kind: string;
+          value: string;
+        }>;
+        stock?: {
+          availability: "infinite";
+          countryCode: string;
+        } | null;
+      };
+      createdAt: string;
+      reviewerId: string;
+    }): Promise<CreateCatalogProductFromReviewCandidateResult>;
     findCatalogProductForReview?(id: string): Promise<CatalogProductListItem | null>;
     listCatalogProductsForReview(options?: { limit?: number; offset?: number; sourceNames?: string[] }): Promise<{
       products: unknown[];

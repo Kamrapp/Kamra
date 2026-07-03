@@ -11,6 +11,7 @@ import {
 } from "./product-catalog.service";
 import { ResizableTableComponent, type ResizableTableColumn } from "../shared/resizable-table.component";
 import { PageRailService, type PageRailSection } from "../shared/page-rail.service";
+import { ProductEditorDialogComponent } from "../shared/product-editor-dialog.component";
 
 interface VisibleProductRow {
   index: number;
@@ -21,7 +22,7 @@ interface VisibleProductRow {
 const noOfferSourceKey = "__none__";
 
 @Component({
-  imports: [ResizableTableComponent],
+  imports: [ProductEditorDialogComponent, ResizableTableComponent],
   selector: "app-product-catalog",
   standalone: true,
   template: `
@@ -42,6 +43,18 @@ const noOfferSourceKey = "__none__";
                     [style.grid-template-columns]="productTable.columnTemplate()"
                     [style.transform]="'translateY(' + row.offset + 'px)'"
                   >
+                    <div class="action-cell" role="cell">
+                      <button
+                        class="table-icon-button"
+                        type="button"
+                        title="Edit product"
+                        aria-label="Edit product"
+                        (click)="openProductEditor(row.product)"
+                      >
+                        ✎
+                      </button>
+                    </div>
+
                     <div class="product-main" role="cell">
                       <p class="row-title">{{ row.product.name }}</p>
                       <p class="row-muted">
@@ -79,6 +92,17 @@ const noOfferSourceKey = "__none__";
           </app-resizable-table>
         }
       </main>
+
+      <app-product-editor-dialog
+        mode="catalog"
+        [open]="editorOpen()"
+        [product]="editingProduct()"
+        (close)="closeProductEditor()"
+        (deleteProduct)="deleteProduct($event)"
+        (invalidateProduct)="invalidateProduct($event.id, $event.note)"
+        (saveProduct)="saveProduct($event)"
+        (validateProduct)="validateProduct($event.id, $event.note)"
+      />
     </section>
   `,
   styles: [
@@ -161,11 +185,33 @@ const noOfferSourceKey = "__none__";
       }
 
       .product-main,
+      .action-cell,
       .price-cell,
       .source-cell,
       .identifier-cell,
       .state-cell {
         min-width: 0;
+      }
+
+      .action-cell {
+        align-items: center;
+        display: flex;
+      }
+
+      .table-icon-button {
+        align-items: center;
+        background: color-mix(in srgb, var(--color-accent-sky) 20%, white 80%);
+        border: 1px solid color-mix(in srgb, var(--color-wood) 18%, transparent);
+        border-radius: 8px;
+        color: var(--color-text);
+        cursor: pointer;
+        display: inline-flex;
+        font: inherit;
+        font-weight: 900;
+        height: 2rem;
+        justify-content: center;
+        padding: 0;
+        width: 2rem;
       }
 
       .row-title,
@@ -234,7 +280,10 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
   readonly sourceFilterTouched = signal(false);
   readonly totalProductCount = signal(0);
   readonly totalPages = signal(0);
+  readonly editingProduct = signal<CatalogProductListItem | null>(null);
+  readonly editorOpen = signal(false);
   readonly tableColumns: readonly ResizableTableColumn[] = [
+    { key: "actions", label: "", minWidth: 52, maxWidth: 72, width: 56 },
     { key: "product", label: "Product", minWidth: 140, maxWidth: 640, width: 300 },
     { key: "prices", label: "Prices", minWidth: 100, maxWidth: 640, width: 140 },
     { key: "sources", label: "Sources", minWidth: 140, maxWidth: 640, width: 180 },
@@ -460,6 +509,60 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
     return chips.slice(0, 4);
   }
 
+  openProductEditor(product: CatalogProductListItem): void {
+    this.editingProduct.set(product);
+    this.editorOpen.set(true);
+  }
+
+  closeProductEditor(): void {
+    this.editorOpen.set(false);
+    this.editingProduct.set(null);
+  }
+
+  async saveProduct(product: CatalogProductListItem): Promise<void> {
+    const result = await this.catalog.updateProduct(product);
+    if (result.status !== "ok") {
+      this.errorMessage.set(result.message);
+      return;
+    }
+
+    this.replaceLoadedProduct(result.product);
+    this.editingProduct.set(result.product);
+  }
+
+  async validateProduct(id: string, note: string | null): Promise<void> {
+    const result = await this.catalog.validateProduct(id, note);
+    if (result.status !== "ok") {
+      this.errorMessage.set(result.message);
+      return;
+    }
+
+    this.replaceLoadedProduct(result.product);
+    this.editingProduct.set(result.product);
+  }
+
+  async invalidateProduct(id: string, note: string | null): Promise<void> {
+    const result = await this.catalog.invalidateProduct(id, note);
+    if (result.status !== "ok") {
+      this.errorMessage.set(result.message);
+      return;
+    }
+
+    this.replaceLoadedProduct(result.product);
+    this.editingProduct.set(result.product);
+  }
+
+  async deleteProduct(id: string): Promise<void> {
+    const result = await this.catalog.deleteProduct(id);
+    if (result.status !== "ok") {
+      this.errorMessage.set(result.message);
+      return;
+    }
+
+    this.products.update((products) => products.filter((product) => product.id !== id));
+    this.closeProductEditor();
+  }
+
   toggleOfferSource(sourceKey: string): void {
     this.sourceFilterTouched.set(true);
     this.selectedOfferSources.update((selectedSources) => {
@@ -598,6 +701,12 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
     return everyRealSourceSelected && selectedSources.has(noOfferSourceKey)
       ? []
       : selectedRealSources;
+  }
+
+  private replaceLoadedProduct(nextProduct: CatalogProductListItem): void {
+    this.products.update((products) =>
+      products.map((product) => product.id === nextProduct.id ? nextProduct : product)
+    );
   }
 }
 

@@ -1189,8 +1189,140 @@ describe("handleAppRequest auth guards", () => {
       status: "declined"
     });
     expect(JSON.parse(response.body)).toEqual({
+      acceptedCatalogProductId: null,
       id: "review-1",
       status: "declined"
+    });
+  });
+
+  it("accepts one product review item and creates a catalog product", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "admin@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "admin",
+      secret: "test-secret"
+    });
+    let createdProductCandidateName = "";
+    let decisionInput: unknown;
+    const reviewItem = createProductReviewItem();
+
+    const response = await handleAppRequest(
+      {
+        bodyText: JSON.stringify({
+          id: reviewItem.id,
+          note: "Looks good."
+        }),
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "POST",
+        path: "/api/admin/ingestion/review-item/accept"
+      },
+      {
+        createCatalogRepository: () => ({
+          createCatalogProductFromReviewCandidate: async (input) => {
+            createdProductCandidateName = input.candidate.product.name;
+            return {
+              productId: "product_created_1"
+            };
+          },
+          listCatalogProductsForReview: async () => ({
+            products: [],
+            totalCount: 0
+          }),
+          setupCollections: async () => undefined
+        }),
+        createIngestionRepository: () => ({
+          findProductReviewItemById: async () => reviewItem,
+          findRawSnapshotById: async () => null,
+          listRawSnapshots: async () => [],
+          markProductReviewItemDecision: async (input) => {
+            decisionInput = input;
+            return true;
+          },
+          setupCollections: async () => undefined
+        }),
+        getMongoClient: async () => ({
+          db: () => ({}),
+        } as never)
+      }
+    );
+
+    expect(response.status).toBe(200);
+    expect(createdProductCandidateName).toBe("Pilos UHT tej 2,8% 1 l");
+    expect(decisionInput).toMatchObject({
+      acceptedCatalogProductId: "product_created_1",
+      id: reviewItem.id,
+      note: "Looks good.",
+      reviewerId: "admin@kamra.test",
+      status: "accepted"
+    });
+    expect(JSON.parse(response.body)).toEqual({
+      acceptedCatalogProductId: "product_created_1",
+      id: reviewItem.id,
+      status: "accepted"
+    });
+  });
+
+  it("returns a stable internal error when review acceptance fails unexpectedly", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "admin@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "admin",
+      secret: "test-secret"
+    });
+    const reviewItem = createProductReviewItem();
+
+    const response = await handleAppRequest(
+      {
+        bodyText: JSON.stringify({
+          id: reviewItem.id,
+          note: "Looks good."
+        }),
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "POST",
+        path: "/api/admin/ingestion/review-item/accept"
+      },
+      {
+        createCatalogRepository: () => ({
+          createCatalogProductFromReviewCandidate: async () => {
+            throw new Error("Document failed validation");
+          },
+          listCatalogProductsForReview: async () => ({
+            products: [],
+            totalCount: 0
+          }),
+          setupCollections: async () => undefined
+        }),
+        createIngestionRepository: () => ({
+          findProductReviewItemById: async () => reviewItem,
+          findRawSnapshotById: async () => null,
+          listRawSnapshots: async () => [],
+          markProductReviewItemDecision: async () => true,
+          setupCollections: async () => undefined
+        }),
+        getMongoClient: async () => ({
+          db: () => ({})
+        } as never)
+      }
+    );
+
+    expect(response.status).toBe(500);
+    expect(JSON.parse(response.body)).toEqual({
+      error: "internal_error",
+      message: "Document failed validation"
     });
   });
 

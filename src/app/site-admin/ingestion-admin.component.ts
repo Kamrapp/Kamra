@@ -4,14 +4,19 @@ import { AuthService } from "../auth.service";
 import { logBrowserEvent } from "../browser-logger";
 import {
   IngestionAdminService,
+  productReviewDecisionReasons,
+  type IngestionProductReviewItem,
   type IngestionRowPreview,
-  type IngestionSnapshotListItem
+  type IngestionSnapshotListItem,
+  type ProductReviewCandidateDraft,
+  type ProductReviewDecisionReason
 } from "./ingestion-admin.service";
 import { ResizableTableComponent, type ResizableTableColumn } from "../shared/resizable-table.component";
 import { PageRailService, type PageRailSection } from "../shared/page-rail.service";
+import { ProductEditorDialogComponent } from "../shared/product-editor-dialog.component";
 
 @Component({
-  imports: [ResizableTableComponent],
+  imports: [ProductEditorDialogComponent, ResizableTableComponent],
   selector: "app-ingestion-admin",
   standalone: true,
   template: `
@@ -63,6 +68,17 @@ import { PageRailService, type PageRailSection } from "../shared/page-rail.servi
                   <div class="row-body">
                     @for (row of snapshot.rows; track row.sourceRecordId || row.sourceProductKey || row.displayName) {
                       <article class="parsed-row" role="row" [style.grid-template-columns]="rowTable.columnTemplate()">
+                        <span class="action-cell" role="cell">
+                          <button
+                            class="table-icon-button"
+                            type="button"
+                            title="Review crawl product"
+                            aria-label="Review crawl product"
+                            (click)="openReviewEditor(snapshot, row)"
+                          >
+                            ✓
+                          </button>
+                        </span>
                         <span role="cell">
                           <strong>{{ row.displayName }}</strong>
                           <small>{{ row.packageLabel || "no package" }}</small>
@@ -77,6 +93,15 @@ import { PageRailService, type PageRailSection } from "../shared/page-rail.servi
             </aside>
           }
         </section>
+        <app-product-editor-dialog
+          mode="review"
+          [open]="reviewEditorOpen()"
+          [reviewItem]="editingReviewItem()"
+          (acceptReview)="acceptReviewItem($event.id, $event.note)"
+          (close)="closeReviewEditor()"
+          (declineReview)="declineReviewItem($event.id, $event.reason, $event.note)"
+          (updateReviewCandidate)="updateReviewCandidate($event.id, $event.candidate)"
+        />
     </section>
   `,
   styles: [
@@ -217,12 +242,34 @@ import { PageRailService, type PageRailSection } from "../shared/page-rail.servi
       }
 
       strong,
+      .action-cell,
       small {
         display: block;
         min-width: 0;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+      }
+
+      .action-cell {
+        align-items: center;
+        display: flex;
+      }
+
+      .table-icon-button {
+        align-items: center;
+        background: color-mix(in srgb, var(--color-accent-sky) 20%, white 80%);
+        border: 1px solid color-mix(in srgb, var(--color-wood) 18%, transparent);
+        border-radius: 8px;
+        color: var(--color-text);
+        cursor: pointer;
+        display: inline-flex;
+        font: inherit;
+        font-weight: 900;
+        height: 2rem;
+        justify-content: center;
+        padding: 0;
+        width: 2rem;
       }
 
       small {
@@ -273,6 +320,7 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
     { key: "state", label: "State", minWidth: 80, maxWidth: 640, width: 120 }
   ];
   readonly rowColumns: readonly ResizableTableColumn[] = [
+    { key: "actions", label: "", minWidth: 52, maxWidth: 72, width: 56 },
     { key: "product", label: "Product", minWidth: 120, maxWidth: 820, width: 360 },
     { key: "key", label: "Key", minWidth: 60, maxWidth: 540, width: 100 },
     { key: "price", label: "Price", minWidth: 60, maxWidth: 540, width: 100 },
@@ -285,6 +333,9 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
   readonly snapshots = signal<IngestionSnapshotListItem[]>([]);
   readonly statusMessage = signal("No crawl snapshots have been loaded yet.");
   readonly selectedSnapshotId = signal<string | null>(null);
+  readonly editingReviewItem = signal<IngestionProductReviewItem | null>(null);
+  readonly reviewEditorOpen = signal(false);
+  readonly reviewItemsBySnapshot = signal<Record<string, IngestionProductReviewItem[]>>({});
   readonly selectedSnapshot = computed(() =>
     this.snapshots().find((snapshot) => snapshot.id === this.selectedSnapshotId()) ?? this.snapshots()[0] ?? null
   );
@@ -482,5 +533,121 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
 
     this.statusMessage.set(`Processed ${result.processedRowCount} rows from ${snapshot.sourceName}.`);
     await this.loadSnapshots();
+  }
+
+  async openReviewEditor(snapshot: IngestionSnapshotListItem, row: IngestionRowPreview): Promise<void> {
+    this.errorMessage.set("");
+    const items = await this.ensureReviewItems(snapshot.id);
+    if (!items) {
+      return;
+    }
+
+    const reviewItem = items.find((item) =>
+      item.rawRowPreview["sourceRecordId"] === row.sourceRecordId
+      || item.rawRowPreview["sourceProductKey"] === row.sourceProductKey
+      || item.rawRowPreview["displayName"] === row.displayName
+    ) ?? items[0] ?? null;
+
+    if (!reviewItem) {
+      this.errorMessage.set("No review item could be prepared for this crawl row.");
+      return;
+    }
+
+    this.editingReviewItem.set(reviewItem);
+    this.reviewEditorOpen.set(true);
+  }
+
+  closeReviewEditor(): void {
+    this.reviewEditorOpen.set(false);
+    this.editingReviewItem.set(null);
+  }
+
+  async updateReviewCandidate(id: string, candidate: ProductReviewCandidateDraft): Promise<void> {
+    const result = await this.ingestion.updateReviewItemCandidate(id, candidate);
+    if (result.status !== "ok") {
+      this.errorMessage.set(result.message);
+      return;
+    }
+
+    this.editingReviewItem.set(result.reviewItem);
+    this.replaceReviewItem(result.reviewItem);
+  }
+
+  async acceptReviewItem(id: string, note: string | null): Promise<void> {
+    const result = await this.ingestion.acceptReviewItem(id, note);
+    if (result.status !== "ok") {
+      this.errorMessage.set(result.message);
+      return;
+    }
+
+    this.closeReviewEditor();
+    await this.refreshSelectedReviewItems();
+  }
+
+  async declineReviewItem(
+    id: string,
+    reason: ProductReviewDecisionReason,
+    note: string | null
+  ): Promise<void> {
+    if (!productReviewDecisionReasons.includes(reason)) {
+      this.errorMessage.set("Choose a valid decline reason.");
+      return;
+    }
+
+    const result = await this.ingestion.declineReviewItem(id, reason, note);
+    if (result.status !== "ok") {
+      this.errorMessage.set(result.message);
+      return;
+    }
+
+    this.closeReviewEditor();
+    await this.refreshSelectedReviewItems();
+  }
+
+  private async ensureReviewItems(snapshotId: string): Promise<IngestionProductReviewItem[] | null> {
+    const cachedItems = this.reviewItemsBySnapshot()[snapshotId];
+    if (cachedItems?.length) {
+      return cachedItems;
+    }
+
+    const prepared = await this.ingestion.prepareReviewItems(snapshotId);
+    if (prepared.status !== "ok") {
+      this.errorMessage.set(prepared.message);
+      return null;
+    }
+
+    this.reviewItemsBySnapshot.update((itemsBySnapshot) => ({
+      ...itemsBySnapshot,
+      [snapshotId]: prepared.reviewItems
+    }));
+    return prepared.reviewItems;
+  }
+
+  private async refreshSelectedReviewItems(): Promise<void> {
+    const snapshot = this.selectedSnapshot();
+    if (!snapshot) {
+      return;
+    }
+
+    const result = await this.ingestion.listReviewItemsForSnapshot(snapshot.id);
+    if (result.status !== "ok") {
+      this.errorMessage.set(result.message);
+      return;
+    }
+
+    this.reviewItemsBySnapshot.update((itemsBySnapshot) => ({
+      ...itemsBySnapshot,
+      [snapshot.id]: result.reviewItems
+    }));
+  }
+
+  private replaceReviewItem(nextItem: IngestionProductReviewItem): void {
+    this.reviewItemsBySnapshot.update((itemsBySnapshot) => {
+      const snapshotItems = itemsBySnapshot[nextItem.snapshotId] ?? [];
+      return {
+        ...itemsBySnapshot,
+        [nextItem.snapshotId]: snapshotItems.map((item) => item.id === nextItem.id ? nextItem : item)
+      };
+    });
   }
 }

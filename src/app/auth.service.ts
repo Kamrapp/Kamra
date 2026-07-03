@@ -1,5 +1,7 @@
 import { computed, Injectable, signal } from "@angular/core";
 
+import { readApiErrorMessage } from "./shared/api-errors";
+
 export type UserRole = "admin" | "user";
 
 interface LoginResponse {
@@ -80,7 +82,7 @@ export class AuthService {
       return {
         message: response.status === 401
           ? "The email or password did not match an active user."
-          : "Login is not available right now.",
+          : await readApiErrorMessage(response, "Login is not available right now."),
         status: "error"
       };
     }

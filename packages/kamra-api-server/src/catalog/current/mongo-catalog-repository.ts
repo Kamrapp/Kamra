@@ -1,5 +1,6 @@
 import type { AnyBulkWriteOperation, Document, Filter } from "mongodb";
 import type { MongoCollectionLike, MongoDatabaseLike } from "../../db/mongo-like.js";
+import { writeServerLog } from "../../logging/kamra-logger.js";
 
 import type {
   CatalogProductListItem,
@@ -76,6 +77,58 @@ export interface DeleteCatalogProductResult {
   deletedProductSourceCount: number;
   deletedStockCount: number;
   deletedTagAssignmentCount: number;
+}
+
+export interface CreateCatalogProductFromReviewCandidateInput {
+  candidate: {
+    origin: {
+      capturedAt: string;
+      sourceName: string;
+      sourceRecordId: string;
+      sourceUrl?: string | null;
+    };
+    priceObservations: Array<{
+      currencyCode: string;
+      observedAt: string;
+      price: number;
+      priceKind?: PriceObservationKind | null;
+      programName?: string | null;
+      unitPriceLabel?: string | null;
+      validFrom?: string | null;
+      validTo?: string | null;
+    }>;
+    product: {
+      brandName?: string | null;
+      kind: ProductRecord["kind"];
+      measurements: ProductRecord["measurements"];
+      name: string;
+      normalizedName: string;
+      primaryCategoryKey?: string | null;
+    };
+    source: {
+      countryCode: string;
+      currentCategoryLabel?: string | null;
+      productPageUrl?: string | null;
+      sourceName: string;
+      sourceProductKey: string;
+      sourceProductName: string;
+      storeBrandKey: string;
+    };
+    sourceProductIdentifiers: Array<{
+      kind: ProductSourceIdentifierRecord["kind"];
+      value: string;
+    }>;
+    stock?: {
+      availability: "infinite";
+      countryCode: string;
+    } | null;
+  };
+  createdAt: string;
+  reviewerId: string;
+}
+
+export interface CreateCatalogProductFromReviewCandidateResult {
+  productId: string;
 }
 
 const collectionPlans: CollectionIndexPlan[] = [
@@ -320,21 +373,32 @@ export class MongoCurrentCatalogRepository {
       set.validationNote = input.validationNote ?? null;
     }
 
-    const result = await this.productsCollection.updateOne(
-      {
-        id: input.id,
-        status: "active"
-      },
-      {
-        $set: set
+    try {
+      const result = await this.productsCollection.updateOne(
+        {
+          id: input.id,
+          status: "active"
+        },
+        {
+          $set: set
+        }
+      );
+
+      if (result.matchedCount === 0) {
+        return null;
       }
-    );
 
-    if (result.matchedCount === 0) {
-      return null;
+      return await this.findCatalogProductForReview(input.id);
+    } catch (error: unknown) {
+      if (isDocumentValidationError(error)) {
+        writeServerLog("error", "Catalog product update validation failed", {
+          input,
+          validationError: summarizeMongoValidationError(error)
+        });
+      }
+
+      throw error;
     }
-
-    return await this.findCatalogProductForReview(input.id);
   }
 
   async setCatalogProductValidationStatus(input: SetCatalogProductValidationInput): Promise<CatalogProductListItem | null> {
@@ -352,26 +416,37 @@ export class MongoCurrentCatalogRepository {
           validatedBy: null
         };
 
-    const result = await this.productsCollection.updateOne(
-      {
-        id: input.id,
-        status: "active"
-      },
-      {
-        $set: {
-          ...validationFields,
-          updatedAt: input.reviewedAt,
-          validationNote: input.note ?? null,
-          validationStatus: input.status
+    try {
+      const result = await this.productsCollection.updateOne(
+        {
+          id: input.id,
+          status: "active"
+        },
+        {
+          $set: {
+            ...validationFields,
+            updatedAt: input.reviewedAt,
+            validationNote: input.note ?? null,
+            validationStatus: input.status
+          }
         }
+      );
+
+      if (result.matchedCount === 0) {
+        return null;
       }
-    );
 
-    if (result.matchedCount === 0) {
-      return null;
+      return await this.findCatalogProductForReview(input.id);
+    } catch (error: unknown) {
+      if (isDocumentValidationError(error)) {
+        writeServerLog("error", "Catalog product validation state change failed", {
+          input,
+          validationError: summarizeMongoValidationError(error)
+        });
+      }
+
+      throw error;
     }
-
-    return await this.findCatalogProductForReview(input.id);
   }
 
   async deleteCatalogProduct(id: string): Promise<DeleteCatalogProductResult> {
@@ -407,6 +482,132 @@ export class MongoCurrentCatalogRepository {
       deletedStockCount: stocks.deletedCount ?? 0,
       deletedTagAssignmentCount: tagAssignments.deletedCount ?? 0
     };
+  }
+
+  async createCatalogProductFromReviewCandidate(
+    input: CreateCatalogProductFromReviewCandidateInput
+  ): Promise<CreateCatalogProductFromReviewCandidateResult> {
+    const candidate = input.candidate;
+    const productId = createProductIdFromReviewCandidate(candidate);
+    const productSourceId = createProductSourceId(candidate.source.sourceName, candidate.source.sourceProductKey);
+    const origin = {
+      capturedAt: candidate.origin.capturedAt,
+      kind: "manual" as const,
+      producer: input.reviewerId,
+      sourceName: candidate.source.sourceName,
+      sourceRecordId: candidate.origin.sourceRecordId,
+      sourceUrl: candidate.origin.sourceUrl ?? null
+    };
+    const location = createReviewLocation(candidate.source.sourceName, candidate.source.storeBrandKey, candidate.source.countryCode);
+    const priceObservations = candidate.priceObservations.map((observation, observationIndex) => ({
+      createdAt: input.createdAt,
+      id: createReviewPriceObservationId(candidate, observationIndex, observation),
+      location,
+      observedAt: observation.observedAt,
+      origin,
+      price: {
+        amount: observation.price,
+        currencyCode: observation.currencyCode
+      },
+      priceKind: observation.priceKind ?? "offer",
+      productId,
+      productSourceId,
+      programName: observation.programName ?? null,
+      sourceName: candidate.source.sourceName,
+      sourceProductKey: candidate.source.sourceProductKey,
+      unitPriceLabel: observation.unitPriceLabel ?? null,
+      updatedAt: input.createdAt,
+      validFrom: observation.validFrom ?? null,
+      validTo: observation.validTo ?? null
+    }));
+
+    const product: ProductRecord = {
+      brandName: candidate.product.brandName ?? null,
+      createdAt: input.createdAt,
+      id: productId,
+      kind: candidate.product.kind,
+      measurements: candidate.product.measurements,
+      name: candidate.product.name,
+      normalizedName: candidate.product.normalizedName,
+      origin: [origin],
+      primaryCategoryKey: candidate.product.primaryCategoryKey ?? null,
+      validationStatus: "validated",
+      validatedAt: input.createdAt,
+      validatedBy: input.reviewerId,
+      invalidatedAt: null,
+      invalidatedBy: null,
+      validationNote: null,
+      status: "active",
+      updatedAt: input.createdAt
+    };
+    const productSource: ProductSourceRecord = {
+      countryCode: candidate.source.countryCode,
+      createdAt: input.createdAt,
+      currentCategoryLabel: candidate.source.currentCategoryLabel ?? null,
+      id: productSourceId,
+      origin,
+      priceLastCheckedAt: priceObservations.at(-1)?.observedAt ?? candidate.origin.capturedAt,
+      productId,
+      productPageUrl: candidate.source.productPageUrl ?? candidate.origin.sourceUrl ?? `urn:kamra:review:${candidate.source.sourceName}`,
+      sourceName: candidate.source.sourceName,
+      sourceProductKey: candidate.source.sourceProductKey,
+      sourceProductName: candidate.source.sourceProductName,
+      storeBrandKey: candidate.source.storeBrandKey,
+      updatedAt: input.createdAt
+    };
+    const sourceIdentifiers: ProductSourceIdentifierRecord[] = candidate.sourceProductIdentifiers.map((identifier) => ({
+      createdAt: input.createdAt,
+      id: `product_source_identifier_${stableSlug(candidate.source.sourceName)}_${stableSlug(productSourceId)}_${stableSlug(identifier.kind)}_${stableSlug(identifier.value)}`,
+      kind: identifier.kind,
+      origin,
+      productSourceId,
+      sourceName: candidate.source.sourceName,
+      updatedAt: input.createdAt,
+      value: identifier.value
+    }));
+    const stock: StockRecord = {
+      createdAt: input.createdAt,
+      id: createStockId(candidate.source.sourceName, candidate.source.sourceProductKey),
+      location,
+      origin,
+      price: null,
+      productId,
+      quantity: {
+        amount: 1,
+        packageCount: null,
+        unit: "availability"
+      },
+      status: "active",
+      updatedAt: input.createdAt
+    };
+
+    try {
+      await Promise.all([
+        this.productsCollection.updateOne({ id: productId }, { $set: product }, { upsert: true }),
+        this.productSourcesCollection.updateOne({ id: productSourceId }, { $set: productSource }, { upsert: true }),
+        this.productSourceIdentifiersCollection.deleteMany({ productSourceId }),
+        this.priceObservationsCollection.deleteMany({ productSourceId }),
+        this.stocksCollection.updateOne({ id: stock.id }, { $set: stock }, { upsert: true })
+      ]);
+
+      if (sourceIdentifiers.length > 0) {
+        await this.upsertMany(this.productSourceIdentifiersCollection, sourceIdentifiers);
+      }
+      if (priceObservations.length > 0) {
+        await this.upsertMany(this.priceObservationsCollection, priceObservations);
+      }
+
+      return { productId };
+    } catch (error: unknown) {
+      if (isDocumentValidationError(error)) {
+        writeServerLog("error", "Catalog product creation from review candidate failed", {
+          candidate,
+          validationError: summarizeMongoValidationError(error)
+        });
+      }
+
+      throw error;
+    }
   }
 
   private async hydrateCatalogProducts(products: ProductRecord[]): Promise<CatalogProductListItem[]> {
@@ -769,4 +970,95 @@ function isDocumentValidationError(error: unknown): boolean {
 
 function normalizeProductName(name: string): string {
   return name.trim().toLocaleLowerCase("hu-HU").replace(/\s+/g, " ");
+}
+
+function summarizeMongoValidationError(error: unknown): Record<string, unknown> {
+  if (!error || typeof error !== "object") {
+    return {};
+  }
+
+  const candidate = error as {
+    errInfo?: {
+      details?: unknown;
+      failingDocumentId?: unknown;
+    };
+    message?: unknown;
+  };
+
+  return {
+    details: candidate.errInfo?.details ?? null,
+    failingDocumentId: candidate.errInfo?.failingDocumentId ?? null,
+    message: typeof candidate.message === "string" ? candidate.message : "unknown"
+  };
+}
+
+function createProductIdFromReviewCandidate(candidate: {
+  priceObservations: Array<unknown>;
+  product: {
+    measurements: ProductRecord["measurements"];
+    name: string;
+    normalizedName: string;
+  };
+  sourceProductIdentifiers: Array<{
+    kind: ProductSourceIdentifierRecord["kind"];
+    value: string;
+  }>;
+}): string {
+  const commonIdentifier = candidate.sourceProductIdentifiers.find((identifier) =>
+    identifier.kind === "gtin" || identifier.kind === "national_code"
+  );
+
+  if (commonIdentifier) {
+    return `product_${commonIdentifier.kind}_${stableSlug(commonIdentifier.value)}`;
+  }
+
+  const packageIdentity = candidate.product.measurements
+    .map((measurement) => `${measurement.value}${measurement.unit}`)
+    .join("_")
+    .trim();
+  const identity = packageIdentity
+    ? `${candidate.product.normalizedName} ${packageIdentity}`
+    : candidate.product.normalizedName || normalizeProductName(candidate.product.name);
+
+  return `product_name_${stableSlug(identity)}`;
+}
+
+function createReviewLocation(sourceName: string, storeBrandKey: string, countryCode: string): StockRecord["location"] {
+  return {
+    countryCode,
+    kind: "global_shop_availability",
+    label: sourceName,
+    locationKey: `availability:${stableSlug(storeBrandKey || sourceName)}`,
+    storeBrandKey
+  };
+}
+
+function createProductSourceId(sourceName: string, sourceProductKey: string): string {
+  return `product_source_${stableSlug(sourceName)}_${stableSlug(sourceProductKey)}`;
+}
+
+function createReviewPriceObservationId(
+  candidate: {
+    source: { sourceName: string; sourceProductKey: string };
+  },
+  observationIndex: number,
+  observation: { observedAt: string; price: number; priceKind?: PriceObservationKind | null; validFrom?: string | null; validTo?: string | null }
+): string {
+  return `price_observation_${stableSlug(candidate.source.sourceName)}_${stableSlug(candidate.source.sourceProductKey)}_${stableSlug(observation.priceKind ?? "offer")}_${stableSlug(observation.observedAt)}_${stableSlug(String(observation.price))}_${stableSlug(observation.validFrom ?? "open")}_${stableSlug(observation.validTo ?? "open")}_${observationIndex}`;
+}
+
+function createStockId(sourceName: string, sourceProductKey: string): string {
+  return `stock_${stableSlug(sourceName)}_${stableSlug(sourceProductKey)}`;
+}
+
+function stableSlug(value: string): string {
+  const slug = value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 80);
+
+  return slug || "item";
 }

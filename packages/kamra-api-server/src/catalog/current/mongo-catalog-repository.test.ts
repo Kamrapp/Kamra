@@ -106,6 +106,84 @@ describe("MongoCurrentCatalogRepository", () => {
     expect(db.__collections["product_sources"]!.docs.map((doc: Record<string, unknown>) => doc["id"])).toEqual(["source_other"]);
   });
 
+  it("creates a validated catalog product from a review candidate", async () => {
+    const db = createFakeDb();
+    const repository = new MongoCurrentCatalogRepository(db);
+
+    const result = await repository.createCatalogProductFromReviewCandidate({
+      candidate: {
+        origin: {
+          capturedAt: "2026-07-03T09:00:00.000Z",
+          sourceName: "simple_html_table_shop",
+          sourceRecordId: "row-1",
+          sourceUrl: "https://example.invalid/row-1"
+        },
+        priceObservations: [
+          {
+            currencyCode: "HUF",
+            observedAt: "2026-07-03T09:00:00.000Z",
+            price: 499,
+            priceKind: "offer"
+          }
+        ],
+        product: {
+          brandName: "Kamra",
+          kind: "grocery",
+          measurements: [],
+          name: "Friss tej",
+          normalizedName: "friss tej",
+          primaryCategoryKey: null
+        },
+        source: {
+          countryCode: "HU",
+          sourceName: "simple_html_table_shop",
+          sourceProductKey: "simple-milk",
+          sourceProductName: "Friss tej",
+          storeBrandKey: "simple-html-table-shop"
+        },
+        sourceProductIdentifiers: [
+          {
+            kind: "retailer_product_id",
+            value: "simple-milk"
+          }
+        ],
+        stock: {
+          availability: "infinite",
+          countryCode: "HU"
+        }
+      },
+      createdAt: "2026-07-03T09:01:00.000Z",
+      reviewerId: "admin@kamra.test"
+    });
+
+    expect(result.productId).toBe("product_name_friss_tej");
+    expect(db.__collections["products"]!.docs[0]).toMatchObject({
+      id: "product_name_friss_tej",
+      validationStatus: "validated",
+      validatedBy: "admin@kamra.test"
+    });
+    expect(db.__collections["product_sources"]!.docs[0]).toMatchObject({
+      id: "product_source_simple_html_table_shop_simple_milk",
+      productId: "product_name_friss_tej"
+    });
+    expect(db.__collections["product_source_identifiers"]!.docs[0]).toMatchObject({
+      kind: "retailer_product_id",
+      productSourceId: "product_source_simple_html_table_shop_simple_milk"
+    });
+    expect(db.__collections["price_observations"]!.docs[0]).toMatchObject({
+      price: {
+        amount: 499,
+        currencyCode: "HUF"
+      },
+      productId: "product_name_friss_tej",
+      productSourceId: "product_source_simple_html_table_shop_simple_milk"
+    });
+    expect(db.__collections["stocks"]!.docs[0]).toMatchObject({
+      productId: "product_name_friss_tej",
+      status: "active"
+    });
+  });
+
   it("treats legacy products as unvalidated without needing a startup write", async () => {
     const db = createFakeDb({
       products: new FakeCollection("products", [

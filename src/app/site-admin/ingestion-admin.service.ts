@@ -1,6 +1,8 @@
 import { Injectable, inject } from "@angular/core";
 
 import { AuthService } from "../auth.service";
+import { readApiErrorMessage } from "../shared/api-errors";
+import { ToastService } from "../shared/toast.service";
 
 export interface IngestionRowPreview {
   displayName: string;
@@ -41,6 +43,68 @@ export interface IngestionSnapshotListItem {
   workflowName: string;
 }
 
+export const productReviewDecisionReasons = [
+  "bad_name",
+  "bad_price",
+  "duplicate",
+  "non_product",
+  "online_only",
+  "unsupported_layout",
+  "other"
+] as const;
+
+export type ProductReviewDecisionReason = (typeof productReviewDecisionReasons)[number];
+
+export interface ProductReviewCandidateDraft {
+  matchConfidence: "name_only" | "none" | "source_scoped_name" | "strong_identifier" | "strong_source_key";
+  origin: {
+    capturedAt: string;
+    sourceName: string;
+    sourceRecordId: string;
+    sourceUrl?: string | null;
+  };
+  priceObservations: unknown[];
+  product: {
+    brandName?: string | null;
+    kind: "grocery";
+    measurements: unknown[];
+    name: string;
+    normalizedName: string;
+    primaryCategoryKey?: string | null;
+  };
+  source: {
+    countryCode: "HU";
+    currentCategoryLabel?: string | null;
+    productPageUrl?: string | null;
+    sourceName: string;
+    sourceProductKey: string;
+    sourceProductName: string;
+    storeBrandKey: string;
+  };
+  sourceProductIdentifiers: unknown[];
+  stock?: {
+    availability: "infinite";
+    countryCode: "HU";
+  };
+}
+
+export interface IngestionProductReviewItem {
+  candidate: ProductReviewCandidateDraft;
+  candidateMatch: ProductReviewCandidateDraft["matchConfidence"];
+  decision?: {
+    declineReason?: ProductReviewDecisionReason | null;
+    note?: string | null;
+    state: "accepted" | "declined";
+  } | null;
+  id: string;
+  rawRowPreview: Record<string, unknown>;
+  rowIndex: number;
+  snapshotId: string;
+  sourceName: string;
+  sourceRecordId: string;
+  status: "accepted" | "declined" | "failed" | "pending" | "stale";
+}
+
 interface IngestionSnapshotsResponse {
   processorName: string;
   processorVersion: string;
@@ -51,6 +115,20 @@ interface ProcessSnapshotResponse {
   processedRowCount: number;
   skippedRowCount: number;
   snapshotId: string;
+}
+
+interface ProductReviewItemsResponse {
+  reviewItems: IngestionProductReviewItem[];
+}
+
+interface ProductReviewItemResponse {
+  reviewItem: IngestionProductReviewItem;
+}
+
+interface ProductReviewDecisionResponse {
+  acceptedCatalogProductId?: string | null;
+  id: string;
+  status: "accepted" | "declined";
 }
 
 export type IngestionAdminLoadResult =
@@ -76,11 +154,38 @@ export type ProcessSnapshotResult =
       status: "forbidden" | "not_found" | "not_configured" | "unavailable" | "unauthenticated";
     };
 
+type ProductReviewError = {
+  message: string;
+  status: "forbidden" | "not_found" | "not_configured" | "unavailable" | "unauthenticated";
+};
+
+export type ProductReviewItemResult =
+  | {
+      reviewItem: IngestionProductReviewItem;
+      status: "ok";
+    }
+  | ProductReviewError;
+
+export type ProductReviewDecisionResult =
+  | {
+      decision: ProductReviewDecisionResponse;
+      status: "ok";
+    }
+  | ProductReviewError;
+
+export type ProductReviewItemsResult =
+  | {
+      reviewItems: IngestionProductReviewItem[];
+      status: "ok";
+    }
+  | ProductReviewError;
+
 @Injectable({
   providedIn: "root"
 })
 export class IngestionAdminService {
   private readonly auth = inject(AuthService);
+  private readonly toast = inject(ToastService);
 
   async listSnapshots(): Promise<IngestionAdminLoadResult> {
     if (!this.auth.token()) {
@@ -99,22 +204,23 @@ export class IngestionAdminService {
     });
 
     if (response.status === 401) {
-      return {
+      return this.withToast({
         message: "The current session does not have access to crawl snapshots.",
         status: "forbidden"
-      };
+      });
     }
 
     if (response.status === 503) {
-      return {
+      return this.withToast({
         message: "The ingestion database is not configured for this environment.",
         status: "not_configured"
-      };
+      });
     }
 
     if (!response.ok) {
+      const message = await readApiErrorMessage(response, "The crawl snapshot route returned an error.");
       return {
-        message: "The crawl snapshot route returned an error.",
+        message: this.toastMessage(message),
         status: "unavailable"
       };
     }
@@ -148,29 +254,30 @@ export class IngestionAdminService {
     });
 
     if (response.status === 401) {
-      return {
+      return this.withToast({
         message: "The current session does not have access to process snapshots.",
         status: "forbidden"
-      };
+      });
     }
 
     if (response.status === 404) {
-      return {
+      return this.withToast({
         message: "The selected snapshot no longer exists.",
         status: "not_found"
-      };
+      });
     }
 
     if (response.status === 503) {
-      return {
+      return this.withToast({
         message: "Snapshot processing is not configured for this environment.",
         status: "not_configured"
-      };
+      });
     }
 
     if (!response.ok) {
+      const message = await readApiErrorMessage(response, "Snapshot processing returned an error.");
       return {
-        message: "Snapshot processing returned an error.",
+        message: this.toastMessage(message),
         status: "unavailable"
       };
     }
@@ -183,4 +290,159 @@ export class IngestionAdminService {
       status: "ok"
     };
   }
+
+  async prepareReviewItems(snapshotId: string): Promise<ProductReviewItemsResult> {
+    return await this.writeReviewItem("/api/admin/ingestion/prepare-review-items", {
+      snapshotId
+    }, "reviewItems") as ProductReviewItemsResult;
+  }
+
+  async listReviewItemsForSnapshot(snapshotId: string): Promise<ProductReviewItemsResult> {
+    if (!this.auth.token()) {
+      return {
+        message: "Sign in before loading review items.",
+        status: "unauthenticated"
+      };
+    }
+
+    const response = await fetch(`/api/admin/ingestion/review-items?snapshotId=${encodeURIComponent(snapshotId)}&limit=250`, {
+      headers: {
+        accept: "application/json",
+        ...this.auth.getAuthorizationHeaders()
+      },
+      method: "GET"
+    });
+    const error = await readReviewItemError(response);
+    if (error) {
+      return this.withToast(error);
+    }
+
+    const payload = (await response.json()) as ProductReviewItemsResponse;
+    return {
+      reviewItems: payload.reviewItems,
+      status: "ok"
+    };
+  }
+
+  async updateReviewItemCandidate(
+    id: string,
+    candidate: ProductReviewCandidateDraft
+  ): Promise<ProductReviewItemResult> {
+    return await this.writeReviewItem("/api/admin/ingestion/review-item", {
+      candidate,
+      id
+    }, "reviewItem", "PATCH") as ProductReviewItemResult;
+  }
+
+  async acceptReviewItem(id: string, note: string | null): Promise<ProductReviewDecisionResult> {
+    return await this.writeReviewItem("/api/admin/ingestion/review-item/accept", {
+      id,
+      note
+    }, "decision") as ProductReviewDecisionResult;
+  }
+
+  async declineReviewItem(
+    id: string,
+    declineReason: ProductReviewDecisionReason,
+    note: string | null
+  ): Promise<ProductReviewDecisionResult> {
+    return await this.writeReviewItem("/api/admin/ingestion/review-item/decline", {
+      declineReason,
+      id,
+      note
+    }, "decision") as ProductReviewDecisionResult;
+  }
+
+  private async writeReviewItem(
+    url: string,
+    body: unknown,
+    responseKind: "decision" | "reviewItem" | "reviewItems",
+    method: "PATCH" | "POST" = "POST"
+  ): Promise<ProductReviewItemResult | ProductReviewItemsResult | ProductReviewDecisionResult> {
+    if (!this.auth.token()) {
+      return {
+        message: "Sign in before editing review items.",
+        status: "unauthenticated"
+      };
+    }
+
+    const response = await fetch(url, {
+      body: JSON.stringify(body),
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+        ...this.auth.getAuthorizationHeaders()
+      },
+      method
+    });
+    const error = await readReviewItemError(response);
+    if (error) {
+      return this.withToast(error);
+    }
+
+    if (responseKind === "reviewItems") {
+      const payload = (await response.json()) as ProductReviewItemsResponse;
+      return {
+        reviewItems: payload.reviewItems,
+        status: "ok"
+      };
+    }
+
+    if (responseKind === "decision") {
+      const payload = (await response.json()) as ProductReviewDecisionResponse;
+      return {
+        decision: payload,
+        status: "ok"
+      };
+    }
+
+    const payload = (await response.json()) as ProductReviewItemResponse;
+    return {
+      reviewItem: payload.reviewItem,
+      status: "ok"
+    };
+  }
+
+  private toastMessage(message: string): string {
+    this.toast.push(message, "error");
+    return message;
+  }
+
+  private withToast<T extends ProductReviewError>(error: T): T {
+    this.toast.push(error.message, "error");
+    return error;
+  }
+}
+
+async function readReviewItemError(response: Response): Promise<ProductReviewError | null> {
+  if (response.status === 401) {
+    return {
+      message: "The current session does not have access to product review items.",
+      status: "forbidden"
+    };
+  }
+
+  if (response.status === 404) {
+    return {
+      message: "The selected review item no longer exists.",
+      status: "not_found"
+    };
+  }
+
+  if (response.status === 503) {
+    return {
+      message: "The ingestion database is not configured for this environment.",
+      status: "not_configured"
+    };
+  }
+
+  if (!response.ok) {
+    const message = await readApiErrorMessage(response, "The product review route returned an error.");
+    return {
+      message,
+      status: "unavailable"
+    };
+  }
+
+  return null;
 }

@@ -11,9 +11,11 @@ import {
 import { logBrowserEvent } from "./browser-logger";
 import { AuthService } from "./auth.service";
 import { PageRailService } from "./shared/page-rail.service";
+import { ToastHostComponent } from "./shared/toast-host.component";
+import { ToastService } from "./shared/toast.service";
 
 @Component({
-  imports: [FormsModule, RouterLink, RouterLinkActive, RouterOutlet],
+  imports: [FormsModule, RouterLink, RouterLinkActive, RouterOutlet, ToastHostComponent],
   selector: "app-root",
   standalone: true,
   template: `
@@ -191,6 +193,8 @@ import { PageRailService } from "./shared/page-rail.service";
           }
         </section>
       </aside>
+
+      <app-toast-host />
 
       @if (loginMessage(); as message) {
         <p
@@ -741,6 +745,7 @@ import { PageRailService } from "./shared/page-rail.service";
 export class AppComponent implements OnInit {
   readonly auth = inject(AuthService);
   readonly pageRail = inject(PageRailService);
+  readonly toast = inject(ToastService);
   readonly currentPageTitle = signal("Home");
   readonly loginMessage = signal("");
   readonly loginMessageTone = signal<"error" | "success">("success");
@@ -817,6 +822,7 @@ export class AppComponent implements OnInit {
 
     if (result.status === "error") {
       this.showLoginToast(result.message, "error");
+      this.toast.push(result.message, "error");
       return;
     }
 
