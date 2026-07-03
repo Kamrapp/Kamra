@@ -32,6 +32,7 @@ export interface AppHandlerDependencies {
       recordFingerprint: string;
       sourceName: string;
     }): Promise<SourceRecordProcessingStateRecord | null>;
+    markLegacyProductsUnvalidated?(): Promise<number>;
     listCatalogProductsForReview(options?: { limit?: number; offset?: number; sourceNames?: string[] }): Promise<{
       products: unknown[];
       totalCount: number;

@@ -15,6 +15,9 @@ export type CatalogV1CollectionName = (typeof catalogV1CollectionNames)[number];
 export const productStatuses = ["active", "archived"] as const;
 export type ProductStatus = (typeof productStatuses)[number];
 
+export const productValidationStatuses = ["unvalidated", "validated", "invalid"] as const;
+export type ProductValidationStatus = (typeof productValidationStatuses)[number];
+
 export const productKinds = ["grocery", "household_supply"] as const;
 export type ProductKind = (typeof productKinds)[number];
 
@@ -79,6 +82,12 @@ export interface ProductRecord {
   normalizedName: string;
   origin: RecordOrigin[];
   primaryCategoryKey?: string | null;
+  validationStatus: ProductValidationStatus;
+  validatedAt?: string | null;
+  validatedBy?: string | null;
+  invalidatedAt?: string | null;
+  invalidatedBy?: string | null;
+  validationNote?: string | null;
   status: ProductStatus;
   updatedAt: string;
 }
@@ -236,6 +245,7 @@ export interface CatalogProductListItem {
   measurements: ProductMeasurement[];
   name: string;
   primaryCategoryKey?: string | null;
+  validationStatus: ProductValidationStatus;
   sourceNames: string[];
   tagKeys: string[];
 }

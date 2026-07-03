@@ -1,3 +1,4 @@
+import { createDefaultCatalogRepository } from "../app-route-context.js";
 import { getHealthResult } from "../../health/get-health-report.js";
 import { writeServerLog } from "../../logging/kamra-logger.js";
 import { json, unauthorized, type AppRoute } from "../app-route-context.js";
@@ -37,5 +38,45 @@ export const healthRoute: AppRoute = {
     });
 
     return json(result.statusCode, result.report);
+  }
+};
+
+export const markLegacyProductsUnvalidatedRoute: AppRoute = {
+  match: (request) => request.method === "POST" && request.path === "/api/health/backfill-unvalidated-products",
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request);
+    if (!user || user.role !== "admin") {
+      return unauthorized("Sign in as an admin to view this resource.");
+    }
+
+    const config = context.config;
+    if (!config.mongodb.uri || !config.mongodb.databaseName) {
+      return json(503, { error: "catalog_not_configured" });
+    }
+
+    const client = await context.getMongoClient(
+      config.mongodb.uri,
+      config.mongodb.dnsServers
+    );
+    const repository = context.dependencies.createCatalogRepository
+      ? context.dependencies.createCatalogRepository(client.db(config.mongodb.databaseName))
+      : createDefaultCatalogRepository(client.db(config.mongodb.databaseName));
+
+    if (!repository.markLegacyProductsUnvalidated) {
+      return json(501, {
+        error: "catalog_backfill_not_supported"
+      });
+    }
+
+    const updatedCount = await repository.markLegacyProductsUnvalidated();
+
+    writeServerLog("info", "Legacy product validation backfill completed", {
+      markedBy: user.email,
+      updatedCount
+    });
+
+    return json(200, {
+      updatedCount
+    });
   }
 };

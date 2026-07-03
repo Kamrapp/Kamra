@@ -1,4 +1,5 @@
-import type { AnyBulkWriteOperation, Collection, Db, Document, Filter } from "mongodb";
+import type { AnyBulkWriteOperation, Document, Filter } from "mongodb";
+import type { MongoCollectionLike, MongoDatabaseLike } from "../../db/mongo-like.js";
 
 import type {
   CatalogProductListItem,
@@ -123,6 +124,10 @@ const collectionPlans: CollectionIndexPlan[] = [
         options: { name: "products_normalized_name" }
       },
       {
+        key: { validationStatus: 1, status: 1 },
+        options: { name: "products_validation_status" }
+      },
+      {
         key: { primaryCategoryKey: 1, status: 1 },
         options: { name: "products_primary_category_status" }
       }
@@ -171,17 +176,17 @@ export interface CurrentCatalogSmokeCheckResult {
 }
 
 export class MongoCurrentCatalogRepository {
-  private readonly migrationLedgerCollection: Collection<MigrationLedgerRecord>;
-  private readonly priceObservationsCollection: Collection<PriceObservationRecord>;
-  private readonly productSourceIdentifiersCollection: Collection<ProductSourceIdentifierRecord>;
-  private readonly productSourcesCollection: Collection<ProductSourceRecord>;
-  private readonly productTagAssignmentsCollection: Collection<ProductTagAssignmentRecord>;
-  private readonly productTagsCollection: Collection<ProductTagRecord>;
-  private readonly productsCollection: Collection<ProductRecord>;
-  private readonly sourceRecordProcessingStatesCollection: Collection<SourceRecordProcessingStateRecord>;
-  private readonly stocksCollection: Collection<StockRecord>;
+  private readonly migrationLedgerCollection: MongoCollectionLike<MigrationLedgerRecord>;
+  private readonly priceObservationsCollection: MongoCollectionLike<PriceObservationRecord>;
+  private readonly productSourceIdentifiersCollection: MongoCollectionLike<ProductSourceIdentifierRecord>;
+  private readonly productSourcesCollection: MongoCollectionLike<ProductSourceRecord>;
+  private readonly productTagAssignmentsCollection: MongoCollectionLike<ProductTagAssignmentRecord>;
+  private readonly productTagsCollection: MongoCollectionLike<ProductTagRecord>;
+  private readonly productsCollection: MongoCollectionLike<ProductRecord>;
+  private readonly sourceRecordProcessingStatesCollection: MongoCollectionLike<SourceRecordProcessingStateRecord>;
+  private readonly stocksCollection: MongoCollectionLike<StockRecord>;
 
-  constructor(private readonly database: Db) {
+  constructor(private readonly database: MongoDatabaseLike) {
     this.migrationLedgerCollection = database.collection<MigrationLedgerRecord>("migration_ledger");
     this.priceObservationsCollection = database.collection<PriceObservationRecord>("price_observations");
     this.productSourceIdentifiersCollection = database.collection<ProductSourceIdentifierRecord>(
@@ -204,9 +209,9 @@ export class MongoCurrentCatalogRepository {
     const productFilter: Filter<ProductRecord> = { status: "active" };
 
     if (requestedSourceNames.length > 0) {
-      const productIdsForSources = await this.productSourcesCollection.distinct("productId", {
+      const productIdsForSources = (await this.productSourcesCollection.distinct("productId", {
         sourceName: { $in: requestedSourceNames }
-      });
+      })) as string[];
       productFilter.id = { $in: productIdsForSources };
     }
 
@@ -330,6 +335,7 @@ export class MongoCurrentCatalogRepository {
         name: product.name,
         offers: (offerRowsByProductId.get(product.id) ?? []).sort(compareOffers),
         primaryCategoryKey: product.primaryCategoryKey,
+        validationStatus: product.validationStatus ?? "unvalidated",
         sourceNames: [...new Set(sourcesByProductId.get(product.id) ?? [])].sort(),
         tagKeys: [...new Set(tagsByProductId.get(product.id) ?? [])].sort()
       })),
@@ -338,9 +344,32 @@ export class MongoCurrentCatalogRepository {
   }
 
   async listCatalogOfferSourceNames(): Promise<string[]> {
-    const sourceNames = await this.productSourcesCollection.distinct("sourceName");
+    const sourceNames = (await this.productSourcesCollection.distinct("sourceName")) as string[];
 
     return sourceNames.sort((left, right) => left.localeCompare(right, "hu-HU"));
+  }
+
+  async markLegacyProductsUnvalidated(): Promise<number> {
+    const result = await this.productsCollection.updateMany(
+      {
+        validationStatus: { $exists: false }
+      },
+      {
+        $set: {
+          invalidatedAt: null,
+          invalidatedBy: null,
+          validationNote: null,
+          validationStatus: "unvalidated",
+          validatedAt: null,
+          validatedBy: null
+        }
+      },
+      {
+        bypassDocumentValidation: true
+      }
+    );
+
+    return result.modifiedCount ?? 0;
   }
 
   async runSmokeCheck(): Promise<CurrentCatalogSmokeCheckResult> {
@@ -459,7 +488,7 @@ export class MongoCurrentCatalogRepository {
   }
 
   private async upsertMany<T extends { id: string }>(
-    collection: Collection<T>,
+    collection: MongoCollectionLike<T>,
     records: readonly T[]
   ): Promise<void> {
     if (records.length === 0) {

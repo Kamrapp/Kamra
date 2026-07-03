@@ -135,6 +135,7 @@ Included:
 - Existing product delete route with cascade cleanup for catalog-side connected records.
 - Decline reason dropdown for crawl-row review.
 - Documentation updates after implementation.
+- One-time health-view maintenance action that bulk-marks products as unvalidated if they still lack any validation state.
 
 ## Non-Goals
 

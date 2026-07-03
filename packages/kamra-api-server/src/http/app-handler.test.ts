@@ -85,6 +85,75 @@ describe("handleAppRequest auth guards", () => {
     });
   });
 
+  it("rejects legacy validation backfill without an admin token", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+
+    const token = createUserToken({
+      email: "user@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "user",
+      secret: "test-secret"
+    });
+
+    const response = await handleAppRequest({
+      headers: {
+        authorization: `Bearer ${token}`
+      },
+      method: "POST",
+      path: "/api/health/backfill-unvalidated-products"
+    });
+
+    expect(response.status).toBe(401);
+    expect(JSON.parse(response.body)).toEqual({
+      error: "unauthorized",
+      message: "Sign in as an admin to view this resource."
+    });
+  });
+
+  it("backfills legacy products to unvalidated with a valid admin token", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "admin@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "admin",
+      secret: "test-secret"
+    });
+
+    const response = await handleAppRequest(
+      {
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "POST",
+        path: "/api/health/backfill-unvalidated-products"
+      },
+      {
+        createCatalogRepository: () => ({
+          markLegacyProductsUnvalidated: async () => {
+            return 42;
+          },
+          listCatalogProductsForReview: async () => ({
+            products: [],
+            totalCount: 0
+          })
+        }),
+        getMongoClient: async () => ({
+          db: () => ({})
+        } as never)
+      }
+    );
+
+    expect(response.status).toBe(200);
+    expect(JSON.parse(response.body)).toMatchObject({
+      updatedCount: 42
+    });
+  });
+
   it("rejects health checks for a valid non-admin token", async () => {
     vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
 

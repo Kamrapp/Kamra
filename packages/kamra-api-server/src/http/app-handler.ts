@@ -8,7 +8,7 @@ import {
 } from "./app-route-context.js";
 import { catalogProductsRoute, catalogSourcesRoute } from "./routes/catalog-routes.js";
 import { currentUserRoute, loginRoute, logoutRoute } from "./routes/auth-routes.js";
-import { healthRoute } from "./routes/health-route.js";
+import { healthRoute, markLegacyProductsUnvalidatedRoute } from "./routes/health-route.js";
 import { ingestionSnapshotsRoute, processIngestionSnapshotRoute } from "./routes/ingestion-routes.js";
 import { logRoute } from "./routes/log-route.js";
 
@@ -20,6 +20,7 @@ const appRoutes: AppRoute[] = [
   logoutRoute,
   currentUserRoute,
   healthRoute,
+  markLegacyProductsUnvalidatedRoute,
   catalogProductsRoute,
   catalogSourcesRoute,
   ingestionSnapshotsRoute,

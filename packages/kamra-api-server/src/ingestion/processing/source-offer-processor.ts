@@ -114,6 +114,12 @@ export function processSourceOfferSnapshot(
       normalizedName,
       origin: [origin],
       primaryCategoryKey: null,
+      validationStatus: "unvalidated",
+      validatedAt: null,
+      validatedBy: null,
+      invalidatedAt: null,
+      invalidatedBy: null,
+      validationNote: null,
       status: "active",
       updatedAt: processedAt
     } satisfies CatalogV1SeedDataset["products"][number];

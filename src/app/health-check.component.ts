@@ -63,14 +63,29 @@ interface HealthCheckItem {
           <p class="status-message">{{ message }}</p>
         }
 
-        <button
-          class="run-button"
-          type="button"
-          (click)="runHealthCheck()"
-          [disabled]="healthState() === 'loading'"
-        >
-          {{ healthState() === "loading" ? "Checking..." : "Run health check" }}
-        </button>
+        <div class="button-row">
+          <button
+            class="run-button"
+            type="button"
+            (click)="runHealthCheck()"
+            [disabled]="healthState() === 'loading' || invalidationState() === 'loading'"
+          >
+            {{ healthState() === "loading" ? "Checking..." : "Run health check" }}
+          </button>
+
+          <button
+            class="invalidate-button"
+            type="button"
+            (click)="backfillLegacyProductsAsUnvalidated()"
+            [disabled]="healthState() === 'loading' || invalidationState() === 'loading'"
+          >
+            {{ invalidationState() === "loading" ? "Updating..." : "Set legacy products unvalidated" }}
+          </button>
+        </div>
+
+        @if (invalidationMessage(); as message) {
+          <p class="maintenance-message">{{ message }}</p>
+        }
 
         @if (healthChecks().length) {
           <div class="check-list" aria-label="Health checks">
@@ -202,9 +217,40 @@ interface HealthCheckItem {
         padding: 0.72rem 1rem;
       }
 
+      .button-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-3);
+      }
+
+      .invalidate-button {
+        background: color-mix(in srgb, var(--color-wood) 88%, white 12%);
+        border: 1px solid color-mix(in srgb, var(--color-wood) 72%, black 28%);
+        border-radius: 8px;
+        color: white;
+        cursor: pointer;
+        font: inherit;
+        font-weight: 700;
+        min-height: 2.75rem;
+        min-width: 13rem;
+        padding: 0.72rem 1rem;
+      }
+
       .run-button:disabled {
         cursor: progress;
         opacity: 0.74;
+      }
+
+      .invalidate-button:disabled {
+        cursor: progress;
+        opacity: 0.74;
+      }
+
+      .maintenance-message {
+        color: var(--color-text-muted);
+        font-size: 0.95rem;
+        line-height: 1.5;
+        margin: 0;
       }
 
       .check-list {
@@ -308,6 +354,8 @@ export class HealthCheckComponent implements OnInit {
   readonly healthMessage = signal("Run the health check to verify the shared server path.");
   readonly healthReport = signal<HealthReport | null>(null);
   readonly healthState = signal<"idle" | "loading" | "error" | "success">("idle");
+  readonly invalidationMessage = signal("");
+  readonly invalidationState = signal<"idle" | "loading" | "error" | "success">("idle");
   readonly healthChecks = computed((): HealthCheckItem[] => {
     const report = this.healthReport();
     if (!report) {
@@ -394,6 +442,57 @@ export class HealthCheckComponent implements OnInit {
       this.healthMessage.set("The browser could not reach the health route.");
 
       logBrowserEvent("error", "Health check request failed", error);
+    }
+  }
+
+  async backfillLegacyProductsAsUnvalidated(): Promise<void> {
+    if (!this.auth.token()) {
+      this.invalidationState.set("error");
+      this.invalidationMessage.set("Sign in before using the maintenance action.");
+      return;
+    }
+
+    this.invalidationState.set("loading");
+    this.invalidationMessage.set("");
+
+    logBrowserEvent("info", "Legacy validation backfill requested from health screen", {
+      pathname: window.location.pathname
+    });
+
+    try {
+      const response = await fetch("/api/health/backfill-unvalidated-products", {
+        headers: {
+          accept: "application/json",
+          ...this.auth.getAuthorizationHeaders()
+        },
+        method: "POST"
+      });
+
+      if (response.status === 401) {
+        await this.auth.logout();
+        this.invalidationState.set("error");
+        this.invalidationMessage.set("Sign in before using the maintenance action.");
+        return;
+      }
+
+      const payload = (await response.json()) as {
+        updatedCount?: number;
+      };
+
+      this.invalidationState.set(response.ok ? "success" : "error");
+      this.invalidationMessage.set(response.ok
+        ? `Marked ${payload.updatedCount ?? 0} legacy products as unvalidated.`
+        : "Legacy product backfill could not be completed.");
+
+      logBrowserEvent("info", "Legacy validation backfill response received", {
+        httpStatus: response.status,
+        updatedCount: payload.updatedCount
+      });
+    } catch (error: unknown) {
+      this.invalidationState.set("error");
+      this.invalidationMessage.set("The browser could not reach the backfill route.");
+
+      logBrowserEvent("error", "Legacy validation backfill request failed", error);
     }
   }
 }

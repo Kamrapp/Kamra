@@ -101,6 +101,10 @@ const sourceProductIdentifierSchema = requiredObjectSchema(
   }
 );
 
+const productValidationStatusSchema = {
+  enum: ["unvalidated", "validated", "invalid"]
+};
+
 export const catalogV1CollectionSchemas: Record<CatalogV1CollectionName, JsonSchema> = {
   migration_ledger: requiredObjectSchema(
     ["appliedAt", "description", "id", "migrationId", "runnerName", "runnerVersion", "status"],
@@ -214,7 +218,18 @@ export const catalogV1CollectionSchemas: Record<CatalogV1CollectionName, JsonSch
     }
   ),
   products: requiredObjectSchema(
-    ["createdAt", "id", "kind", "measurements", "name", "normalizedName", "origin", "status", "updatedAt"],
+    [
+      "createdAt",
+      "id",
+      "kind",
+      "measurements",
+      "name",
+      "normalizedName",
+      "origin",
+      "status",
+      "updatedAt",
+      "validationStatus"
+    ],
     {
       brandName: optionalStringSchema,
       createdAt: isoDateStringSchema,
@@ -232,6 +247,12 @@ export const catalogV1CollectionSchemas: Record<CatalogV1CollectionName, JsonSch
         minItems: 1
       },
       primaryCategoryKey: optionalStringSchema,
+      validatedAt: optionalStringSchema,
+      validatedBy: optionalStringSchema,
+      invalidatedAt: optionalStringSchema,
+      invalidatedBy: optionalStringSchema,
+      validationNote: optionalStringSchema,
+      validationStatus: productValidationStatusSchema,
       status: { enum: ["active", "archived"] },
       updatedAt: isoDateStringSchema
     }

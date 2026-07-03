@@ -401,6 +401,12 @@ export function createCatalogV1SeedDataset(): CatalogV1SeedDataset {
           }
         ],
         primaryCategoryKey: "category.kitchen.dairy",
+        validationStatus: "unvalidated",
+        validatedAt: null,
+        validatedBy: null,
+        invalidatedAt: null,
+        invalidatedBy: null,
+        validationNote: null,
         status: "active",
         updatedAt: catalogV1SeedCapturedAt
       },
@@ -428,6 +434,12 @@ export function createCatalogV1SeedDataset(): CatalogV1SeedDataset {
           }
         ],
         primaryCategoryKey: "category.kitchen.pantry",
+        validationStatus: "unvalidated",
+        validatedAt: null,
+        validatedBy: null,
+        invalidatedAt: null,
+        invalidatedBy: null,
+        validationNote: null,
         status: "active",
         updatedAt: catalogV1SeedCapturedAt
       },
@@ -455,6 +467,12 @@ export function createCatalogV1SeedDataset(): CatalogV1SeedDataset {
           }
         ],
         primaryCategoryKey: "category.kitchen.pantry",
+        validationStatus: "unvalidated",
+        validatedAt: null,
+        validatedBy: null,
+        invalidatedAt: null,
+        invalidatedBy: null,
+        validationNote: null,
         status: "active",
         updatedAt: catalogV1SeedCapturedAt
       }

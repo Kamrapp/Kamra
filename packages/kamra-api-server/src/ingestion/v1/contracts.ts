@@ -1,6 +1,7 @@
 export const ingestionV1CollectionNames = [
   "ingestion_raw_snapshots",
-  "ingestion_runs"
+  "ingestion_runs",
+  "ingestion_product_review_items"
 ] as const;
 
 export type IngestionV1CollectionName = (typeof ingestionV1CollectionNames)[number];
@@ -85,3 +86,16 @@ export interface IngestionRawSnapshotRecord extends CrawlRunIdentity {
   sourceRecordId: string;
   sourceUrl?: string | null;
 }
+
+export type {
+  IngestionProductReviewItemRecord,
+  ProductReviewCandidateDraft,
+  ProductReviewCandidateMatchConfidence,
+  ProductReviewDecisionReason,
+  ProductReviewRawRowPreview
+} from "./review-contracts.js";
+
+export {
+  productReviewCandidateMatchConfidences,
+  productReviewDecisionReasons
+} from "./review-contracts.js";
