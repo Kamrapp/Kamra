@@ -68,20 +68,35 @@ interface HealthCheckItem {
             class="run-button"
             type="button"
             (click)="runHealthCheck()"
-            [disabled]="healthState() === 'loading' || invalidationState() === 'loading'"
+            [disabled]="isMaintenanceBusy()"
           >
             {{ healthState() === "loading" ? "Checking..." : "Run health check" }}
           </button>
 
           <button
-            class="invalidate-button"
+            class="maintenance-button"
             type="button"
+            title="Runs MongoDB collMod for each catalog collection, replacing its validator with the current catalog/v1 JSON schema. Requires a MongoDB user with collection validator privileges such as dbAdmin."
+            (click)="upgradeCatalogValidators()"
+            [disabled]="isMaintenanceBusy()"
+          >
+            {{ validatorUpgradeState() === "loading" ? "Upgrading..." : "Upgrade catalog validators" }}
+          </button>
+
+          <button
+            class="maintenance-button"
+            type="button"
+            title="Sets missing product validation fields to validationStatus=unvalidated on legacy product documents. Run the validator upgrade first if MongoDB rejects the new validation fields."
             (click)="backfillLegacyProductsAsUnvalidated()"
-            [disabled]="healthState() === 'loading' || invalidationState() === 'loading'"
+            [disabled]="isMaintenanceBusy()"
           >
             {{ invalidationState() === "loading" ? "Updating..." : "Set legacy products unvalidated" }}
           </button>
         </div>
+
+        @if (validatorUpgradeMessage(); as message) {
+          <p class="maintenance-message">{{ message }}</p>
+        }
 
         @if (invalidationMessage(); as message) {
           <p class="maintenance-message">{{ message }}</p>
@@ -223,7 +238,7 @@ interface HealthCheckItem {
         gap: var(--space-3);
       }
 
-      .invalidate-button {
+      .maintenance-button {
         background: color-mix(in srgb, var(--color-wood) 88%, white 12%);
         border: 1px solid color-mix(in srgb, var(--color-wood) 72%, black 28%);
         border-radius: 8px;
@@ -241,7 +256,7 @@ interface HealthCheckItem {
         opacity: 0.74;
       }
 
-      .invalidate-button:disabled {
+      .maintenance-button:disabled {
         cursor: progress;
         opacity: 0.74;
       }
@@ -356,6 +371,8 @@ export class HealthCheckComponent implements OnInit {
   readonly healthState = signal<"idle" | "loading" | "error" | "success">("idle");
   readonly invalidationMessage = signal("");
   readonly invalidationState = signal<"idle" | "loading" | "error" | "success">("idle");
+  readonly validatorUpgradeMessage = signal("");
+  readonly validatorUpgradeState = signal<"idle" | "loading" | "error" | "success">("idle");
   readonly healthChecks = computed((): HealthCheckItem[] => {
     const report = this.healthReport();
     if (!report) {
@@ -386,6 +403,11 @@ export class HealthCheckComponent implements OnInit {
 
     return "No health check has been run yet.";
   });
+  readonly isMaintenanceBusy = computed(() =>
+    this.healthState() === "loading"
+      || this.invalidationState() === "loading"
+      || this.validatorUpgradeState() === "loading"
+  );
 
   ngOnInit(): void {
     void this.auth.loadCurrentUser();
@@ -445,6 +467,60 @@ export class HealthCheckComponent implements OnInit {
     }
   }
 
+  async upgradeCatalogValidators(): Promise<void> {
+    if (!this.auth.token()) {
+      this.validatorUpgradeState.set("error");
+      this.validatorUpgradeMessage.set("Sign in before using the validator upgrade action.");
+      return;
+    }
+
+    this.validatorUpgradeState.set("loading");
+    this.validatorUpgradeMessage.set("");
+
+    logBrowserEvent("info", "Catalog validator upgrade requested from health screen", {
+      pathname: window.location.pathname
+    });
+
+    try {
+      const response = await fetch("/api/health/upgrade-catalog-validators", {
+        headers: {
+          accept: "application/json",
+          ...this.auth.getAuthorizationHeaders()
+        },
+        method: "POST"
+      });
+
+      if (response.status === 401) {
+        await this.auth.logout();
+        this.validatorUpgradeState.set("error");
+        this.validatorUpgradeMessage.set("Sign in before using the validator upgrade action.");
+        return;
+      }
+
+      const payload = (await response.json()) as {
+        createdCollections?: string[];
+        message?: string;
+        upgradedCollections?: string[];
+      };
+
+      this.validatorUpgradeState.set(response.ok ? "success" : "error");
+      this.validatorUpgradeMessage.set(response.ok
+        ? `Upgraded ${payload.upgradedCollections?.length ?? 0} catalog validators and created ${payload.createdCollections?.length ?? 0} missing collections.`
+        : "Catalog validators could not be upgraded.");
+
+      logBrowserEvent("info", "Catalog validator upgrade response received", {
+        createdCollectionCount: payload.createdCollections?.length,
+        httpStatus: response.status,
+        upgradedCollectionCount: payload.upgradedCollections?.length
+      });
+    } catch (error: unknown) {
+      this.validatorUpgradeState.set("error");
+      this.validatorUpgradeMessage.set("The browser could not reach the validator upgrade route.");
+
+      logBrowserEvent("error", "Catalog validator upgrade request failed", error);
+    }
+  }
+
   async backfillLegacyProductsAsUnvalidated(): Promise<void> {
     if (!this.auth.token()) {
       this.invalidationState.set("error");
@@ -476,16 +552,21 @@ export class HealthCheckComponent implements OnInit {
       }
 
       const payload = (await response.json()) as {
+        message?: string;
+        skippedCount?: number;
+        status?: "updated" | "validator_incompatible";
         updatedCount?: number;
       };
 
       this.invalidationState.set(response.ok ? "success" : "error");
       this.invalidationMessage.set(response.ok
-        ? `Marked ${payload.updatedCount ?? 0} legacy products as unvalidated.`
+        ? this.formatLegacyBackfillMessage(payload)
         : "Legacy product backfill could not be completed.");
 
       logBrowserEvent("info", "Legacy validation backfill response received", {
         httpStatus: response.status,
+        skippedCount: payload.skippedCount,
+        status: payload.status,
         updatedCount: payload.updatedCount
       });
     } catch (error: unknown) {
@@ -494,5 +575,18 @@ export class HealthCheckComponent implements OnInit {
 
       logBrowserEvent("error", "Legacy validation backfill request failed", error);
     }
+  }
+
+  private formatLegacyBackfillMessage(payload: {
+    message?: string;
+    skippedCount?: number;
+    status?: "updated" | "validator_incompatible";
+    updatedCount?: number;
+  }): string {
+    if (payload.status === "validator_incompatible") {
+      return `No product documents were changed; ${payload.skippedCount ?? 0} legacy products are already shown as unvalidated by compatibility fallback.`;
+    }
+
+    return `Marked ${payload.updatedCount ?? 0} legacy products as unvalidated.`;
   }
 }

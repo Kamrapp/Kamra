@@ -41,6 +41,60 @@ export const healthRoute: AppRoute = {
   }
 };
 
+export const upgradeCatalogValidatorsRoute: AppRoute = {
+  match: (request) => request.method === "POST" && request.path === "/api/health/upgrade-catalog-validators",
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request);
+    if (!user || user.role !== "admin") {
+      return unauthorized("Sign in as an admin to view this resource.");
+    }
+
+    const config = context.config;
+    if (!config.mongodb.uri || !config.mongodb.databaseName) {
+      return json(503, { error: "catalog_not_configured" });
+    }
+
+    const client = await context.getMongoClient(
+      config.mongodb.uri,
+      config.mongodb.dnsServers
+    );
+    const repository = context.dependencies.createCatalogRepository
+      ? context.dependencies.createCatalogRepository(client.db(config.mongodb.databaseName))
+      : createDefaultCatalogRepository(client.db(config.mongodb.databaseName));
+
+    if (!repository.upgradeCatalogValidators) {
+      return json(501, {
+        error: "catalog_validator_upgrade_not_supported"
+      });
+    }
+
+    try {
+      const result = await repository.upgradeCatalogValidators();
+
+      writeServerLog("info", "Catalog validators upgraded", {
+        createdCollections: result.createdCollections,
+        databaseName: result.databaseName,
+        upgradedBy: user.email,
+        upgradedCollections: result.upgradedCollections
+      });
+
+      return json(200, {
+        createdCollections: result.createdCollections,
+        databaseName: result.databaseName,
+        message: "Catalog collection validators were upgraded to the current schema.",
+        upgradedCollections: result.upgradedCollections
+      });
+    } catch (error: unknown) {
+      writeServerLog("error", "Catalog validator upgrade failed", error);
+
+      return json(500, {
+        error: "catalog_validator_upgrade_failed",
+        message: "Catalog collection validators could not be upgraded."
+      });
+    }
+  }
+};
+
 export const markLegacyProductsUnvalidatedRoute: AppRoute = {
   match: (request) => request.method === "POST" && request.path === "/api/health/backfill-unvalidated-products",
   handle: async (request, context) => {
@@ -68,15 +122,32 @@ export const markLegacyProductsUnvalidatedRoute: AppRoute = {
       });
     }
 
-    const updatedCount = await repository.markLegacyProductsUnvalidated();
+    let result: Awaited<ReturnType<NonNullable<typeof repository.markLegacyProductsUnvalidated>>>;
+    try {
+      result = await repository.markLegacyProductsUnvalidated();
+    } catch (error: unknown) {
+      writeServerLog("error", "Legacy product validation backfill failed", error);
+
+      return json(500, {
+        error: "catalog_backfill_failed",
+        message: "Legacy products could not be marked as unvalidated."
+      });
+    }
 
     writeServerLog("info", "Legacy product validation backfill completed", {
       markedBy: user.email,
-      updatedCount
+      skippedCount: result.skippedCount,
+      status: result.status,
+      updatedCount: result.updatedCount
     });
 
     return json(200, {
-      updatedCount
+      message: result.status === "validator_incompatible"
+        ? "Existing products are treated as unvalidated by the read model because the current MongoDB collection validator still rejects validation fields."
+        : "Legacy products were marked as unvalidated.",
+      skippedCount: result.skippedCount,
+      status: result.status,
+      updatedCount: result.updatedCount
     });
   }
 };

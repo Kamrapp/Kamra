@@ -96,9 +96,13 @@ describe("MongoCurrentCatalogRepository", () => {
     });
 
     const repository = new MongoCurrentCatalogRepository(db);
-    const updatedCount = await repository.markLegacyProductsUnvalidated();
+    const result = await repository.markLegacyProductsUnvalidated();
 
-    expect(updatedCount).toBe(1);
+    expect(result).toEqual({
+      skippedCount: 0,
+      status: "updated",
+      updatedCount: 1
+    });
     expect(db.__collections["products"]!.docs[0]).toMatchObject({
       invalidatedAt: null,
       invalidatedBy: null,
@@ -107,5 +111,72 @@ describe("MongoCurrentCatalogRepository", () => {
     expect(db.__collections["products"]!.docs[1]).toMatchObject({
       validationStatus: "validated"
     });
+  });
+
+  it("reports legacy validator incompatibility when product validation fields cannot be written", async () => {
+    const db = createFakeDb({
+      products: new FakeCollection("products", [
+        {
+          brandName: null,
+          createdAt: "2026-07-01T08:00:00.000Z",
+          id: "product_legacy_1",
+          kind: "grocery",
+          measurements: [],
+          name: "Legacy item",
+          normalizedName: "legacy item",
+          origin: [],
+          primaryCategoryKey: null,
+          status: "active",
+          updatedAt: "2026-07-01T08:00:00.000Z"
+        }
+      ])
+    });
+    db.__collections["products"]!.updateMany = async () => {
+      throw Object.assign(new Error("Document failed validation"), { code: 121 });
+    };
+
+    const repository = new MongoCurrentCatalogRepository(db);
+    const result = await repository.markLegacyProductsUnvalidated();
+
+    expect(result).toEqual({
+      skippedCount: 1,
+      status: "validator_incompatible",
+      updatedCount: 0
+    });
+  });
+
+  it("upgrades validators on existing catalog collections and creates missing collections", async () => {
+    const commands: unknown[] = [];
+    const createdCollections: string[] = [];
+    const db = {
+      collection: (name: string) => new FakeCollection(name),
+      command: async (command: unknown) => {
+        commands.push(command);
+        return { ok: 1 };
+      },
+      createCollection: async (name: string) => {
+        createdCollections.push(name);
+        return new FakeCollection(name);
+      },
+      databaseName: "kamra_test",
+      listCollections: () => ({
+        toArray: async () => [{ name: "products" }]
+      })
+    };
+
+    const repository = new MongoCurrentCatalogRepository(db as never);
+    const result = await repository.upgradeCatalogValidators();
+
+    expect(commands).toContainEqual(expect.objectContaining({
+      collMod: "products",
+      validationAction: "error",
+      validationLevel: "strict"
+    }));
+    expect(createdCollections).toContain("price_observations");
+    expect(result).toMatchObject({
+      databaseName: "kamra_test",
+      upgradedCollections: ["products"]
+    });
+    expect(result.createdCollections.length).toBeGreaterThan(0);
   });
 });

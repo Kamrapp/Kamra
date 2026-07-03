@@ -135,7 +135,11 @@ describe("handleAppRequest auth guards", () => {
       {
         createCatalogRepository: () => ({
           markLegacyProductsUnvalidated: async () => {
-            return 42;
+            return {
+              skippedCount: 0,
+              status: "updated" as const,
+              updatedCount: 42
+            };
           },
           listCatalogProductsForReview: async () => ({
             products: [],
@@ -150,7 +154,191 @@ describe("handleAppRequest auth guards", () => {
 
     expect(response.status).toBe(200);
     expect(JSON.parse(response.body)).toMatchObject({
+      skippedCount: 0,
+      status: "updated",
       updatedCount: 42
+    });
+  });
+
+  it("upgrades catalog validators with a valid admin token", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "admin@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "admin",
+      secret: "test-secret"
+    });
+
+    const response = await handleAppRequest(
+      {
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "POST",
+        path: "/api/health/upgrade-catalog-validators"
+      },
+      {
+        createCatalogRepository: () => ({
+          listCatalogProductsForReview: async () => ({
+            products: [],
+            totalCount: 0
+          }),
+          upgradeCatalogValidators: async () => ({
+            createdCollections: [],
+            databaseName: "kamra_test",
+            upgradedCollections: ["products"]
+          })
+        }),
+        getMongoClient: async () => ({
+          db: () => ({})
+        } as never)
+      }
+    );
+
+    expect(response.status).toBe(200);
+    expect(JSON.parse(response.body)).toMatchObject({
+      createdCollections: [],
+      databaseName: "kamra_test",
+      upgradedCollections: ["products"]
+    });
+  });
+
+  it("returns a stable error when catalog validator upgrade fails", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "admin@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "admin",
+      secret: "test-secret"
+    });
+
+    const response = await handleAppRequest(
+      {
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "POST",
+        path: "/api/health/upgrade-catalog-validators"
+      },
+      {
+        createCatalogRepository: () => ({
+          listCatalogProductsForReview: async () => ({
+            products: [],
+            totalCount: 0
+          }),
+          upgradeCatalogValidators: async () => {
+            throw new Error("collMod denied");
+          }
+        }),
+        getMongoClient: async () => ({
+          db: () => ({})
+        } as never)
+      }
+    );
+
+    expect(response.status).toBe(500);
+    expect(JSON.parse(response.body)).toEqual({
+      error: "catalog_validator_upgrade_failed",
+      message: "Catalog collection validators could not be upgraded."
+    });
+  });
+
+  it("reports validation fallback when the legacy product collection validator is old", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "admin@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "admin",
+      secret: "test-secret"
+    });
+
+    const response = await handleAppRequest(
+      {
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "POST",
+        path: "/api/health/backfill-unvalidated-products"
+      },
+      {
+        createCatalogRepository: () => ({
+          markLegacyProductsUnvalidated: async () => ({
+            skippedCount: 12,
+            status: "validator_incompatible" as const,
+            updatedCount: 0
+          }),
+          listCatalogProductsForReview: async () => ({
+            products: [],
+            totalCount: 0
+          })
+        }),
+        getMongoClient: async () => ({
+          db: () => ({})
+        } as never)
+      }
+    );
+
+    expect(response.status).toBe(200);
+    expect(JSON.parse(response.body)).toMatchObject({
+      skippedCount: 12,
+      status: "validator_incompatible",
+      updatedCount: 0
+    });
+  });
+
+  it("returns a stable error when legacy validation backfill fails", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "admin@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "admin",
+      secret: "test-secret"
+    });
+
+    const response = await handleAppRequest(
+      {
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "POST",
+        path: "/api/health/backfill-unvalidated-products"
+      },
+      {
+        createCatalogRepository: () => ({
+          markLegacyProductsUnvalidated: async () => {
+            throw new Error("Atlas rejected the product update.");
+          },
+          listCatalogProductsForReview: async () => ({
+            products: [],
+            totalCount: 0
+          })
+        }),
+        getMongoClient: async () => ({
+          db: () => ({})
+        } as never)
+      }
+    );
+
+    expect(response.status).toBe(500);
+    expect(JSON.parse(response.body)).toEqual({
+      error: "catalog_backfill_failed",
+      message: "Legacy products could not be marked as unvalidated."
     });
   });
 

@@ -3,7 +3,11 @@ import type { Db } from "mongodb";
 import type { MongoUserRepository } from "../auth/mongo-user-repository.js";
 import type { AuthenticatedUser } from "../auth/user-auth.js";
 import { verifyUserToken } from "../auth/user-token.js";
-import { MongoCurrentCatalogRepository } from "../catalog/current/mongo-catalog-repository.js";
+import {
+  MongoCurrentCatalogRepository,
+  type CatalogValidatorUpgradeResult,
+  type MarkLegacyProductsUnvalidatedResult
+} from "../catalog/current/mongo-catalog-repository.js";
 import type { CatalogV1SeedDataset, SourceRecordProcessingStateRecord } from "../catalog/v1/contracts.js";
 import { readAppConfig, type AppConfig } from "../config/app-config.js";
 import { getMongoClient } from "../db/mongo-client.js";
@@ -32,13 +36,14 @@ export interface AppHandlerDependencies {
       recordFingerprint: string;
       sourceName: string;
     }): Promise<SourceRecordProcessingStateRecord | null>;
-    markLegacyProductsUnvalidated?(): Promise<number>;
+    markLegacyProductsUnvalidated?(): Promise<MarkLegacyProductsUnvalidatedResult>;
     listCatalogProductsForReview(options?: { limit?: number; offset?: number; sourceNames?: string[] }): Promise<{
       products: unknown[];
       totalCount: number;
     }>;
     listCatalogOfferSourceNames?(): Promise<string[]>;
     setupCollections?(): Promise<unknown>;
+    upgradeCatalogValidators?(): Promise<CatalogValidatorUpgradeResult>;
     upsertCatalogSeedDataset?(dataset: CatalogV1SeedDataset): Promise<void>;
   };
   createIngestionRepository?: (database: Db) => {

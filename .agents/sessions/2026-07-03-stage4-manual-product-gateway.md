@@ -25,6 +25,11 @@
 - Item: Corrected the page chrome move so the catalog and crawl summary blocks live under the global left rail context instead of inside the page body.
 - Item: Validated with `npm run typecheck` and `npm run build`.
 - Item: Tightened the global left rail layout: summary metrics are vertical rows, the left rail scrolls, redundant current-state blocks are removed, and the product/crawl tables use the full main body width again.
+- Item: Fixed the Health-view unvalidated backfill route so it no longer requests MongoDB `bypassDocumentValidation` and returns a stable API error if the backfill write fails.
+- Item: Made the unvalidated backfill route compatible with existing Atlas collections whose old product validator rejects the new validation fields; those products remain read as unvalidated and the Health UI reports the fallback cleanly.
+- Item: Added an explicit Health-view `Upgrade catalog validators` maintenance action that runs catalog validator `collMod` upgrades for privileged MongoDB users before the unvalidated backfill is retried.
+- Item: Confirmed the Health maintenance flow worked against `kamra_dev`: upgraded 9 catalog validators, created 0 missing catalog collections, and marked 1130 legacy products as unvalidated.
+- Item: Updated `docs/tech-ops.md` with the validator-maintenance runbook and the 2026-07-03 maintenance outcome.
 
 ## Changed Files
 
@@ -88,6 +93,18 @@
 - Result: passed
 - Not run: manual browser checks
 - Reason: this correction was a shell/layout adjustment verified through compile and build checks
+- Ran: `npm test -- packages/kamra-api-server/src/http/app-handler.test.ts packages/kamra-api-server/src/catalog/current`, `npm run typecheck`, `npm run build`
+- Result: passed
+- Not run: manual Health button check
+- Reason: the server-side regression path is covered by route tests
+- Ran: `npm test -- packages/kamra-api-server/src/http/app-handler.test.ts packages/kamra-api-server/src/catalog/current`, `npm run typecheck`, `npm run build`
+- Result: passed
+- Not run: manual Health button check
+- Reason: the old-validator compatibility path is covered by repository and route tests
+- Ran: `npm test -- packages/kamra-api-server/src/http/app-handler.test.ts packages/kamra-api-server/src/catalog/current`, `npm run typecheck`, `npm run build`
+- Result: passed
+- Not run: manual Health button check
+- Reason: the validator-upgrade route and repository behavior are covered by focused tests
 
 ## Decisions
 
@@ -105,11 +122,13 @@
 - Reason: nightly automation needs a trust marker before it can safely keep updating existing products.
 - Decision: automatic matching should use strong identifiers or source keys, not loose name-only matching.
 - Reason: name collisions across shops are too easy.
+- Decision: legacy products missing validation fields can remain physically unchanged when the existing Atlas collection validator rejects the new fields.
+- Reason: the read model already treats missing validation as `unvalidated`, and the app role does not have validator-upgrade privileges in Atlas.
+- Decision: validator upgrades stay explicit behind a Health maintenance button instead of returning to startup-time `collMod`.
+- Reason: normal app users should not need elevated MongoDB privileges, while admins can temporarily use a privileged user for schema maintenance.
 
 ## Open Issues
 
-- Issue: product validation defaults/backfill still need a database migration or setup step.
-- Impact: step 2 needs to turn the contract into stored reality.
 - Issue: one-admin-only concurrency limitation remains only documented, not enforced.
 - Impact: later UI/API steps should still assume a single active admin reviewer.
 - Issue: the product/crawl editor workflow is not implemented yet.

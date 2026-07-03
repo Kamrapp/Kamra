@@ -38,6 +38,18 @@ export interface CatalogProductReviewPage {
   totalCount: number;
 }
 
+export interface MarkLegacyProductsUnvalidatedResult {
+  skippedCount: number;
+  status: "updated" | "validator_incompatible";
+  updatedCount: number;
+}
+
+export interface CatalogValidatorUpgradeResult {
+  createdCollections: string[];
+  databaseName: string;
+  upgradedCollections: string[];
+}
+
 const collectionPlans: CollectionIndexPlan[] = [
   {
     indexes: [
@@ -349,27 +361,42 @@ export class MongoCurrentCatalogRepository {
     return sourceNames.sort((left, right) => left.localeCompare(right, "hu-HU"));
   }
 
-  async markLegacyProductsUnvalidated(): Promise<number> {
-    const result = await this.productsCollection.updateMany(
-      {
-        validationStatus: { $exists: false }
-      },
-      {
-        $set: {
-          invalidatedAt: null,
-          invalidatedBy: null,
-          validationNote: null,
-          validationStatus: "unvalidated",
-          validatedAt: null,
-          validatedBy: null
-        }
-      },
-      {
-        bypassDocumentValidation: true
-      }
-    );
+  async markLegacyProductsUnvalidated(): Promise<MarkLegacyProductsUnvalidatedResult> {
+    const legacyProductFilter: Filter<ProductRecord> = {
+      validationStatus: { $exists: false }
+    };
 
-    return result.modifiedCount ?? 0;
+    try {
+      const result = await this.productsCollection.updateMany(
+        legacyProductFilter,
+        {
+          $set: {
+            invalidatedAt: null,
+            invalidatedBy: null,
+            validationNote: null,
+            validationStatus: "unvalidated",
+            validatedAt: null,
+            validatedBy: null
+          }
+        }
+      );
+
+      return {
+        skippedCount: 0,
+        status: "updated",
+        updatedCount: result.modifiedCount ?? 0
+      };
+    } catch (error: unknown) {
+      if (!isDocumentValidationError(error)) {
+        throw error;
+      }
+
+      return {
+        skippedCount: await this.productsCollection.countDocuments(legacyProductFilter),
+        status: "validator_incompatible",
+        updatedCount: 0
+      };
+    }
   }
 
   async runSmokeCheck(): Promise<CurrentCatalogSmokeCheckResult> {
@@ -458,6 +485,45 @@ export class MongoCurrentCatalogRepository {
     };
   }
 
+  async upgradeCatalogValidators(): Promise<CatalogValidatorUpgradeResult> {
+    const existingCollections = new Set(
+      (await this.database.listCollections({}, { nameOnly: true }).toArray()).map((entry) => entry.name)
+    );
+    const createdCollections: string[] = [];
+    const upgradedCollections: string[] = [];
+
+    for (const [collectionName, schema] of Object.entries(catalogV1CollectionSchemas)) {
+      if (!existingCollections.has(collectionName)) {
+        await this.database.createCollection(collectionName, {
+          validationAction: "error",
+          validationLevel: "strict",
+          validator: {
+            $jsonSchema: schema
+          }
+        });
+        createdCollections.push(collectionName);
+        existingCollections.add(collectionName);
+        continue;
+      }
+
+      await this.database.command({
+        collMod: collectionName,
+        validationAction: "error",
+        validationLevel: "strict",
+        validator: {
+          $jsonSchema: schema
+        }
+      });
+      upgradedCollections.push(collectionName);
+    }
+
+    return {
+      createdCollections,
+      databaseName: this.database.databaseName,
+      upgradedCollections
+    };
+  }
+
   async upsertCatalogSeedDataset(dataset: CatalogV1SeedDataset): Promise<void> {
     await this.upsertMany(this.migrationLedgerCollection, dataset.migrationLedger);
     await this.upsertMany(this.priceObservationsCollection, dataset.priceObservations);
@@ -527,4 +593,13 @@ function latestOfferLocation(
 function compareOffers(left: CatalogProductOfferListItem, right: CatalogProductOfferListItem): number {
   return left.sourceName.localeCompare(right.sourceName, "hu-HU")
     || left.sourceProductName.localeCompare(right.sourceProductName, "hu-HU");
+}
+
+function isDocumentValidationError(error: unknown): boolean {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const candidate = error as { code?: unknown };
+  return candidate.code === 121;
 }

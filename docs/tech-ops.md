@@ -194,7 +194,20 @@ Catalog seed direction:
 - seeded products, source products, price or availability observations, and stock-location examples should be enough to test household queries before crawler data exists
 - product seed refresh or cleanup behavior should be explicit so real database testing does not leave ambiguous sample records behind
 - catalog setup creates missing collections with the current JSON Schema validators, but normal seed and smoke runs do not modify validators on existing collections
-- validator changes on existing collections should be handled by a deliberate migration or admin-maintenance operation, because MongoDB `collMod` requires elevated database privileges beyond normal app read/write access
+- validator changes on existing collections must be handled by a deliberate migration or admin-maintenance operation, because MongoDB `collMod` requires elevated database privileges beyond normal app read/write access
+- the Health view includes an explicit `Upgrade catalog validators` maintenance action that runs `collMod` for existing catalog collections and creates any missing catalog collections with current validators; use it only with a temporary MongoDB user that has validator-management privileges such as `dbAdmin`
+- after catalog validators are upgraded, run the Health view `Set legacy products unvalidated` maintenance action to physically add missing validation fields to legacy product documents
+- if the legacy-product backfill reports that documents are shown as unvalidated by compatibility fallback, the product data is still readable, but the `products` collection validator has not yet accepted the new validation fields; run `Upgrade catalog validators` first, then retry the backfill
+- on 2026-07-03, the Stage 4 manual-gateway maintenance run upgraded 9 existing catalog validators, created 0 missing catalog collections, and marked 1130 legacy products as `unvalidated`
+
+Catalog validator maintenance procedure:
+
+1. Temporarily run the local API with a MongoDB user that has validator-management privileges for the target database, such as `dbAdmin`.
+2. Sign in as a Kamra admin and open the Health view.
+3. Click `Upgrade catalog validators`; the button runs `collMod` for existing catalog collections and creates any missing catalog collections with current validators.
+4. Confirm the message reports the expected upgraded/created collection counts.
+5. Click `Set legacy products unvalidated` to backfill missing product validation fields.
+6. Confirm the message reports the expected product count, then return the app to its normal lower-privilege runtime MongoDB user.
 
 Seeding rules:
 
