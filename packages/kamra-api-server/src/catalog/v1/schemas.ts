@@ -66,6 +66,41 @@ const productMeasurementSchema = requiredObjectSchema(
 
 const productMeasurementProperties = productMeasurementSchema["properties"] as Record<string, unknown>;
 
+const moneyAmountSchema = requiredObjectSchema(
+  ["amount", "currencyCode"],
+  {
+    amount: { bsonType: ["double", "int", "long", "decimal"] },
+    currencyCode: { bsonType: "string" }
+  }
+);
+
+const stockLocationReferenceSchema = requiredObjectSchema(
+  ["kind", "label", "locationKey"],
+  {
+    countryCode: optionalStringSchema,
+    kind: { enum: ["global_shop_availability", "household", "shop_site"] },
+    label: { bsonType: "string" },
+    locationKey: { bsonType: "string" },
+    storeBrandKey: optionalStringSchema
+  }
+);
+
+const sourceProductIdentifierSchema = requiredObjectSchema(
+  ["createdAt", "id", "kind", "origin", "productSourceId", "sourceName", "updatedAt", "value"],
+  {
+    createdAt: isoDateStringSchema,
+    id: { bsonType: "string" },
+    kind: {
+      enum: ["gtin", "national_code", "retailer_item_number", "retailer_product_id", "unknown"]
+    },
+    origin: recordOriginSchema,
+    productSourceId: { bsonType: "string" },
+    sourceName: { bsonType: "string" },
+    updatedAt: isoDateStringSchema,
+    value: { bsonType: "string" }
+  }
+);
+
 export const catalogV1CollectionSchemas: Record<CatalogV1CollectionName, JsonSchema> = {
   migration_ledger: requiredObjectSchema(
     ["appliedAt", "description", "id", "migrationId", "runnerName", "runnerVersion", "status"],
@@ -79,6 +114,44 @@ export const catalogV1CollectionSchemas: Record<CatalogV1CollectionName, JsonSch
       runnerVersion: { bsonType: "string" },
       status: { enum: ["applied", "failed"] }
     }
+  ),
+  price_observations: requiredObjectSchema(
+    [
+      "createdAt",
+      "id",
+      "location",
+      "observedAt",
+      "origin",
+      "price",
+      "priceKind",
+      "productId",
+      "productSourceId",
+      "sourceName",
+      "sourceProductKey",
+      "updatedAt"
+    ],
+    {
+      createdAt: isoDateStringSchema,
+      id: { bsonType: "string" },
+      location: stockLocationReferenceSchema,
+      observedAt: isoDateStringSchema,
+      origin: recordOriginSchema,
+      price: moneyAmountSchema,
+      priceKind: { enum: ["base", "coupon", "loyalty_card", "offer", "old"] },
+      productId: { bsonType: "string" },
+      productSourceId: { bsonType: "string" },
+      programName: optionalStringSchema,
+      sourceName: { bsonType: "string" },
+      sourceProductKey: { bsonType: "string" },
+      unitPriceLabel: optionalStringSchema,
+      updatedAt: isoDateStringSchema,
+      validFrom: optionalStringSchema,
+      validTo: optionalStringSchema
+    }
+  ),
+  product_source_identifiers: requiredObjectSchema(
+    sourceProductIdentifierSchema["required"] as string[],
+    sourceProductIdentifierSchema["properties"] as Record<string, JsonSchema>
   ),
   product_sources: requiredObjectSchema(
     [
@@ -198,16 +271,7 @@ export const catalogV1CollectionSchemas: Record<CatalogV1CollectionName, JsonSch
       createdAt: isoDateStringSchema,
       expiryDate: optionalStringSchema,
       id: { bsonType: "string" },
-      location: requiredObjectSchema(
-        ["kind", "label", "locationKey"],
-        {
-          countryCode: optionalStringSchema,
-          kind: { enum: ["global_shop_availability", "household", "shop_site"] },
-          label: { bsonType: "string" },
-          locationKey: { bsonType: "string" },
-          storeBrandKey: optionalStringSchema
-        }
-      ),
+      location: stockLocationReferenceSchema,
       origin: recordOriginSchema,
       price: {
         bsonType: ["null", "object"],

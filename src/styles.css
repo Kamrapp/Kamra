@@ -23,6 +23,7 @@
   --space-7: clamp(1.5rem, 4vw, 2.25rem);
   --space-page: clamp(1.25rem, 4vw, 3rem);
   font-family: var(--font-sans);
+  font-size: 92.5%;
   line-height: 1.5;
 }
 

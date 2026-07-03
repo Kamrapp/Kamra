@@ -5,7 +5,7 @@ import type { ParsedShopProductRow } from "../../v1/contracts.js";
 export const aldiHuOffersSourceName = "aldi-hu-offers";
 export const aldiHuOffersWorkflowName = "aldi-hu-offers-crawl";
 export const aldiHuOffersParserName = "aldi-hu-offers-visible-text-parser";
-export const aldiHuOffersParserVersion = "0.1.0";
+export const aldiHuOffersParserVersion = "0.3.0";
 export const aldiHuOffersUrl = "https://www.aldi.hu/szuper-akciok-mindennap";
 
 interface AldiHuOffersPayload {
@@ -20,6 +20,7 @@ interface AldiValidityWindow {
 }
 
 interface ParsedAldiOfferDraft {
+  crawlContext: string | null;
   description: string | null;
   displayName: string;
   itemNumbers: string[];
@@ -66,7 +67,6 @@ export function parseAldiHuOffersText(visibleText: string, observedAt: string): 
       continue;
     }
 
-
     const validity = parseValidityWindow(line);
 
     if (validity) {
@@ -88,10 +88,12 @@ export function parseAldiHuOffersText(visibleText: string, observedAt: string): 
     const unitPriceText = extractUnitPriceText(line);
     const priceText = extractPrimaryPriceText(line);
     const priceValueHuf = priceText ? parseHungarianPriceNumber(priceText) : null;
-    const description = extractDescription(line);
+    const rawDescription = extractDescription(line);
+    const description = rawDescription && rawDescription !== displayName ? rawDescription : null;
     const sourceRecordId = createSourceRecordId(itemNumbers, displayName, activeValidity);
 
     rows.push({
+      crawlContext: extractCrawlContext(lines, index),
       description,
       displayName,
       itemNumbers,
@@ -175,7 +177,11 @@ function inferProductName(lines: string[], itemNumberLineIndex: number): string 
 
   const sameLineCandidate = cleanupProductName(itemNumberLine.split("Cikkszám:")[0] ?? "");
 
-  if (isLikelyProductName(sameLineCandidate) && !sameLineCandidate.includes("Ft/")) {
+  if (
+    isLikelyProductName(sameLineCandidate)
+    && !sameLineCandidate.includes("Ft/")
+    && !isLikelyProductDetailLine(sameLineCandidate)
+  ) {
     return sameLineCandidate;
   }
 
@@ -225,6 +231,26 @@ function isLikelyProductName(value: string): boolean {
   return true;
 }
 
+function isLikelyProductDetailLine(value: string): boolean {
+  if (/^[,;:()]/.test(value)) {
+    return true;
+  }
+
+  if (/^\d/.test(value)) {
+    return true;
+  }
+
+  if (/^[a-záéíóöőúüű]/u.test(value)) {
+    return true;
+  }
+
+  if (/%|\bvagy\b|ízű|ízesítésű|zsírtartalom|alkoholtartalom|többféle|szeletelt|hámozott|frissen/iu.test(value)) {
+    return true;
+  }
+
+  return false;
+}
+
 function extractItemNumbers(line: string): string[] {
   const match = line.match(/Cikkszám\s*:\s*(?<numbers>[0-9\s/]+)\b/i);
   const numbers = match?.groups?.["numbers"];
@@ -263,6 +289,15 @@ function extractPrimaryPriceText(line: string): string | null {
   return `${price.replace(/\s+/g, " ").trim()} Ft`;
 }
 
+function extractCrawlContext(lines: string[], itemNumberLineIndex: number): string | null {
+  const contextLines = lines.slice(
+    Math.max(0, itemNumberLineIndex - 6),
+    Math.min(lines.length, itemNumberLineIndex + 4)
+  );
+
+  return contextLines.length > 0 ? contextLines.join("\n") : null;
+}
+
 function parseHungarianPriceNumber(priceText: string): number | null {
   const normalized = priceText.replace(/Ft/gi, "").replace(/\s/g, "").replace(",", ".").trim();
   const value = Number(normalized);
@@ -273,7 +308,11 @@ function parseHungarianPriceNumber(priceText: string): number | null {
 function extractDescription(line: string): string | null {
   const withoutItemNumbers = line.replace(/,?\s*Cikkszám\s*:.*$/i, "").trim();
   const withoutUnitPrice = withoutItemNumbers.replace(/\([^)]*Ft\/[^)]*\)/gi, "").trim();
-  const cleaned = withoutUnitPrice.replace(/[,\s]+$/g, "").trim();
+  const cleaned = withoutUnitPrice
+    .replace(/^[,\s]+/g, "")
+    .replace(/[,\s]+$/g, "")
+    .replace(/^\(([^)]+)\)$/g, "$1")
+    .trim();
 
   return cleaned.length > 0 ? cleaned : null;
 }
@@ -291,11 +330,27 @@ function createSourceRecordId(
 }
 
 function toParsedShopProductRow(draft: ParsedAldiOfferDraft): ParsedShopProductRow {
+  const priceObservations = draft.priceValueHuf === null
+    ? []
+    : [
+        {
+          currencyCode: "HUF" as const,
+          observedAt: draft.observedAt,
+          price: draft.priceValueHuf,
+          priceKind: "offer" as const,
+          unitPriceLabel: draft.unitPriceText,
+          validFrom: draft.validFrom,
+          validTo: draft.validTo
+        }
+      ];
+
   return {
     sourceName: aldiHuOffersSourceName,
     sourceUrl: aldiHuOffersUrl,
     sourceRecordId: draft.sourceRecordId,
+    sourceProductKey: draft.itemNumbers[0],
     observedAt: draft.observedAt,
+    crawlContext: draft.crawlContext,
     displayName: draft.displayName,
     rawName: draft.displayName,
     description: draft.description,
@@ -303,6 +358,12 @@ function toParsedShopProductRow(draft: ParsedAldiOfferDraft): ParsedShopProductR
     currency: "HUF",
     priceText: draft.priceText,
     priceValue: draft.priceValueHuf,
+    priceObservations,
+    productIdentifiers: draft.itemNumbers.map((itemNumber) => ({
+      issuer: "aldi.hu",
+      kind: "retailer_item_number",
+      value: itemNumber
+    })),
     unitPriceText: draft.unitPriceText,
     validFrom: draft.validFrom,
     validTo: draft.validTo,
@@ -313,5 +374,5 @@ function toParsedShopProductRow(draft: ParsedAldiOfferDraft): ParsedShopProductR
       priceCaptureStatus: draft.priceText ? "primary-price-text-found" : "primary-price-text-not-found",
       validityLabel: draft.validityLabel
     }
-  } as unknown as ParsedShopProductRow;
+  };
 }

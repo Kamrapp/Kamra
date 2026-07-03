@@ -5,7 +5,7 @@ import type { ParsedShopProductRow } from "../../v1/contracts.js";
 export const simpleHtmlTableShopSourceName = "simple_html_table_shop";
 export const simpleHtmlTableShopWorkflowName = "synthetic-html-table-shop";
 export const simpleHtmlTableShopParserName = "SimpleHtmlTableShopParser";
-export const simpleHtmlTableShopParserVersion = "1.0.0";
+export const simpleHtmlTableShopParserVersion = "1.1.0";
 
 export const simpleHtmlTableShopFixture = `<!doctype html>
 <html lang="hu">
@@ -74,6 +74,7 @@ export function parseSimpleHtmlTableShop(html: string, observedAt: string): Pars
   const rows = [...html.matchAll(/<tr>\s*([\s\S]*?)\s*<\/tr>/g)].slice(1);
 
   return rows.map((rowMatch) => {
+    const crawlContext = rowMatch[0]?.trim() ?? null;
     const rowHtml = requireRegexCapture(rowMatch, 1, "table row");
     const cells = [...rowHtml.matchAll(/<td>\s*([\s\S]*?)\s*<\/td>/g)]
       .map((cellMatch) => decodeHtmlText(requireRegexCapture(cellMatch, 1, "table cell")));
@@ -99,6 +100,7 @@ export function parseSimpleHtmlTableShop(html: string, observedAt: string): Pars
     return {
       categoryLabel,
       countryCode: "HU",
+      crawlContext,
       displayName,
       packageLabel,
       priceObservations: [

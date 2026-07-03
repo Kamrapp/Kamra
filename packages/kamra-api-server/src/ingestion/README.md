@@ -15,6 +15,14 @@ Ingestion is separate from catalog:
   - shared ingestion contracts and crawl-run identity helpers
 - `sources/simple-html-table-shop/`
   - synthetic HTML source fixture, parser, and tests
+- `sources/simple-pdf-shop/`
+  - synthetic PDF generator, committed fixture, PDF text parser, and tests
+- `sources/*-offers/`
+  - source-specific real retailer parsers for public offer pages
+- `sources/lidl-hu-brochure/`
+  - source-specific Lidl public brochure discovery and PDF text parsing
+- `processing/`
+  - deterministic processors that convert raw ingestion snapshots into catalog write sets
 - `current/`
   - MongoDB repository for `ingestion_runs` and `ingestion_raw_snapshots`
 
@@ -22,8 +30,12 @@ Ingestion is separate from catalog:
 
 - Keep crawler output capable of tracking multiple price observations over time.
 - Keep source product identity separate from price observations.
+- Preserve distinct price semantics: base/shelf, dated offer, coupon, loyalty-card, and old/original prices should remain separate when the source exposes them separately.
+- Put source-local identifiers and clearly exposed common codes in `productIdentifiers` when possible, while preserving source metadata for traceability. Processors decide whether to map retailer-local ids, GTINs, or national codes into catalog source identifier records.
 - Keep shop-specific parsing inside source adapters.
 - Keep processor assumptions out of source parsers where practical.
+- Processors must tolerate older snapshots with missing richer fields and use as much source data as is available.
+- Populate `crawlContext` with the closest per-product source block when available: the product card HTML/text, structured product object, or rendered-text offer window. Treat it as investigation context, not normalized processor input.
 - Preserve enough metadata for traceability: source name, source record id, crawl run id, crawl date, parser name/version, content hash, and capture time.
 
 ## Validation
