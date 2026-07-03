@@ -15,6 +15,129 @@ export function createCatalogV1SeedDataset(): CatalogV1SeedDataset {
         status: "applied"
       }
     ],
+    priceObservations: [
+      {
+        createdAt: catalogV1SeedCapturedAt,
+        id: "price_observation_lidl_hu_uht_milk_2_8_1l_base_seed",
+        location: {
+          countryCode: "HU",
+          kind: "global_shop_availability",
+          label: "Lidl Hungary",
+          locationKey: "availability:lidl-hu",
+          storeBrandKey: "lidl"
+        },
+        observedAt: catalogV1SeedCapturedAt,
+        origin: {
+          capturedAt: catalogV1SeedCapturedAt,
+          kind: "seed",
+          producer: "CatalogV1Seed",
+          sourceName: "seed_catalog",
+          sourceRecordId: "seed-lidl-milk-price-1",
+          sourceUrl: "https://example.invalid/lidl/pilos-uht-tej-28-1l"
+        },
+        price: {
+          amount: 469,
+          currencyCode: "HUF"
+        },
+        priceKind: "base",
+        productId: "product_uht_milk_2_8_1l",
+        productSourceId: "product_source_lidl_hu_pilos_uht_28_1l",
+        programName: null,
+        sourceName: "lidl-hu",
+        sourceProductKey: "lidl-pilos-uht-tej-28-1l",
+        unitPriceLabel: "469 Ft/l",
+        updatedAt: catalogV1SeedCapturedAt,
+        validFrom: null,
+        validTo: null
+      },
+      {
+        createdAt: catalogV1SeedCapturedAt,
+        id: "price_observation_penny_hu_spaghetti_500g_offer_seed",
+        location: {
+          countryCode: "HU",
+          kind: "global_shop_availability",
+          label: "PENNY Hungary",
+          locationKey: "availability:penny-hu",
+          storeBrandKey: "penny"
+        },
+        observedAt: catalogV1SeedCapturedAt,
+        origin: {
+          capturedAt: catalogV1SeedCapturedAt,
+          kind: "seed",
+          producer: "CatalogV1Seed",
+          sourceName: "seed_catalog",
+          sourceRecordId: "seed-penny-pasta-price-1",
+          sourceUrl: "https://example.invalid/penny/spaghetti-500g"
+        },
+        price: {
+          amount: 449,
+          currencyCode: "HUF"
+        },
+        priceKind: "offer",
+        productId: "product_spaghetti_500g",
+        productSourceId: "product_source_penny_hu_spaghetti_500g",
+        programName: null,
+        sourceName: "penny-hu",
+        sourceProductKey: "penny-spaghetti-500g",
+        unitPriceLabel: "898 Ft/kg",
+        updatedAt: catalogV1SeedCapturedAt,
+        validFrom: "2026-06-23",
+        validTo: "2026-06-29"
+      }
+    ],
+    productSourceIdentifiers: [
+      {
+        createdAt: catalogV1SeedCapturedAt,
+        id: "product_source_identifier_lidl_hu_pilos_uht_28_1l_seed",
+        kind: "retailer_product_id",
+        origin: {
+          capturedAt: catalogV1SeedCapturedAt,
+          kind: "seed",
+          producer: "CatalogV1Seed",
+          sourceName: "seed_catalog",
+          sourceRecordId: "seed-lidl-milk-1",
+          sourceUrl: "https://example.invalid/lidl/pilos-uht-tej-28-1l"
+        },
+        productSourceId: "product_source_lidl_hu_pilos_uht_28_1l",
+        sourceName: "lidl-hu",
+        updatedAt: catalogV1SeedCapturedAt,
+        value: "lidl-pilos-uht-tej-28-1l"
+      },
+      {
+        createdAt: catalogV1SeedCapturedAt,
+        id: "product_source_identifier_spar_hu_jasmin_rizs_1kg_seed",
+        kind: "retailer_product_id",
+        origin: {
+          capturedAt: catalogV1SeedCapturedAt,
+          kind: "seed",
+          producer: "CatalogV1Seed",
+          sourceName: "seed_catalog",
+          sourceRecordId: "seed-spar-rice-1",
+          sourceUrl: "https://example.invalid/spar/jazmin-rizs-1kg"
+        },
+        productSourceId: "product_source_spar_hu_jasmin_rizs_1kg",
+        sourceName: "spar-hu",
+        updatedAt: catalogV1SeedCapturedAt,
+        value: "spar-jazmin-rizs-1kg"
+      },
+      {
+        createdAt: catalogV1SeedCapturedAt,
+        id: "product_source_identifier_penny_hu_spaghetti_500g_seed",
+        kind: "retailer_product_id",
+        origin: {
+          capturedAt: catalogV1SeedCapturedAt,
+          kind: "seed",
+          producer: "CatalogV1Seed",
+          sourceName: "seed_catalog",
+          sourceRecordId: "seed-penny-pasta-1",
+          sourceUrl: "https://example.invalid/penny/spaghetti-500g"
+        },
+        productSourceId: "product_source_penny_hu_spaghetti_500g",
+        sourceName: "penny-hu",
+        updatedAt: catalogV1SeedCapturedAt,
+        value: "penny-spaghetti-500g"
+      }
+    ],
     productSources: [
       {
         countryCode: "HU",

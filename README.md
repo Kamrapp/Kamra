@@ -44,6 +44,7 @@ npm run lint
 - [Product concept](./docs/repo-concept.md)
 - [Architecture direction](./docs/architecture.md)
 - [Tech and operations](./docs/tech-ops.md)
+- [Ingestion operations](./docs/ingestion.md)
 - [Crawler policy](./docs/crawler-policy.md)
 
 ## License

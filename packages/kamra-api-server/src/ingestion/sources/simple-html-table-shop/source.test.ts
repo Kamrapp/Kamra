@@ -32,6 +32,7 @@ describe("SimpleHtmlTableShop source", () => {
         validTo: "2026-06-29"
       }
     ]);
+    expect(rows[0]?.crawlContext).toContain("<td>SHTS-MILK-15</td>");
   });
 
   it("uses a stable content hash for idempotency", () => {

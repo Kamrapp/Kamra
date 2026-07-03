@@ -17,8 +17,8 @@ import { AuthService } from "./auth.service";
   standalone: true,
   template: `
     <main class="shell" aria-label="Kamra app">
-      <header class="topbar">
-        <a class="brand-link" routerLink="/" (click)="closeMenu()" aria-label="Kamra home">
+      <a class="brand-card" routerLink="/" (click)="closeMenu()" aria-label="Kamra home">
+        <span class="brand-line">
           <img
             class="brand-mark"
             src="/brand/kamra-basket.png"
@@ -26,12 +26,12 @@ import { AuthService } from "./auth.service";
             width="72"
             height="72"
           />
-          <span class="brand-copy">
-            <span class="eyebrow">Kamra</span>
-            <span class="brand-title">Pantry foundations, gently stocked.</span>
-          </span>
-        </a>
+          <span class="brand-name">Kamra</span>
+        </span>
+        <span class="brand-title">Pantry foundations, gently stocked.</span>
+      </a>
 
+      <section class="auth-card" aria-label="Account">
         @if (auth.user(); as user) {
           <div class="user-chip">
             <span>{{ user.email }}</span>
@@ -60,7 +60,7 @@ import { AuthService } from "./auth.service";
             </button>
           </form>
         }
-      </header>
+      </section>
 
       <section class="page-body" aria-label="Current page">
         <div class="page-scroll">
@@ -79,48 +79,43 @@ import { AuthService } from "./auth.service";
         </p>
       }
 
-      <button
-        class="menu-toggle"
-        type="button"
-        aria-label="Toggle navigation"
-        aria-controls="primary-menu"
-        [attr.aria-expanded]="isMenuOpen"
-        [class.menu-toggle-open]="isMenuOpen"
-        (click)="toggleMenu()"
-      >
-        <span aria-hidden="true">{{ isMenuOpen ? "›" : "‹" }}</span>
-      </button>
-
-      <aside
-        id="primary-menu"
-        class="side-menu"
-        [class.side-menu-open]="isMenuOpen"
-        [attr.aria-hidden]="!isMenuOpen"
-      >
-        <div class="side-menu-header">
-          <p class="side-menu-title">Navigation</p>
-        </div>
-
-        <nav class="nav-list" aria-label="Primary">
-          <a
-            routerLink="/"
-            routerLinkActive="active"
-            [routerLinkActiveOptions]="{ exact: true }"
-            (click)="closeMenu()"
-          >
-            <span aria-hidden="true">01</span>
-            Home
-          </a>
-          <a routerLink="/health" routerLinkActive="active" (click)="closeMenu()">
-            <span aria-hidden="true">02</span>
-            Health check
-          </a>
-          <a routerLink="/products" routerLinkActive="active" (click)="closeMenu()">
-            <span aria-hidden="true">03</span>
-            Products
-          </a>
+      <div class="radial-menu" [class.radial-menu-open]="isMenuOpen">
+        <nav id="primary-menu" class="radial-nav" aria-label="Primary" [attr.aria-hidden]="!isMenuOpen">
+          @for (item of menuItems; track item.path) {
+            <a
+              class="radial-nav-item"
+              [routerLink]="item.path"
+              routerLinkActive="active"
+              [routerLinkActiveOptions]="item.exact ? { exact: true } : { exact: false }"
+              [style.--item-angle]="item.angle + 'deg'"
+              [attr.tabindex]="isMenuOpen ? null : -1"
+              (click)="closeMenu()"
+            >
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path [attr.d]="item.iconPath"></path>
+              </svg>
+              <span>{{ item.label }}</span>
+            </a>
+          }
         </nav>
-      </aside>
+
+        <button
+          class="radial-menu-button"
+          type="button"
+          aria-label="Toggle navigation"
+          aria-controls="primary-menu"
+          [attr.aria-expanded]="isMenuOpen"
+          (click)="toggleMenu()"
+        >
+          <svg aria-hidden="true" viewBox="0 0 24 24">
+            @if (isMenuOpen) {
+              <path d="M6.4 5 5 6.4 10.6 12 5 17.6 6.4 19 12 13.4 17.6 19 19 17.6 13.4 12 19 6.4 17.6 5 12 10.6 6.4 5Z"></path>
+            } @else {
+              <path d="M4 6.5H20V8.5H4V6.5ZM4 11H20V13H4V11ZM4 15.5H20V17.5H4V15.5Z"></path>
+            }
+          </svg>
+        </button>
+      </div>
     </main>
   `,
   styles: [
@@ -132,69 +127,69 @@ import { AuthService } from "./auth.service";
 
       .shell {
         display: grid;
-        gap: var(--space-6);
-        grid-template-rows: auto minmax(0, 1fr);
+        grid-template-rows: minmax(0, 1fr);
         height: 100dvh;
         margin: 0 auto;
         max-height: 100dvh;
         overflow: clip;
         padding: var(--space-page);
-        width: min(100%, 76rem);
+        width: min(100%, max(76rem, 75vw));
       }
 
-      .topbar {
-        align-items: center;
+      .brand-card,
+      .auth-card {
         backdrop-filter: blur(14px);
         background: rgb(248 244 241 / 76%);
         border: 1px solid color-mix(in srgb, var(--color-wood) 16%, transparent);
         border-radius: 8px;
-        box-shadow: 0 1rem 2.4rem rgb(48 43 50 / 8%);
-        display: flex;
-        gap: var(--space-4);
-        justify-content: space-between;
-        min-height: 4.5rem;
-        padding: 0.85rem 1rem;
-        position: relative;
-        z-index: 10;
+        box-shadow: 0 1rem 2.4rem rgb(48 43 50 / 12%);
+        position: fixed;
+        top: max(0.9rem, env(safe-area-inset-top));
+        z-index: 40;
       }
 
-      .brand-link {
-        align-items: center;
+      .brand-card {
         color: inherit;
-        display: inline-flex;
-        gap: var(--space-3);
-        min-width: 0;
+        display: grid;
+        gap: 0.18rem;
+        left: max(0.9rem, env(safe-area-inset-left));
+        padding: 0.48rem 0.7rem 0.55rem;
         text-decoration: none;
+      }
+
+      .brand-line {
+        align-items: center;
+        display: flex;
+        gap: 0.45rem;
       }
 
       .brand-mark {
         aspect-ratio: 1;
-        filter: drop-shadow(0 0.7rem 1.2rem rgb(105 88 79 / 18%));
-        height: clamp(3.5rem, 9vw, 4.5rem);
-        width: clamp(3.5rem, 9vw, 4.5rem);
+        filter: drop-shadow(0 0.4rem 0.75rem rgb(105 88 79 / 18%));
+        height: 2.2rem;
+        width: 2.2rem;
       }
 
-      .brand-copy {
-        display: grid;
-        gap: 0.1rem;
-        min-width: 0;
-      }
-
-      .eyebrow {
-        color: var(--color-text-muted);
-        font-size: 0.78rem;
-        font-weight: 700;
+      .brand-name {
+        color: var(--color-text);
+        font-family: var(--font-display);
+        font-size: 1.2rem;
+        font-weight: 800;
         letter-spacing: 0;
-        line-height: 1.2;
-        text-transform: uppercase;
+        line-height: 1;
       }
 
       .brand-title {
-        color: var(--color-text);
-        font-family: var(--font-display);
-        font-size: clamp(1.05rem, 3vw, 1.35rem);
+        color: var(--color-text-muted);
+        font-size: 0.76rem;
         font-weight: 700;
-        line-height: 1.18;
+        line-height: 1.15;
+        max-width: 13rem;
+      }
+
+      .auth-card {
+        padding: 0.45rem;
+        right: max(0.9rem, env(safe-area-inset-right));
       }
 
       .login-form,
@@ -212,9 +207,9 @@ import { AuthService } from "./auth.service";
         border-radius: 8px;
         color: var(--color-text);
         font: inherit;
-        min-height: 2.35rem;
-        padding: 0.55rem 0.7rem;
-        width: min(12rem, 32vw);
+        min-height: 2.15rem;
+        padding: 0.45rem 0.62rem;
+        width: min(10.5rem, 24vw);
       }
 
       .login-form button,
@@ -226,8 +221,8 @@ import { AuthService } from "./auth.service";
         cursor: pointer;
         font: inherit;
         font-weight: 700;
-        min-height: 2.35rem;
-        padding: 0.55rem 0.8rem;
+        min-height: 2.15rem;
+        padding: 0.45rem 0.7rem;
       }
 
       .login-form button:disabled {
@@ -244,7 +239,7 @@ import { AuthService } from "./auth.service";
 
       .user-chip span {
         color: var(--color-text);
-        font-size: 0.92rem;
+        font-size: 0.84rem;
         padding: 0 0.45rem;
       }
 
@@ -256,11 +251,10 @@ import { AuthService } from "./auth.service";
 
       .page-scroll {
         display: grid;
-        gap: var(--space-6);
         height: 100%;
         min-height: 0;
         overflow: auto;
-        padding: 0 0 max(var(--space-6), env(safe-area-inset-bottom));
+        padding: 1.15rem 0 max(var(--space-6), env(safe-area-inset-bottom));
         scrollbar-gutter: stable both-edges;
       }
 
@@ -287,101 +281,106 @@ import { AuthService } from "./auth.service";
         border: 1px solid color-mix(in srgb, var(--color-wood-deep) 34%, transparent);
       }
 
-      .menu-toggle {
-        align-items: center;
-        background: color-mix(in srgb, var(--color-surface) 86%, white 14%);
-        border: 1px solid color-mix(in srgb, var(--color-wood) 28%, transparent);
-        border-radius: 8px 0 0 8px;
-        box-shadow: 0 0.55rem 1.4rem rgb(48 43 50 / 10%);
-        color: var(--color-text);
-        cursor: pointer;
-        display: inline-flex;
-        height: 3.2rem;
-        justify-content: center;
-        padding: 0;
+      .radial-menu {
+        --item-radius: clamp(5.2rem, 8vw, 6.8rem);
+        height: 1px;
         position: fixed;
-        right: 0;
+        right: max(1.25rem, env(safe-area-inset-right));
         top: 50%;
-        transform: translateY(-50%);
-        transition: right 180ms ease;
-        width: 2rem;
+        width: 1px;
         z-index: 35;
       }
 
-      .menu-toggle-open {
-        right: min(22rem, calc(100vw - 2rem));
-      }
-
-      .menu-toggle span {
-        font-size: 1.45rem;
-        line-height: 1;
-      }
-
-      .side-menu {
-        background: color-mix(in srgb, var(--color-surface) 94%, white 6%);
-        border: 1px solid color-mix(in srgb, var(--color-wood) 24%, transparent);
-        border-radius: 8px 0 0 8px;
-        box-shadow: -1.6rem 0 3.4rem rgb(48 43 50 / 18%);
-        display: grid;
-        gap: var(--space-5);
-        grid-template-rows: auto 1fr;
-        height: min(30rem, 52vh);
-        max-width: min(24rem, calc(100vw - 2rem));
-        padding: var(--space-5);
-        position: fixed;
+      .radial-menu-button {
+        align-items: center;
+        background: color-mix(in srgb, var(--color-accent-leaf-strong) 82%, var(--color-wood-deep) 18%);
+        border: 1px solid color-mix(in srgb, var(--color-accent-leaf-strong) 55%, white 45%);
+        border-radius: 999px;
+        box-shadow: 0 1rem 2.6rem rgb(48 43 50 / 22%);
+        color: white;
+        cursor: pointer;
+        display: inline-flex;
+        height: 4.3rem;
+        justify-content: center;
+        padding: 0;
+        position: absolute;
         right: 0;
-        top: 50%;
-        transform: translate(105%, -50%);
-        transition: transform 180ms ease;
-        width: 22rem;
-        z-index: 30;
-      }
-
-      .side-menu-open {
+        top: 0;
         transform: translate(0, -50%);
+        transition: box-shadow 180ms ease, transform 180ms ease;
+        width: 4.3rem;
+        z-index: 2;
       }
 
-      .side-menu-header {
+      .radial-menu-button:hover,
+      .radial-menu-open .radial-menu-button {
+        box-shadow: 0 1.2rem 3rem rgb(48 43 50 / 28%);
+        transform: translate(0, -50%) scale(1.04);
+      }
+
+      .radial-menu-button svg,
+      .radial-nav-item svg {
+        display: block;
+        fill: currentColor;
+      }
+
+      .radial-menu-button svg {
+        color: white;
+        height: 1.55rem;
+        width: 1.55rem;
+      }
+
+      .radial-nav {
+        inset: 0;
+        pointer-events: none;
+        position: absolute;
+      }
+
+      .radial-nav-item {
         align-items: center;
-        display: flex;
-        justify-content: space-between;
-      }
-
-      .side-menu-title {
-        color: var(--color-text-muted);
-        font-size: 0.8rem;
-        font-weight: 700;
-        letter-spacing: 0;
-        margin: 0;
-        text-transform: uppercase;
-      }
-
-      .nav-list {
-        display: grid;
-        gap: var(--space-2);
-        align-content: start;
-      }
-
-      .nav-list a {
-        align-items: center;
-        border-radius: 8px;
+        background: color-mix(in srgb, var(--color-surface) 92%, white 8%);
+        border: 1px solid color-mix(in srgb, var(--color-wood) 20%, transparent);
+        border-radius: 999px;
+        box-shadow: 0 0.8rem 2rem rgb(48 43 50 / 14%);
         color: var(--color-text);
         display: flex;
-        gap: var(--space-3);
-        min-height: 3.25rem;
-        padding: 0.75rem 0.9rem;
+        gap: 0.55rem;
+        min-height: 3rem;
+        min-width: 7.4rem;
+        opacity: 0;
+        padding: 0.48rem 0.68rem;
+        pointer-events: none;
+        position: absolute;
+        right: 0;
+        top: 0;
         text-decoration: none;
+        transform: translate(0, -50%) rotate(var(--item-angle)) translateX(0) rotate(calc(-1 * var(--item-angle))) scale(0.72);
+        transform-origin: center;
+        transition: background 160ms ease, opacity 180ms ease, transform 220ms ease;
+        white-space: nowrap;
       }
 
-      .nav-list a:hover,
-      .nav-list a.active {
+      .radial-menu-open .radial-nav-item {
+        opacity: 1;
+        pointer-events: auto;
+        transform: translate(0, -50%) rotate(var(--item-angle)) translateX(var(--item-radius)) rotate(calc(-1 * var(--item-angle))) scale(1);
+      }
+
+      .radial-nav-item:hover,
+      .radial-nav-item.active {
         background: color-mix(in srgb, var(--color-accent-sky) 28%, white 72%);
       }
 
-      .nav-list span {
+      .radial-nav-item svg {
         color: var(--color-wood-deep);
-        font-family: var(--font-mono);
-        font-size: 0.76rem;
+        flex: 0 0 auto;
+        height: 1.18rem;
+        width: 1.18rem;
+      }
+
+      .radial-nav-item span {
+        font-size: 0.86rem;
+        font-weight: 800;
       }
 
       @media (max-width: 520px) {
@@ -390,27 +389,37 @@ import { AuthService } from "./auth.service";
           height: 100dvh;
         }
 
-        .topbar {
-          align-items: flex-start;
-          flex-direction: column;
+        .brand-card {
+          max-width: calc(100vw - 1.8rem);
         }
 
-        .brand-title {
-          max-width: 14rem;
-        }
-
-        .login-form {
-          justify-content: flex-start;
+        .auth-card {
+          left: 0.9rem;
+          right: 0.9rem;
+          top: 4.9rem;
         }
 
         .login-form input {
-          width: min(100%, 16rem);
+          width: min(100%, 11rem);
+        }
+
+        .page-scroll {
+          padding-top: 9rem;
         }
 
         .login-message {
           left: var(--space-4);
           max-width: none;
           right: var(--space-4);
+        }
+
+        .radial-menu {
+          --item-radius: 5.2rem;
+          right: 0.9rem;
+        }
+
+        .radial-nav-item {
+          min-width: 6.8rem;
         }
       }
     `
@@ -421,6 +430,36 @@ export class AppComponent implements OnInit {
   readonly loginMessage = signal("");
   readonly loginMessageTone = signal<"error" | "success">("success");
   readonly loginState = signal<"idle" | "loading">("idle");
+  readonly menuItems = [
+    {
+      angle: 225,
+      exact: true,
+      iconPath: "M4 10.5 12 4 20 10.5V20H14.5V14H9.5V20H4V10.5Z",
+      label: "Home",
+      path: "/"
+    },
+    {
+      angle: 195,
+      exact: false,
+      iconPath: "M12 3C8.1 3 5 6.1 5 10C5 15.2 12 21 12 21S19 15.2 19 10C19 6.1 15.9 3 12 3ZM12 12.5C10.6 12.5 9.5 11.4 9.5 10S10.6 7.5 12 7.5 14.5 8.6 14.5 10 13.4 12.5 12 12.5Z",
+      label: "Health",
+      path: "/health"
+    },
+    {
+      angle: 165,
+      exact: false,
+      iconPath: "M5 5H19V8H5V5ZM5 10.5H19V13.5H5V10.5ZM5 16H19V19H5V16Z",
+      label: "Products",
+      path: "/products"
+    },
+    {
+      angle: 135,
+      exact: false,
+      iconPath: "M4 5H20V9H4V5ZM6 11H18V14H6V11ZM8 16H16V19H8V16Z",
+      label: "Crawls",
+      path: "/admin/ingestion"
+    }
+  ];
   isMenuOpen = false;
   loginEmail = "";
   loginPassword = "";

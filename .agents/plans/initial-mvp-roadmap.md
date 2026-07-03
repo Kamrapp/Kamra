@@ -20,7 +20,7 @@ Roadmap priorities:
 | Stage 1 | Legacy inventory and extraction | Completed (docs) | Discovery strengthened the Angular-retention assumption, shared-contract direction, and migration-ledger need. |
 | Stage 2 | Minimal serverless foundation | Completed | Vercel app/API and MongoDB connectivity are running; Stage 2 followups should be handled only when they block later stages. |
 | Stage 3 | Product model foundation and seeded data | Completed | Finalized versioned product contracts, seed data, smoke validation, and admin-only product inspection before crawler work. |
-| Stage 4 | Crawler intake and processing pipeline | Planned | Ingest only after raw, processing, and query contracts exist; keep workflow YAML small and move logic into scripts or modules. |
+| Stage 4 | Crawler intake and processing pipeline | In progress | Raw ingestion exists for synthetic HTML plus PENNY, ALDI, COOP, and Lidl brochure/PDF sources; processor/local orchestration and compact product-offer visibility are in place; next work is manual processing workflow and focused operator UI. SPAR and Tesco are moved out of Stage 4 and should be revisited near the end of the MVP. |
 | Stage 5 | Household stock foundation | Planned | Treat households as stock locations where useful, while preserving user-household authorization boundaries. |
 | Stage 6 | Shopping list and low-stock notices | Planned | Favor deterministic core logic over premature optimization. |
 | Stage 7 | Controlled alpha access and app module shell | Planned | Move external demo access later, after household and list value exist; keep public/product, household, site-admin, and dev-admin concerns visibly separate. |
@@ -201,7 +201,7 @@ Validation:
 
 Status:
 
-- completed in the current implementation slice; later crawler and household work should build on `catalog/v1` unless the product model itself changes
+- completed in the current implementation slice; Stage 4 model adjustments should update `catalog/v1` intentionally if real ingestion proves the product/source/price shape is too narrow
 
 Questions:
 
@@ -218,8 +218,8 @@ Goal:
 
 Scope slice:
 
-- one manually dispatchable ingestion job before any scheduled cron is enabled
-- one first source chosen after crawler-policy review and source-method investigation
+- manually dispatchable ingestion jobs before any production schedule is enabled
+- source-specific crawler additions only after crawler-policy review and source-method investigation
 - raw snapshot collection in MongoDB using the Stage 3 raw/source contract
 - run metadata for source, country, scope, adapter version, schedule/manual trigger, and result summary
 - source-friendly capture of country-aware and scope-aware offer or assortment data
@@ -230,6 +230,15 @@ Scope slice:
 - workflow YAML stays minimal and shells into checked-in scripts or modules
 - ingestion and processing entrypoints can run locally for debugging, not only inside GitHub Actions
 - add ingestion-related PR checks only for workflow, ingestion-script, or processor changes once those files exist
+
+Current status:
+
+- `SimpleHtmlTableShop`, PENNY, ALDI, and COOP crawlers write ingestion runs and raw snapshots.
+- Source-specific processing now writes queryable catalog records, source identifiers, price observations, stocks, and processing states for the current raw snapshot set.
+- Price observations preserve offer history and restrictions; processors may write a current/collated `stocks.price` only when a safe default price is clear.
+- Tesco live product crawling is deferred because no documented public product/offers API/feed was found and the location-tagged offers page returned HTTP 403 from the crawler runner.
+- Controlled PDF support through `SimplePdfShop` and Lidl brochure/PDF ingestion are in place.
+- SPAR and Tesco brochure/catalogue work is intentionally moved out of Stage 4. Revisit them near the end of the MVP, after the current crawled-shop data has supported product lookup, household stock, and shopping-list/notice features.
 
 Validation:
 
@@ -245,8 +254,8 @@ Validation:
 
 Questions:
 
-- Which retailer or source should be the first enabled ingestion target after source-policy review and source-method investigation?
-- Which acquisition method is best for the first enabled source: browser automation, public API, PDF ingestion, or another source-specific approach?
+- What compact `site-admin` crawl-run view is enough to inspect snapshots, parsed rows, processing state, and one-snapshot manual processing before household work resumes?
+- Which source-specific acquisition method is best for SPAR brochure viewer/PDF or Tesco catalogue/PDF when those sources are promoted back into scope near the end of the MVP?
 - Runtime: TypeScript/Playwright, lightweight fetch/parser, Python, or selective .NET reuse only as temporary reference tooling?
 - Which source fields should stay raw-only until real query needs justify promotion?
 
@@ -419,13 +428,9 @@ Current direction:
 
 ## First Recommended Next Step
 
-Plan Stage 3 as a product-model foundation slice:
+Continue Stage 4 from the active Stage 4 plan:
 
-- run the short model research gate
-- choose initial names and collection boundaries
-- define contracts and validation artifacts
-- add seeded synthetic product data
-- add database smoke checks and migration-ledger concept
-- expose a minimal admin-only product list query in the deployed app
+- add manual processing workflow and focused `site-admin` crawl/operator visibility
+- keep SPAR and Tesco out of Stage 4 until near the end of the MVP
 
-Treat crawler work as blocked until this Stage 3 foundation exists or the user explicitly accepts the recrawl and contract churn risk.
+Treat broader crawler expansion as deliberately paused unless a later plan promotes a source back into active scope.

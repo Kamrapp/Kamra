@@ -1,11 +1,11 @@
 import { createHash } from "node:crypto";
 
-import type { ParsedShopProductRow } from "../../v1/contracts.js";
+import type { ParsedShopProductIdentifier, ParsedShopProductRow } from "../../v1/contracts.js";
 
 export const pennyHuOffersSourceName = "penny_hu_offers";
 export const pennyHuOffersWorkflowName = "penny-hu-offers";
 export const pennyHuOffersParserName = "PennyHuOffersParser";
-export const pennyHuOffersParserVersion = "0.1.0";
+export const pennyHuOffersParserVersion = "0.2.0";
 export const pennyHuOffersUrl = "https://www.penny.hu/ajanlatok";
 
 type NuxtValue = null | boolean | number | string | NuxtValue[] | { [key: string]: NuxtValue };
@@ -116,6 +116,7 @@ function toParsedRow(product: PennyProduct, observedAt: string): ParsedShopProdu
   return {
     categoryLabel: product.category ?? null,
     countryCode: "HU",
+    crawlContext: JSON.stringify(product, null, 2),
     displayName,
     packageLabel: product.packageLabel ?? "darab",
     priceObservations: [
@@ -123,11 +124,13 @@ function toParsedRow(product: PennyProduct, observedAt: string): ParsedShopProdu
         currencyCode: "HUF",
         observedAt,
         price: price / 100,
+        priceKind: "offer",
         unitPriceLabel: formatUnitPrice(product.price),
         validFrom: product.price?.validityStart ?? null,
         validTo: product.price?.validityEnd ?? null
       }
     ],
+    productIdentifiers: createPennyProductIdentifiers(product),
     sourceProductKey,
     stock: {
       availability: "infinite",
@@ -135,6 +138,27 @@ function toParsedRow(product: PennyProduct, observedAt: string): ParsedShopProdu
     },
     storeBrandKey: "penny-hu"
   };
+}
+
+function createPennyProductIdentifiers(product: PennyProduct): ParsedShopProductIdentifier[] {
+  const identifiers: Array<ParsedShopProductIdentifier | null> = [
+    product.sku
+      ? {
+          issuer: "penny.hu",
+          kind: "retailer_item_number",
+          value: product.sku
+        }
+      : null,
+    product.productId
+      ? {
+          issuer: "penny.hu",
+          kind: "retailer_product_id",
+          value: product.productId
+      }
+      : null
+  ];
+
+  return identifiers.filter((identifier): identifier is ParsedShopProductIdentifier => identifier !== null);
 }
 
 function formatUnitPrice(price: PennyProduct["price"]): string | null {

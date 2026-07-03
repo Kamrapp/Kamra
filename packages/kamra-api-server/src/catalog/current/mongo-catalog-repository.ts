@@ -2,8 +2,13 @@ import type { AnyBulkWriteOperation, Collection, Db, Document, Filter } from "mo
 
 import type {
   CatalogProductListItem,
+  CatalogProductOfferListItem,
+  CatalogProductOfferPrice,
   MigrationLedgerRecord,
+  PriceObservationRecord,
+  PriceObservationKind,
   ProductRecord,
+  ProductSourceIdentifierRecord,
   ProductSourceRecord,
   ProductTagAssignmentRecord,
   ProductTagRecord,
@@ -25,11 +30,41 @@ const collectionPlans: CollectionIndexPlan[] = [
   {
     indexes: [
       {
+        key: { productId: 1, observedAt: -1 },
+        options: { name: "price_observations_product_observed_at" }
+      },
+      {
+        key: { productSourceId: 1, priceKind: 1, observedAt: -1 },
+        options: { name: "price_observations_source_kind_observed_at" }
+      },
+      {
+        key: { sourceName: 1, sourceProductKey: 1, observedAt: -1 },
+        options: { name: "price_observations_source_product_observed_at" }
+      }
+    ],
+    name: "price_observations"
+  },
+  {
+    indexes: [
+      {
         key: { migrationId: 1 },
         options: { name: "migration_ledger_migration_id_unique", unique: true }
       }
     ],
     name: "migration_ledger"
+  },
+  {
+    indexes: [
+      {
+        key: { productSourceId: 1, kind: 1, value: 1 },
+        options: { name: "product_source_identifiers_source_kind_value_unique", unique: true }
+      },
+      {
+        key: { sourceName: 1, kind: 1, value: 1 },
+        options: { name: "product_source_identifiers_source_value" }
+      }
+    ],
+    name: "product_source_identifiers"
   },
   {
     indexes: [
@@ -126,6 +161,8 @@ export interface CurrentCatalogSmokeCheckResult {
 
 export class MongoCurrentCatalogRepository {
   private readonly migrationLedgerCollection: Collection<MigrationLedgerRecord>;
+  private readonly priceObservationsCollection: Collection<PriceObservationRecord>;
+  private readonly productSourceIdentifiersCollection: Collection<ProductSourceIdentifierRecord>;
   private readonly productSourcesCollection: Collection<ProductSourceRecord>;
   private readonly productTagAssignmentsCollection: Collection<ProductTagAssignmentRecord>;
   private readonly productTagsCollection: Collection<ProductTagRecord>;
@@ -135,6 +172,10 @@ export class MongoCurrentCatalogRepository {
 
   constructor(private readonly database: Db) {
     this.migrationLedgerCollection = database.collection<MigrationLedgerRecord>("migration_ledger");
+    this.priceObservationsCollection = database.collection<PriceObservationRecord>("price_observations");
+    this.productSourceIdentifiersCollection = database.collection<ProductSourceIdentifierRecord>(
+      "product_source_identifiers"
+    );
     this.productSourcesCollection = database.collection<ProductSourceRecord>("product_sources");
     this.productTagAssignmentsCollection = database.collection<ProductTagAssignmentRecord>("product_tag_assignments");
     this.productTagsCollection = database.collection<ProductTagRecord>("product_tags");
@@ -166,6 +207,15 @@ export class MongoCurrentCatalogRepository {
         status: "active"
       }).toArray()
     ]);
+    const productSourceIds = productSources.map((source) => source.id);
+    const [productSourceIdentifiers, priceObservations] = await Promise.all([
+      this.productSourceIdentifiersCollection.find({
+        productSourceId: { $in: productSourceIds }
+      }).toArray(),
+      this.priceObservationsCollection.find({
+        productSourceId: { $in: productSourceIds }
+      }).sort({ observedAt: -1 }).toArray()
+    ]);
 
     const tagsByProductId = new Map<string, string[]>();
     for (const assignment of productTagAssignments) {
@@ -175,10 +225,58 @@ export class MongoCurrentCatalogRepository {
     }
 
     const sourcesByProductId = new Map<string, string[]>();
+    const offerRowsByProductId = new Map<string, CatalogProductOfferListItem[]>();
+    const identifiersByProductSourceId = new Map<string, ProductSourceIdentifierRecord[]>();
+    const pricesByProductSourceId = new Map<string, Partial<Record<PriceObservationKind, CatalogProductOfferPrice>>>();
+
+    for (const identifier of productSourceIdentifiers) {
+      const values = identifiersByProductSourceId.get(identifier.productSourceId) ?? [];
+      values.push(identifier);
+      identifiersByProductSourceId.set(identifier.productSourceId, values);
+    }
+
+    for (const priceObservation of priceObservations) {
+      const prices = pricesByProductSourceId.get(priceObservation.productSourceId) ?? {};
+      if (!prices[priceObservation.priceKind]) {
+        prices[priceObservation.priceKind] = {
+          amount: priceObservation.price.amount,
+          currencyCode: priceObservation.price.currencyCode,
+          observedAt: priceObservation.observedAt,
+          programName: priceObservation.programName,
+          unitPriceLabel: priceObservation.unitPriceLabel,
+          validFrom: priceObservation.validFrom,
+          validTo: priceObservation.validTo
+        };
+      }
+      pricesByProductSourceId.set(priceObservation.productSourceId, prices);
+    }
+
     for (const source of productSources) {
       const values = sourcesByProductId.get(source.productId) ?? [];
       values.push(source.sourceName);
       sourcesByProductId.set(source.productId, values);
+
+      const offers = offerRowsByProductId.get(source.productId) ?? [];
+      const prices = pricesByProductSourceId.get(source.id) ?? {};
+      const identifiers = identifiersByProductSourceId.get(source.id) ?? [];
+      const latestLocation = latestOfferLocation(priceObservations, source.id);
+      offers.push({
+        currentCategoryLabel: source.currentCategoryLabel,
+        identifiers: identifiers.map((identifier) => ({
+          kind: identifier.kind,
+          value: identifier.value
+        })),
+        latestObservedAt: latestOfferObservedAt(prices),
+        locationKey: latestLocation?.locationKey ?? null,
+        locationLabel: latestLocation?.label ?? null,
+        prices,
+        productSourceId: source.id,
+        sourceName: source.sourceName,
+        sourceProductKey: source.sourceProductKey,
+        sourceProductName: source.sourceProductName,
+        storeBrandKey: source.storeBrandKey
+      });
+      offerRowsByProductId.set(source.productId, offers);
     }
 
     const householdStockCountByProductId = new Map<string, number>();
@@ -195,6 +293,7 @@ export class MongoCurrentCatalogRepository {
       id: product.id,
       measurements: product.measurements,
       name: product.name,
+      offers: (offerRowsByProductId.get(product.id) ?? []).sort(compareOffers),
       primaryCategoryKey: product.primaryCategoryKey,
       sourceNames: [...new Set(sourcesByProductId.get(product.id) ?? [])].sort(),
       tagKeys: [...new Set(tagsByProductId.get(product.id) ?? [])].sort()
@@ -204,8 +303,10 @@ export class MongoCurrentCatalogRepository {
   async runSmokeCheck(): Promise<CurrentCatalogSmokeCheckResult> {
     await this.setupCollections();
 
-    const [migrationLedgerCount, productSourceCount, productTagAssignmentCount, productTagCount, productCount, processingStateCount, stockCount, sampleProducts] = await Promise.all([
+    const [migrationLedgerCount, priceObservationCount, productSourceIdentifierCount, productSourceCount, productTagAssignmentCount, productTagCount, productCount, processingStateCount, stockCount, sampleProducts] = await Promise.all([
       this.migrationLedgerCollection.countDocuments(),
+      this.priceObservationsCollection.countDocuments(),
+      this.productSourceIdentifiersCollection.countDocuments(),
       this.productSourcesCollection.countDocuments(),
       this.productTagAssignmentsCollection.countDocuments(),
       this.productTagsCollection.countDocuments(),
@@ -218,6 +319,8 @@ export class MongoCurrentCatalogRepository {
     return {
       collectionCounts: {
         migration_ledger: migrationLedgerCount,
+        price_observations: priceObservationCount,
+        product_source_identifiers: productSourceIdentifierCount,
         product_sources: productSourceCount,
         product_tag_assignments: productTagAssignmentCount,
         product_tags: productTagCount,
@@ -285,6 +388,8 @@ export class MongoCurrentCatalogRepository {
 
   async upsertCatalogSeedDataset(dataset: CatalogV1SeedDataset): Promise<void> {
     await this.upsertMany(this.migrationLedgerCollection, dataset.migrationLedger);
+    await this.upsertMany(this.priceObservationsCollection, dataset.priceObservations);
+    await this.upsertMany(this.productSourceIdentifiersCollection, dataset.productSourceIdentifiers);
     await this.upsertMany(this.productSourcesCollection, dataset.productSources);
     await this.upsertMany(this.productTagAssignmentsCollection, dataset.productTagAssignments);
     await this.upsertMany(this.productTagsCollection, dataset.productTags);
@@ -294,6 +399,20 @@ export class MongoCurrentCatalogRepository {
       dataset.sourceRecordProcessingStates
     );
     await this.upsertMany(this.stocksCollection, dataset.stocks);
+  }
+
+  async findProcessingState(input: {
+    processorName: string;
+    processorVersion: string;
+    recordFingerprint: string;
+    sourceName: string;
+  }): Promise<SourceRecordProcessingStateRecord | null> {
+    return this.sourceRecordProcessingStatesCollection.findOne({
+      processorName: input.processorName,
+      processorVersion: input.processorVersion,
+      recordFingerprint: input.recordFingerprint,
+      sourceName: input.sourceName
+    });
   }
 
   private async upsertMany<T extends { id: string }>(
@@ -314,4 +433,26 @@ export class MongoCurrentCatalogRepository {
 
     await collection.bulkWrite(operations);
   }
+}
+
+function latestOfferObservedAt(
+  prices: Partial<Record<PriceObservationKind, CatalogProductOfferPrice>>
+): string | null {
+  return Object.values(prices)
+    .map((price) => price?.observedAt)
+    .filter((observedAt): observedAt is string => typeof observedAt === "string")
+    .sort()
+    .at(-1) ?? null;
+}
+
+function latestOfferLocation(
+  priceObservations: PriceObservationRecord[],
+  productSourceId: string
+): PriceObservationRecord["location"] | null {
+  return priceObservations.find((observation) => observation.productSourceId === productSourceId)?.location ?? null;
+}
+
+function compareOffers(left: CatalogProductOfferListItem, right: CatalogProductOfferListItem): number {
+  return left.sourceName.localeCompare(right.sourceName, "hu-HU")
+    || left.sourceProductName.localeCompare(right.sourceProductName, "hu-HU");
 }

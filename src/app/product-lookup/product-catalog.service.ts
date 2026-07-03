@@ -9,12 +9,40 @@ export interface ProductMeasurement {
   value: number;
 }
 
+export interface CatalogProductOfferPrice {
+  amount: number;
+  currencyCode: string;
+  observedAt: string;
+  programName?: string | null;
+  unitPriceLabel?: string | null;
+  validFrom?: string | null;
+  validTo?: string | null;
+}
+
+export interface CatalogProductOfferListItem {
+  currentCategoryLabel?: string | null;
+  identifiers: {
+    kind: "gtin" | "national_code" | "retailer_item_number" | "retailer_product_id" | "unknown";
+    value: string;
+  }[];
+  latestObservedAt?: string | null;
+  locationKey?: string | null;
+  locationLabel?: string | null;
+  prices: Partial<Record<"base" | "coupon" | "loyalty_card" | "offer" | "old", CatalogProductOfferPrice>>;
+  productSourceId: string;
+  sourceName: string;
+  sourceProductKey: string;
+  sourceProductName: string;
+  storeBrandKey: string;
+}
+
 export interface CatalogProductListItem {
   brandName?: string | null;
   householdStockCount: number;
   id: string;
   measurements: ProductMeasurement[];
   name: string;
+  offers: CatalogProductOfferListItem[];
   primaryCategoryKey?: string | null;
   sourceNames: string[];
   tagKeys: string[];

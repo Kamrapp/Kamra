@@ -1,8 +1,10 @@
 import type {
   MigrationLedgerRecord,
   MoneyAmount,
+  PriceObservationRecord,
   ProductMeasurement,
   ProductRecord,
+  ProductSourceIdentifierRecord,
   ProductSourceRecord,
   ProductTagAssignmentRecord,
   ProductTagRecord,
@@ -16,6 +18,7 @@ import type {
 } from "./contracts.js";
 import {
   migrationStatuses,
+  priceObservationKinds,
   processingStates,
   productKinds,
   productStatuses,
@@ -116,6 +119,25 @@ export function assertProductRecord(value: unknown, label = "product"): asserts 
   assertOptionalString(value["primaryCategoryKey"], `${label}.primaryCategoryKey`);
   assertEnum(value["status"], productStatuses, `${label}.status`);
   assertIsoDateString(value["updatedAt"], `${label}.updatedAt`);
+}
+
+export function assertSourceProductIdentifier(
+  value: unknown,
+  label = "sourceProductIdentifier"
+): asserts value is ProductSourceIdentifierRecord {
+  assertObject(value, label);
+  assertIsoDateString(value["createdAt"], `${label}.createdAt`);
+  assertNonEmptyString(value["id"], `${label}.id`);
+  assertEnum(
+    value["kind"],
+    ["gtin", "national_code", "retailer_item_number", "retailer_product_id", "unknown"],
+    `${label}.kind`
+  );
+  assertRecordOrigin(value["origin"], `${label}.origin`);
+  assertNonEmptyString(value["productSourceId"], `${label}.productSourceId`);
+  assertNonEmptyString(value["sourceName"], `${label}.sourceName`);
+  assertIsoDateString(value["updatedAt"], `${label}.updatedAt`);
+  assertNonEmptyString(value["value"], `${label}.value`);
 }
 
 export function assertProductSourceRecord(
@@ -230,6 +252,35 @@ export function assertStockRecord(value: unknown, label = "stock"): asserts valu
   assertIsoDateString(value["updatedAt"], `${label}.updatedAt`);
 }
 
+export function assertPriceObservationRecord(
+  value: unknown,
+  label = "priceObservation"
+): asserts value is PriceObservationRecord {
+  assertObject(value, label);
+  assertIsoDateString(value["createdAt"], `${label}.createdAt`);
+  assertNonEmptyString(value["id"], `${label}.id`);
+  assertStockLocationReference(value["location"], `${label}.location`);
+  assertIsoDateString(value["observedAt"], `${label}.observedAt`);
+  assertRecordOrigin(value["origin"], `${label}.origin`);
+  assertMoneyAmount(value["price"], `${label}.price`);
+  assertEnum(value["priceKind"], priceObservationKinds, `${label}.priceKind`);
+  assertNonEmptyString(value["productId"], `${label}.productId`);
+  assertNonEmptyString(value["productSourceId"], `${label}.productSourceId`);
+  assertOptionalString(value["programName"], `${label}.programName`);
+  assertNonEmptyString(value["sourceName"], `${label}.sourceName`);
+  assertNonEmptyString(value["sourceProductKey"], `${label}.sourceProductKey`);
+  assertOptionalString(value["unitPriceLabel"], `${label}.unitPriceLabel`);
+  assertIsoDateString(value["updatedAt"], `${label}.updatedAt`);
+  assertOptionalString(value["validFrom"], `${label}.validFrom`);
+  if (typeof value["validFrom"] === "string") {
+    assertIsoDateString(value["validFrom"], `${label}.validFrom`);
+  }
+  assertOptionalString(value["validTo"], `${label}.validTo`);
+  if (typeof value["validTo"] === "string") {
+    assertIsoDateString(value["validTo"], `${label}.validTo`);
+  }
+}
+
 export function assertSourceRecordProcessingStateRecord(
   value: unknown,
   label = "processingState"
@@ -276,6 +327,16 @@ export function assertCatalogV1SeedDataset(
   assertArray(value["migrationLedger"], `${label}.migrationLedger`);
   value["migrationLedger"].forEach((item, index) => {
     assertMigrationLedgerRecord(item, `${label}.migrationLedger[${index}]`);
+  });
+
+  assertArray(value["priceObservations"], `${label}.priceObservations`);
+  value["priceObservations"].forEach((item, index) => {
+    assertPriceObservationRecord(item, `${label}.priceObservations[${index}]`);
+  });
+
+  assertArray(value["productSourceIdentifiers"], `${label}.productSourceIdentifiers`);
+  value["productSourceIdentifiers"].forEach((item, index) => {
+    assertSourceProductIdentifier(item, `${label}.productSourceIdentifiers[${index}]`);
   });
 
   assertArray(value["productSources"], `${label}.productSources`);
