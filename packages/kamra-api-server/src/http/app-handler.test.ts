@@ -141,6 +141,7 @@ describe("handleAppRequest auth guards", () => {
     vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
     vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
     vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+    let requestedProductOptions: { limit?: number; offset?: number } | undefined;
 
     const token = createUserToken({
       email: "admin@kamra.test",
@@ -160,42 +161,49 @@ describe("handleAppRequest auth guards", () => {
       },
       {
         createCatalogRepository: () => ({
-          listCatalogProductsForReview: async () => [
-            {
-              householdStockCount: 1,
-              id: "product_uht_milk_2_8_1l",
-              measurements: [],
-              name: "UHT tej 2,8%",
-              offers: [
+          listCatalogProductsForReview: async (options) => {
+            requestedProductOptions = options;
+
+            return {
+              products: [
                 {
-                  identifiers: [
+                  householdStockCount: 1,
+                  id: "product_uht_milk_2_8_1l",
+                  measurements: [],
+                  name: "UHT tej 2,8%",
+                  offers: [
                     {
-                      kind: "retailer_product_id",
-                      value: "lidl-pilos-uht-tej-28-1l"
+                      identifiers: [
+                        {
+                          kind: "retailer_product_id",
+                          value: "lidl-pilos-uht-tej-28-1l"
+                        }
+                      ],
+                      latestObservedAt: "2026-06-23T12:00:00.000Z",
+                      locationKey: "availability:lidl-hu",
+                      locationLabel: "Lidl Hungary",
+                      prices: {
+                        base: {
+                          amount: 469,
+                          currencyCode: "HUF",
+                          observedAt: "2026-06-23T12:00:00.000Z",
+                          unitPriceLabel: "469 Ft/l"
+                        }
+                      },
+                      productSourceId: "product_source_lidl_hu_pilos_uht_28_1l",
+                      sourceName: "lidl-hu",
+                      sourceProductKey: "lidl-pilos-uht-tej-28-1l",
+                      sourceProductName: "Pilos UHT tej 2,8% 1 l",
+                      storeBrandKey: "lidl"
                     }
                   ],
-                  latestObservedAt: "2026-06-23T12:00:00.000Z",
-                  locationKey: "availability:lidl-hu",
-                  locationLabel: "Lidl Hungary",
-                  prices: {
-                    base: {
-                      amount: 469,
-                      currencyCode: "HUF",
-                      observedAt: "2026-06-23T12:00:00.000Z",
-                      unitPriceLabel: "469 Ft/l"
-                    }
-                  },
-                  productSourceId: "product_source_lidl_hu_pilos_uht_28_1l",
-                  sourceName: "lidl-hu",
-                  sourceProductKey: "lidl-pilos-uht-tej-28-1l",
-                  sourceProductName: "Pilos UHT tej 2,8% 1 l",
-                  storeBrandKey: "lidl"
+                  sourceNames: ["lidl-hu"],
+                  tagKeys: ["category.kitchen.dairy"]
                 }
               ],
-              sourceNames: ["lidl-hu"],
-              tagKeys: ["category.kitchen.dairy"]
-            }
-          ]
+              totalCount: 321
+            };
+          }
         }),
         getMongoClient: async () => ({
           db: () => ({})
@@ -204,7 +212,18 @@ describe("handleAppRequest auth guards", () => {
     );
 
     expect(response.status).toBe(200);
+    expect(requestedProductOptions).toEqual({
+      limit: 100,
+      offset: 0,
+      sourceNames: []
+    });
     expect(JSON.parse(response.body)).toEqual({
+      pagination: {
+        page: 1,
+        pageSize: 100,
+        totalCount: 321,
+        totalPages: 4
+      },
       products: [
           {
             householdStockCount: 1,
@@ -305,7 +324,10 @@ describe("handleAppRequest auth guards", () => {
             state: "processed",
             updatedAt: "2026-07-02T09:01:00.000Z"
           }),
-          listCatalogProductsForReview: async () => []
+          listCatalogProductsForReview: async () => ({
+            products: [],
+            totalCount: 0
+          })
         }),
         createIngestionRepository: () => ({
           findRawSnapshotById: async () => null,
@@ -340,6 +362,116 @@ describe("handleAppRequest auth guards", () => {
     });
   });
 
+  it("passes catalog product pagination query values to the repository", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+    let requestedProductOptions: { limit?: number; offset?: number } | undefined;
+
+    const token = createUserToken({
+      email: "admin@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "admin",
+      secret: "test-secret"
+    });
+
+    const response = await handleAppRequest(
+      {
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "GET",
+        path: "/api/catalog/products",
+        query: {
+          page: "3",
+          pageSize: "50",
+          source: "penny_hu_offers"
+        }
+      },
+      {
+        createCatalogRepository: () => ({
+          listCatalogProductsForReview: async (options) => {
+            requestedProductOptions = options;
+
+            return {
+              products: [],
+              totalCount: 321
+            };
+          }
+        }),
+        getMongoClient: async () => ({
+          db: () => ({})
+        } as never)
+      }
+    );
+
+    expect(response.status).toBe(200);
+    expect(requestedProductOptions).toEqual({
+      limit: 50,
+      offset: 100,
+      sourceNames: ["penny_hu_offers"]
+    });
+    expect(JSON.parse(response.body)).toEqual({
+      pagination: {
+        page: 3,
+        pageSize: 50,
+        totalCount: 321,
+        totalPages: 7
+      },
+      products: []
+    });
+  });
+
+  it("returns catalog offer source names independently from product pages", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "admin@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "admin",
+      secret: "test-secret"
+    });
+
+    const response = await handleAppRequest(
+      {
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "GET",
+        path: "/api/catalog/sources"
+      },
+      {
+        createCatalogRepository: () => ({
+          listCatalogOfferSourceNames: async () => [
+            "aldi-hu-offers",
+            "lidl-hu-brochure",
+            "penny_hu_offers"
+          ],
+          listCatalogProductsForReview: async () => ({
+            products: [],
+            totalCount: 0
+          })
+        }),
+        getMongoClient: async () => ({
+          db: () => ({})
+        } as never)
+      }
+    );
+
+    expect(response.status).toBe(200);
+    expect(JSON.parse(response.body)).toEqual({
+      sourceNames: [
+        "aldi-hu-offers",
+        "lidl-hu-brochure",
+        "penny_hu_offers"
+      ]
+    });
+  });
+
   it("processes one ingestion snapshot with a valid admin token", async () => {
     vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
     vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
@@ -367,7 +499,10 @@ describe("handleAppRequest auth guards", () => {
       },
       {
         createCatalogRepository: () => ({
-          listCatalogProductsForReview: async () => [],
+          listCatalogProductsForReview: async () => ({
+            products: [],
+            totalCount: 0
+          }),
           setupCollections: async () => undefined,
           upsertCatalogSeedDataset
         }),

@@ -34,7 +34,7 @@ const noOfferSourceKey = "__none__";
         <dl class="summary-strip" aria-label="Catalog summary">
           <div>
             <dt>Shown</dt>
-            <dd>{{ filteredProducts().length }}</dd>
+            <dd>{{ filteredProducts().length }} / {{ totalProductCount() }}</dd>
           </div>
           <div>
             <dt>Offers</dt>
@@ -74,7 +74,7 @@ const noOfferSourceKey = "__none__";
           <section class="filter-panel surface-panel" aria-label="Offer source filters">
             <div>
               <p class="ui-kicker">Offer sources</p>
-              <p class="filter-summary">{{ filteredProducts().length }} of {{ products().length }} products shown</p>
+              <p class="filter-summary">{{ products().length }} of {{ totalProductCount() }} products loaded</p>
             </div>
 
             <div class="source-filter-list">
@@ -89,6 +89,14 @@ const noOfferSourceKey = "__none__";
                 </label>
               }
             </div>
+          </section>
+        }
+
+        @if (products().length) {
+          <section class="pagination-panel surface-panel" aria-label="Product pagination">
+            <button class="ui-action-button" type="button" (click)="loadNextProductsPage()" [disabled]="!hasNextPage() || loadState() === 'loading'">
+              {{ loadState() === "loading" ? "Loading..." : "Load more" }}
+            </button>
           </section>
         }
 
@@ -267,6 +275,20 @@ const noOfferSourceKey = "__none__";
         width: 1rem;
       }
 
+      .pagination-panel {
+        align-items: center;
+        display: flex;
+        gap: var(--space-3);
+        justify-content: space-between;
+        padding: 0.75rem 1rem;
+      }
+
+      .pagination-panel p {
+        color: var(--color-text-muted);
+        font-size: 0.88rem;
+        font-weight: 800;
+      }
+
       .product-row {
         box-sizing: border-box;
         display: grid;
@@ -367,6 +389,11 @@ const noOfferSourceKey = "__none__";
           grid-template-columns: 1fr;
         }
 
+        .pagination-panel {
+          align-items: stretch;
+          flex-direction: column;
+        }
+
         .source-filter-list {
           justify-content: flex-start;
         }
@@ -390,6 +417,12 @@ export class ProductCatalogComponent implements OnInit {
   readonly loadState = signal<"idle" | "loading" | "success" | "error">("idle");
   readonly products = signal<CatalogProductListItem[]>([]);
   readonly selectedOfferSources = signal<Set<string>>(new Set([noOfferSourceKey]));
+  readonly offerSourceNames = signal<string[]>([]);
+  readonly currentPage = signal(0);
+  readonly pageSize = signal(25);
+  readonly sourceFilterTouched = signal(false);
+  readonly totalProductCount = signal(0);
+  readonly totalPages = signal(0);
   readonly tableColumns: readonly ResizableTableColumn[] = [
     { key: "product", label: "Product", minWidth: 140, maxWidth: 640, width: 300 },
     { key: "prices", label: "Prices", minWidth: 140, maxWidth: 640, width: 260 },
@@ -402,12 +435,10 @@ export class ProductCatalogComponent implements OnInit {
   readonly statusMessage = signal("No product snapshot has been loaded yet.");
   readonly viewportHeight = 704;
   readonly offerSourceOptions = computed(() => [
-    ...[...new Set(this.products().flatMap((product) => product.offers.map((offer) => offer.sourceName)))]
-      .sort((left, right) => left.localeCompare(right, "hu-HU"))
-      .map((sourceName) => ({
-        key: sourceName,
-        label: sourceName
-      })),
+    ...this.offerSourceNames().map((sourceName) => ({
+      key: sourceName,
+      label: sourceName
+    })),
     {
       key: noOfferSourceKey,
       label: "none"
@@ -425,6 +456,11 @@ export class ProductCatalogComponent implements OnInit {
   );
   readonly totalSourceCount = computed(() =>
     new Set(this.filteredProducts().flatMap((product) => this.filteredSourceNames(product))).size
+  );
+  readonly hasNextPage = computed(() =>
+    this.totalProductCount() === 0
+      ? this.currentPage() === 0
+      : this.currentPage() < this.totalPages()
   );
   readonly visibleRows = computed<VisibleProductRow[]>(() => {
     const products = this.filteredProducts();
@@ -506,6 +542,11 @@ export class ProductCatalogComponent implements OnInit {
 
     if (target instanceof HTMLElement) {
       this.scrollTop.set(target.scrollTop);
+
+      const remainingDistance = target.scrollHeight - target.scrollTop - target.clientHeight;
+      if (remainingDistance < this.rowHeight * 6) {
+        void this.loadNextProductsPage();
+      }
     }
   }
 
@@ -539,6 +580,7 @@ export class ProductCatalogComponent implements OnInit {
   }
 
   toggleOfferSource(sourceKey: string): void {
+    this.sourceFilterTouched.set(true);
     this.selectedOfferSources.update((selectedSources) => {
       const next = new Set(selectedSources);
 
@@ -550,7 +592,7 @@ export class ProductCatalogComponent implements OnInit {
 
       return next;
     });
-    this.scrollTop.set(0);
+    void this.reloadProductsForCurrentFilters();
   }
 
   async loadProducts(): Promise<void> {
@@ -561,14 +603,54 @@ export class ProductCatalogComponent implements OnInit {
     }
 
     this.errorMessage.set("");
-    this.loadState.set("loading");
+    this.products.set([]);
+    this.currentPage.set(0);
+    this.offerSourceNames.set([]);
+    this.totalProductCount.set(0);
+    this.totalPages.set(0);
+    this.sourceFilterTouched.set(false);
     this.statusMessage.set("Loading catalog products...");
 
+    const sourceResult = await this.catalog.listOfferSourceNames();
+    if (sourceResult.status !== "ok") {
+      this.products.set([]);
+      this.loadState.set("error");
+      this.statusMessage.set(sourceResult.status === "forbidden"
+        ? "This view needs catalog review access."
+        : "The product catalog sources could not be loaded.");
+      this.errorMessage.set(sourceResult.message);
+      return;
+    }
+
+    this.offerSourceNames.set(sourceResult.sourceNames);
+    this.selectedOfferSources.set(new Set(this.offerSourceOptions().map((source) => source.key)));
+    await this.loadNextProductsPage();
+  }
+
+  async loadNextProductsPage(): Promise<void> {
+    if (!this.auth.token() || this.loadState() === "loading" || !this.hasNextPage()) {
+      return;
+    }
+
+    this.errorMessage.set("");
+    this.loadState.set("loading");
+    const pageToLoad = this.currentPage() + 1;
     try {
-      const result = await this.catalog.listProductsForReview();
+      const selectedServerSources = this.selectedServerSourceNames();
+      if (this.sourceFilterTouched() && this.selectedOfferSources().size === 0) {
+        this.products.set([]);
+        this.currentPage.set(1);
+        this.totalProductCount.set(0);
+        this.totalPages.set(0);
+        this.scrollTop.set(0);
+        this.loadState.set("success");
+        this.statusMessage.set("No source filters selected.");
+        return;
+      }
+
+      const result = await this.catalog.listProductsForReview(pageToLoad, this.pageSize(), selectedServerSources);
 
       if (result.status !== "ok") {
-        this.products.set([]);
         this.loadState.set("error");
         this.statusMessage.set(result.status === "forbidden"
           ? "This view needs catalog review access."
@@ -577,18 +659,29 @@ export class ProductCatalogComponent implements OnInit {
         return;
       }
 
-      this.products.set(result.products);
-      this.selectedOfferSources.set(new Set(this.offerSourceOptions().map((source) => source.key)));
-      this.scrollTop.set(0);
+      this.products.update((products) => mergeProductsById(products, result.products));
+      this.currentPage.set(result.pagination.page);
+      this.totalProductCount.set(result.pagination.totalCount);
+      this.totalPages.set(result.pagination.totalPages);
+      if (!this.sourceFilterTouched()) {
+        this.selectedOfferSources.set(new Set(this.offerSourceOptions().map((source) => source.key)));
+      }
+      if (pageToLoad === 1) {
+        this.scrollTop.set(0);
+      }
       this.loadState.set("success");
-      this.statusMessage.set(`Loaded ${result.products.length} products with ${this.totalOfferCount()} offers.`);
+      this.statusMessage.set(
+        `Loaded ${this.products().length} of ${result.pagination.totalCount} products · page ${result.pagination.page} of ${result.pagination.totalPages}`
+      );
 
       logBrowserEvent("info", "Product catalog loaded", {
         offerCount: this.totalOfferCount(),
-        productCount: result.products.length
+        page: result.pagination.page,
+        pageSize: result.pagination.pageSize,
+        productCount: this.products().length,
+        totalProductCount: result.pagination.totalCount
       });
     } catch (error: unknown) {
-      this.products.set([]);
       this.loadState.set("error");
       this.statusMessage.set("The browser could not reach the product catalog route.");
       this.errorMessage.set("Check the shared API path and database configuration.");
@@ -606,6 +699,38 @@ export class ProductCatalogComponent implements OnInit {
 
     return product.offers.some((offer) => selectedSources.has(offer.sourceName));
   }
+
+  private async reloadProductsForCurrentFilters(): Promise<void> {
+    this.products.set([]);
+    this.currentPage.set(0);
+    this.totalProductCount.set(0);
+    this.totalPages.set(0);
+    this.scrollTop.set(0);
+    await this.loadNextProductsPage();
+  }
+
+  private selectedServerSourceNames(): string[] {
+    const selectedSources = this.selectedOfferSources();
+    const selectedRealSources = this.offerSourceNames().filter((sourceName) => selectedSources.has(sourceName));
+    const everyRealSourceSelected = selectedRealSources.length === this.offerSourceNames().length;
+
+    return everyRealSourceSelected && selectedSources.has(noOfferSourceKey)
+      ? []
+      : selectedRealSources;
+  }
+}
+
+function mergeProductsById(
+  existingProducts: CatalogProductListItem[],
+  nextProducts: CatalogProductListItem[]
+): CatalogProductListItem[] {
+  const productsById = new Map(existingProducts.map((product) => [product.id, product]));
+
+  for (const product of nextProducts) {
+    productsById.set(product.id, product);
+  }
+
+  return [...productsById.values()];
 }
 
 function formatPrice(price: CatalogProductOfferPrice): string {

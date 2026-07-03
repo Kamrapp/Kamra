@@ -17,56 +17,65 @@ import { AuthService } from "./auth.service";
   standalone: true,
   template: `
     <main class="shell" aria-label="Kamra app">
-      <a class="brand-card" routerLink="/" (click)="closeMenu()" aria-label="Kamra home">
-        <span class="brand-line">
-          <img
-            class="brand-mark"
-            src="/brand/kamra-basket.png"
-            alt=""
-            width="72"
-            height="72"
-          />
-          <span class="brand-name">Kamra</span>
-        </span>
-        <span class="brand-title">Pantry foundations, gently stocked.</span>
-      </a>
+      <aside class="left-rail" aria-label="Application context">
+        <a class="brand-card" routerLink="/" (click)="closeMenu()" aria-label="Kamra home">
+          <span class="brand-line">
+            <img
+              class="brand-mark"
+              src="/brand/kamra-basket.png"
+              alt=""
+              width="72"
+              height="72"
+            />
+            <span class="brand-name">Kamra</span>
+          </span>
+          <span class="brand-title">Pantry foundations, gently stocked.</span>
+        </a>
 
-      <section class="auth-card" aria-label="Account">
-        @if (auth.user(); as user) {
-          <div class="user-chip">
-            <span>{{ user.email }}</span>
-            <button type="button" (click)="logout()">Logout</button>
-          </div>
-        } @else {
-          <form class="login-form" (ngSubmit)="login()">
-            <input
-              autocomplete="username"
-              name="email"
-              placeholder="Email"
-              type="email"
-              [(ngModel)]="loginEmail"
-              [disabled]="loginState() === 'loading'"
-            />
-            <input
-              autocomplete="current-password"
-              name="password"
-              placeholder="Password"
-              type="password"
-              [(ngModel)]="loginPassword"
-              [disabled]="loginState() === 'loading'"
-            />
-            <button type="submit" [disabled]="loginState() === 'loading'">
-              {{ loginState() === "loading" ? "Logging in" : "Login" }}
-            </button>
-          </form>
-        }
-      </section>
+        <section class="page-context-card" aria-label="Page context">
+          <p class="rail-kicker">Context</p>
+          <p class="rail-title">{{ currentPageTitle() }}</p>
+        </section>
+      </aside>
 
       <section class="page-body" aria-label="Current page">
         <div class="page-scroll">
           <router-outlet />
         </div>
       </section>
+
+      <aside class="right-rail" aria-label="Account and actions">
+        <section class="auth-card" aria-label="Account">
+          @if (auth.user(); as user) {
+            <div class="user-chip">
+              <span>{{ user.email }}</span>
+              <button type="button" (click)="logout()">Logout</button>
+            </div>
+          } @else {
+            <form class="login-form" (ngSubmit)="login()">
+              <input
+                autocomplete="username"
+                name="email"
+                placeholder="Email"
+                type="email"
+                [(ngModel)]="loginEmail"
+                [disabled]="loginState() === 'loading'"
+              />
+              <input
+                autocomplete="current-password"
+                name="password"
+                placeholder="Password"
+                type="password"
+                [(ngModel)]="loginPassword"
+                [disabled]="loginState() === 'loading'"
+              />
+              <button type="submit" [disabled]="loginState() === 'loading'">
+                {{ loginState() === "loading" ? "Logging in" : "Login" }}
+              </button>
+            </form>
+          }
+        </section>
+      </aside>
 
       @if (loginMessage(); as message) {
         <p
@@ -127,32 +136,40 @@ import { AuthService } from "./auth.service";
 
       .shell {
         display: grid;
+        gap: var(--space-4);
+        grid-template-columns: minmax(12rem, 1fr) minmax(0, 6fr) minmax(12rem, 1fr);
         grid-template-rows: minmax(0, 1fr);
         height: 100dvh;
         margin: 0 auto;
         max-height: 100dvh;
         overflow: clip;
         padding: var(--space-page);
-        width: min(100%, max(76rem, 75vw));
+        width: min(100%, max(82rem, 88vw));
+      }
+
+      .left-rail,
+      .right-rail {
+        align-content: start;
+        display: grid;
+        gap: var(--space-3);
+        min-height: 0;
+        min-width: 0;
       }
 
       .brand-card,
-      .auth-card {
+      .auth-card,
+      .page-context-card {
         backdrop-filter: blur(14px);
         background: rgb(248 244 241 / 76%);
         border: 1px solid color-mix(in srgb, var(--color-wood) 16%, transparent);
         border-radius: 8px;
         box-shadow: 0 1rem 2.4rem rgb(48 43 50 / 12%);
-        position: fixed;
-        top: max(0.9rem, env(safe-area-inset-top));
-        z-index: 40;
       }
 
       .brand-card {
         color: inherit;
         display: grid;
         gap: 0.18rem;
-        left: max(0.9rem, env(safe-area-inset-left));
         padding: 0.48rem 0.7rem 0.55rem;
         text-decoration: none;
       }
@@ -189,16 +206,39 @@ import { AuthService } from "./auth.service";
 
       .auth-card {
         padding: 0.45rem;
-        right: max(0.9rem, env(safe-area-inset-right));
+      }
+
+      .page-context-card {
+        display: grid;
+        gap: 0.18rem;
+        padding: 0.65rem 0.75rem;
+      }
+
+      .rail-kicker,
+      .rail-title {
+        margin: 0;
+      }
+
+      .rail-kicker {
+        color: var(--color-text-muted);
+        font-size: 0.72rem;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      .rail-title {
+        color: var(--color-text);
+        font-family: var(--font-display);
+        font-size: 1.05rem;
+        font-weight: 800;
+        line-height: 1.1;
       }
 
       .login-form,
       .user-chip {
         align-items: center;
-        display: flex;
-        flex-wrap: wrap;
+        display: grid;
         gap: var(--space-2);
-        justify-content: flex-end;
       }
 
       .login-form input {
@@ -209,7 +249,7 @@ import { AuthService } from "./auth.service";
         font: inherit;
         min-height: 2.15rem;
         padding: 0.45rem 0.62rem;
-        width: min(10.5rem, 24vw);
+        width: 100%;
       }
 
       .login-form button,
@@ -240,11 +280,15 @@ import { AuthService } from "./auth.service";
       .user-chip span {
         color: var(--color-text);
         font-size: 0.84rem;
+        overflow: hidden;
         padding: 0 0.45rem;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       .page-body {
         min-height: 0;
+        min-width: 0;
         overflow: hidden;
         position: relative;
       }
@@ -254,7 +298,7 @@ import { AuthService } from "./auth.service";
         height: 100%;
         min-height: 0;
         overflow: auto;
-        padding: 1.15rem 0 max(var(--space-6), env(safe-area-inset-bottom));
+        padding: 0 0 max(var(--space-6), env(safe-area-inset-bottom));
         scrollbar-gutter: stable both-edges;
       }
 
@@ -383,28 +427,82 @@ import { AuthService } from "./auth.service";
         font-weight: 800;
       }
 
+      @media (max-width: 1180px) {
+        .shell {
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+          grid-template-rows: auto minmax(0, 1fr);
+          width: min(100%, max(76rem, 75vw));
+        }
+
+        .left-rail,
+        .right-rail {
+          grid-row: 1;
+        }
+
+        .left-rail {
+          grid-column: 1;
+        }
+
+        .right-rail {
+          grid-column: 2;
+        }
+
+        .page-body {
+          grid-column: 1 / -1;
+          grid-row: 2;
+        }
+
+        .login-form,
+        .user-chip {
+          align-items: center;
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: flex-end;
+        }
+
+        .login-form input {
+          width: min(11rem, 28vw);
+        }
+      }
+
       @media (max-width: 520px) {
         :host,
         .shell {
           height: 100dvh;
         }
 
-        .brand-card {
-          max-width: calc(100vw - 1.8rem);
+        .shell {
+          grid-template-columns: minmax(0, 1fr);
+          grid-template-rows: auto auto minmax(0, 1fr);
         }
 
-        .auth-card {
-          left: 0.9rem;
-          right: 0.9rem;
-          top: 4.9rem;
+        .left-rail,
+        .right-rail,
+        .page-body {
+          grid-column: 1;
+        }
+
+        .left-rail {
+          grid-row: 1;
+        }
+
+        .right-rail {
+          grid-row: 2;
+        }
+
+        .page-body {
+          grid-row: 3;
         }
 
         .login-form input {
           width: min(100%, 11rem);
         }
 
-        .page-scroll {
-          padding-top: 9rem;
+        .login-form,
+        .user-chip {
+          align-items: stretch;
+          display: grid;
+          justify-content: stretch;
         }
 
         .login-message {
@@ -427,6 +525,7 @@ import { AuthService } from "./auth.service";
 })
 export class AppComponent implements OnInit {
   readonly auth = inject(AuthService);
+  readonly currentPageTitle = signal("Home");
   readonly loginMessage = signal("");
   readonly loginMessageTone = signal<"error" | "success">("success");
   readonly loginState = signal<"idle" | "loading">("idle");
@@ -469,6 +568,7 @@ export class AppComponent implements OnInit {
   constructor() {
     this.router.events.subscribe((event) => {
       if (event instanceof NavigationEnd) {
+        this.currentPageTitle.set(this.pageTitleForUrl(event.urlAfterRedirects));
         this.closeMenu();
       }
     });
@@ -476,6 +576,7 @@ export class AppComponent implements OnInit {
 
   ngOnInit(): void {
     void this.auth.loadCurrentUser();
+    this.currentPageTitle.set(this.pageTitleForUrl(this.router.url));
 
     logBrowserEvent("info", "Browser app ready", {
       hostname: window.location.hostname,
@@ -534,5 +635,21 @@ export class AppComponent implements OnInit {
       this.loginMessage.set("");
       this.loginMessageTimer = null;
     }, 3200);
+  }
+
+  private pageTitleForUrl(url: string): string {
+    if (url.startsWith("/admin/ingestion")) {
+      return "Crawls";
+    }
+
+    if (url.startsWith("/products")) {
+      return "Product offers";
+    }
+
+    if (url.startsWith("/health")) {
+      return "Health check";
+    }
+
+    return "Home";
   }
 }

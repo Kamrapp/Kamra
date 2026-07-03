@@ -11,10 +11,11 @@ import { MongoIngestionRepository } from "../ingestion/current/mongo-ingestion-r
 import type { IngestionRawSnapshotRecord } from "../ingestion/v1/contracts.js";
 
 export interface AppRequest {
+  bodyText?: string;
   headers: Record<string, string | string[] | undefined>;
   method: string;
   path: string;
-  bodyText?: string;
+  query?: Record<string, string | string[] | undefined>;
 }
 
 export interface AppResponse {
@@ -31,7 +32,11 @@ export interface AppHandlerDependencies {
       recordFingerprint: string;
       sourceName: string;
     }): Promise<SourceRecordProcessingStateRecord | null>;
-    listCatalogProductsForReview(limit?: number): Promise<unknown[]>;
+    listCatalogProductsForReview(options?: { limit?: number; offset?: number; sourceNames?: string[] }): Promise<{
+      products: unknown[];
+      totalCount: number;
+    }>;
+    listCatalogOfferSourceNames?(): Promise<string[]>;
     setupCollections?(): Promise<unknown>;
     upsertCatalogSeedDataset?(dataset: CatalogV1SeedDataset): Promise<void>;
   };
