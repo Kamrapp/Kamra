@@ -6,7 +6,12 @@ import {
   type AppResponse,
   type AppRoute
 } from "./app-route-context.js";
-import { catalogProductsRoute, catalogSourcesRoute } from "./routes/catalog-routes.js";
+import {
+  catalogProductRoute,
+  catalogProductsRoute,
+  catalogProductValidationRoute,
+  catalogSourcesRoute
+} from "./routes/catalog-routes.js";
 import { currentUserRoute, loginRoute, logoutRoute } from "./routes/auth-routes.js";
 import {
   healthRoute,
@@ -34,6 +39,8 @@ const appRoutes: AppRoute[] = [
   healthRoute,
   upgradeCatalogValidatorsRoute,
   markLegacyProductsUnvalidatedRoute,
+  catalogProductRoute,
+  catalogProductValidationRoute,
   catalogProductsRoute,
   catalogSourcesRoute,
   ingestionSnapshotsRoute,

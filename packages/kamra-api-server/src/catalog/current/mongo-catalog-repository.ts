@@ -9,6 +9,7 @@ import type {
   PriceObservationRecord,
   PriceObservationKind,
   ProductRecord,
+  ProductValidationStatus,
   ProductSourceIdentifierRecord,
   ProductSourceRecord,
   ProductTagAssignmentRecord,
@@ -48,6 +49,33 @@ export interface CatalogValidatorUpgradeResult {
   createdCollections: string[];
   databaseName: string;
   upgradedCollections: string[];
+}
+
+export interface UpdateCatalogProductInput {
+  brandName?: string | null;
+  id: string;
+  measurements?: ProductRecord["measurements"];
+  name?: string;
+  primaryCategoryKey?: string | null;
+  updatedAt: string;
+  validationNote?: string | null;
+}
+
+export interface SetCatalogProductValidationInput {
+  id: string;
+  note?: string | null;
+  reviewedAt: string;
+  reviewerId: string;
+  status: Exclude<ProductValidationStatus, "unvalidated">;
+}
+
+export interface DeleteCatalogProductResult {
+  deletedIdentifierCount: number;
+  deletedPriceObservationCount: number;
+  deletedProductCount: number;
+  deletedProductSourceCount: number;
+  deletedStockCount: number;
+  deletedTagAssignmentCount: number;
 }
 
 const collectionPlans: CollectionIndexPlan[] = [
@@ -244,6 +272,144 @@ export class MongoCurrentCatalogRepository {
       this.productsCollection.countDocuments(productFilter)
     ]);
 
+    return {
+      products: await this.hydrateCatalogProducts(products),
+      totalCount
+    };
+  }
+
+  async findCatalogProductForReview(id: string): Promise<CatalogProductListItem | null> {
+    const product = await this.productsCollection.findOne({
+      id,
+      status: "active"
+    });
+
+    if (!product) {
+      return null;
+    }
+
+    return (await this.hydrateCatalogProducts([product]))[0] ?? null;
+  }
+
+  async updateCatalogProduct(input: UpdateCatalogProductInput): Promise<CatalogProductListItem | null> {
+    const set: Partial<ProductRecord> = {
+      updatedAt: input.updatedAt
+    };
+
+    if ("brandName" in input) {
+      set.brandName = input.brandName ?? null;
+    }
+
+    if ("measurements" in input) {
+      set.measurements = input.measurements ?? [];
+    }
+
+    if ("name" in input && input.name) {
+      set.name = input.name;
+      set.normalizedName = normalizeProductName(input.name);
+      set.validationStatus = "unvalidated";
+      set.validatedAt = null;
+      set.validatedBy = null;
+    }
+
+    if ("primaryCategoryKey" in input) {
+      set.primaryCategoryKey = input.primaryCategoryKey ?? null;
+    }
+
+    if ("validationNote" in input) {
+      set.validationNote = input.validationNote ?? null;
+    }
+
+    const result = await this.productsCollection.updateOne(
+      {
+        id: input.id,
+        status: "active"
+      },
+      {
+        $set: set
+      }
+    );
+
+    if (result.matchedCount === 0) {
+      return null;
+    }
+
+    return await this.findCatalogProductForReview(input.id);
+  }
+
+  async setCatalogProductValidationStatus(input: SetCatalogProductValidationInput): Promise<CatalogProductListItem | null> {
+    const validationFields: Partial<ProductRecord> = input.status === "validated"
+      ? {
+          invalidatedAt: null,
+          invalidatedBy: null,
+          validatedAt: input.reviewedAt,
+          validatedBy: input.reviewerId
+        }
+      : {
+          invalidatedAt: input.reviewedAt,
+          invalidatedBy: input.reviewerId,
+          validatedAt: null,
+          validatedBy: null
+        };
+
+    const result = await this.productsCollection.updateOne(
+      {
+        id: input.id,
+        status: "active"
+      },
+      {
+        $set: {
+          ...validationFields,
+          updatedAt: input.reviewedAt,
+          validationNote: input.note ?? null,
+          validationStatus: input.status
+        }
+      }
+    );
+
+    if (result.matchedCount === 0) {
+      return null;
+    }
+
+    return await this.findCatalogProductForReview(input.id);
+  }
+
+  async deleteCatalogProduct(id: string): Promise<DeleteCatalogProductResult> {
+    const productSources = await this.productSourcesCollection.find({ productId: id }).toArray();
+    const productSourceIds = productSources.map((source) => source.id);
+
+    const [
+      identifiers,
+      priceObservations,
+      productSourcesResult,
+      stocks,
+      tagAssignments,
+      products
+    ] = await Promise.all([
+      this.productSourceIdentifiersCollection.deleteMany({ productSourceId: { $in: productSourceIds } }),
+      this.priceObservationsCollection.deleteMany({
+        $or: [
+          { productId: id },
+          { productSourceId: { $in: productSourceIds } }
+        ]
+      }),
+      this.productSourcesCollection.deleteMany({ productId: id }),
+      this.stocksCollection.deleteMany({ productId: id }),
+      this.productTagAssignmentsCollection.deleteMany({ productId: id }),
+      this.productsCollection.deleteMany({ id })
+    ]);
+
+    return {
+      deletedIdentifierCount: identifiers.deletedCount ?? 0,
+      deletedPriceObservationCount: priceObservations.deletedCount ?? 0,
+      deletedProductCount: products.deletedCount ?? 0,
+      deletedProductSourceCount: productSourcesResult.deletedCount ?? 0,
+      deletedStockCount: stocks.deletedCount ?? 0,
+      deletedTagAssignmentCount: tagAssignments.deletedCount ?? 0
+    };
+  }
+
+  private async hydrateCatalogProducts(products: ProductRecord[]): Promise<CatalogProductListItem[]> {
     const productIds = products.map((product) => product.id);
     const [productTagAssignments, productSources, householdStocks] = await Promise.all([
       this.productTagAssignmentsCollection.find({
@@ -338,8 +504,7 @@ export class MongoCurrentCatalogRepository {
       );
     }
 
-    return {
-      products: products.map((product) => ({
+    return products.map((product) => ({
         brandName: product.brandName,
         householdStockCount: householdStockCountByProductId.get(product.id) ?? 0,
         id: product.id,
@@ -350,9 +515,7 @@ export class MongoCurrentCatalogRepository {
         validationStatus: product.validationStatus ?? "unvalidated",
         sourceNames: [...new Set(sourcesByProductId.get(product.id) ?? [])].sort(),
         tagKeys: [...new Set(tagsByProductId.get(product.id) ?? [])].sort()
-      })),
-      totalCount
-    };
+      }));
   }
 
   async listCatalogOfferSourceNames(): Promise<string[]> {
@@ -602,4 +765,8 @@ function isDocumentValidationError(error: unknown): boolean {
 
   const candidate = error as { code?: unknown };
   return candidate.code === 121;
+}
+
+function normalizeProductName(name: string): string {
+  return name.trim().toLocaleLowerCase("hu-HU").replace(/\s+/g, " ");
 }

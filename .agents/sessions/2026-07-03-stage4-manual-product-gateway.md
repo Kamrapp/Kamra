@@ -31,6 +31,7 @@
 - Item: Confirmed the Health maintenance flow worked against `kamra_dev`: upgraded 9 catalog validators, created 0 missing catalog collections, and marked 1130 legacy products as unvalidated.
 - Item: Updated `docs/tech-ops.md` with the validator-maintenance runbook and the 2026-07-03 maintenance outcome.
 - Item: Implemented the admin product review API slice for preparing, listing, loading, JSON-updating, accepting, and declining crawl review items.
+- Item: Implemented the catalog product admin API slice for loading, updating, validating, invalidating, and hard-deleting existing products with dependent catalog records.
 
 ## Changed Files
 
@@ -60,9 +61,13 @@
 - Path: `packages/kamra-api-server/src/catalog/current/mongo-catalog-repository.ts`
 - Path: `packages/kamra-api-server/src/catalog/current/mongo-catalog-repository.test.ts`
 - Path: `packages/kamra-api-server/src/http/routes/health-route.ts`
+- Path: `packages/kamra-api-server/src/http/routes/catalog-routes.ts`
 - Path: `packages/kamra-api-server/src/http/app-handler.ts`
 - Path: `packages/kamra-api-server/src/http/app-route-context.ts`
 - Path: `packages/kamra-api-server/src/http/app-handler.test.ts`
+- Path: `api/catalog/product.ts`
+- Path: `api/catalog/product/validate.ts`
+- Path: `api/catalog/product/invalidate.ts`
 - Path: `src/app/health-check.component.ts`
 - Path: `packages/kamra-api-server/src/test-support/fake-mongo.ts`
 - Path: `src/app/product-lookup/product-catalog.component.ts`
@@ -110,6 +115,10 @@
 - Result: passed
 - Not run: manual UI checks
 - Reason: this step exposed API routes and persistence needed by the upcoming editor UI
+- Ran: `npm test -- packages/kamra-api-server/src/http/app-handler.test.ts packages/kamra-api-server/src/catalog/current/mongo-catalog-repository.test.ts`, `npm run typecheck`, `npm run build`
+- Result: passed
+- Not run: manual UI checks
+- Reason: this step added backend product admin endpoints; the editor UI is the next step
 
 ## Decisions
 
@@ -131,12 +140,14 @@
 - Reason: the read model already treats missing validation as `unvalidated`, and the app role does not have validator-upgrade privileges in Atlas.
 - Decision: validator upgrades stay explicit behind a Health maintenance button instead of returning to startup-time `collMod`.
 - Reason: normal app users should not need elevated MongoDB privileges, while admins can temporarily use a privileged user for schema maintenance.
+- Decision: existing product hard-delete removes product-owned catalog records but leaves shared tag definitions intact.
+- Reason: tag records are shared vocabulary, while sources, identifiers, observations, stocks, and assignments are owned by the deleted product relationship.
 
 ## Open Issues
 
 - Issue: one-admin-only concurrency limitation remains only documented, not enforced.
 - Impact: later UI/API steps should still assume a single active admin reviewer.
-- Issue: the product/crawl editor workflow is not implemented yet.
+- Issue: the product/crawl editor UI workflow is not implemented yet.
 - Impact: crawled-item migration review and existing-product editing still need explicit table action columns, with small edit/process icons at the beginning of the tables rather than the end.
 - Issue: accepted review items are marked accepted but are not promoted into catalog records yet.
 - Impact: the next backend step still needs one-row catalog promotion before accepted crawl products become real catalog products.

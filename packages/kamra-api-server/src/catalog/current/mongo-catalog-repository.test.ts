@@ -4,6 +4,108 @@ import { MongoCurrentCatalogRepository } from "./mongo-catalog-repository.js";
 import { createFakeDb, FakeCollection } from "../../test-support/fake-mongo.js";
 
 describe("MongoCurrentCatalogRepository", () => {
+  it("updates product details and marks renamed products unvalidated", async () => {
+    const db = createFakeDb({
+      products: new FakeCollection("products", [createProductRecord()])
+    });
+
+    const repository = new MongoCurrentCatalogRepository(db);
+    const product = await repository.updateCatalogProduct({
+      brandName: "Kamra",
+      id: "product_1",
+      name: "Friss tej",
+      updatedAt: "2026-07-03T10:00:00.000Z",
+      validationNote: "Needs another pass."
+    });
+
+    expect(product).toMatchObject({
+      brandName: "Kamra",
+      id: "product_1",
+      name: "Friss tej",
+      validationStatus: "unvalidated"
+    });
+    expect(db.__collections["products"]!.docs[0]).toMatchObject({
+      name: "Friss tej",
+      normalizedName: "friss tej",
+      updatedAt: "2026-07-03T10:00:00.000Z",
+      validationNote: "Needs another pass.",
+      validationStatus: "unvalidated",
+      validatedAt: null,
+      validatedBy: null
+    });
+  });
+
+  it("sets product validation state", async () => {
+    const db = createFakeDb({
+      products: new FakeCollection("products", [createProductRecord()])
+    });
+
+    const repository = new MongoCurrentCatalogRepository(db);
+    const product = await repository.setCatalogProductValidationStatus({
+      id: "product_1",
+      note: "Looks good.",
+      reviewedAt: "2026-07-03T10:00:00.000Z",
+      reviewerId: "admin@kamra.test",
+      status: "validated"
+    });
+
+    expect(product).toMatchObject({
+      id: "product_1",
+      validationStatus: "validated"
+    });
+    expect(db.__collections["products"]!.docs[0]).toMatchObject({
+      invalidatedAt: null,
+      invalidatedBy: null,
+      validatedAt: "2026-07-03T10:00:00.000Z",
+      validatedBy: "admin@kamra.test",
+      validationNote: "Looks good.",
+      validationStatus: "validated"
+    });
+  });
+
+  it("hard-deletes a product and owned catalog records", async () => {
+    const db = createFakeDb({
+      price_observations: new FakeCollection("price_observations", [
+        { id: "price_1", productId: "product_1", productSourceId: "source_1" },
+        { id: "price_other", productId: "product_other", productSourceId: "source_other" }
+      ]),
+      product_source_identifiers: new FakeCollection("product_source_identifiers", [
+        { id: "identifier_1", productSourceId: "source_1" },
+        { id: "identifier_other", productSourceId: "source_other" }
+      ]),
+      product_sources: new FakeCollection("product_sources", [
+        { id: "source_1", productId: "product_1" },
+        { id: "source_other", productId: "product_other" }
+      ]),
+      product_tag_assignments: new FakeCollection("product_tag_assignments", [
+        { id: "tag_assignment_1", productId: "product_1" },
+        { id: "tag_assignment_other", productId: "product_other" }
+      ]),
+      products: new FakeCollection("products", [
+        createProductRecord(),
+        { ...createProductRecord(), id: "product_other", name: "Other item" }
+      ]),
+      stocks: new FakeCollection("stocks", [
+        { id: "stock_1", productId: "product_1" },
+        { id: "stock_other", productId: "product_other" }
+      ])
+    });
+
+    const repository = new MongoCurrentCatalogRepository(db);
+    const result = await repository.deleteCatalogProduct("product_1");
+
+    expect(result).toEqual({
+      deletedIdentifierCount: 1,
+      deletedPriceObservationCount: 1,
+      deletedProductCount: 1,
+      deletedProductSourceCount: 1,
+      deletedStockCount: 1,
+      deletedTagAssignmentCount: 1
+    });
+    expect(db.__collections["products"]!.docs.map((doc: Record<string, unknown>) => doc["id"])).toEqual(["product_other"]);
+    expect(db.__collections["product_sources"]!.docs.map((doc: Record<string, unknown>) => doc["id"])).toEqual(["source_other"]);
+  });
+
   it("treats legacy products as unvalidated without needing a startup write", async () => {
     const db = createFakeDb({
       products: new FakeCollection("products", [
@@ -180,3 +282,32 @@ describe("MongoCurrentCatalogRepository", () => {
     expect(result.createdCollections.length).toBeGreaterThan(0);
   });
 });
+
+function createProductRecord() {
+  return {
+    brandName: null,
+    createdAt: "2026-07-01T08:00:00.000Z",
+    id: "product_1",
+    invalidatedAt: null,
+    invalidatedBy: null,
+    kind: "grocery",
+    measurements: [],
+    name: "Legacy item",
+    normalizedName: "legacy item",
+    origin: [
+      {
+        capturedAt: "2026-07-01T08:00:00.000Z",
+        kind: "seed",
+        producer: "LegacySeed",
+        sourceName: "seed_catalog"
+      }
+    ],
+    primaryCategoryKey: null,
+    status: "active",
+    updatedAt: "2026-07-01T08:00:00.000Z",
+    validationNote: null,
+    validationStatus: "validated",
+    validatedAt: "2026-07-01T08:00:00.000Z",
+    validatedBy: "admin@kamra.test"
+  };
+}

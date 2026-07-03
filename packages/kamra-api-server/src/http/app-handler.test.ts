@@ -729,6 +729,201 @@ describe("handleAppRequest auth guards", () => {
     });
   });
 
+  it("updates a catalog product with a valid admin token", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "admin@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "admin",
+      secret: "test-secret"
+    });
+    let updateInput: unknown;
+
+    const response = await handleAppRequest(
+      {
+        bodyText: JSON.stringify({
+          brandName: "Kamra",
+          id: "product_1",
+          name: "Corrected milk"
+        }),
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "PATCH",
+        path: "/api/catalog/product"
+      },
+      {
+        createCatalogRepository: () => ({
+          listCatalogProductsForReview: async () => ({
+            products: [],
+            totalCount: 0
+          }),
+          updateCatalogProduct: async (input) => {
+            updateInput = input;
+            return {
+              brandName: input.brandName,
+              householdStockCount: 0,
+              id: input.id,
+              measurements: [],
+              name: input.name ?? "Corrected milk",
+              offers: [],
+              sourceNames: [],
+              tagKeys: [],
+              validationStatus: "unvalidated"
+            };
+          }
+        }),
+        getMongoClient: async () => ({
+          db: () => ({})
+        } as never)
+      }
+    );
+
+    expect(response.status).toBe(200);
+    expect(updateInput).toMatchObject({
+      brandName: "Kamra",
+      id: "product_1",
+      name: "Corrected milk"
+    });
+    expect(JSON.parse(response.body)).toMatchObject({
+      product: {
+        brandName: "Kamra",
+        id: "product_1",
+        name: "Corrected milk"
+      }
+    });
+  });
+
+  it("invalidates a catalog product with the admin user recorded", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "admin@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "admin",
+      secret: "test-secret"
+    });
+    let validationInput: unknown;
+
+    const response = await handleAppRequest(
+      {
+        bodyText: JSON.stringify({
+          id: "product_1",
+          note: "Bad crawler name."
+        }),
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "POST",
+        path: "/api/catalog/product/invalidate"
+      },
+      {
+        createCatalogRepository: () => ({
+          listCatalogProductsForReview: async () => ({
+            products: [],
+            totalCount: 0
+          }),
+          setCatalogProductValidationStatus: async (input) => {
+            validationInput = input;
+            return {
+              householdStockCount: 0,
+              id: input.id,
+              measurements: [],
+              name: "Bad item",
+              offers: [],
+              sourceNames: [],
+              tagKeys: [],
+              validationStatus: input.status
+            };
+          }
+        }),
+        getMongoClient: async () => ({
+          db: () => ({})
+        } as never)
+      }
+    );
+
+    expect(response.status).toBe(200);
+    expect(validationInput).toMatchObject({
+      id: "product_1",
+      note: "Bad crawler name.",
+      reviewerId: "admin@kamra.test",
+      status: "invalid"
+    });
+    expect(JSON.parse(response.body)).toMatchObject({
+      product: {
+        id: "product_1",
+        validationStatus: "invalid"
+      }
+    });
+  });
+
+  it("hard-deletes a catalog product with a valid admin token", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "admin@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "admin",
+      secret: "test-secret"
+    });
+
+    const response = await handleAppRequest(
+      {
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "DELETE",
+        path: "/api/catalog/product",
+        query: {
+          id: "product_1"
+        }
+      },
+      {
+        createCatalogRepository: () => ({
+          deleteCatalogProduct: async (id) => ({
+            deletedIdentifierCount: id === "product_1" ? 1 : 0,
+            deletedPriceObservationCount: 2,
+            deletedProductCount: 1,
+            deletedProductSourceCount: 1,
+            deletedStockCount: 1,
+            deletedTagAssignmentCount: 1
+          }),
+          listCatalogProductsForReview: async () => ({
+            products: [],
+            totalCount: 0
+          })
+        }),
+        getMongoClient: async () => ({
+          db: () => ({})
+        } as never)
+      }
+    );
+
+    expect(response.status).toBe(200);
+    expect(JSON.parse(response.body)).toEqual({
+      id: "product_1",
+      result: {
+        deletedIdentifierCount: 1,
+        deletedPriceObservationCount: 2,
+        deletedProductCount: 1,
+        deletedProductSourceCount: 1,
+        deletedStockCount: 1,
+        deletedTagAssignmentCount: 1
+      }
+    });
+  });
+
   it("prepares product review items for one ingestion snapshot", async () => {
     vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
     vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
