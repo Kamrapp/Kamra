@@ -729,6 +729,276 @@ describe("handleAppRequest auth guards", () => {
     });
   });
 
+  it("prepares product review items for one ingestion snapshot", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "admin@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "admin",
+      secret: "test-secret"
+    });
+    const reviewItem = createProductReviewItem();
+
+    const response = await handleAppRequest(
+      {
+        bodyText: JSON.stringify({ snapshotId: "simple_html_table_shop:weekly-html-table:2026-07-02" }),
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "POST",
+        path: "/api/admin/ingestion/prepare-review-items"
+      },
+      {
+        createCatalogRepository: () => ({
+          listCatalogProductsForReview: async () => ({
+            products: [],
+            totalCount: 0
+          }),
+          setupCollections: async () => undefined
+        }),
+        createIngestionRepository: () => ({
+          findRawSnapshotById: async () => createIngestionSnapshot(),
+          listRawSnapshots: async () => [],
+          prepareProductReviewItems: async () => [reviewItem],
+          setupCollections: async () => undefined
+        }),
+        getMongoClient: async () => ({
+          db: () => ({})
+        } as never)
+      }
+    );
+
+    expect(response.status).toBe(200);
+    expect(JSON.parse(response.body)).toMatchObject({
+      preparedCount: 1,
+      reviewItems: [
+        {
+          id: reviewItem.id,
+          status: "pending"
+        }
+      ],
+      snapshotId: "simple_html_table_shop:weekly-html-table:2026-07-02"
+    });
+  });
+
+  it("lists product review items with filters", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "admin@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "admin",
+      secret: "test-secret"
+    });
+    let requestedOptions: unknown;
+    const reviewItem = createProductReviewItem();
+
+    const response = await handleAppRequest(
+      {
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "GET",
+        path: "/api/admin/ingestion/review-items",
+        query: {
+          limit: "20",
+          offset: "40",
+          snapshotId: "snapshot-1",
+          sourceName: "lidl-hu-brochure",
+          status: "pending,declined"
+        }
+      },
+      {
+        createCatalogRepository: () => ({
+          listCatalogProductsForReview: async () => ({
+            products: [],
+            totalCount: 0
+          }),
+          setupCollections: async () => undefined
+        }),
+        createIngestionRepository: () => ({
+          findRawSnapshotById: async () => null,
+          listProductReviewItems: async (options) => {
+            requestedOptions = options;
+            return [reviewItem];
+          },
+          listRawSnapshots: async () => [],
+          setupCollections: async () => undefined
+        }),
+        getMongoClient: async () => ({
+          db: () => ({})
+        } as never)
+      }
+    );
+
+    expect(response.status).toBe(200);
+    expect(requestedOptions).toEqual({
+      limit: 20,
+      offset: 40,
+      snapshotId: "snapshot-1",
+      sourceName: "lidl-hu-brochure",
+      status: ["pending", "declined"]
+    });
+    expect(JSON.parse(response.body)).toMatchObject({
+      reviewItems: [
+        {
+          id: reviewItem.id
+        }
+      ]
+    });
+  });
+
+  it("updates one product review candidate from editor JSON", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "admin@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "admin",
+      secret: "test-secret"
+    });
+    const reviewItem = createProductReviewItem();
+    let updatedCandidateName = "";
+
+    const response = await handleAppRequest(
+      {
+        bodyText: JSON.stringify({
+          candidate: {
+            ...reviewItem.candidate,
+            product: {
+              ...reviewItem.candidate.product,
+              name: "Corrected milk"
+            }
+          },
+          id: reviewItem.id
+        }),
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "PATCH",
+        path: "/api/admin/ingestion/review-item"
+      },
+      {
+        createCatalogRepository: () => ({
+          listCatalogProductsForReview: async () => ({
+            products: [],
+            totalCount: 0
+          }),
+          setupCollections: async () => undefined
+        }),
+        createIngestionRepository: () => ({
+          findProductReviewItemById: async () => ({
+            ...reviewItem,
+            candidate: {
+              ...reviewItem.candidate,
+              product: {
+                ...reviewItem.candidate.product,
+                name: updatedCandidateName
+              }
+            }
+          }),
+          findRawSnapshotById: async () => null,
+          listRawSnapshots: async () => [],
+          setupCollections: async () => undefined,
+          updateProductReviewItemCandidate: async (input) => {
+            updatedCandidateName = input.candidate.product.name;
+            return true;
+          }
+        }),
+        getMongoClient: async () => ({
+          db: () => ({})
+        } as never)
+      }
+    );
+
+    expect(response.status).toBe(200);
+    expect(updatedCandidateName).toBe("Corrected milk");
+    expect(JSON.parse(response.body)).toMatchObject({
+      reviewItem: {
+        candidate: {
+          product: {
+            name: "Corrected milk"
+          }
+        },
+        id: reviewItem.id
+      }
+    });
+  });
+
+  it("declines one product review item with a reason", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "admin@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "admin",
+      secret: "test-secret"
+    });
+    let decisionInput: unknown;
+
+    const response = await handleAppRequest(
+      {
+        bodyText: JSON.stringify({
+          declineReason: "bad_name",
+          id: "review-1",
+          note: "Not a product name."
+        }),
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "POST",
+        path: "/api/admin/ingestion/review-item/decline"
+      },
+      {
+        createCatalogRepository: () => ({
+          listCatalogProductsForReview: async () => ({
+            products: [],
+            totalCount: 0
+          }),
+          setupCollections: async () => undefined
+        }),
+        createIngestionRepository: () => ({
+          findRawSnapshotById: async () => null,
+          listRawSnapshots: async () => [],
+          markProductReviewItemDecision: async (input) => {
+            decisionInput = input;
+            return true;
+          },
+          setupCollections: async () => undefined
+        }),
+        getMongoClient: async () => ({
+          db: () => ({})
+        } as never)
+      }
+    );
+
+    expect(response.status).toBe(200);
+    expect(decisionInput).toMatchObject({
+      declineReason: "bad_name",
+      id: "review-1",
+      note: "Not a product name.",
+      reviewerId: "admin@kamra.test",
+      status: "declined"
+    });
+    expect(JSON.parse(response.body)).toEqual({
+      id: "review-1",
+      status: "declined"
+    });
+  });
+
   it("processes one ingestion snapshot with a valid admin token", async () => {
     vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
     vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
@@ -822,5 +1092,72 @@ function createIngestionSnapshot() {
     sourceRecordId: "weekly-html-table",
     sourceUrl: "https://example.invalid/simple-html-table-shop",
     workflowName: "synthetic-html-table-shop"
+  };
+}
+
+function createProductReviewItem() {
+  return {
+    acceptedCatalogProductDeletedAt: null,
+    acceptedCatalogProductId: null,
+    candidate: {
+      matchConfidence: "strong_source_key" as const,
+      origin: {
+        capturedAt: "2026-07-02T09:00:00.000Z",
+        sourceName: "simple_html_table_shop",
+        sourceRecordId: "weekly-html-table",
+        sourceUrl: "https://example.invalid/simple-html-table-shop"
+      },
+      priceObservations: [
+        {
+          currencyCode: "HUF" as const,
+          observedAt: "2026-07-02T09:00:00.000Z",
+          price: 469,
+          priceKind: "base" as const
+        }
+      ],
+      product: {
+        kind: "grocery" as const,
+        measurements: [],
+        name: "Pilos UHT tej 2,8% 1 l",
+        normalizedName: "pilos uht tej 2,8% 1 l",
+        primaryCategoryKey: null
+      },
+      source: {
+        countryCode: "HU" as const,
+        sourceName: "simple_html_table_shop",
+        sourceProductKey: "simple-milk",
+        sourceProductName: "Pilos UHT tej 2,8% 1 l",
+        storeBrandKey: "simple-html-table-shop"
+      },
+      sourceProductIdentifiers: [],
+      stock: {
+        availability: "infinite" as const,
+        countryCode: "HU" as const
+      }
+    },
+    candidateBuilderName: "SourceOfferReviewCandidateBuilder",
+    candidateBuilderVersion: "1.0.0",
+    candidateMatch: "strong_source_key" as const,
+    capturedAt: "2026-07-02T09:00:00.000Z",
+    createdAt: "2026-07-02T09:00:00.000Z",
+    decision: null,
+    id: "review-1",
+    rawRowPreview: {
+      countryCode: "HU" as const,
+      displayName: "Pilos UHT tej 2,8% 1 l",
+      packageLabel: "1 l",
+      priceValue: 469,
+      sourceName: "simple_html_table_shop",
+      sourceProductKey: "simple-milk",
+      sourceRecordId: "simple_html_table_shop:weekly-html-table:2026-07-02:row-1",
+      storeBrandKey: "simple-html-table-shop"
+    },
+    rowFingerprint: "review-fingerprint",
+    rowIndex: 0,
+    snapshotId: "simple_html_table_shop:weekly-html-table:2026-07-02",
+    sourceName: "simple_html_table_shop",
+    sourceRecordId: "simple_html_table_shop:weekly-html-table:2026-07-02:row-1",
+    status: "pending" as const,
+    updatedAt: "2026-07-02T09:00:00.000Z"
   };
 }

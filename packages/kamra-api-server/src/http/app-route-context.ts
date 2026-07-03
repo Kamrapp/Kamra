@@ -13,6 +13,11 @@ import { readAppConfig, type AppConfig } from "../config/app-config.js";
 import { getMongoClient } from "../db/mongo-client.js";
 import { MongoIngestionRepository } from "../ingestion/current/mongo-ingestion-repository.js";
 import type { IngestionRawSnapshotRecord } from "../ingestion/v1/contracts.js";
+import type {
+  IngestionProductReviewItemRecord,
+  ProductReviewCandidateDraft
+} from "../ingestion/v1/review-contracts.js";
+import type { ProductReviewDecisionReason } from "../ingestion/v1/review-contracts.js";
 
 export interface AppRequest {
   bodyText?: string;
@@ -48,8 +53,33 @@ export interface AppHandlerDependencies {
   };
   createIngestionRepository?: (database: Db) => {
     findRawSnapshotById(id: string): Promise<IngestionRawSnapshotRecord | null>;
+    findProductReviewItemById?(id: string): Promise<IngestionProductReviewItemRecord | null>;
     listRawSnapshots(options?: { limit?: number; sourceName?: string }): Promise<IngestionRawSnapshotRecord[]>;
+    listProductReviewItems?(options?: {
+      limit?: number;
+      offset?: number;
+      snapshotId?: string;
+      sourceName?: string;
+      status?: IngestionProductReviewItemRecord["status"][];
+    }): Promise<IngestionProductReviewItemRecord[]>;
+    markProductReviewItemDecision?(input: {
+      acceptedCatalogProductDeletedAt?: string | null;
+      acceptedCatalogProductId?: string | null;
+      declineReason?: ProductReviewDecisionReason | null;
+      id: string;
+      note?: string | null;
+      decidedAt: string;
+      reviewerId: string;
+      reviewerName: string;
+      status: "accepted" | "declined";
+    }): Promise<boolean>;
+    prepareProductReviewItems?(snapshot: IngestionRawSnapshotRecord): Promise<IngestionProductReviewItemRecord[]>;
     setupCollections?(): Promise<unknown>;
+    updateProductReviewItemCandidate?(input: {
+      candidate: ProductReviewCandidateDraft;
+      id: string;
+      updatedAt: string;
+    }): Promise<boolean>;
   };
   createUserRepository?: (database: Db) => MongoUserRepository;
   getMongoClient?: typeof getMongoClient;

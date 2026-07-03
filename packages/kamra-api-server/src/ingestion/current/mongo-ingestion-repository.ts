@@ -8,6 +8,7 @@ import type {
 } from "../v1/contracts.js";
 import type { MongoCollectionLike, MongoDatabaseLike } from "../../db/mongo-like.js";
 import type { ProductReviewDecisionReason } from "../v1/review-contracts.js";
+import type { ProductReviewCandidateDraft } from "../v1/review-contracts.js";
 import { ingestionV1CollectionSchemas } from "../v1/schemas.js";
 import {
   buildSourceOfferReviewCandidate,
@@ -64,6 +65,12 @@ export interface MarkProductReviewItemDecisionInput {
   reviewerId: string;
   reviewerName: string;
   status: "accepted" | "declined";
+}
+
+export interface UpdateProductReviewItemCandidateInput {
+  candidate: ProductReviewCandidateDraft;
+  id: string;
+  updatedAt: string;
 }
 
 export class MongoIngestionRepository {
@@ -279,6 +286,21 @@ export class MongoIngestionRepository {
 
   async findProductReviewItemById(id: string): Promise<IngestionProductReviewItemRecord | null> {
     return this.productReviewItemsCollection.findOne({ id });
+  }
+
+  async updateProductReviewItemCandidate(input: UpdateProductReviewItemCandidateInput): Promise<boolean> {
+    const result = await this.productReviewItemsCollection.updateOne(
+      { id: input.id },
+      {
+        $set: {
+          candidate: input.candidate,
+          candidateMatch: input.candidate.matchConfidence,
+          updatedAt: input.updatedAt
+        }
+      }
+    );
+
+    return (result.matchedCount ?? 0) > 0;
   }
 
   async markProductReviewItemDecision(input: MarkProductReviewItemDecisionInput): Promise<boolean> {

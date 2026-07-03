@@ -30,6 +30,7 @@
 - Item: Added an explicit Health-view `Upgrade catalog validators` maintenance action that runs catalog validator `collMod` upgrades for privileged MongoDB users before the unvalidated backfill is retried.
 - Item: Confirmed the Health maintenance flow worked against `kamra_dev`: upgraded 9 catalog validators, created 0 missing catalog collections, and marked 1130 legacy products as unvalidated.
 - Item: Updated `docs/tech-ops.md` with the validator-maintenance runbook and the 2026-07-03 maintenance outcome.
+- Item: Implemented the admin product review API slice for preparing, listing, loading, JSON-updating, accepting, and declining crawl review items.
 
 ## Changed Files
 
@@ -105,6 +106,10 @@
 - Result: passed
 - Not run: manual Health button check
 - Reason: the validator-upgrade route and repository behavior are covered by focused tests
+- Ran: `npm test -- packages/kamra-api-server/src/http/app-handler.test.ts packages/kamra-api-server/src/ingestion/current`, `npm run typecheck`, `npm run build`
+- Result: passed
+- Not run: manual UI checks
+- Reason: this step exposed API routes and persistence needed by the upcoming editor UI
 
 ## Decisions
 
@@ -133,6 +138,8 @@
 - Impact: later UI/API steps should still assume a single active admin reviewer.
 - Issue: the product/crawl editor workflow is not implemented yet.
 - Impact: crawled-item migration review and existing-product editing still need explicit table action columns, with small edit/process icons at the beginning of the tables rather than the end.
+- Issue: accepted review items are marked accepted but are not promoted into catalog records yet.
+- Impact: the next backend step still needs one-row catalog promotion before accepted crawl products become real catalog products.
 
 ## Roadmap Or Plan Updates
 
@@ -141,7 +148,7 @@
 
 ## Next Step
 
-Implement the admin review API slice, then validate and commit it.
+Build the reusable product editor popover and wire first-column table action icons for crawl review and product editing.
 
 ## Notes For Future Agent
 

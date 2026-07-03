@@ -86,6 +86,47 @@ describe("MongoIngestionRepository", () => {
       status: "declined"
     });
   });
+
+  it("updates a review item candidate from editor changes", async () => {
+    const db = createFakeDb();
+    const repository = new MongoIngestionRepository(db);
+    await repository.setupCollections();
+
+    const snapshot = createSnapshot([
+      {
+        countryCode: "HU",
+        displayName: "Kamra tej",
+        sourceProductKey: "kamra-milk-1",
+        sourceRecordId: "row-2"
+      }
+    ]);
+
+    const [reviewItem] = await repository.prepareProductReviewItems(snapshot);
+    const updated = await repository.updateProductReviewItemCandidate({
+      candidate: {
+        ...reviewItem!.candidate,
+        matchConfidence: "name_only",
+        product: {
+          ...reviewItem!.candidate.product,
+          name: "Corrected Kamra tej"
+        }
+      },
+      id: reviewItem!.id,
+      updatedAt: "2026-07-01T10:00:00.000Z"
+    });
+
+    expect(updated).toBe(true);
+    expect(await repository.findProductReviewItemById(reviewItem!.id)).toMatchObject({
+      candidate: {
+        matchConfidence: "name_only",
+        product: {
+          name: "Corrected Kamra tej"
+        }
+      },
+      candidateMatch: "name_only",
+      updatedAt: "2026-07-01T10:00:00.000Z"
+    });
+  });
 });
 
 function createSnapshot(parsedRows: ParsedShopProductRow[]): IngestionRawSnapshotRecord {
