@@ -267,16 +267,16 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
   readonly ingestion = inject(IngestionAdminService);
   readonly pageRail = inject(PageRailService);
   readonly snapshotColumns: readonly ResizableTableColumn[] = [
-    { key: "source", label: "Source", minWidth: 80, maxWidth: 640, width: 300 },
+    { key: "source", label: "Source", minWidth: 80, maxWidth: 640, width: 180 },
     { key: "captured", label: "Captured", minWidth: 80, maxWidth: 640, width: 120 },
-    { key: "rows", label: "Rows", minWidth: 80, maxWidth: 640, width: 84 },
-    { key: "state", label: "State", minWidth: 80, maxWidth: 640, width: 132 }
+    { key: "rows", label: "Rows", minWidth: 60, maxWidth: 640, width: 70 },
+    { key: "state", label: "State", minWidth: 80, maxWidth: 640, width: 120 }
   ];
   readonly rowColumns: readonly ResizableTableColumn[] = [
-    { key: "product", label: "Product", minWidth: 120, maxWidth: 820, width: 440 },
-    { key: "key", label: "Key", minWidth: 120, maxWidth: 760, width: 240 },
-    { key: "price", label: "Price", minWidth: 110, maxWidth: 760, width: 170 },
-    { key: "validity", label: "Validity", minWidth: 130, maxWidth: 760, width: 240 }
+    { key: "product", label: "Product", minWidth: 120, maxWidth: 820, width: 360 },
+    { key: "key", label: "Key", minWidth: 60, maxWidth: 540, width: 100 },
+    { key: "price", label: "Price", minWidth: 60, maxWidth: 540, width: 100 },
+    { key: "validity", label: "Validity", minWidth: 130, maxWidth: 540, width: 240 }
   ];
   readonly errorMessage = signal("");
   readonly loadState = signal<"idle" | "loading" | "success" | "error">("idle");

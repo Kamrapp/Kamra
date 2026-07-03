@@ -236,10 +236,10 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
   readonly totalPages = signal(0);
   readonly tableColumns: readonly ResizableTableColumn[] = [
     { key: "product", label: "Product", minWidth: 140, maxWidth: 640, width: 300 },
-    { key: "prices", label: "Prices", minWidth: 140, maxWidth: 640, width: 260 },
-    { key: "sources", label: "Sources", minWidth: 140, maxWidth: 640, width: 280 },
+    { key: "prices", label: "Prices", minWidth: 100, maxWidth: 640, width: 140 },
+    { key: "sources", label: "Sources", minWidth: 140, maxWidth: 640, width: 180 },
     { key: "identifiers", label: "Identifiers", minWidth: 140, maxWidth: 640, width: 220 },
-    { key: "state", label: "State", minWidth: 140, maxWidth: 640, width: 190 }
+    { key: "state", label: "State", minWidth: 120, maxWidth: 640, width: 160 }
   ];
   readonly rowHeight = 92;
   readonly scrollTop = signal(0);

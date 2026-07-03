@@ -252,14 +252,14 @@ import { PageRailService } from "./shared/page-rail.service";
       .shell {
         display: grid;
         gap: var(--space-4);
-        grid-template-columns: minmax(12rem, 1fr) minmax(0, 6fr) minmax(12rem, 1fr);
+        grid-template-columns: minmax(16rem, 1fr) minmax(0, 6fr) minmax(16rem, 1fr);
         grid-template-rows: minmax(0, 1fr);
         height: 100dvh;
         margin: 0 auto;
         max-height: 100dvh;
         overflow: clip;
-        padding: var(--space-page);
-        width: min(100%, max(82rem, 88vw));
+        padding: var(--space-page-y) var(--space-page-x);
+        width: 100%;
       }
 
       .left-rail,
@@ -398,7 +398,7 @@ import { PageRailService } from "./shared/page-rail.service";
 
       .rail-summary-grid dd {
         color: var(--color-text);
-        font-size: 0.95rem;
+        font-size: 0.8rem;
         font-weight: 800;
         overflow-wrap: anywhere;
         text-align: right;
@@ -641,7 +641,7 @@ import { PageRailService } from "./shared/page-rail.service";
         .shell {
           grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
           grid-template-rows: auto minmax(0, 1fr);
-          width: min(100%, max(76rem, 75vw));
+          width: min(100%, max(82rem, 86vw));
         }
 
         .left-rail,
