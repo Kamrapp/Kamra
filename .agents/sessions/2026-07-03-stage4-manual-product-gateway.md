@@ -36,6 +36,7 @@
 - Item: Completed crawl-review acceptance so accepted items now materialize catalog products and persist the accepted product id alongside the review decision.
 - Item: Fixed accepted crawl-product writes so the review decision no longer stores an invalid null `declineReason`, and validation failures now log the operation plus the Mongo validation details.
 - Item: Hardened route handling so unexpected route failures return a stable 500 response instead of killing the local API process, and surfaced admin route failures as UI toasts.
+- Item: Collapsed the Product view source selector into a compact multi-select dropdown instead of a full chip/list block.
 
 ## Changed Files
 
@@ -83,6 +84,8 @@
 - Path: `src/app/shared/toast-host.component.ts`
 - Path: `src/app/shared/toast.service.ts`
 - Path: `src/app/app.component.ts`
+- Path: `src/app/shared/page-rail.service.ts`
+- Path: `src/app/product-lookup/product-catalog.component.ts`
 - Path: `src/app/auth.service.ts`
 - Path: `src/app/health-check.component.ts`
 - Path: `packages/kamra-api-server/src/http/app-handler.ts`
@@ -150,6 +153,10 @@
 - Result: passed
 - Not run: manual browser checks
 - Reason: this follow-up hardens the request boundary and toast plumbing, which was verified by focused tests and full compile/build checks
+- Ran: `npm run typecheck`, `npm run build`
+- Result: passed with an existing Angular component style budget warning on `src/app/app.component.ts`
+- Not run: manual browser checks
+- Reason: this is a layout/UI refinement verified through compile and build checks
 
 ## Decisions
 
@@ -186,6 +193,8 @@
 - Impact: compile/build passed, but the interaction flow still needs a quick browser pass before calling it polished.
 - Issue: the editor flow still needs a browser pass to verify the new modal interactions and first-column action buttons feel right.
 - Impact: the code path is covered, but the user experience still deserves one manual look.
+- Issue: price observation editing is still missing from the shared product editor, with measurements deferred after that.
+- Impact: the editor currently covers core product fields only, so product history cleanup still needs a follow-up slice.
 
 ## Roadmap Or Plan Updates
 
@@ -194,7 +203,7 @@
 
 ## Next Step
 
-Build the reusable product editor popover and wire first-column table action icons for crawl review and product editing.
+Extend the reusable product editor to manage price observations on existing products, then add measurements afterward.
 
 ## Notes For Future Agent
 

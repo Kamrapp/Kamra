@@ -371,7 +371,10 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
         key: "catalog-sources",
         kind: "filters",
         kicker: "Offer sources",
-        title: `${this.products().length} of ${this.totalProductCount()} products loaded`,
+        title: "Sources",
+        selectedCount: this.selectedOfferSources().size,
+        optionCount: this.offerSourceOptions().length,
+        note: `${this.products().length} of ${this.totalProductCount()} products loaded`,
         options: this.offerSourceOptions().map((source) => ({
           key: source.key,
           label: source.label,

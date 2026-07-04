@@ -109,13 +109,30 @@ import { ToastService } from "./shared/toast.service";
                   <div>
                     <p class="rail-kicker">{{ section.kicker }}</p>
                     @if (section.title) {
-                      <p class="rail-title rail-section-title">{{ section.title }}</p>
+                      <button
+                        class="rail-filter-toggle"
+                        type="button"
+                        [attr.aria-expanded]="openFilterKey() === section.key"
+                        (click)="toggleRailFilter(section.key)"
+                      >
+                        <span class="rail-title rail-section-title">{{ section.title }}</span>
+                        <span class="rail-filter-count">
+                          {{ section.selectedCount ?? 0 }}/{{ section.optionCount ?? section.options?.length ?? 0 }}
+                        </span>
+                        <svg aria-hidden="true" viewBox="0 0 24 24" class="rail-filter-icon">
+                          <path d="M7 10.5 12 15.5 17 10.5H7Z"></path>
+                        </svg>
+                      </button>
                     }
                   </div>
                 </div>
 
+                @if (section.note) {
+                  <p class="rail-message">{{ section.note }}</p>
+                }
+
                 @if (section.options?.length) {
-                  <div class="rail-filter-list">
+                  <div class="rail-filter-popover" [class.rail-filter-popover-open]="openFilterKey() === section.key">
                     @for (option of section.options; track option.key) {
                       <label class="rail-filter-option">
                         <input type="checkbox" [checked]="option.checked" (change)="option.onToggle()" />
@@ -424,22 +441,58 @@ import { ToastService } from "./shared/toast.service";
       }
 
       .rail-filter-list {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.4rem;
+        display: none;
+      }
+
+      .rail-filter-toggle {
+        align-items: center;
+        background: transparent;
+        border: 0;
+        color: inherit;
+        cursor: pointer;
+        display: inline-flex;
+        gap: 0.45rem;
+        padding: 0;
+      }
+
+      .rail-filter-count {
+        color: var(--color-text-muted);
+        font-size: 0.75rem;
+        font-weight: 700;
+        margin-left: 0.1rem;
+      }
+
+      .rail-filter-icon {
+        color: var(--color-text-muted);
+        height: 0.9rem;
+        margin-left: 0.1rem;
+        width: 0.9rem;
+      }
+
+      .rail-filter-popover {
+        display: none;
+        gap: 0.35rem;
+        margin-top: 0.35rem;
+        max-height: 14rem;
+        overflow: auto;
+        padding-right: 0.1rem;
+      }
+
+      .rail-filter-popover-open {
+        display: grid;
       }
 
       .rail-filter-option {
         align-items: center;
-        background: color-mix(in srgb, var(--color-accent-sky) 18%, white 82%);
+        background: color-mix(in srgb, var(--color-accent-sky) 14%, white 86%);
         border: 1px solid color-mix(in srgb, var(--color-wood) 14%, transparent);
         border-radius: 8px;
-        display: inline-flex;
+        display: flex;
         font-size: 0.8rem;
         font-weight: 800;
         gap: 0.42rem;
-        min-height: 1.9rem;
-        padding: 0.28rem 0.5rem;
+        min-height: 2rem;
+        padding: 0.3rem 0.55rem;
       }
 
       .rail-filter-option input {
@@ -781,6 +834,7 @@ export class AppComponent implements OnInit {
     }
   ];
   isMenuOpen = false;
+  readonly openFilterKey = signal<string | null>(null);
   loginEmail = "";
   loginPassword = "";
   private readonly router = inject(Router);
@@ -791,6 +845,7 @@ export class AppComponent implements OnInit {
       if (event instanceof NavigationEnd) {
         this.currentPageTitle.set(this.pageTitleForUrl(event.urlAfterRedirects));
         this.closeMenu();
+        this.openFilterKey.set(null);
       }
     });
   }
@@ -807,6 +862,10 @@ export class AppComponent implements OnInit {
 
   closeMenu(): void {
     this.isMenuOpen = false;
+  }
+
+  toggleRailFilter(key: string): void {
+    this.openFilterKey.set(this.openFilterKey() === key ? null : key);
   }
 
   toggleMenu(): void {

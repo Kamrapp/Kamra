@@ -129,6 +129,7 @@ Included:
 - Snapshot-level progress derived from row review states.
 - Crawl UI changes to open a one-by-one product review popover.
 - Shared product editor component for candidate review and existing catalog products.
+- Price observation editing inside the shared product editor.
 - Products table edit button in the first column.
 - Existing product update route.
 - Existing product invalidate/validate route or update action.
@@ -185,8 +186,8 @@ Included:
 
 - Should accepted/declined review decisions also record an optional free-text reviewer note?
   - Recommended: add optional notes alongside the decline reason because they are cheap and useful for parser followups.
-- Should price observations be editable in the first UI slice, or only product/source fields plus candidate JSON?
-  - Recommended: normal fields for the core product/source identity and price list shown read-only at first, with JSON as the complete escape hatch.
+- Should measurements be editable in the first UI slice, or only after price-observation editing lands?
+  - Recommended: land price-observation editing first, then add measurement editing as the next slice.
 
 ## Side Suggestions
 
@@ -401,7 +402,7 @@ Initial decline reasons:
 
 ### Step 6: Build Shared Product Editor Component
 
-- Goal: Add a reusable admin product editor that supports candidate mode and existing product mode.
+- Goal: Add a reusable admin product editor that supports candidate mode and existing product mode, including editable price observations for existing products and later measurement editing.
 - UI behavior:
   - main fields on the left
   - raw crawl context and source data visible in candidate mode
@@ -410,6 +411,8 @@ Initial decline reasons:
   - decline opens a reason dropdown before submitting
   - clear accept/save/delete/decline/validate/invalidate actions where mode-appropriate
   - compact one-by-one review flow with next item loading
+  - price observations editable in existing-product mode with add/remove controls
+  - measurements can be added as a later editor slice after price observations are stable
 - Files likely affected:
   - `src/app/shared/product-editor.component.ts` or `src/app/site-admin/product-editor/`
   - `src/app/site-admin/ingestion-admin.component.ts`
@@ -447,13 +450,14 @@ Initial decline reasons:
 
 ### Step 8: Add Existing Product Edit And Delete
 
-- Goal: Open the same editor from the Products table and support saving, validating, invalidating, or deleting existing catalog products.
+- Goal: Open the same editor from the Products table and support saving, validating, invalidating, deleting, and editing price observations for existing catalog products.
 - Include:
   - edit button in first column
   - product detail load route
   - product update route
   - product validate/invalidate action
   - product delete route
+  - price observation add/remove actions in the editor
   - cascade delete catalog records:
     - product_sources
     - product_source_identifiers
