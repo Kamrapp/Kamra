@@ -64,10 +64,32 @@ type EditorMode = "catalog" | "review";
             </form>
 
             <aside class="json-panel">
-              <label>
-                JSON editor
-                <textarea name="json" rows="16" [(ngModel)]="jsonText"></textarea>
-              </label>
+              <div class="json-panel-header">
+                <label class="json-panel-title">
+                  JSON editor
+                </label>
+                <div class="json-actions">
+                  <button
+                    class="secondary-button json-action-button"
+                    type="button"
+                    [disabled]="hasPriceObservations()"
+                    title="Insert an empty price observation entry"
+                    (click)="addEmptyPriceObservation()"
+                  >
+                    Add empty priceObservation
+                  </button>
+                  <button
+                    class="secondary-button json-action-button"
+                    type="button"
+                    [disabled]="hasMeasurements()"
+                    title="Insert an empty measurement entry"
+                    (click)="addEmptyMeasurement()"
+                  >
+                    Add empty measurement
+                  </button>
+                </div>
+              </div>
+              <textarea name="json" rows="16" [(ngModel)]="jsonText"></textarea>
               @if (jsonError()) {
                 <p class="error-text">{{ jsonError() }}</p>
               }
@@ -143,6 +165,24 @@ type EditorMode = "catalog" | "review";
         display: grid;
         gap: var(--space-3);
         min-width: 0;
+      }
+
+      .json-panel-header {
+        align-items: start;
+        display: grid;
+        gap: 0.55rem;
+      }
+
+      .json-panel-title {
+        align-items: center;
+        display: flex;
+        gap: 0.6rem;
+      }
+
+      .json-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
       }
 
       label {
@@ -242,6 +282,11 @@ type EditorMode = "catalog" | "review";
       .danger-button {
         background: color-mix(in srgb, #b42318 16%, white 84%);
         color: #842018;
+      }
+
+      .json-action-button {
+        min-height: 2rem;
+        padding: 0.35rem 0.55rem;
       }
 
       @media (max-width: 840px) {
@@ -349,6 +394,47 @@ export class ProductEditorDialogComponent {
     }
   }
 
+  addEmptyPriceObservation(): void {
+    if (this.hasPriceObservations()) {
+      return;
+    }
+
+    const parsed = this.parseJsonText();
+    if (!parsed) {
+      return;
+    }
+
+    const priceObservations = Array.isArray(parsed["priceObservations"]) ? parsed["priceObservations"] : [];
+    priceObservations.push({
+      currencyCode: "HUF",
+      observedAt: "",
+      price: 0
+    });
+    parsed["priceObservations"] = priceObservations;
+    this.jsonText = this.formatJson(parsed);
+    this.jsonError.set("");
+  }
+
+  addEmptyMeasurement(): void {
+    if (this.hasMeasurements()) {
+      return;
+    }
+
+    const parsed = this.parseJsonText();
+    if (!parsed) {
+      return;
+    }
+
+    const measurements = Array.isArray(parsed["measurements"]) ? parsed["measurements"] : [];
+    measurements.push({
+      unit: "",
+      value: 0
+    });
+    parsed["measurements"] = measurements;
+    this.jsonText = this.formatJson(parsed);
+    this.jsonError.set("");
+  }
+
   emitProductSave(): void {
     if (!this.product) {
       return;
@@ -387,5 +473,26 @@ export class ProductEditorDialogComponent {
 
   formatJson(value: unknown): string {
     return JSON.stringify(value, null, 2);
+  }
+
+  hasPriceObservations(): boolean {
+    const parsed = this.parseJsonText();
+    return Array.isArray(parsed?.["priceObservations"]) && parsed["priceObservations"].length > 0;
+  }
+
+  hasMeasurements(): boolean {
+    const parsed = this.parseJsonText();
+    return Array.isArray(parsed?.["measurements"]) && parsed["measurements"].length > 0;
+  }
+
+  private parseJsonText(): Record<string, unknown> | null {
+    try {
+      const parsed = JSON.parse(this.jsonText) as unknown;
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+        ? parsed as Record<string, unknown>
+        : null;
+    } catch {
+      return null;
+    }
   }
 }

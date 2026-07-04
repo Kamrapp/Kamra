@@ -37,6 +37,7 @@
 - Item: Fixed accepted crawl-product writes so the review decision no longer stores an invalid null `declineReason`, and validation failures now log the operation plus the Mongo validation details.
 - Item: Hardened route handling so unexpected route failures return a stable 500 response instead of killing the local API process, and surfaced admin route failures as UI toasts.
 - Item: Collapsed the Product view source selector into a compact multi-select dropdown instead of a full chip/list block.
+- Item: Added empty price-observation and measurement insertion buttons to the shared product editor JSON panel for missing-array cases.
 
 ## Changed Files
 
@@ -157,6 +158,10 @@
 - Result: passed with an existing Angular component style budget warning on `src/app/app.component.ts`
 - Not run: manual browser checks
 - Reason: this is a layout/UI refinement verified through compile and build checks
+- Ran: `npm run typecheck`, `npm run build`
+- Result: passed with an existing Angular component style budget warning on `src/app/app.component.ts`
+- Not run: manual browser checks
+- Reason: this editor tweak is a shared UI refinement verified through compile and build checks
 
 ## Decisions
 
