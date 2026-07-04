@@ -2,6 +2,8 @@ import { Component, computed, inject, signal, type OnInit } from "@angular/core"
 
 import { logBrowserEvent } from "./browser-logger";
 import { AuthService } from "./auth.service";
+import { readApiErrorMessage } from "./shared/api-errors";
+import { ToastService } from "./shared/toast.service";
 
 interface HealthReport {
   checklist?: HealthCheckItem[];
@@ -366,6 +368,7 @@ interface HealthCheckItem {
 })
 export class HealthCheckComponent implements OnInit {
   readonly auth = inject(AuthService);
+  readonly toast = inject(ToastService);
   readonly healthMessage = signal("Run the health check to verify the shared server path.");
   readonly healthReport = signal<HealthReport | null>(null);
   readonly healthState = signal<"idle" | "loading" | "error" | "success">("idle");
@@ -442,6 +445,7 @@ export class HealthCheckComponent implements OnInit {
         this.healthReport.set(null);
         this.healthState.set("error");
         this.healthMessage.set("Sign in before running the health check.");
+        this.toast.push("Sign in before running the health check.", "error");
         return;
       }
 
@@ -452,6 +456,9 @@ export class HealthCheckComponent implements OnInit {
       this.healthMessage.set(response.ok
         ? "Shared API health route responded successfully."
         : "Shared API health route responded with a degraded or failed status.");
+      if (!response.ok) {
+        this.toast.push(await readApiErrorMessage(response, "The health route returned an error."), "error");
+      }
 
       logBrowserEvent("info", "Health check response received", {
         httpStatus: response.status,
@@ -462,6 +469,7 @@ export class HealthCheckComponent implements OnInit {
       this.healthReport.set(null);
       this.healthState.set("error");
       this.healthMessage.set("The browser could not reach the health route.");
+      this.toast.push("The browser could not reach the health route.", "error");
 
       logBrowserEvent("error", "Health check request failed", error);
     }
@@ -494,6 +502,7 @@ export class HealthCheckComponent implements OnInit {
         await this.auth.logout();
         this.validatorUpgradeState.set("error");
         this.validatorUpgradeMessage.set("Sign in before using the validator upgrade action.");
+        this.toast.push("Sign in before using the validator upgrade action.", "error");
         return;
       }
 
@@ -507,6 +516,9 @@ export class HealthCheckComponent implements OnInit {
       this.validatorUpgradeMessage.set(response.ok
         ? `Upgraded ${payload.upgradedCollections?.length ?? 0} catalog validators and created ${payload.createdCollections?.length ?? 0} missing collections.`
         : "Catalog validators could not be upgraded.");
+      if (!response.ok) {
+        this.toast.push(payload.message ?? "Catalog validators could not be upgraded.", "error");
+      }
 
       logBrowserEvent("info", "Catalog validator upgrade response received", {
         createdCollectionCount: payload.createdCollections?.length,
@@ -516,6 +528,7 @@ export class HealthCheckComponent implements OnInit {
     } catch (error: unknown) {
       this.validatorUpgradeState.set("error");
       this.validatorUpgradeMessage.set("The browser could not reach the validator upgrade route.");
+      this.toast.push("The browser could not reach the validator upgrade route.", "error");
 
       logBrowserEvent("error", "Catalog validator upgrade request failed", error);
     }
@@ -548,6 +561,7 @@ export class HealthCheckComponent implements OnInit {
         await this.auth.logout();
         this.invalidationState.set("error");
         this.invalidationMessage.set("Sign in before using the maintenance action.");
+        this.toast.push("Sign in before using the maintenance action.", "error");
         return;
       }
 
@@ -562,6 +576,9 @@ export class HealthCheckComponent implements OnInit {
       this.invalidationMessage.set(response.ok
         ? this.formatLegacyBackfillMessage(payload)
         : "Legacy product backfill could not be completed.");
+      if (!response.ok) {
+        this.toast.push(payload.message ?? "Legacy product backfill could not be completed.", "error");
+      }
 
       logBrowserEvent("info", "Legacy validation backfill response received", {
         httpStatus: response.status,
@@ -572,6 +589,7 @@ export class HealthCheckComponent implements OnInit {
     } catch (error: unknown) {
       this.invalidationState.set("error");
       this.invalidationMessage.set("The browser could not reach the backfill route.");
+      this.toast.push("The browser could not reach the backfill route.", "error");
 
       logBrowserEvent("error", "Legacy validation backfill request failed", error);
     }

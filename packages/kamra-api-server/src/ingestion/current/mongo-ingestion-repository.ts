@@ -7,6 +7,7 @@ import type {
   ParsedShopProductRow
 } from "../v1/contracts.js";
 import type { MongoCollectionLike, MongoDatabaseLike } from "../../db/mongo-like.js";
+import { writeServerLog } from "../../logging/kamra-logger.js";
 import type { ProductReviewDecisionReason } from "../v1/review-contracts.js";
 import type { ProductReviewCandidateDraft } from "../v1/review-contracts.js";
 import { ingestionV1CollectionSchemas } from "../v1/schemas.js";
@@ -304,27 +305,52 @@ export class MongoIngestionRepository {
   }
 
   async markProductReviewItemDecision(input: MarkProductReviewItemDecisionInput): Promise<boolean> {
-    const result = await this.productReviewItemsCollection.updateOne(
-      { id: input.id },
-      {
-        $set: {
-          acceptedCatalogProductDeletedAt: input.acceptedCatalogProductDeletedAt ?? null,
-          acceptedCatalogProductId: input.acceptedCatalogProductId ?? null,
-          decision: {
-            decidedAt: input.decidedAt,
-            declineReason: input.status === "declined" ? input.declineReason ?? null : null,
-            note: input.note ?? null,
-            reviewerId: input.reviewerId,
-            reviewerName: input.reviewerName,
-            state: input.status
-          },
-          status: input.status,
-          updatedAt: input.decidedAt
-        }
-      }
-    );
+    const decision: {
+      decidedAt: string;
+      declineReason?: ProductReviewDecisionReason | null;
+      note: string | null;
+      reviewerId: string;
+      reviewerName: string;
+      state: "accepted" | "declined";
+    } = {
+      decidedAt: input.decidedAt,
+      note: input.note ?? null,
+      reviewerId: input.reviewerId,
+      reviewerName: input.reviewerName,
+      state: input.status
+    };
 
-    return (result.matchedCount ?? 0) > 0;
+    if (input.status === "declined") {
+      decision.declineReason = input.declineReason ?? null;
+    }
+
+    try {
+      const result = await this.productReviewItemsCollection.updateOne(
+        { id: input.id },
+        {
+          $set: {
+            acceptedCatalogProductDeletedAt: input.acceptedCatalogProductDeletedAt ?? null,
+            acceptedCatalogProductId: input.acceptedCatalogProductId ?? null,
+            decision,
+            status: input.status,
+            updatedAt: input.decidedAt
+          }
+        }
+      );
+
+      return (result.matchedCount ?? 0) > 0;
+    } catch (error: unknown) {
+      if (isMongoValidationError(error)) {
+        writeServerLog("error", "Review item decision validation failed", {
+          acceptedCatalogProductId: input.acceptedCatalogProductId ?? null,
+          id: input.id,
+          reviewStatus: input.status,
+          validationError: summarizeMongoValidationError(error)
+        });
+      }
+
+      throw error;
+    }
   }
 
   private async upsertMany<T extends { id: string }>(
@@ -364,4 +390,32 @@ export class MongoIngestionRepository {
 
 function deletedCount(result: DeleteResult): number {
   return result.deletedCount ?? 0;
+}
+
+function isMongoValidationError(error: unknown): boolean {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  return (error as { code?: unknown }).code === 121;
+}
+
+function summarizeMongoValidationError(error: unknown): Record<string, unknown> {
+  if (!error || typeof error !== "object") {
+    return {};
+  }
+
+  const candidate = error as {
+    errInfo?: {
+      details?: unknown;
+      failingDocumentId?: unknown;
+    };
+    message?: unknown;
+  };
+
+  return {
+    details: candidate.errInfo?.details ?? null,
+    failingDocumentId: candidate.errInfo?.failingDocumentId ?? null,
+    message: typeof candidate.message === "string" ? candidate.message : "unknown"
+  };
 }

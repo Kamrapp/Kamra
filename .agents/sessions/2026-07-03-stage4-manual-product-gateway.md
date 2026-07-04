@@ -32,6 +32,14 @@
 - Item: Updated `docs/tech-ops.md` with the validator-maintenance runbook and the 2026-07-03 maintenance outcome.
 - Item: Implemented the admin product review API slice for preparing, listing, loading, JSON-updating, accepting, and declining crawl review items.
 - Item: Implemented the catalog product admin API slice for loading, updating, validating, invalidating, and hard-deleting existing products with dependent catalog records.
+- Item: Added a reusable product editor dialog and wired first-column action icons into Product offers and crawl row review tables.
+- Item: Completed crawl-review acceptance so accepted items now materialize catalog products and persist the accepted product id alongside the review decision.
+- Item: Fixed accepted crawl-product writes so the review decision no longer stores an invalid null `declineReason`, and validation failures now log the operation plus the Mongo validation details.
+- Item: Hardened route handling so unexpected route failures return a stable 500 response instead of killing the local API process, and surfaced admin route failures as UI toasts.
+- Item: Collapsed the Product view source selector into a compact multi-select dropdown instead of a full chip/list block.
+- Item: Added empty price-observation and measurement insertion buttons to the shared product editor JSON panel for missing-array cases.
+- Item: Added a compact select-all/deselect-all toggle to the Product view source filter dropdown.
+- Item: Kept the Product view source filter dropdown visible after deselect-all so the user can reselect a source without reloading the page.
 
 ## Changed Files
 
@@ -71,7 +79,20 @@
 - Path: `src/app/health-check.component.ts`
 - Path: `packages/kamra-api-server/src/test-support/fake-mongo.ts`
 - Path: `src/app/product-lookup/product-catalog.component.ts`
+- Path: `src/app/product-lookup/product-catalog.service.ts`
 - Path: `src/app/site-admin/ingestion-admin.component.ts`
+- Path: `src/app/site-admin/ingestion-admin.service.ts`
+- Path: `src/app/shared/product-editor-dialog.component.ts`
+- Path: `src/app/shared/api-errors.ts`
+- Path: `src/app/shared/toast-host.component.ts`
+- Path: `src/app/shared/toast.service.ts`
+- Path: `src/app/app.component.ts`
+- Path: `src/app/shared/page-rail.service.ts`
+- Path: `src/app/product-lookup/product-catalog.component.ts`
+- Path: `src/app/auth.service.ts`
+- Path: `src/app/health-check.component.ts`
+- Path: `packages/kamra-api-server/src/http/app-handler.ts`
+- Path: `scripts/local-api.ts`
 
 ## Validation
 
@@ -119,6 +140,38 @@
 - Result: passed
 - Not run: manual UI checks
 - Reason: this step added backend product admin endpoints; the editor UI is the next step
+- Ran: `npm run typecheck`, `npm run build`
+- Result: passed
+- Not run: manual browser checks
+- Reason: this step was Angular UI wiring; compile/build passed, but no local browser session was requested in this turn
+- Ran: `npm test -- packages/kamra-api-server/src/http/app-handler.test.ts packages/kamra-api-server/src/catalog/current/mongo-catalog-repository.test.ts packages/kamra-api-server/src/ingestion/current/mongo-ingestion-repository.test.ts`, `npm run typecheck`, `npm run build`
+- Result: passed
+- Not run: manual browser checks
+- Reason: this completion step was covered by route, repository, typecheck, and build validation
+- Ran: `npm test -- packages/kamra-api-server/src/http/app-handler.test.ts packages/kamra-api-server/src/catalog/current/mongo-catalog-repository.test.ts packages/kamra-api-server/src/ingestion/current/mongo-ingestion-repository.test.ts`, `npm run typecheck`, `npm run build`
+- Result: passed
+- Not run: manual browser checks
+- Reason: this fix was a schema-correctness and diagnostics pass verified by focused tests and build checks
+- Ran: `npm test -- packages/kamra-api-server/src/http/app-handler.test.ts packages/kamra-api-server/src/catalog/current/mongo-catalog-repository.test.ts packages/kamra-api-server/src/ingestion/current/mongo-ingestion-repository.test.ts`, `npm run typecheck`, `npm run build`
+- Result: passed
+- Not run: manual browser checks
+- Reason: this follow-up hardens the request boundary and toast plumbing, which was verified by focused tests and full compile/build checks
+- Ran: `npm run typecheck`, `npm run build`
+- Result: passed with an existing Angular component style budget warning on `src/app/app.component.ts`
+- Not run: manual browser checks
+- Reason: this is a layout/UI refinement verified through compile and build checks
+- Ran: `npm run typecheck`, `npm run build`
+- Result: passed with an existing Angular component style budget warning on `src/app/app.component.ts`
+- Not run: manual browser checks
+- Reason: this editor tweak is a shared UI refinement verified through compile and build checks
+- Ran: `npm run typecheck`, `npm run build`
+- Result: passed with an existing Angular component style budget warning on `src/app/app.component.ts`
+- Not run: manual browser checks
+- Reason: this source-filter tweak is a shared UI refinement verified through compile and build checks
+- Ran: `npm run typecheck`, `npm run build`
+- Result: passed with an existing Angular component style budget warning on `src/app/app.component.ts`
+- Not run: manual browser checks
+- Reason: this empty-selection behavior fix is verified through compile and build checks
 
 ## Decisions
 
@@ -142,15 +195,21 @@
 - Reason: normal app users should not need elevated MongoDB privileges, while admins can temporarily use a privileged user for schema maintenance.
 - Decision: existing product hard-delete removes product-owned catalog records but leaves shared tag definitions intact.
 - Reason: tag records are shared vocabulary, while sources, identifiers, observations, stocks, and assignments are owned by the deleted product relationship.
+- Decision: product and crawl review action icons are first-column controls in their tables.
+- Reason: matches the requested table ergonomics and keeps row actions visible before wide product/source columns.
+- Decision: accepting a crawl review item now creates the catalog product immediately and stores the resulting product id on the review decision.
+- Reason: the manual gateway should move approved crawl items into the real catalog rather than leaving acceptance as metadata only.
 
 ## Open Issues
 
 - Issue: one-admin-only concurrency limitation remains only documented, not enforced.
 - Impact: later UI/API steps should still assume a single active admin reviewer.
-- Issue: the product/crawl editor UI workflow is not implemented yet.
-- Impact: crawled-item migration review and existing-product editing still need explicit table action columns, with small edit/process icons at the beginning of the tables rather than the end.
-- Issue: accepted review items are marked accepted but are not promoted into catalog records yet.
-- Impact: the next backend step still needs one-row catalog promotion before accepted crawl products become real catalog products.
+- Issue: the first product/crawl editor UI is implemented but not yet manually browser-tested.
+- Impact: compile/build passed, but the interaction flow still needs a quick browser pass before calling it polished.
+- Issue: the editor flow still needs a browser pass to verify the new modal interactions and first-column action buttons feel right.
+- Impact: the code path is covered, but the user experience still deserves one manual look.
+- Issue: price observation editing is still missing from the shared product editor, with measurements deferred after that.
+- Impact: the editor currently covers core product fields only, so product history cleanup still needs a follow-up slice.
 
 ## Roadmap Or Plan Updates
 
@@ -159,7 +218,7 @@
 
 ## Next Step
 
-Build the reusable product editor popover and wire first-column table action icons for crawl review and product editing.
+Extend the reusable product editor to manage price observations on existing products, then add measurements afterward.
 
 ## Notes For Future Agent
 

@@ -397,9 +397,9 @@ async function markProductReviewItemDecision(
 
   const { catalogRepository, ingestionRepository } = repositories;
   if (!ingestionRepository.markProductReviewItemDecision) {
-    return json(501, {
-      error: "product_review_not_supported"
-    });
+      return json(501, {
+        error: "product_review_not_supported"
+      });
   }
 
   await Promise.all([
@@ -414,8 +414,33 @@ async function markProductReviewItemDecision(
     });
   }
 
+  let acceptedCatalogProductId = payload.acceptedCatalogProductId ?? null;
+  if (status === "accepted") {
+    const reviewItem = await ingestionRepository.findProductReviewItemById?.(payload.id);
+    if (!reviewItem) {
+      return json(404, {
+        error: "review_item_not_found"
+      });
+    }
+
+    if (!acceptedCatalogProductId) {
+      if (!catalogRepository.createCatalogProductFromReviewCandidate) {
+        return json(501, {
+          error: "catalog_review_acceptance_not_supported"
+        });
+      }
+
+      const createdProduct = await catalogRepository.createCatalogProductFromReviewCandidate({
+        candidate: reviewItem.candidate,
+        createdAt: new Date().toISOString(),
+        reviewerId: user.email
+      });
+      acceptedCatalogProductId = createdProduct.productId;
+    }
+  }
+
   const updated = await ingestionRepository.markProductReviewItemDecision({
-    acceptedCatalogProductId: payload.acceptedCatalogProductId ?? null,
+    acceptedCatalogProductId,
     declineReason: payload.declineReason ?? null,
     decidedAt: new Date().toISOString(),
     id: payload.id,
@@ -432,6 +457,7 @@ async function markProductReviewItemDecision(
 
   return json(200, {
     id: payload.id,
+    acceptedCatalogProductId,
     status
   });
 }

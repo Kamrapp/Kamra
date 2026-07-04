@@ -16,6 +16,11 @@ export interface PageRailSection {
   key: string;
   kind: "summary" | "status" | "filters" | "action";
   kicker: string;
+  optionCount?: number;
+  selectedCount?: number;
+  secondaryActionDisabled?: boolean;
+  secondaryActionLabel?: string;
+  onSecondaryAction?: () => void;
   title?: string;
   items?: PageRailSummaryItem[];
   message?: string;

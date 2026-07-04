@@ -6,6 +6,7 @@ import {
   type AppResponse,
   type AppRoute
 } from "./app-route-context.js";
+import { writeServerLog } from "../logging/kamra-logger.js";
 import {
   catalogProductRoute,
   catalogProductsRoute,
@@ -65,5 +66,18 @@ export async function handleAppRequest(
     });
   }
 
-  return await route.handle(request, context);
+  try {
+    return await route.handle(request, context);
+  } catch (error: unknown) {
+    writeServerLog("error", "Unhandled application route failure", {
+      error
+    });
+
+    return json(500, {
+      error: "internal_error",
+      message: error instanceof Error && error.message
+        ? error.message
+        : "Internal server error"
+    });
+  }
 }
