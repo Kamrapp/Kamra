@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal, type OnInit } from "@angular/core";
+import { Component, computed, effect, inject, signal, type OnDestroy, type OnInit } from "@angular/core";
 
 import { AuthService } from "../auth.service";
 import { logBrowserEvent } from "../browser-logger";
@@ -10,6 +10,8 @@ import {
   type ProductMeasurement
 } from "./product-catalog.service";
 import { ResizableTableComponent, type ResizableTableColumn } from "../shared/resizable-table.component";
+import { PageRailService, type PageRailSection } from "../shared/page-rail.service";
+import { ProductEditorDialogComponent } from "../shared/product-editor-dialog.component";
 
 interface VisibleProductRow {
   index: number;
@@ -20,138 +22,87 @@ interface VisibleProductRow {
 const noOfferSourceKey = "__none__";
 
 @Component({
-  imports: [ResizableTableComponent],
+  imports: [ProductEditorDialogComponent, ResizableTableComponent],
   selector: "app-product-catalog",
   standalone: true,
   template: `
     <section class="products-page" aria-labelledby="products-title">
-      <header class="page-header surface-panel">
-        <div>
-          <p class="ui-kicker">Catalog</p>
-          <h1 id="products-title">Product offers</h1>
-        </div>
-
-        <dl class="summary-strip" aria-label="Catalog summary">
-          <div>
-            <dt>Shown</dt>
-            <dd>{{ filteredProducts().length }} / {{ totalProductCount() }}</dd>
-          </div>
-          <div>
-            <dt>Offers</dt>
-            <dd>{{ totalFilteredOfferCount() }}</dd>
-          </div>
-          <div>
-            <dt>Sources</dt>
-            <dd>{{ totalSourceCount() }}</dd>
-          </div>
-        </dl>
-      </header>
-
-      @if (!auth.token()) {
-        <section class="state-panel surface-panel surface-copy">
-          <p class="ui-kicker">Admin only</p>
-          <p class="state-title">Sign in to view the product catalog.</p>
-        </section>
-      } @else {
-        <section class="state-panel surface-panel surface-copy">
-          <div class="state-header">
-            <div>
-              <p class="ui-kicker">Current state</p>
-              <p class="state-title">{{ statusMessage() }}</p>
-            </div>
-
-            <button class="ui-action-button" type="button" (click)="loadProducts()" [disabled]="loadState() === 'loading'">
-              {{ loadState() === "loading" ? "Loading..." : "Refresh" }}
-            </button>
-          </div>
-
-          @if (errorMessage(); as errorMessage) {
-            <p class="error-message">{{ errorMessage }}</p>
-          }
-        </section>
-
-        @if (products().length) {
-          <section class="filter-panel surface-panel" aria-label="Offer source filters">
-            <div>
-              <p class="ui-kicker">Offer sources</p>
-              <p class="filter-summary">{{ products().length }} of {{ totalProductCount() }} products loaded</p>
-            </div>
-
-            <div class="source-filter-list">
-              @for (source of offerSourceOptions(); track source.key) {
-                <label class="source-filter-option">
-                  <input
-                    type="checkbox"
-                    [checked]="selectedOfferSources().has(source.key)"
-                    (change)="toggleOfferSource(source.key)"
-                  >
-                  <span>{{ source.label }}</span>
-                </label>
-              }
-            </div>
-          </section>
-        }
-
-        @if (products().length) {
-          <section class="pagination-panel surface-panel" aria-label="Product pagination">
-            <button class="ui-action-button" type="button" (click)="loadNextProductsPage()" [disabled]="!hasNextPage() || loadState() === 'loading'">
-              {{ loadState() === "loading" ? "Loading..." : "Load more" }}
-            </button>
-          </section>
-        }
-
+      <main class="page-main">
         @if (products().length) {
           <app-resizable-table #productTable ariaLabel="Product offer table" [columns]="tableColumns">
-              <div
-                class="table-viewport"
-                [style.--row-height]="rowHeight + 'px'"
-                (scroll)="onTableScroll($event)"
-              >
-                <div class="table-spacer" [style.height.px]="tableHeight()">
-                  @for (row of visibleRows(); track row.product.id) {
-                    <article
-                      class="product-row"
-                      role="row"
-                      [style.grid-template-columns]="productTable.columnTemplate()"
-                      [style.transform]="'translateY(' + row.offset + 'px)'"
-                    >
-                      <div class="product-main" role="cell">
-                        <p class="row-title">{{ row.product.name }}</p>
-                        <p class="row-muted">
-                          {{ row.product.brandName || "unbranded" }} · {{ formatMeasurements(row.product.measurements) }}
-                        </p>
-                        <p class="row-muted">{{ row.product.primaryCategoryKey || "uncategorized" }}</p>
-                      </div>
+            <div
+              class="table-viewport"
+              [style.--row-height]="rowHeight + 'px'"
+              (scroll)="onTableScroll($event)"
+            >
+              <div class="table-spacer" [style.height.px]="tableHeight()">
+                @for (row of visibleRows(); track row.product.id) {
+                  <article
+                    class="product-row"
+                    role="row"
+                    [style.grid-template-columns]="productTable.columnTemplate()"
+                    [style.transform]="'translateY(' + row.offset + 'px)'"
+                  >
+                    <div class="action-cell" role="cell">
+                      <button
+                        class="table-icon-button"
+                        type="button"
+                        title="Edit product"
+                        aria-label="Edit product"
+                        (click)="openProductEditor(row.product)"
+                      >
+                        ✎
+                      </button>
+                    </div>
 
-                      <div class="price-cell" role="cell">
-                        @for (price of priceChips(row.product); track price) {
-                          <span class="price-chip">{{ price }}</span>
-                        } @empty {
-                          <span class="quiet-chip">no price yet</span>
-                        }
-                      </div>
+                    <div class="product-main" role="cell">
+                      <p class="row-title">{{ row.product.name }}</p>
+                      <p class="row-muted">
+                        {{ row.product.brandName || "unbranded" }} · {{ formatMeasurements(row.product.measurements) }}
+                      </p>
+                      <p class="row-muted">{{ row.product.primaryCategoryKey || "uncategorized" }}</p>
+                    </div>
 
-                      <div class="source-cell" role="cell">
-                        <p class="row-strong">{{ filteredOffers(row.product).length }} offers · {{ filteredSourceNames(row.product).length }} sources</p>
-                        <p class="row-muted">{{ formatSources(row.product) }}</p>
-                        <p class="row-muted">{{ formatOfferNames(row.product) }}</p>
-                      </div>
+                    <div class="price-cell" role="cell">
+                      @for (price of priceChips(row.product); track price) {
+                        <span class="price-chip">{{ price }}</span>
+                      } @empty {
+                        <span class="quiet-chip">no price yet</span>
+                      }
+                    </div>
 
-                      <div class="identifier-cell" role="cell">
-                        <p class="row-muted">{{ formatIdentifiers(row.product) }}</p>
-                      </div>
+                    <div class="source-cell" role="cell">
+                      <p class="row-strong">{{ filteredOffers(row.product).length }} offers · {{ filteredSourceNames(row.product).length }} sources</p>
+                      <p class="row-muted">{{ formatSources(row.product) }}</p>
+                      <p class="row-muted">{{ formatOfferNames(row.product) }}</p>
+                    </div>
 
-                      <div class="state-cell" role="cell">
-                        <p class="row-strong">{{ formatLatestObserved(row.product) }}</p>
-                        <p class="row-muted">{{ row.product.householdStockCount }} household · {{ row.product.tagKeys.length }} tags</p>
-                      </div>
-                    </article>
-                  }
-                </div>
+                    <div class="identifier-cell" role="cell">
+                      <p class="row-muted">{{ formatIdentifiers(row.product) }}</p>
+                    </div>
+
+                    <div class="state-cell" role="cell">
+                      <p class="row-strong">{{ formatLatestObserved(row.product) }}</p>
+                      <p class="row-muted">{{ row.product.householdStockCount }} household · {{ row.product.tagKeys.length }} tags</p>
+                    </div>
+                  </article>
+                }
               </div>
+            </div>
           </app-resizable-table>
         }
-      }
+      </main>
+
+      <app-product-editor-dialog
+        mode="catalog"
+        [open]="editorOpen()"
+        [product]="editingProduct()"
+        (close)="closeProductEditor()"
+        (deleteProduct)="deleteProduct($event)"
+        (invalidateProduct)="invalidateProduct($event.id, $event.note)"
+        (saveProduct)="saveProduct($event)"
+        (validateProduct)="validateProduct($event.id, $event.note)"
+      />
     </section>
   `,
   styles: [
@@ -162,8 +113,12 @@ const noOfferSourceKey = "__none__";
       }
 
       .products-page {
-        display: grid;
-        gap: var(--space-5);
+        display: block;
+        min-height: 0;
+      }
+
+      .page-main {
+        min-width: 0;
       }
 
       dd,
@@ -181,14 +136,6 @@ const noOfferSourceKey = "__none__";
         text-transform: uppercase;
       }
 
-      .page-header {
-        align-items: end;
-        display: flex;
-        gap: var(--space-5);
-        justify-content: space-between;
-        padding: clamp(1rem, 2.4vw, 1.4rem);
-      }
-
       h1 {
         color: var(--color-text);
         font-family: var(--font-display);
@@ -196,97 +143,9 @@ const noOfferSourceKey = "__none__";
         line-height: 1.05;
       }
 
-      .summary-strip {
-        display: grid;
-        gap: var(--space-3);
-        grid-template-columns: repeat(3, minmax(5rem, 1fr));
-        min-width: min(28rem, 100%);
-      }
-
-      .summary-strip div {
-        background: color-mix(in srgb, var(--color-background-soft) 72%, white 28%);
-        border: 1px solid color-mix(in srgb, var(--color-wood) 14%, transparent);
-        border-radius: 8px;
-        min-height: 4rem;
-        padding: 0.65rem 0.8rem;
-      }
-
-      .summary-strip dd {
-        color: var(--color-text);
-        font-size: 1.25rem;
-        font-weight: 800;
-      }
-
-      .state-header {
-        align-items: center;
-        display: flex;
-        gap: var(--space-3);
-        justify-content: space-between;
-      }
-
-      .state-title {
-        color: var(--color-text);
-        font-size: 1rem;
-        font-weight: 700;
-      }
-
       .error-message,
       .row-muted {
         color: var(--color-text-muted);
-      }
-
-      .filter-panel {
-        align-items: center;
-        display: grid;
-        gap: var(--space-4);
-        grid-template-columns: minmax(12rem, 0.4fr) minmax(0, 1fr);
-        padding: clamp(1rem, 2.2vw, 1.25rem);
-      }
-
-      .filter-summary {
-        color: var(--color-text-muted);
-        font-size: 0.88rem;
-      }
-
-      .source-filter-list {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-        justify-content: flex-end;
-      }
-
-      .source-filter-option {
-        align-items: center;
-        background: color-mix(in srgb, var(--color-accent-sky) 18%, white 82%);
-        border: 1px solid color-mix(in srgb, var(--color-wood) 14%, transparent);
-        border-radius: 8px;
-        color: var(--color-text);
-        display: inline-flex;
-        font-size: 0.84rem;
-        font-weight: 800;
-        gap: 0.45rem;
-        min-height: 2rem;
-        padding: 0.35rem 0.55rem;
-      }
-
-      .source-filter-option input {
-        accent-color: var(--color-accent-leaf-strong);
-        height: 1rem;
-        width: 1rem;
-      }
-
-      .pagination-panel {
-        align-items: center;
-        display: flex;
-        gap: var(--space-3);
-        justify-content: space-between;
-        padding: 0.75rem 1rem;
-      }
-
-      .pagination-panel p {
-        color: var(--color-text-muted);
-        font-size: 0.88rem;
-        font-weight: 800;
       }
 
       .product-row {
@@ -326,11 +185,33 @@ const noOfferSourceKey = "__none__";
       }
 
       .product-main,
+      .action-cell,
       .price-cell,
       .source-cell,
       .identifier-cell,
       .state-cell {
         min-width: 0;
+      }
+
+      .action-cell {
+        align-items: center;
+        display: flex;
+      }
+
+      .table-icon-button {
+        align-items: center;
+        background: color-mix(in srgb, var(--color-accent-sky) 20%, white 80%);
+        border: 1px solid color-mix(in srgb, var(--color-wood) 18%, transparent);
+        border-radius: 8px;
+        color: var(--color-text);
+        cursor: pointer;
+        display: inline-flex;
+        font: inherit;
+        font-weight: 900;
+        height: 2rem;
+        justify-content: center;
+        padding: 0;
+        width: 2rem;
       }
 
       .row-title,
@@ -378,31 +259,6 @@ const noOfferSourceKey = "__none__";
       }
 
       @media (max-width: 820px) {
-        .page-header,
-        .state-header {
-          align-items: stretch;
-          flex-direction: column;
-        }
-
-        .filter-panel {
-          align-items: stretch;
-          grid-template-columns: 1fr;
-        }
-
-        .pagination-panel {
-          align-items: stretch;
-          flex-direction: column;
-        }
-
-        .source-filter-list {
-          justify-content: flex-start;
-        }
-
-        .summary-strip {
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          min-width: 0;
-        }
-
         .ui-action-button {
           width: 100%;
         }
@@ -410,9 +266,10 @@ const noOfferSourceKey = "__none__";
     `
   ]
 })
-export class ProductCatalogComponent implements OnInit {
+export class ProductCatalogComponent implements OnInit, OnDestroy {
   readonly auth = inject(AuthService);
   readonly catalog = inject(ProductCatalogService);
+  readonly pageRail = inject(PageRailService);
   readonly errorMessage = signal("");
   readonly loadState = signal<"idle" | "loading" | "success" | "error">("idle");
   readonly products = signal<CatalogProductListItem[]>([]);
@@ -423,12 +280,15 @@ export class ProductCatalogComponent implements OnInit {
   readonly sourceFilterTouched = signal(false);
   readonly totalProductCount = signal(0);
   readonly totalPages = signal(0);
+  readonly editingProduct = signal<CatalogProductListItem | null>(null);
+  readonly editorOpen = signal(false);
   readonly tableColumns: readonly ResizableTableColumn[] = [
+    { key: "actions", label: "", minWidth: 52, maxWidth: 72, width: 56 },
     { key: "product", label: "Product", minWidth: 140, maxWidth: 640, width: 300 },
-    { key: "prices", label: "Prices", minWidth: 140, maxWidth: 640, width: 260 },
-    { key: "sources", label: "Sources", minWidth: 140, maxWidth: 640, width: 280 },
+    { key: "prices", label: "Prices", minWidth: 100, maxWidth: 640, width: 140 },
+    { key: "sources", label: "Sources", minWidth: 140, maxWidth: 640, width: 180 },
     { key: "identifiers", label: "Identifiers", minWidth: 140, maxWidth: 640, width: 220 },
-    { key: "state", label: "State", minWidth: 140, maxWidth: 640, width: 190 }
+    { key: "state", label: "State", minWidth: 120, maxWidth: 640, width: 160 }
   ];
   readonly rowHeight = 92;
   readonly scrollTop = signal(0);
@@ -474,11 +334,87 @@ export class ProductCatalogComponent implements OnInit {
       product
     }));
   });
+  readonly pageRailSections = computed<PageRailSection[]>(() => {
+    const sections: PageRailSection[] = [
+      {
+        key: "catalog-summary",
+        kind: "summary",
+        kicker: "Catalog",
+        title: "Product offers",
+        items: [
+          { label: "Shown", value: `${this.filteredProducts().length} / ${this.totalProductCount()}` },
+          { label: "Offers", value: `${this.totalFilteredOfferCount()}` },
+          { label: "Sources", value: `${this.totalSourceCount()}` },
+          { label: "Page", value: `${this.currentPage()} / ${this.totalPages() || "?"}` }
+        ],
+        actionLabel: this.loadState() === "loading" ? "Loading..." : "Refresh",
+        actionDisabled: this.loadState() === "loading",
+        error: this.errorMessage() || undefined,
+        onAction: () => {
+          void this.loadProducts();
+        }
+      }
+    ];
+
+    if (!this.auth.token()) {
+      sections.push({
+        key: "catalog-auth",
+        kind: "status",
+        kicker: "Admin only",
+        message: "Sign in to view the product catalog."
+      });
+      return sections;
+    }
+
+    if (this.products().length || this.sourceFilterTouched()) {
+      const allSourcesSelected = this.selectedOfferSources().size === this.offerSourceOptions().length;
+      sections.push({
+        key: "catalog-sources",
+        kind: "filters",
+        kicker: "Offer sources",
+        title: "Sources",
+        selectedCount: this.selectedOfferSources().size,
+        optionCount: this.offerSourceOptions().length,
+        secondaryActionLabel: allSourcesSelected ? "Deselect all" : "Select all",
+        onSecondaryAction: () => this.toggleAllOfferSources(),
+        note: `${this.products().length} of ${this.totalProductCount()} products loaded`,
+        options: this.offerSourceOptions().map((source) => ({
+          key: source.key,
+          label: source.label,
+          checked: this.selectedOfferSources().has(source.key),
+          onToggle: () => this.toggleOfferSource(source.key)
+        }))
+      });
+
+      if (this.hasNextPage()) {
+        sections.push({
+          key: "catalog-more",
+          kind: "action",
+          kicker: "More",
+          note: "Load the next page of products into the table.",
+          actionLabel: this.loadState() === "loading" ? "Loading..." : "Load more",
+          actionDisabled: !this.hasNextPage() || this.loadState() === "loading",
+          onAction: () => {
+            void this.loadNextProductsPage();
+          }
+        });
+      }
+    }
+
+    return sections;
+  });
+  private readonly syncPageRail = effect(() => {
+    this.pageRail.setSections(this.pageRailSections());
+  });
 
   ngOnInit(): void {
     if (this.auth.token()) {
       void this.loadProducts();
     }
+  }
+
+  ngOnDestroy(): void {
+    this.pageRail.clearSections();
   }
 
   filteredOffers(product: CatalogProductListItem): CatalogProductOfferListItem[] {
@@ -579,6 +515,60 @@ export class ProductCatalogComponent implements OnInit {
     return chips.slice(0, 4);
   }
 
+  openProductEditor(product: CatalogProductListItem): void {
+    this.editingProduct.set(product);
+    this.editorOpen.set(true);
+  }
+
+  closeProductEditor(): void {
+    this.editorOpen.set(false);
+    this.editingProduct.set(null);
+  }
+
+  async saveProduct(product: CatalogProductListItem): Promise<void> {
+    const result = await this.catalog.updateProduct(product);
+    if (result.status !== "ok") {
+      this.errorMessage.set(result.message);
+      return;
+    }
+
+    this.replaceLoadedProduct(result.product);
+    this.editingProduct.set(result.product);
+  }
+
+  async validateProduct(id: string, note: string | null): Promise<void> {
+    const result = await this.catalog.validateProduct(id, note);
+    if (result.status !== "ok") {
+      this.errorMessage.set(result.message);
+      return;
+    }
+
+    this.replaceLoadedProduct(result.product);
+    this.editingProduct.set(result.product);
+  }
+
+  async invalidateProduct(id: string, note: string | null): Promise<void> {
+    const result = await this.catalog.invalidateProduct(id, note);
+    if (result.status !== "ok") {
+      this.errorMessage.set(result.message);
+      return;
+    }
+
+    this.replaceLoadedProduct(result.product);
+    this.editingProduct.set(result.product);
+  }
+
+  async deleteProduct(id: string): Promise<void> {
+    const result = await this.catalog.deleteProduct(id);
+    if (result.status !== "ok") {
+      this.errorMessage.set(result.message);
+      return;
+    }
+
+    this.products.update((products) => products.filter((product) => product.id !== id));
+    this.closeProductEditor();
+  }
+
   toggleOfferSource(sourceKey: string): void {
     this.sourceFilterTouched.set(true);
     this.selectedOfferSources.update((selectedSources) => {
@@ -592,6 +582,17 @@ export class ProductCatalogComponent implements OnInit {
 
       return next;
     });
+    void this.reloadProductsForCurrentFilters();
+  }
+
+  toggleAllOfferSources(): void {
+    const allSources = new Set(this.offerSourceOptions().map((source) => source.key));
+    const nextSources = this.selectedOfferSources().size === allSources.size
+      ? new Set<string>()
+      : allSources;
+
+    this.sourceFilterTouched.set(true);
+    this.selectedOfferSources.set(nextSources);
     void this.reloadProductsForCurrentFilters();
   }
 
@@ -717,6 +718,12 @@ export class ProductCatalogComponent implements OnInit {
     return everyRealSourceSelected && selectedSources.has(noOfferSourceKey)
       ? []
       : selectedRealSources;
+  }
+
+  private replaceLoadedProduct(nextProduct: CatalogProductListItem): void {
+    this.products.update((products) =>
+      products.map((product) => product.id === nextProduct.id ? nextProduct : product)
+    );
   }
 }
 

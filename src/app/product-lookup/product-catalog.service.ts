@@ -1,6 +1,8 @@
 import { Injectable, inject } from "@angular/core";
 
 import { AuthService } from "../auth.service";
+import { readApiErrorMessage } from "../shared/api-errors";
+import { ToastService } from "../shared/toast.service";
 
 export interface ProductMeasurement {
   normalizedUnit?: string | null;
@@ -44,6 +46,7 @@ export interface CatalogProductListItem {
   name: string;
   offers: CatalogProductOfferListItem[];
   primaryCategoryKey?: string | null;
+  validationStatus: "unvalidated" | "validated" | "invalid";
   sourceNames: string[];
   tagKeys: string[];
 }
@@ -62,6 +65,10 @@ interface CatalogProductsResponse {
 
 interface CatalogSourcesResponse {
   sourceNames: string[];
+}
+
+interface CatalogProductResponse {
+  product: CatalogProductListItem;
 }
 
 export type ProductCatalogLoadResult =
@@ -85,11 +92,30 @@ export type ProductCatalogSourcesLoadResult =
       status: "forbidden" | "not_configured" | "unavailable" | "unauthenticated";
     };
 
+type ProductCatalogWriteError = {
+  message: string;
+  status: "forbidden" | "not_configured" | "unavailable" | "unauthenticated";
+};
+
+export type ProductCatalogWriteResult =
+  | {
+      product: CatalogProductListItem;
+      status: "ok";
+    }
+  | ProductCatalogWriteError;
+
+export type ProductCatalogDeleteResult =
+  | {
+      status: "ok";
+    }
+  | ProductCatalogWriteError;
+
 @Injectable({
   providedIn: "root"
 })
 export class ProductCatalogService {
   private readonly auth = inject(AuthService);
+  private readonly toast = inject(ToastService);
 
   async listOfferSourceNames(): Promise<ProductCatalogSourcesLoadResult> {
     if (!this.auth.token()) {
@@ -108,22 +134,23 @@ export class ProductCatalogService {
     });
 
     if (response.status === 401) {
-      return {
+      return this.withToast({
         message: "The current session does not have access to catalog sources.",
         status: "forbidden"
-      };
+      });
     }
 
     if (response.status === 503) {
-      return {
+      return this.withToast({
         message: "The catalog database is not configured for this environment.",
         status: "not_configured"
-      };
+      });
     }
 
     if (!response.ok) {
+      const message = await readApiErrorMessage(response, "The catalog sources route returned an error.");
       return {
-        message: "The catalog sources route returned an error.",
+        message: this.toastMessage(message),
         status: "unavailable"
       };
     }
@@ -164,22 +191,23 @@ export class ProductCatalogService {
     });
 
     if (response.status === 401) {
-      return {
+      return this.withToast({
         message: "The current session does not have access to the product catalog.",
         status: "forbidden"
-      };
+      });
     }
 
     if (response.status === 503) {
-      return {
+      return this.withToast({
         message: "The catalog database is not configured for this environment.",
         status: "not_configured"
-      };
+      });
     }
 
     if (!response.ok) {
+      const message = await readApiErrorMessage(response, "The product catalog route returned an error.");
       return {
-        message: "The product catalog route returned an error.",
+        message: this.toastMessage(message),
         status: "unavailable"
       };
     }
@@ -192,4 +220,117 @@ export class ProductCatalogService {
       status: "ok"
     };
   }
+
+  async updateProduct(product: CatalogProductListItem): Promise<ProductCatalogWriteResult> {
+    return await this.writeProduct("/api/catalog/product", "PATCH", {
+      brandName: product.brandName ?? null,
+      id: product.id,
+      measurements: product.measurements,
+      name: product.name,
+      primaryCategoryKey: product.primaryCategoryKey ?? null
+    });
+  }
+
+  async validateProduct(id: string, note: string | null): Promise<ProductCatalogWriteResult> {
+    return await this.writeProduct("/api/catalog/product/validate", "POST", { id, note });
+  }
+
+  async invalidateProduct(id: string, note: string | null): Promise<ProductCatalogWriteResult> {
+    return await this.writeProduct("/api/catalog/product/invalidate", "POST", { id, note });
+  }
+
+  async deleteProduct(id: string): Promise<ProductCatalogDeleteResult> {
+    if (!this.auth.token()) {
+      return {
+        message: "Sign in before deleting products.",
+        status: "unauthenticated"
+      };
+    }
+
+    const response = await fetch(`/api/catalog/product?id=${encodeURIComponent(id)}`, {
+      headers: {
+        accept: "application/json",
+        ...this.auth.getAuthorizationHeaders()
+      },
+      method: "DELETE"
+    });
+
+    const error = await readCatalogWriteError(response);
+    if (error) {
+      return this.withToast(error);
+    }
+
+    return { status: "ok" };
+  }
+
+  private async writeProduct(
+    url: string,
+    method: "PATCH" | "POST",
+    body: unknown
+  ): Promise<ProductCatalogWriteResult> {
+    if (!this.auth.token()) {
+      return {
+        message: "Sign in before editing products.",
+        status: "unauthenticated"
+      };
+    }
+
+    const response = await fetch(url, {
+      body: JSON.stringify(body),
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+        ...this.auth.getAuthorizationHeaders()
+      },
+      method
+    });
+
+    const error = await readCatalogWriteError(response);
+    if (error) {
+      return this.withToast(error);
+    }
+
+    const payload = (await response.json()) as CatalogProductResponse;
+
+    return {
+      product: payload.product,
+      status: "ok"
+    };
+  }
+
+  private toastMessage(message: string): string {
+    this.toast.push(message, "error");
+    return message;
+  }
+
+  private withToast<T extends ProductCatalogWriteError>(error: T): T {
+    this.toast.push(error.message, "error");
+    return error;
+  }
+}
+
+async function readCatalogWriteError(response: Response): Promise<ProductCatalogWriteError | null> {
+  if (response.status === 401) {
+    return {
+      message: "The current session does not have access to edit the product catalog.",
+      status: "forbidden"
+    };
+  }
+
+  if (response.status === 503) {
+    return {
+      message: "The catalog database is not configured for this environment.",
+      status: "not_configured"
+    };
+  }
+
+  if (!response.ok) {
+    const message = await readApiErrorMessage(response, "The product catalog edit route returned an error.");
+    return {
+      message,
+      status: "unavailable"
+    };
+  }
+
+  return null;
 }

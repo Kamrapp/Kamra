@@ -1,4 +1,6 @@
-import type { AnyBulkWriteOperation, Collection, Db, Document, Filter } from "mongodb";
+import type { AnyBulkWriteOperation, Document, Filter } from "mongodb";
+import type { MongoCollectionLike, MongoDatabaseLike } from "../../db/mongo-like.js";
+import { writeServerLog } from "../../logging/kamra-logger.js";
 
 import type {
   CatalogProductListItem,
@@ -8,6 +10,7 @@ import type {
   PriceObservationRecord,
   PriceObservationKind,
   ProductRecord,
+  ProductValidationStatus,
   ProductSourceIdentifierRecord,
   ProductSourceRecord,
   ProductTagAssignmentRecord,
@@ -35,6 +38,97 @@ export interface CatalogProductReviewPageOptions {
 export interface CatalogProductReviewPage {
   products: CatalogProductListItem[];
   totalCount: number;
+}
+
+export interface MarkLegacyProductsUnvalidatedResult {
+  skippedCount: number;
+  status: "updated" | "validator_incompatible";
+  updatedCount: number;
+}
+
+export interface CatalogValidatorUpgradeResult {
+  createdCollections: string[];
+  databaseName: string;
+  upgradedCollections: string[];
+}
+
+export interface UpdateCatalogProductInput {
+  brandName?: string | null;
+  id: string;
+  measurements?: ProductRecord["measurements"];
+  name?: string;
+  primaryCategoryKey?: string | null;
+  updatedAt: string;
+  validationNote?: string | null;
+}
+
+export interface SetCatalogProductValidationInput {
+  id: string;
+  note?: string | null;
+  reviewedAt: string;
+  reviewerId: string;
+  status: Exclude<ProductValidationStatus, "unvalidated">;
+}
+
+export interface DeleteCatalogProductResult {
+  deletedIdentifierCount: number;
+  deletedPriceObservationCount: number;
+  deletedProductCount: number;
+  deletedProductSourceCount: number;
+  deletedStockCount: number;
+  deletedTagAssignmentCount: number;
+}
+
+export interface CreateCatalogProductFromReviewCandidateInput {
+  candidate: {
+    origin: {
+      capturedAt: string;
+      sourceName: string;
+      sourceRecordId: string;
+      sourceUrl?: string | null;
+    };
+    priceObservations: Array<{
+      currencyCode: string;
+      observedAt: string;
+      price: number;
+      priceKind?: PriceObservationKind | null;
+      programName?: string | null;
+      unitPriceLabel?: string | null;
+      validFrom?: string | null;
+      validTo?: string | null;
+    }>;
+    product: {
+      brandName?: string | null;
+      kind: ProductRecord["kind"];
+      measurements: ProductRecord["measurements"];
+      name: string;
+      normalizedName: string;
+      primaryCategoryKey?: string | null;
+    };
+    source: {
+      countryCode: string;
+      currentCategoryLabel?: string | null;
+      productPageUrl?: string | null;
+      sourceName: string;
+      sourceProductKey: string;
+      sourceProductName: string;
+      storeBrandKey: string;
+    };
+    sourceProductIdentifiers: Array<{
+      kind: ProductSourceIdentifierRecord["kind"];
+      value: string;
+    }>;
+    stock?: {
+      availability: "infinite";
+      countryCode: string;
+    } | null;
+  };
+  createdAt: string;
+  reviewerId: string;
+}
+
+export interface CreateCatalogProductFromReviewCandidateResult {
+  productId: string;
 }
 
 const collectionPlans: CollectionIndexPlan[] = [
@@ -123,6 +217,10 @@ const collectionPlans: CollectionIndexPlan[] = [
         options: { name: "products_normalized_name" }
       },
       {
+        key: { validationStatus: 1, status: 1 },
+        options: { name: "products_validation_status" }
+      },
+      {
         key: { primaryCategoryKey: 1, status: 1 },
         options: { name: "products_primary_category_status" }
       }
@@ -171,17 +269,17 @@ export interface CurrentCatalogSmokeCheckResult {
 }
 
 export class MongoCurrentCatalogRepository {
-  private readonly migrationLedgerCollection: Collection<MigrationLedgerRecord>;
-  private readonly priceObservationsCollection: Collection<PriceObservationRecord>;
-  private readonly productSourceIdentifiersCollection: Collection<ProductSourceIdentifierRecord>;
-  private readonly productSourcesCollection: Collection<ProductSourceRecord>;
-  private readonly productTagAssignmentsCollection: Collection<ProductTagAssignmentRecord>;
-  private readonly productTagsCollection: Collection<ProductTagRecord>;
-  private readonly productsCollection: Collection<ProductRecord>;
-  private readonly sourceRecordProcessingStatesCollection: Collection<SourceRecordProcessingStateRecord>;
-  private readonly stocksCollection: Collection<StockRecord>;
+  private readonly migrationLedgerCollection: MongoCollectionLike<MigrationLedgerRecord>;
+  private readonly priceObservationsCollection: MongoCollectionLike<PriceObservationRecord>;
+  private readonly productSourceIdentifiersCollection: MongoCollectionLike<ProductSourceIdentifierRecord>;
+  private readonly productSourcesCollection: MongoCollectionLike<ProductSourceRecord>;
+  private readonly productTagAssignmentsCollection: MongoCollectionLike<ProductTagAssignmentRecord>;
+  private readonly productTagsCollection: MongoCollectionLike<ProductTagRecord>;
+  private readonly productsCollection: MongoCollectionLike<ProductRecord>;
+  private readonly sourceRecordProcessingStatesCollection: MongoCollectionLike<SourceRecordProcessingStateRecord>;
+  private readonly stocksCollection: MongoCollectionLike<StockRecord>;
 
-  constructor(private readonly database: Db) {
+  constructor(private readonly database: MongoDatabaseLike) {
     this.migrationLedgerCollection = database.collection<MigrationLedgerRecord>("migration_ledger");
     this.priceObservationsCollection = database.collection<PriceObservationRecord>("price_observations");
     this.productSourceIdentifiersCollection = database.collection<ProductSourceIdentifierRecord>(
@@ -204,9 +302,9 @@ export class MongoCurrentCatalogRepository {
     const productFilter: Filter<ProductRecord> = { status: "active" };
 
     if (requestedSourceNames.length > 0) {
-      const productIdsForSources = await this.productSourcesCollection.distinct("productId", {
+      const productIdsForSources = (await this.productSourcesCollection.distinct("productId", {
         sourceName: { $in: requestedSourceNames }
-      });
+      })) as string[];
       productFilter.id = { $in: productIdsForSources };
     }
 
@@ -227,6 +325,292 @@ export class MongoCurrentCatalogRepository {
       this.productsCollection.countDocuments(productFilter)
     ]);
 
+    return {
+      products: await this.hydrateCatalogProducts(products),
+      totalCount
+    };
+  }
+
+  async findCatalogProductForReview(id: string): Promise<CatalogProductListItem | null> {
+    const product = await this.productsCollection.findOne({
+      id,
+      status: "active"
+    });
+
+    if (!product) {
+      return null;
+    }
+
+    return (await this.hydrateCatalogProducts([product]))[0] ?? null;
+  }
+
+  async updateCatalogProduct(input: UpdateCatalogProductInput): Promise<CatalogProductListItem | null> {
+    const set: Partial<ProductRecord> = {
+      updatedAt: input.updatedAt
+    };
+
+    if ("brandName" in input) {
+      set.brandName = input.brandName ?? null;
+    }
+
+    if ("measurements" in input) {
+      set.measurements = input.measurements ?? [];
+    }
+
+    if ("name" in input && input.name) {
+      set.name = input.name;
+      set.normalizedName = normalizeProductName(input.name);
+      set.validationStatus = "unvalidated";
+      set.validatedAt = null;
+      set.validatedBy = null;
+    }
+
+    if ("primaryCategoryKey" in input) {
+      set.primaryCategoryKey = input.primaryCategoryKey ?? null;
+    }
+
+    if ("validationNote" in input) {
+      set.validationNote = input.validationNote ?? null;
+    }
+
+    try {
+      const result = await this.productsCollection.updateOne(
+        {
+          id: input.id,
+          status: "active"
+        },
+        {
+          $set: set
+        }
+      );
+
+      if (result.matchedCount === 0) {
+        return null;
+      }
+
+      return await this.findCatalogProductForReview(input.id);
+    } catch (error: unknown) {
+      if (isDocumentValidationError(error)) {
+        writeServerLog("error", "Catalog product update validation failed", {
+          input,
+          validationError: summarizeMongoValidationError(error)
+        });
+      }
+
+      throw error;
+    }
+  }
+
+  async setCatalogProductValidationStatus(input: SetCatalogProductValidationInput): Promise<CatalogProductListItem | null> {
+    const validationFields: Partial<ProductRecord> = input.status === "validated"
+      ? {
+          invalidatedAt: null,
+          invalidatedBy: null,
+          validatedAt: input.reviewedAt,
+          validatedBy: input.reviewerId
+        }
+      : {
+          invalidatedAt: input.reviewedAt,
+          invalidatedBy: input.reviewerId,
+          validatedAt: null,
+          validatedBy: null
+        };
+
+    try {
+      const result = await this.productsCollection.updateOne(
+        {
+          id: input.id,
+          status: "active"
+        },
+        {
+          $set: {
+            ...validationFields,
+            updatedAt: input.reviewedAt,
+            validationNote: input.note ?? null,
+            validationStatus: input.status
+          }
+        }
+      );
+
+      if (result.matchedCount === 0) {
+        return null;
+      }
+
+      return await this.findCatalogProductForReview(input.id);
+    } catch (error: unknown) {
+      if (isDocumentValidationError(error)) {
+        writeServerLog("error", "Catalog product validation state change failed", {
+          input,
+          validationError: summarizeMongoValidationError(error)
+        });
+      }
+
+      throw error;
+    }
+  }
+
+  async deleteCatalogProduct(id: string): Promise<DeleteCatalogProductResult> {
+    const productSources = await this.productSourcesCollection.find({ productId: id }).toArray();
+    const productSourceIds = productSources.map((source) => source.id);
+
+    const [
+      identifiers,
+      priceObservations,
+      productSourcesResult,
+      stocks,
+      tagAssignments,
+      products
+    ] = await Promise.all([
+      this.productSourceIdentifiersCollection.deleteMany({ productSourceId: { $in: productSourceIds } }),
+      this.priceObservationsCollection.deleteMany({
+        $or: [
+          { productId: id },
+          { productSourceId: { $in: productSourceIds } }
+        ]
+      }),
+      this.productSourcesCollection.deleteMany({ productId: id }),
+      this.stocksCollection.deleteMany({ productId: id }),
+      this.productTagAssignmentsCollection.deleteMany({ productId: id }),
+      this.productsCollection.deleteMany({ id })
+    ]);
+
+    return {
+      deletedIdentifierCount: identifiers.deletedCount ?? 0,
+      deletedPriceObservationCount: priceObservations.deletedCount ?? 0,
+      deletedProductCount: products.deletedCount ?? 0,
+      deletedProductSourceCount: productSourcesResult.deletedCount ?? 0,
+      deletedStockCount: stocks.deletedCount ?? 0,
+      deletedTagAssignmentCount: tagAssignments.deletedCount ?? 0
+    };
+  }
+
+  async createCatalogProductFromReviewCandidate(
+    input: CreateCatalogProductFromReviewCandidateInput
+  ): Promise<CreateCatalogProductFromReviewCandidateResult> {
+    const candidate = input.candidate;
+    const productId = createProductIdFromReviewCandidate(candidate);
+    const productSourceId = createProductSourceId(candidate.source.sourceName, candidate.source.sourceProductKey);
+    const origin = {
+      capturedAt: candidate.origin.capturedAt,
+      kind: "manual" as const,
+      producer: input.reviewerId,
+      sourceName: candidate.source.sourceName,
+      sourceRecordId: candidate.origin.sourceRecordId,
+      sourceUrl: candidate.origin.sourceUrl ?? null
+    };
+    const location = createReviewLocation(candidate.source.sourceName, candidate.source.storeBrandKey, candidate.source.countryCode);
+    const priceObservations = candidate.priceObservations.map((observation, observationIndex) => ({
+      createdAt: input.createdAt,
+      id: createReviewPriceObservationId(candidate, observationIndex, observation),
+      location,
+      observedAt: observation.observedAt,
+      origin,
+      price: {
+        amount: observation.price,
+        currencyCode: observation.currencyCode
+      },
+      priceKind: observation.priceKind ?? "offer",
+      productId,
+      productSourceId,
+      programName: observation.programName ?? null,
+      sourceName: candidate.source.sourceName,
+      sourceProductKey: candidate.source.sourceProductKey,
+      unitPriceLabel: observation.unitPriceLabel ?? null,
+      updatedAt: input.createdAt,
+      validFrom: observation.validFrom ?? null,
+      validTo: observation.validTo ?? null
+    }));
+
+    const product: ProductRecord = {
+      brandName: candidate.product.brandName ?? null,
+      createdAt: input.createdAt,
+      id: productId,
+      kind: candidate.product.kind,
+      measurements: candidate.product.measurements,
+      name: candidate.product.name,
+      normalizedName: candidate.product.normalizedName,
+      origin: [origin],
+      primaryCategoryKey: candidate.product.primaryCategoryKey ?? null,
+      validationStatus: "validated",
+      validatedAt: input.createdAt,
+      validatedBy: input.reviewerId,
+      invalidatedAt: null,
+      invalidatedBy: null,
+      validationNote: null,
+      status: "active",
+      updatedAt: input.createdAt
+    };
+    const productSource: ProductSourceRecord = {
+      countryCode: candidate.source.countryCode,
+      createdAt: input.createdAt,
+      currentCategoryLabel: candidate.source.currentCategoryLabel ?? null,
+      id: productSourceId,
+      origin,
+      priceLastCheckedAt: priceObservations.at(-1)?.observedAt ?? candidate.origin.capturedAt,
+      productId,
+      productPageUrl: candidate.source.productPageUrl ?? candidate.origin.sourceUrl ?? `urn:kamra:review:${candidate.source.sourceName}`,
+      sourceName: candidate.source.sourceName,
+      sourceProductKey: candidate.source.sourceProductKey,
+      sourceProductName: candidate.source.sourceProductName,
+      storeBrandKey: candidate.source.storeBrandKey,
+      updatedAt: input.createdAt
+    };
+    const sourceIdentifiers: ProductSourceIdentifierRecord[] = candidate.sourceProductIdentifiers.map((identifier) => ({
+      createdAt: input.createdAt,
+      id: `product_source_identifier_${stableSlug(candidate.source.sourceName)}_${stableSlug(productSourceId)}_${stableSlug(identifier.kind)}_${stableSlug(identifier.value)}`,
+      kind: identifier.kind,
+      origin,
+      productSourceId,
+      sourceName: candidate.source.sourceName,
+      updatedAt: input.createdAt,
+      value: identifier.value
+    }));
+    const stock: StockRecord = {
+      createdAt: input.createdAt,
+      id: createStockId(candidate.source.sourceName, candidate.source.sourceProductKey),
+      location,
+      origin,
+      price: null,
+      productId,
+      quantity: {
+        amount: 1,
+        packageCount: null,
+        unit: "availability"
+      },
+      status: "active",
+      updatedAt: input.createdAt
+    };
+
+    try {
+      await Promise.all([
+        this.productsCollection.updateOne({ id: productId }, { $set: product }, { upsert: true }),
+        this.productSourcesCollection.updateOne({ id: productSourceId }, { $set: productSource }, { upsert: true }),
+        this.productSourceIdentifiersCollection.deleteMany({ productSourceId }),
+        this.priceObservationsCollection.deleteMany({ productSourceId }),
+        this.stocksCollection.updateOne({ id: stock.id }, { $set: stock }, { upsert: true })
+      ]);
+
+      if (sourceIdentifiers.length > 0) {
+        await this.upsertMany(this.productSourceIdentifiersCollection, sourceIdentifiers);
+      }
+      if (priceObservations.length > 0) {
+        await this.upsertMany(this.priceObservationsCollection, priceObservations);
+      }
+
+      return { productId };
+    } catch (error: unknown) {
+      if (isDocumentValidationError(error)) {
+        writeServerLog("error", "Catalog product creation from review candidate failed", {
+          candidate,
+          validationError: summarizeMongoValidationError(error)
+        });
+      }
+
+      throw error;
+    }
+  }
+
+  private async hydrateCatalogProducts(products: ProductRecord[]): Promise<CatalogProductListItem[]> {
     const productIds = products.map((product) => product.id);
     const [productTagAssignments, productSources, householdStocks] = await Promise.all([
       this.productTagAssignmentsCollection.find({
@@ -321,8 +705,7 @@ export class MongoCurrentCatalogRepository {
       );
     }
 
-    return {
-      products: products.map((product) => ({
+    return products.map((product) => ({
         brandName: product.brandName,
         householdStockCount: householdStockCountByProductId.get(product.id) ?? 0,
         id: product.id,
@@ -330,17 +713,54 @@ export class MongoCurrentCatalogRepository {
         name: product.name,
         offers: (offerRowsByProductId.get(product.id) ?? []).sort(compareOffers),
         primaryCategoryKey: product.primaryCategoryKey,
+        validationStatus: product.validationStatus ?? "unvalidated",
         sourceNames: [...new Set(sourcesByProductId.get(product.id) ?? [])].sort(),
         tagKeys: [...new Set(tagsByProductId.get(product.id) ?? [])].sort()
-      })),
-      totalCount
-    };
+      }));
   }
 
   async listCatalogOfferSourceNames(): Promise<string[]> {
-    const sourceNames = await this.productSourcesCollection.distinct("sourceName");
+    const sourceNames = (await this.productSourcesCollection.distinct("sourceName")) as string[];
 
     return sourceNames.sort((left, right) => left.localeCompare(right, "hu-HU"));
+  }
+
+  async markLegacyProductsUnvalidated(): Promise<MarkLegacyProductsUnvalidatedResult> {
+    const legacyProductFilter: Filter<ProductRecord> = {
+      validationStatus: { $exists: false }
+    };
+
+    try {
+      const result = await this.productsCollection.updateMany(
+        legacyProductFilter,
+        {
+          $set: {
+            invalidatedAt: null,
+            invalidatedBy: null,
+            validationNote: null,
+            validationStatus: "unvalidated",
+            validatedAt: null,
+            validatedBy: null
+          }
+        }
+      );
+
+      return {
+        skippedCount: 0,
+        status: "updated",
+        updatedCount: result.modifiedCount ?? 0
+      };
+    } catch (error: unknown) {
+      if (!isDocumentValidationError(error)) {
+        throw error;
+      }
+
+      return {
+        skippedCount: await this.productsCollection.countDocuments(legacyProductFilter),
+        status: "validator_incompatible",
+        updatedCount: 0
+      };
+    }
   }
 
   async runSmokeCheck(): Promise<CurrentCatalogSmokeCheckResult> {
@@ -429,6 +849,45 @@ export class MongoCurrentCatalogRepository {
     };
   }
 
+  async upgradeCatalogValidators(): Promise<CatalogValidatorUpgradeResult> {
+    const existingCollections = new Set(
+      (await this.database.listCollections({}, { nameOnly: true }).toArray()).map((entry) => entry.name)
+    );
+    const createdCollections: string[] = [];
+    const upgradedCollections: string[] = [];
+
+    for (const [collectionName, schema] of Object.entries(catalogV1CollectionSchemas)) {
+      if (!existingCollections.has(collectionName)) {
+        await this.database.createCollection(collectionName, {
+          validationAction: "error",
+          validationLevel: "strict",
+          validator: {
+            $jsonSchema: schema
+          }
+        });
+        createdCollections.push(collectionName);
+        existingCollections.add(collectionName);
+        continue;
+      }
+
+      await this.database.command({
+        collMod: collectionName,
+        validationAction: "error",
+        validationLevel: "strict",
+        validator: {
+          $jsonSchema: schema
+        }
+      });
+      upgradedCollections.push(collectionName);
+    }
+
+    return {
+      createdCollections,
+      databaseName: this.database.databaseName,
+      upgradedCollections
+    };
+  }
+
   async upsertCatalogSeedDataset(dataset: CatalogV1SeedDataset): Promise<void> {
     await this.upsertMany(this.migrationLedgerCollection, dataset.migrationLedger);
     await this.upsertMany(this.priceObservationsCollection, dataset.priceObservations);
@@ -459,7 +918,7 @@ export class MongoCurrentCatalogRepository {
   }
 
   private async upsertMany<T extends { id: string }>(
-    collection: Collection<T>,
+    collection: MongoCollectionLike<T>,
     records: readonly T[]
   ): Promise<void> {
     if (records.length === 0) {
@@ -498,4 +957,108 @@ function latestOfferLocation(
 function compareOffers(left: CatalogProductOfferListItem, right: CatalogProductOfferListItem): number {
   return left.sourceName.localeCompare(right.sourceName, "hu-HU")
     || left.sourceProductName.localeCompare(right.sourceProductName, "hu-HU");
+}
+
+function isDocumentValidationError(error: unknown): boolean {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const candidate = error as { code?: unknown };
+  return candidate.code === 121;
+}
+
+function normalizeProductName(name: string): string {
+  return name.trim().toLocaleLowerCase("hu-HU").replace(/\s+/g, " ");
+}
+
+function summarizeMongoValidationError(error: unknown): Record<string, unknown> {
+  if (!error || typeof error !== "object") {
+    return {};
+  }
+
+  const candidate = error as {
+    errInfo?: {
+      details?: unknown;
+      failingDocumentId?: unknown;
+    };
+    message?: unknown;
+  };
+
+  return {
+    details: candidate.errInfo?.details ?? null,
+    failingDocumentId: candidate.errInfo?.failingDocumentId ?? null,
+    message: typeof candidate.message === "string" ? candidate.message : "unknown"
+  };
+}
+
+function createProductIdFromReviewCandidate(candidate: {
+  priceObservations: Array<unknown>;
+  product: {
+    measurements: ProductRecord["measurements"];
+    name: string;
+    normalizedName: string;
+  };
+  sourceProductIdentifiers: Array<{
+    kind: ProductSourceIdentifierRecord["kind"];
+    value: string;
+  }>;
+}): string {
+  const commonIdentifier = candidate.sourceProductIdentifiers.find((identifier) =>
+    identifier.kind === "gtin" || identifier.kind === "national_code"
+  );
+
+  if (commonIdentifier) {
+    return `product_${commonIdentifier.kind}_${stableSlug(commonIdentifier.value)}`;
+  }
+
+  const packageIdentity = candidate.product.measurements
+    .map((measurement) => `${measurement.value}${measurement.unit}`)
+    .join("_")
+    .trim();
+  const identity = packageIdentity
+    ? `${candidate.product.normalizedName} ${packageIdentity}`
+    : candidate.product.normalizedName || normalizeProductName(candidate.product.name);
+
+  return `product_name_${stableSlug(identity)}`;
+}
+
+function createReviewLocation(sourceName: string, storeBrandKey: string, countryCode: string): StockRecord["location"] {
+  return {
+    countryCode,
+    kind: "global_shop_availability",
+    label: sourceName,
+    locationKey: `availability:${stableSlug(storeBrandKey || sourceName)}`,
+    storeBrandKey
+  };
+}
+
+function createProductSourceId(sourceName: string, sourceProductKey: string): string {
+  return `product_source_${stableSlug(sourceName)}_${stableSlug(sourceProductKey)}`;
+}
+
+function createReviewPriceObservationId(
+  candidate: {
+    source: { sourceName: string; sourceProductKey: string };
+  },
+  observationIndex: number,
+  observation: { observedAt: string; price: number; priceKind?: PriceObservationKind | null; validFrom?: string | null; validTo?: string | null }
+): string {
+  return `price_observation_${stableSlug(candidate.source.sourceName)}_${stableSlug(candidate.source.sourceProductKey)}_${stableSlug(observation.priceKind ?? "offer")}_${stableSlug(observation.observedAt)}_${stableSlug(String(observation.price))}_${stableSlug(observation.validFrom ?? "open")}_${stableSlug(observation.validTo ?? "open")}_${observationIndex}`;
+}
+
+function createStockId(sourceName: string, sourceProductKey: string): string {
+  return `stock_${stableSlug(sourceName)}_${stableSlug(sourceProductKey)}`;
+}
+
+function stableSlug(value: string): string {
+  const slug = value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 80);
+
+  return slug || "item";
 }

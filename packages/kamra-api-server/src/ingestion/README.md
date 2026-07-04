@@ -13,6 +13,7 @@ Ingestion is separate from catalog:
 
 - `v1/`
   - shared ingestion contracts and crawl-run identity helpers
+  - manual product gateway review-candidate contracts and row fingerprints
 - `sources/simple-html-table-shop/`
   - synthetic HTML source fixture, parser, and tests
 - `sources/simple-pdf-shop/`

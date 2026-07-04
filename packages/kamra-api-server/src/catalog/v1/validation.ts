@@ -22,6 +22,7 @@ import {
   processingStates,
   productKinds,
   productStatuses,
+  productValidationStatuses,
   recordOriginKinds,
   stockLocationKinds,
   stockStatuses,
@@ -117,6 +118,18 @@ export function assertProductRecord(value: unknown, label = "product"): asserts 
     assertRecordOrigin(item, `${label}.origin[${index}]`);
   });
   assertOptionalString(value["primaryCategoryKey"], `${label}.primaryCategoryKey`);
+  assertEnum(value["validationStatus"], productValidationStatuses, `${label}.validationStatus`);
+  assertOptionalString(value["validatedAt"], `${label}.validatedAt`);
+  if (typeof value["validatedAt"] === "string") {
+    assertIsoDateString(value["validatedAt"], `${label}.validatedAt`);
+  }
+  assertOptionalString(value["validatedBy"], `${label}.validatedBy`);
+  assertOptionalString(value["invalidatedAt"], `${label}.invalidatedAt`);
+  if (typeof value["invalidatedAt"] === "string") {
+    assertIsoDateString(value["invalidatedAt"], `${label}.invalidatedAt`);
+  }
+  assertOptionalString(value["invalidatedBy"], `${label}.invalidatedBy`);
+  assertOptionalString(value["validationNote"], `${label}.validationNote`);
   assertEnum(value["status"], productStatuses, `${label}.status`);
   assertIsoDateString(value["updatedAt"], `${label}.updatedAt`);
 }

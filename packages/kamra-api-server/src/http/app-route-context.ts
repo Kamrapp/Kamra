@@ -3,12 +3,28 @@ import type { Db } from "mongodb";
 import type { MongoUserRepository } from "../auth/mongo-user-repository.js";
 import type { AuthenticatedUser } from "../auth/user-auth.js";
 import { verifyUserToken } from "../auth/user-token.js";
-import { MongoCurrentCatalogRepository } from "../catalog/current/mongo-catalog-repository.js";
-import type { CatalogV1SeedDataset, SourceRecordProcessingStateRecord } from "../catalog/v1/contracts.js";
+import {
+  MongoCurrentCatalogRepository,
+  type CatalogValidatorUpgradeResult,
+  type CreateCatalogProductFromReviewCandidateResult,
+  type DeleteCatalogProductResult,
+  type MarkLegacyProductsUnvalidatedResult
+} from "../catalog/current/mongo-catalog-repository.js";
+import type {
+  CatalogProductListItem,
+  CatalogV1SeedDataset,
+  ProductMeasurement,
+  SourceRecordProcessingStateRecord
+} from "../catalog/v1/contracts.js";
 import { readAppConfig, type AppConfig } from "../config/app-config.js";
 import { getMongoClient } from "../db/mongo-client.js";
 import { MongoIngestionRepository } from "../ingestion/current/mongo-ingestion-repository.js";
 import type { IngestionRawSnapshotRecord } from "../ingestion/v1/contracts.js";
+import type {
+  IngestionProductReviewItemRecord,
+  ProductReviewCandidateDraft
+} from "../ingestion/v1/review-contracts.js";
+import type { ProductReviewDecisionReason } from "../ingestion/v1/review-contracts.js";
 
 export interface AppRequest {
   bodyText?: string;
@@ -32,18 +48,115 @@ export interface AppHandlerDependencies {
       recordFingerprint: string;
       sourceName: string;
     }): Promise<SourceRecordProcessingStateRecord | null>;
+    markLegacyProductsUnvalidated?(): Promise<MarkLegacyProductsUnvalidatedResult>;
+    deleteCatalogProduct?(id: string): Promise<DeleteCatalogProductResult>;
+    createCatalogProductFromReviewCandidate?(input: {
+      candidate: {
+        origin: {
+          capturedAt: string;
+          sourceName: string;
+          sourceRecordId: string;
+          sourceUrl?: string | null;
+        };
+        priceObservations: Array<{
+          currencyCode: string;
+          observedAt: string;
+          price: number;
+          priceKind?: string | null;
+          programName?: string | null;
+          unitPriceLabel?: string | null;
+          validFrom?: string | null;
+          validTo?: string | null;
+        }>;
+        product: {
+          brandName?: string | null;
+          kind: "grocery" | "household_supply";
+          measurements: Array<{
+            normalizedUnit?: string | null;
+            normalizedValue?: number | null;
+            unit: string;
+            value: number;
+          }>;
+          name: string;
+          normalizedName: string;
+          primaryCategoryKey?: string | null;
+        };
+        source: {
+          countryCode: string;
+          currentCategoryLabel?: string | null;
+          productPageUrl?: string | null;
+          sourceName: string;
+          sourceProductKey: string;
+          sourceProductName: string;
+          storeBrandKey: string;
+        };
+        sourceProductIdentifiers: Array<{
+          kind: string;
+          value: string;
+        }>;
+        stock?: {
+          availability: "infinite";
+          countryCode: string;
+        } | null;
+      };
+      createdAt: string;
+      reviewerId: string;
+    }): Promise<CreateCatalogProductFromReviewCandidateResult>;
+    findCatalogProductForReview?(id: string): Promise<CatalogProductListItem | null>;
     listCatalogProductsForReview(options?: { limit?: number; offset?: number; sourceNames?: string[] }): Promise<{
       products: unknown[];
       totalCount: number;
     }>;
     listCatalogOfferSourceNames?(): Promise<string[]>;
+    setCatalogProductValidationStatus?(input: {
+      id: string;
+      note?: string | null;
+      reviewedAt: string;
+      reviewerId: string;
+      status: "invalid" | "validated";
+    }): Promise<CatalogProductListItem | null>;
     setupCollections?(): Promise<unknown>;
+    updateCatalogProduct?(input: {
+      brandName?: string | null;
+      id: string;
+      measurements?: ProductMeasurement[];
+      name?: string;
+      primaryCategoryKey?: string | null;
+      updatedAt: string;
+      validationNote?: string | null;
+    }): Promise<CatalogProductListItem | null>;
+    upgradeCatalogValidators?(): Promise<CatalogValidatorUpgradeResult>;
     upsertCatalogSeedDataset?(dataset: CatalogV1SeedDataset): Promise<void>;
   };
   createIngestionRepository?: (database: Db) => {
     findRawSnapshotById(id: string): Promise<IngestionRawSnapshotRecord | null>;
+    findProductReviewItemById?(id: string): Promise<IngestionProductReviewItemRecord | null>;
     listRawSnapshots(options?: { limit?: number; sourceName?: string }): Promise<IngestionRawSnapshotRecord[]>;
+    listProductReviewItems?(options?: {
+      limit?: number;
+      offset?: number;
+      snapshotId?: string;
+      sourceName?: string;
+      status?: IngestionProductReviewItemRecord["status"][];
+    }): Promise<IngestionProductReviewItemRecord[]>;
+    markProductReviewItemDecision?(input: {
+      acceptedCatalogProductDeletedAt?: string | null;
+      acceptedCatalogProductId?: string | null;
+      declineReason?: ProductReviewDecisionReason | null;
+      id: string;
+      note?: string | null;
+      decidedAt: string;
+      reviewerId: string;
+      reviewerName: string;
+      status: "accepted" | "declined";
+    }): Promise<boolean>;
+    prepareProductReviewItems?(snapshot: IngestionRawSnapshotRecord): Promise<IngestionProductReviewItemRecord[]>;
     setupCollections?(): Promise<unknown>;
+    updateProductReviewItemCandidate?(input: {
+      candidate: ProductReviewCandidateDraft;
+      id: string;
+      updatedAt: string;
+    }): Promise<boolean>;
   };
   createUserRepository?: (database: Db) => MongoUserRepository;
   getMongoClient?: typeof getMongoClient;

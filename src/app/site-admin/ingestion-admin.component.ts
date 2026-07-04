@@ -1,71 +1,32 @@
-import { Component, computed, inject, signal, type OnInit } from "@angular/core";
+import { Component, computed, effect, inject, signal, type OnDestroy, type OnInit } from "@angular/core";
 
 import { AuthService } from "../auth.service";
 import { logBrowserEvent } from "../browser-logger";
 import {
   IngestionAdminService,
+  productReviewDecisionReasons,
+  type IngestionProductReviewItem,
   type IngestionRowPreview,
-  type IngestionSnapshotListItem
+  type IngestionSnapshotListItem,
+  type ProductReviewCandidateDraft,
+  type ProductReviewDecisionReason
 } from "./ingestion-admin.service";
 import { ResizableTableComponent, type ResizableTableColumn } from "../shared/resizable-table.component";
+import { PageRailService, type PageRailSection } from "../shared/page-rail.service";
+import { ProductEditorDialogComponent } from "../shared/product-editor-dialog.component";
 
 @Component({
-  imports: [ResizableTableComponent],
+  imports: [ProductEditorDialogComponent, ResizableTableComponent],
   selector: "app-ingestion-admin",
   standalone: true,
   template: `
     <section class="ingestion-page" aria-labelledby="ingestion-title">
-      <header class="page-header surface-panel">
-        <div>
-          <p class="ui-kicker">Site admin</p>
-          <h1 id="ingestion-title">Crawls</h1>
-        </div>
-
-        <dl class="summary-strip" aria-label="Crawl summary">
-          <div>
-            <dt>Snapshots</dt>
-            <dd>{{ snapshots().length }}</dd>
-          </div>
-          <div>
-            <dt>Rows</dt>
-            <dd>{{ totalRows() }}</dd>
-          </div>
-          <div>
-            <dt>Pending</dt>
-            <dd>{{ pendingSnapshots() }}</dd>
-          </div>
-        </dl>
-      </header>
-
-      @if (!auth.token()) {
-        <section class="state-panel surface-panel surface-copy">
-          <p class="ui-kicker">Admin only</p>
-          <p class="state-title">Sign in to view crawl snapshots.</p>
-        </section>
-      } @else {
-        <section class="state-panel surface-panel surface-copy">
-          <div class="state-header">
-            <div>
-              <p class="ui-kicker">Current state</p>
-              <p class="state-title">{{ statusMessage() }}</p>
-            </div>
-
-            <button class="ui-action-button" type="button" (click)="loadSnapshots()" [disabled]="loadState() === 'loading'">
-              {{ loadState() === "loading" ? "Loading..." : "Refresh" }}
-            </button>
-          </div>
-
-          @if (errorMessage(); as errorMessage) {
-            <p class="error-message">{{ errorMessage }}</p>
-          }
-        </section>
-
-        <section
-          class="crawl-workspace"
-          [class.crawl-workspace-single]="!selectedSnapshot()"
-          [style.--crawl-list-fr]="crawlListWidthPercent() + 'fr'"
-          [style.--crawl-detail-fr]="100 - crawlListWidthPercent() + 'fr'"
-        >
+      <section
+        class="crawl-workspace"
+        [class.crawl-workspace-single]="!selectedSnapshot()"
+        [style.--crawl-list-fr]="crawlListWidthPercent() + 'fr'"
+        [style.--crawl-detail-fr]="100 - crawlListWidthPercent() + 'fr'"
+      >
           <app-resizable-table #snapshotTable class="snapshot-list" ariaLabel="Crawl snapshots" [columns]="snapshotColumns">
               <div class="snapshot-body">
                 @for (snapshot of snapshots(); track snapshot.id) {
@@ -103,50 +64,21 @@ import { ResizableTableComponent, type ResizableTableColumn } from "../shared/re
             </button>
 
             <aside class="detail-panel surface-panel" aria-label="Selected crawl snapshot">
-              <header class="detail-header">
-                <div>
-                  <p class="ui-kicker">{{ snapshot.workflowName }}</p>
-                  <h2>{{ snapshot.sourceName }}</h2>
-                  <p class="detail-subtitle">{{ snapshot.sourceRecordId }}</p>
-                </div>
-
-                <button
-                  class="ui-action-button"
-                  type="button"
-                  (click)="processSelectedSnapshot()"
-                  [disabled]="processState() === 'loading'"
-                >
-                  {{ processState() === "loading" ? "Processing..." : "Process" }}
-                </button>
-              </header>
-
-              <dl class="detail-grid">
-                <div>
-                  <dt>Captured</dt>
-                  <dd>{{ formatDateTime(snapshot.capturedAt) }}</dd>
-                </div>
-                <div>
-                  <dt>Parser</dt>
-                  <dd>{{ snapshot.parserName }} {{ snapshot.parserVersion }}</dd>
-                </div>
-                <div>
-                  <dt>Content</dt>
-                  <dd>{{ snapshot.contentType }}</dd>
-                </div>
-                <div>
-                  <dt>Processing</dt>
-                  <dd>{{ processingStateLabel(snapshot) }}</dd>
-                </div>
-              </dl>
-
-              @if (snapshot.processingState?.lastErrorMessage; as lastErrorMessage) {
-                <p class="error-message">{{ lastErrorMessage }}</p>
-              }
-
               <app-resizable-table #rowTable class="row-table" ariaLabel="Parsed crawl rows" [columns]="rowColumns">
                   <div class="row-body">
                     @for (row of snapshot.rows; track row.sourceRecordId || row.sourceProductKey || row.displayName) {
                       <article class="parsed-row" role="row" [style.grid-template-columns]="rowTable.columnTemplate()">
+                        <span class="action-cell" role="cell">
+                          <button
+                            class="table-icon-button"
+                            type="button"
+                            title="Review crawl product"
+                            aria-label="Review crawl product"
+                            (click)="openReviewEditor(snapshot, row)"
+                          >
+                            ✓
+                          </button>
+                        </span>
                         <span role="cell">
                           <strong>{{ row.displayName }}</strong>
                           <small>{{ row.packageLabel || "no package" }}</small>
@@ -161,7 +93,15 @@ import { ResizableTableComponent, type ResizableTableColumn } from "../shared/re
             </aside>
           }
         </section>
-      }
+        <app-product-editor-dialog
+          mode="review"
+          [open]="reviewEditorOpen()"
+          [reviewItem]="editingReviewItem()"
+          (acceptReview)="acceptReviewItem($event.id, $event.note)"
+          (close)="closeReviewEditor()"
+          (declineReview)="declineReviewItem($event.id, $event.reason, $event.note)"
+          (updateReviewCandidate)="updateReviewCandidate($event.id, $event.candidate)"
+        />
     </section>
   `,
   styles: [
@@ -172,8 +112,8 @@ import { ResizableTableComponent, type ResizableTableColumn } from "../shared/re
       }
 
       .ingestion-page {
-        display: grid;
-        gap: var(--space-5);
+        display: block;
+        min-height: 0;
       }
 
       dd,
@@ -192,14 +132,6 @@ import { ResizableTableComponent, type ResizableTableColumn } from "../shared/re
         text-transform: uppercase;
       }
 
-      .page-header {
-        align-items: end;
-        display: flex;
-        gap: var(--space-5);
-        justify-content: space-between;
-        padding: clamp(1rem, 2.4vw, 1.4rem);
-      }
-
       h1 {
         color: var(--color-text);
         font-family: var(--font-display);
@@ -213,50 +145,8 @@ import { ResizableTableComponent, type ResizableTableColumn } from "../shared/re
         line-height: 1.2;
       }
 
-      .summary-strip {
-        display: grid;
-        gap: var(--space-3);
-        grid-template-columns: repeat(3, minmax(5rem, 1fr));
-        min-width: min(28rem, 100%);
-      }
-
-      .summary-strip div,
-      .detail-grid div {
-        background: color-mix(in srgb, var(--color-background-soft) 72%, white 28%);
-        border: 1px solid color-mix(in srgb, var(--color-wood) 14%, transparent);
-        border-radius: 8px;
-        min-height: 4rem;
-        padding: 0.65rem 0.8rem;
-      }
-
-      .summary-strip dd,
-      .detail-grid dd {
-        color: var(--color-text);
-        font-weight: 800;
-      }
-
-      .summary-strip dd {
-        font-size: 1.25rem;
-      }
-
-      .state-header,
-      .detail-header {
-        align-items: center;
-        display: flex;
-        gap: var(--space-3);
-        justify-content: space-between;
-      }
-
-      .state-title,
-      .detail-subtitle,
       .error-message {
         color: var(--color-text-muted);
-      }
-
-      .state-title {
-        color: var(--color-text);
-        font-size: 1rem;
-        font-weight: 700;
       }
 
       .crawl-workspace {
@@ -276,6 +166,7 @@ import { ResizableTableComponent, type ResizableTableColumn } from "../shared/re
       .detail-panel {
         min-width: 0;
         overflow: hidden;
+        padding: 0;
       }
 
       .snapshot-list,
@@ -351,12 +242,34 @@ import { ResizableTableComponent, type ResizableTableColumn } from "../shared/re
       }
 
       strong,
+      .action-cell,
       small {
         display: block;
         min-width: 0;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+      }
+
+      .action-cell {
+        align-items: center;
+        display: flex;
+      }
+
+      .table-icon-button {
+        align-items: center;
+        background: color-mix(in srgb, var(--color-accent-sky) 20%, white 80%);
+        border: 1px solid color-mix(in srgb, var(--color-wood) 18%, transparent);
+        border-radius: 8px;
+        color: var(--color-text);
+        cursor: pointer;
+        display: inline-flex;
+        font: inherit;
+        font-weight: 900;
+        height: 2rem;
+        justify-content: center;
+        padding: 0;
+        width: 2rem;
       }
 
       small {
@@ -367,19 +280,6 @@ import { ResizableTableComponent, type ResizableTableColumn } from "../shared/re
       .empty-list {
         color: var(--color-text-muted);
         padding: 1rem;
-      }
-
-      .detail-panel {
-        display: grid;
-        gap: var(--space-4);
-        grid-template-columns: minmax(0, 1fr);
-        padding: clamp(1rem, 2.2vw, 1.25rem);
-      }
-
-      .detail-grid {
-        display: grid;
-        gap: var(--space-3);
-        grid-template-columns: repeat(4, minmax(0, 1fr));
       }
 
       .parsed-row {
@@ -398,18 +298,6 @@ import { ResizableTableComponent, type ResizableTableColumn } from "../shared/re
       }
 
       @media (max-width: 980px) {
-        .page-header,
-        .state-header,
-        .detail-header {
-          align-items: stretch;
-          flex-direction: column;
-        }
-
-        .crawl-workspace,
-        .detail-grid {
-          grid-template-columns: 1fr;
-        }
-
         .crawl-workspace {
           gap: var(--space-5);
         }
@@ -417,29 +305,26 @@ import { ResizableTableComponent, type ResizableTableColumn } from "../shared/re
         .workspace-resizer {
           display: none;
         }
-
-        .summary-strip {
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          min-width: 0;
-        }
       }
     `
   ]
 })
-export class IngestionAdminComponent implements OnInit {
+export class IngestionAdminComponent implements OnInit, OnDestroy {
   readonly auth = inject(AuthService);
   readonly ingestion = inject(IngestionAdminService);
+  readonly pageRail = inject(PageRailService);
   readonly snapshotColumns: readonly ResizableTableColumn[] = [
-    { key: "source", label: "Source", minWidth: 80, maxWidth: 640, width: 300 },
+    { key: "source", label: "Source", minWidth: 80, maxWidth: 640, width: 180 },
     { key: "captured", label: "Captured", minWidth: 80, maxWidth: 640, width: 120 },
-    { key: "rows", label: "Rows", minWidth: 80, maxWidth: 640, width: 84 },
-    { key: "state", label: "State", minWidth: 80, maxWidth: 640, width: 132 }
+    { key: "rows", label: "Rows", minWidth: 60, maxWidth: 640, width: 70 },
+    { key: "state", label: "State", minWidth: 80, maxWidth: 640, width: 120 }
   ];
   readonly rowColumns: readonly ResizableTableColumn[] = [
-    { key: "product", label: "Product", minWidth: 120, maxWidth: 820, width: 440 },
-    { key: "key", label: "Key", minWidth: 120, maxWidth: 760, width: 240 },
-    { key: "price", label: "Price", minWidth: 110, maxWidth: 760, width: 170 },
-    { key: "validity", label: "Validity", minWidth: 130, maxWidth: 760, width: 240 }
+    { key: "actions", label: "", minWidth: 52, maxWidth: 72, width: 56 },
+    { key: "product", label: "Product", minWidth: 120, maxWidth: 820, width: 360 },
+    { key: "key", label: "Key", minWidth: 60, maxWidth: 540, width: 100 },
+    { key: "price", label: "Price", minWidth: 60, maxWidth: 540, width: 100 },
+    { key: "validity", label: "Validity", minWidth: 130, maxWidth: 540, width: 240 }
   ];
   readonly errorMessage = signal("");
   readonly loadState = signal<"idle" | "loading" | "success" | "error">("idle");
@@ -448,6 +333,9 @@ export class IngestionAdminComponent implements OnInit {
   readonly snapshots = signal<IngestionSnapshotListItem[]>([]);
   readonly statusMessage = signal("No crawl snapshots have been loaded yet.");
   readonly selectedSnapshotId = signal<string | null>(null);
+  readonly editingReviewItem = signal<IngestionProductReviewItem | null>(null);
+  readonly reviewEditorOpen = signal(false);
+  readonly reviewItemsBySnapshot = signal<Record<string, IngestionProductReviewItem[]>>({});
   readonly selectedSnapshot = computed(() =>
     this.snapshots().find((snapshot) => snapshot.id === this.selectedSnapshotId()) ?? this.snapshots()[0] ?? null
   );
@@ -457,11 +345,73 @@ export class IngestionAdminComponent implements OnInit {
   readonly totalRows = computed(() =>
     this.snapshots().reduce((total, snapshot) => total + snapshot.parsedRowCount, 0)
   );
+  readonly pageRailSections = computed<PageRailSection[]>(() => {
+    const sections: PageRailSection[] = [
+      {
+        key: "crawl-summary",
+        kind: "summary",
+        kicker: "Site admin",
+        title: "Crawls",
+        items: [
+          { label: "Snapshots", value: `${this.snapshots().length}` },
+          { label: "Rows", value: `${this.totalRows()}` },
+          { label: "Pending", value: `${this.pendingSnapshots()}` }
+        ],
+        actionLabel: this.loadState() === "loading" ? "Loading..." : "Refresh",
+        actionDisabled: this.loadState() === "loading",
+        error: this.errorMessage() || undefined,
+        onAction: () => {
+          void this.loadSnapshots();
+        }
+      }
+    ];
+
+    if (!this.auth.token()) {
+      sections.push({
+        key: "crawl-auth",
+        kind: "status",
+        kicker: "Admin only",
+        message: "Sign in to view crawl snapshots."
+      });
+      return sections;
+    }
+
+    const snapshot = this.selectedSnapshot();
+    if (snapshot) {
+      sections.push({
+        key: "crawl-selected",
+        kind: "summary",
+        kicker: snapshot.workflowName,
+        title: snapshot.sourceName,
+        items: [
+          { label: "Captured", value: this.formatDateTime(snapshot.capturedAt) },
+          { label: "Parser", value: `${snapshot.parserName} ${snapshot.parserVersion}` },
+          { label: "Content", value: snapshot.contentType },
+          { label: "Processing", value: this.processingStateLabel(snapshot) }
+        ],
+        note: snapshot.processingState?.lastErrorMessage ?? undefined,
+        actionLabel: this.processState() === "loading" ? "Processing..." : "Process",
+        actionDisabled: this.processState() === "loading",
+        onAction: () => {
+          void this.processSelectedSnapshot();
+        }
+      });
+    }
+
+    return sections;
+  });
+  private readonly syncPageRail = effect(() => {
+    this.pageRail.setSections(this.pageRailSections());
+  });
 
   ngOnInit(): void {
     if (this.auth.token()) {
       void this.loadSnapshots();
     }
+  }
+
+  ngOnDestroy(): void {
+    this.pageRail.clearSections();
   }
 
   formatDate(value: string): string {
@@ -583,5 +533,121 @@ export class IngestionAdminComponent implements OnInit {
 
     this.statusMessage.set(`Processed ${result.processedRowCount} rows from ${snapshot.sourceName}.`);
     await this.loadSnapshots();
+  }
+
+  async openReviewEditor(snapshot: IngestionSnapshotListItem, row: IngestionRowPreview): Promise<void> {
+    this.errorMessage.set("");
+    const items = await this.ensureReviewItems(snapshot.id);
+    if (!items) {
+      return;
+    }
+
+    const reviewItem = items.find((item) =>
+      item.rawRowPreview["sourceRecordId"] === row.sourceRecordId
+      || item.rawRowPreview["sourceProductKey"] === row.sourceProductKey
+      || item.rawRowPreview["displayName"] === row.displayName
+    ) ?? items[0] ?? null;
+
+    if (!reviewItem) {
+      this.errorMessage.set("No review item could be prepared for this crawl row.");
+      return;
+    }
+
+    this.editingReviewItem.set(reviewItem);
+    this.reviewEditorOpen.set(true);
+  }
+
+  closeReviewEditor(): void {
+    this.reviewEditorOpen.set(false);
+    this.editingReviewItem.set(null);
+  }
+
+  async updateReviewCandidate(id: string, candidate: ProductReviewCandidateDraft): Promise<void> {
+    const result = await this.ingestion.updateReviewItemCandidate(id, candidate);
+    if (result.status !== "ok") {
+      this.errorMessage.set(result.message);
+      return;
+    }
+
+    this.editingReviewItem.set(result.reviewItem);
+    this.replaceReviewItem(result.reviewItem);
+  }
+
+  async acceptReviewItem(id: string, note: string | null): Promise<void> {
+    const result = await this.ingestion.acceptReviewItem(id, note);
+    if (result.status !== "ok") {
+      this.errorMessage.set(result.message);
+      return;
+    }
+
+    this.closeReviewEditor();
+    await this.refreshSelectedReviewItems();
+  }
+
+  async declineReviewItem(
+    id: string,
+    reason: ProductReviewDecisionReason,
+    note: string | null
+  ): Promise<void> {
+    if (!productReviewDecisionReasons.includes(reason)) {
+      this.errorMessage.set("Choose a valid decline reason.");
+      return;
+    }
+
+    const result = await this.ingestion.declineReviewItem(id, reason, note);
+    if (result.status !== "ok") {
+      this.errorMessage.set(result.message);
+      return;
+    }
+
+    this.closeReviewEditor();
+    await this.refreshSelectedReviewItems();
+  }
+
+  private async ensureReviewItems(snapshotId: string): Promise<IngestionProductReviewItem[] | null> {
+    const cachedItems = this.reviewItemsBySnapshot()[snapshotId];
+    if (cachedItems?.length) {
+      return cachedItems;
+    }
+
+    const prepared = await this.ingestion.prepareReviewItems(snapshotId);
+    if (prepared.status !== "ok") {
+      this.errorMessage.set(prepared.message);
+      return null;
+    }
+
+    this.reviewItemsBySnapshot.update((itemsBySnapshot) => ({
+      ...itemsBySnapshot,
+      [snapshotId]: prepared.reviewItems
+    }));
+    return prepared.reviewItems;
+  }
+
+  private async refreshSelectedReviewItems(): Promise<void> {
+    const snapshot = this.selectedSnapshot();
+    if (!snapshot) {
+      return;
+    }
+
+    const result = await this.ingestion.listReviewItemsForSnapshot(snapshot.id);
+    if (result.status !== "ok") {
+      this.errorMessage.set(result.message);
+      return;
+    }
+
+    this.reviewItemsBySnapshot.update((itemsBySnapshot) => ({
+      ...itemsBySnapshot,
+      [snapshot.id]: result.reviewItems
+    }));
+  }
+
+  private replaceReviewItem(nextItem: IngestionProductReviewItem): void {
+    this.reviewItemsBySnapshot.update((itemsBySnapshot) => {
+      const snapshotItems = itemsBySnapshot[nextItem.snapshotId] ?? [];
+      return {
+        ...itemsBySnapshot,
+        [nextItem.snapshotId]: snapshotItems.map((item) => item.id === nextItem.id ? nextItem : item)
+      };
+    });
   }
 }
