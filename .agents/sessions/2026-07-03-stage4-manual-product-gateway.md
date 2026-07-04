@@ -38,6 +38,8 @@
 - Item: Hardened route handling so unexpected route failures return a stable 500 response instead of killing the local API process, and surfaced admin route failures as UI toasts.
 - Item: Collapsed the Product view source selector into a compact multi-select dropdown instead of a full chip/list block.
 - Item: Added empty price-observation and measurement insertion buttons to the shared product editor JSON panel for missing-array cases.
+- Item: Added a compact select-all/deselect-all toggle to the Product view source filter dropdown.
+- Item: Kept the Product view source filter dropdown visible after deselect-all so the user can reselect a source without reloading the page.
 
 ## Changed Files
 
@@ -162,6 +164,14 @@
 - Result: passed with an existing Angular component style budget warning on `src/app/app.component.ts`
 - Not run: manual browser checks
 - Reason: this editor tweak is a shared UI refinement verified through compile and build checks
+- Ran: `npm run typecheck`, `npm run build`
+- Result: passed with an existing Angular component style budget warning on `src/app/app.component.ts`
+- Not run: manual browser checks
+- Reason: this source-filter tweak is a shared UI refinement verified through compile and build checks
+- Ran: `npm run typecheck`, `npm run build`
+- Result: passed with an existing Angular component style budget warning on `src/app/app.component.ts`
+- Not run: manual browser checks
+- Reason: this empty-selection behavior fix is verified through compile and build checks
 
 ## Decisions
 

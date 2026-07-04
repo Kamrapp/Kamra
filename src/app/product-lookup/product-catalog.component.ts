@@ -366,7 +366,8 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
       return sections;
     }
 
-    if (this.products().length) {
+    if (this.products().length || this.sourceFilterTouched()) {
+      const allSourcesSelected = this.selectedOfferSources().size === this.offerSourceOptions().length;
       sections.push({
         key: "catalog-sources",
         kind: "filters",
@@ -374,6 +375,8 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
         title: "Sources",
         selectedCount: this.selectedOfferSources().size,
         optionCount: this.offerSourceOptions().length,
+        secondaryActionLabel: allSourcesSelected ? "Deselect all" : "Select all",
+        onSecondaryAction: () => this.toggleAllOfferSources(),
         note: `${this.products().length} of ${this.totalProductCount()} products loaded`,
         options: this.offerSourceOptions().map((source) => ({
           key: source.key,
@@ -579,6 +582,17 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
 
       return next;
     });
+    void this.reloadProductsForCurrentFilters();
+  }
+
+  toggleAllOfferSources(): void {
+    const allSources = new Set(this.offerSourceOptions().map((source) => source.key));
+    const nextSources = this.selectedOfferSources().size === allSources.size
+      ? new Set<string>()
+      : allSources;
+
+    this.sourceFilterTouched.set(true);
+    this.selectedOfferSources.set(nextSources);
     void this.reloadProductsForCurrentFilters();
   }
 

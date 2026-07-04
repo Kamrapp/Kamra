@@ -404,10 +404,12 @@ export class ProductEditorDialogComponent {
       return;
     }
 
-    const priceObservations = Array.isArray(parsed["priceObservations"]) ? parsed["priceObservations"] : [];
+    const priceObservations = this.readArrayField(parsed, "priceObservations");
     priceObservations.push({
       currencyCode: "HUF",
-      observedAt: "",
+      observedAt: this.mode === "review"
+        ? this.reviewItem?.candidate.origin.capturedAt ?? ""
+        : new Date().toISOString(),
       price: 0
     });
     parsed["priceObservations"] = priceObservations;
@@ -425,12 +427,21 @@ export class ProductEditorDialogComponent {
       return;
     }
 
-    const measurements = Array.isArray(parsed["measurements"]) ? parsed["measurements"] : [];
+    const measurements = this.mode === "review"
+      ? this.readProductArrayField(parsed, "measurements")
+      : this.readArrayField(parsed, "measurements");
     measurements.push({
       unit: "",
       value: 0
     });
-    parsed["measurements"] = measurements;
+    if (this.mode === "review") {
+      parsed["product"] = {
+        ...(this.readObjectField(parsed, "product") ?? {}),
+        measurements
+      };
+    } else {
+      parsed["measurements"] = measurements;
+    }
     this.jsonText = this.formatJson(parsed);
     this.jsonError.set("");
   }
@@ -477,12 +488,14 @@ export class ProductEditorDialogComponent {
 
   hasPriceObservations(): boolean {
     const parsed = this.parseJsonText();
-    return Array.isArray(parsed?.["priceObservations"]) && parsed["priceObservations"].length > 0;
+    return this.readArrayField(parsed, "priceObservations").length > 0;
   }
 
   hasMeasurements(): boolean {
     const parsed = this.parseJsonText();
-    return Array.isArray(parsed?.["measurements"]) && parsed["measurements"].length > 0;
+    return this.mode === "review"
+      ? this.readProductArrayField(parsed, "measurements").length > 0
+      : this.readArrayField(parsed, "measurements").length > 0;
   }
 
   private parseJsonText(): Record<string, unknown> | null {
@@ -494,5 +507,21 @@ export class ProductEditorDialogComponent {
     } catch {
       return null;
     }
+  }
+
+  private readArrayField(value: Record<string, unknown> | null, key: string): unknown[] {
+    const field = value?.[key];
+    return Array.isArray(field) ? field : [];
+  }
+
+  private readObjectField(value: Record<string, unknown> | null, key: string): Record<string, unknown> | null {
+    const field = value?.[key];
+    return field && typeof field === "object" && !Array.isArray(field)
+      ? field as Record<string, unknown>
+      : null;
+  }
+
+  private readProductArrayField(value: Record<string, unknown> | null, key: string): unknown[] {
+    return this.readArrayField(this.readObjectField(value, "product"), key);
   }
 }

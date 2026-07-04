@@ -109,20 +109,33 @@ import { ToastService } from "./shared/toast.service";
                   <div>
                     <p class="rail-kicker">{{ section.kicker }}</p>
                     @if (section.title) {
-                      <button
-                        class="rail-filter-toggle"
-                        type="button"
-                        [attr.aria-expanded]="openFilterKey() === section.key"
-                        (click)="toggleRailFilter(section.key)"
-                      >
-                        <span class="rail-title rail-section-title">{{ section.title }}</span>
-                        <span class="rail-filter-count">
-                          {{ section.selectedCount ?? 0 }}/{{ section.optionCount ?? section.options?.length ?? 0 }}
-                        </span>
-                        <svg aria-hidden="true" viewBox="0 0 24 24" class="rail-filter-icon">
-                          <path d="M7 10.5 12 15.5 17 10.5H7Z"></path>
-                        </svg>
-                      </button>
+                      <div class="rail-filter-title-row">
+                        <button
+                          class="rail-filter-toggle"
+                          type="button"
+                          [attr.aria-expanded]="openFilterKey() === section.key"
+                          (click)="toggleRailFilter(section.key)"
+                        >
+                          <span class="rail-title rail-section-title">{{ section.title }}</span>
+                          <span class="rail-filter-count">
+                            {{ section.selectedCount ?? 0 }}/{{ section.optionCount ?? section.options?.length ?? 0 }}
+                          </span>
+                          <svg aria-hidden="true" viewBox="0 0 24 24" class="rail-filter-icon">
+                            <path d="M7 10.5 12 15.5 17 10.5H7Z"></path>
+                          </svg>
+                        </button>
+
+                        @if (section.secondaryActionLabel && section.onSecondaryAction) {
+                          <button
+                            class="rail-filter-secondary"
+                            type="button"
+                            [disabled]="section.secondaryActionDisabled"
+                            (click)="section.onSecondaryAction()"
+                          >
+                            {{ section.secondaryActionLabel }}
+                          </button>
+                        }
+                      </div>
                     }
                   </div>
                 </div>
@@ -455,6 +468,13 @@ import { ToastService } from "./shared/toast.service";
         padding: 0;
       }
 
+      .rail-filter-title-row {
+        align-items: center;
+        display: flex;
+        gap: 0.45rem;
+        justify-content: space-between;
+      }
+
       .rail-filter-count {
         color: var(--color-text-muted);
         font-size: 0.75rem;
@@ -467,6 +487,20 @@ import { ToastService } from "./shared/toast.service";
         height: 0.9rem;
         margin-left: 0.1rem;
         width: 0.9rem;
+      }
+
+      .rail-filter-secondary {
+        background: color-mix(in srgb, var(--color-accent-sky) 18%, white 82%);
+        border: 1px solid color-mix(in srgb, var(--color-wood) 14%, transparent);
+        border-radius: 8px;
+        color: var(--color-text);
+        cursor: pointer;
+        font: inherit;
+        font-size: 0.72rem;
+        font-weight: 800;
+        min-height: 1.65rem;
+        padding: 0.18rem 0.5rem;
+        white-space: nowrap;
       }
 
       .rail-filter-popover {

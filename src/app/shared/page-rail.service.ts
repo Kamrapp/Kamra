@@ -18,6 +18,9 @@ export interface PageRailSection {
   kicker: string;
   optionCount?: number;
   selectedCount?: number;
+  secondaryActionDisabled?: boolean;
+  secondaryActionLabel?: string;
+  onSecondaryAction?: () => void;
   title?: string;
   items?: PageRailSummaryItem[];
   message?: string;
