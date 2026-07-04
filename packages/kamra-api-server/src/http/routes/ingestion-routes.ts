@@ -3,7 +3,9 @@ import {
   createDefaultIngestionRepository,
   json,
   unauthorized,
-  type AppRoute
+  type AppResponse,
+  type AppRoute,
+  type AppRouteContext
 } from "../app-route-context.js";
 import {
   createSourceOfferRecordFingerprint,
@@ -12,9 +14,20 @@ import {
   sourceOfferProcessorVersion
 } from "../../ingestion/processing/source-offer-processor.js";
 import type { IngestionRawSnapshotRecord, ParsedShopProductRow } from "../../ingestion/v1/contracts.js";
+import {
+  productReviewDecisionReasons,
+  productReviewCandidateMatchConfidences,
+  type IngestionProductReviewItemRecord,
+  type ProductReviewCandidateDraft,
+  type ProductReviewDecisionReason
+} from "../../ingestion/v1/review-contracts.js";
 
 const snapshotListLimit = 75;
 const rowPreviewLimit = 250;
+const reviewItemListLimit = 100;
+
+type CatalogRouteRepository = ReturnType<NonNullable<AppRouteContext["dependencies"]["createCatalogRepository"]>>;
+type IngestionRouteRepository = ReturnType<NonNullable<AppRouteContext["dependencies"]["createIngestionRepository"]>>;
 
 export const ingestionSnapshotsRoute: AppRoute = {
   match: (request) => request.method === "GET" && request.path === "/api/admin/ingestion/snapshots",
@@ -126,6 +139,183 @@ export const processIngestionSnapshotRoute: AppRoute = {
   }
 };
 
+export const prepareProductReviewItemsRoute: AppRoute = {
+  match: (request) => request.method === "POST" && request.path === "/api/admin/ingestion/prepare-review-items",
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request);
+    if (!user || user.role !== "admin") {
+      return unauthorized("Sign in as an admin to prepare review items.");
+    }
+
+    const snapshotId = parseSnapshotId(request.bodyText);
+    if (!snapshotId) {
+      return json(400, {
+        error: "invalid_snapshot_id"
+      });
+    }
+
+    const repositories = await createIngestionRouteRepositories(context);
+    if ("error" in repositories) {
+      return repositories.error;
+    }
+
+    const { catalogRepository, ingestionRepository } = repositories;
+    if (!ingestionRepository.prepareProductReviewItems) {
+      return json(501, {
+        error: "product_review_not_supported"
+      });
+    }
+
+    await Promise.all([
+      ingestionRepository.setupCollections?.(),
+      catalogRepository.setupCollections?.()
+    ]);
+
+    const snapshot = await ingestionRepository.findRawSnapshotById(snapshotId);
+    if (!snapshot) {
+      return json(404, {
+        error: "snapshot_not_found"
+      });
+    }
+
+    const items = await ingestionRepository.prepareProductReviewItems(snapshot);
+
+    return json(200, {
+      preparedCount: items.length,
+      reviewItems: items.map(toReviewItemResponse),
+      snapshotId: snapshot.id
+    });
+  }
+};
+
+export const productReviewItemsRoute: AppRoute = {
+  match: (request) => request.method === "GET" && request.path === "/api/admin/ingestion/review-items",
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request);
+    if (!user || user.role !== "admin") {
+      return unauthorized("Sign in as an admin to view review items.");
+    }
+
+    const repositories = await createIngestionRouteRepositories(context);
+    if ("error" in repositories) {
+      return repositories.error;
+    }
+
+    const { catalogRepository, ingestionRepository } = repositories;
+    if (!ingestionRepository.listProductReviewItems) {
+      return json(501, {
+        error: "product_review_not_supported"
+      });
+    }
+
+    await Promise.all([
+      ingestionRepository.setupCollections?.(),
+      catalogRepository.setupCollections?.()
+    ]);
+
+    const items = await ingestionRepository.listProductReviewItems({
+      limit: parsePositiveIntegerQueryValue(request.query?.["limit"], reviewItemListLimit),
+      offset: parsePositiveIntegerQueryValue(request.query?.["offset"], 0),
+      snapshotId: parseOptionalQueryString(request.query?.["snapshotId"]),
+      sourceName: parseOptionalQueryString(request.query?.["sourceName"]),
+      status: parseReviewStatuses(request.query?.["status"])
+    });
+
+    return json(200, {
+      reviewItems: items.map(toReviewItemResponse)
+    });
+  }
+};
+
+export const productReviewItemRoute: AppRoute = {
+  match: (request) =>
+    (request.method === "GET" || request.method === "PATCH")
+      && request.path === "/api/admin/ingestion/review-item",
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request);
+    if (!user || user.role !== "admin") {
+      return unauthorized("Sign in as an admin to manage review items.");
+    }
+
+    const repositories = await createIngestionRouteRepositories(context);
+    if ("error" in repositories) {
+      return repositories.error;
+    }
+
+    const { catalogRepository, ingestionRepository } = repositories;
+    if (!ingestionRepository.findProductReviewItemById) {
+      return json(501, {
+        error: "product_review_not_supported"
+      });
+    }
+
+    await Promise.all([
+      ingestionRepository.setupCollections?.(),
+      catalogRepository.setupCollections?.()
+    ]);
+
+    if (request.method === "GET") {
+      const id = parseOptionalQueryString(request.query?.["id"]);
+      if (!id) {
+        return json(400, {
+          error: "invalid_review_item_id"
+        });
+      }
+
+      const item = await ingestionRepository.findProductReviewItemById(id);
+      if (!item) {
+        return json(404, {
+          error: "review_item_not_found"
+        });
+      }
+
+      return json(200, {
+        reviewItem: toReviewItemResponse(item)
+      });
+    }
+
+    if (!ingestionRepository.updateProductReviewItemCandidate) {
+      return json(501, {
+        error: "product_review_not_supported"
+      });
+    }
+
+    const payload = parseReviewItemUpdatePayload(request.bodyText);
+    if (!payload) {
+      return json(400, {
+        error: "invalid_review_item_update"
+      });
+    }
+
+    const updated = await ingestionRepository.updateProductReviewItemCandidate({
+      candidate: payload.candidate,
+      id: payload.id,
+      updatedAt: new Date().toISOString()
+    });
+    if (!updated) {
+      return json(404, {
+        error: "review_item_not_found"
+      });
+    }
+
+    const item = await ingestionRepository.findProductReviewItemById(payload.id);
+
+    return json(200, {
+      reviewItem: item ? toReviewItemResponse(item) : null
+    });
+  }
+};
+
+export const acceptProductReviewItemRoute: AppRoute = {
+  match: (request) => request.method === "POST" && request.path === "/api/admin/ingestion/review-item/accept",
+  handle: async (request, context) => markProductReviewItemDecision(request, context, "accepted")
+};
+
+export const declineProductReviewItemRoute: AppRoute = {
+  match: (request) => request.method === "POST" && request.path === "/api/admin/ingestion/review-item/decline",
+  handle: async (request, context) => markProductReviewItemDecision(request, context, "declined")
+};
+
 function toSnapshotListItem(snapshot: IngestionRawSnapshotRecord): Record<string, unknown> {
   return {
     capturedAt: snapshot.capturedAt,
@@ -160,6 +350,115 @@ function toRowPreview(row: ParsedShopProductRow): Record<string, unknown> {
   };
 }
 
+async function createIngestionRouteRepositories(context: AppRouteContext): Promise<
+  | {
+    catalogRepository: CatalogRouteRepository;
+    ingestionRepository: IngestionRouteRepository;
+  }
+  | { error: AppResponse }
+> {
+  const config = context.config;
+  if (!config.mongodb.uri || !config.mongodb.databaseName) {
+    return {
+      error: json(503, { error: "ingestion_not_configured" })
+    };
+  }
+
+  const client = await context.getMongoClient(
+    config.mongodb.uri,
+    config.mongodb.dnsServers
+  );
+  const database = client.db(config.mongodb.databaseName);
+
+  return {
+    catalogRepository: context.dependencies.createCatalogRepository
+      ? context.dependencies.createCatalogRepository(database)
+      : createDefaultCatalogRepository(database),
+    ingestionRepository: context.dependencies.createIngestionRepository
+      ? context.dependencies.createIngestionRepository(database)
+      : createDefaultIngestionRepository(database)
+  };
+}
+
+async function markProductReviewItemDecision(
+  request: Parameters<AppRoute["handle"]>[0],
+  context: AppRouteContext,
+  status: "accepted" | "declined"
+): Promise<AppResponse> {
+  const user = context.authenticateRequestUser(request);
+  if (!user || user.role !== "admin") {
+    return unauthorized("Sign in as an admin to decide review items.");
+  }
+
+  const repositories = await createIngestionRouteRepositories(context);
+  if ("error" in repositories) {
+    return repositories.error;
+  }
+
+  const { catalogRepository, ingestionRepository } = repositories;
+  if (!ingestionRepository.markProductReviewItemDecision) {
+    return json(501, {
+      error: "product_review_not_supported"
+    });
+  }
+
+  await Promise.all([
+    ingestionRepository.setupCollections?.(),
+    catalogRepository.setupCollections?.()
+  ]);
+
+  const payload = parseReviewDecisionPayload(request.bodyText, status);
+  if (!payload) {
+    return json(400, {
+      error: "invalid_review_decision"
+    });
+  }
+
+  const updated = await ingestionRepository.markProductReviewItemDecision({
+    acceptedCatalogProductId: payload.acceptedCatalogProductId ?? null,
+    declineReason: payload.declineReason ?? null,
+    decidedAt: new Date().toISOString(),
+    id: payload.id,
+    note: payload.note ?? null,
+    reviewerId: user.email,
+    reviewerName: user.email,
+    status
+  });
+  if (!updated) {
+    return json(404, {
+      error: "review_item_not_found"
+    });
+  }
+
+  return json(200, {
+    id: payload.id,
+    status
+  });
+}
+
+function toReviewItemResponse(item: IngestionProductReviewItemRecord): Record<string, unknown> {
+  return {
+    acceptedCatalogProductDeletedAt: item.acceptedCatalogProductDeletedAt ?? null,
+    acceptedCatalogProductId: item.acceptedCatalogProductId ?? null,
+    candidate: item.candidate,
+    candidateBuilderName: item.candidateBuilderName,
+    candidateBuilderVersion: item.candidateBuilderVersion,
+    candidateMatch: item.candidateMatch,
+    capturedAt: item.capturedAt,
+    createdAt: item.createdAt,
+    decision: item.decision ?? null,
+    id: item.id,
+    rawRowPreview: item.rawRowPreview,
+    rowFingerprint: item.rowFingerprint,
+    rowIndex: item.rowIndex,
+    snapshotId: item.snapshotId,
+    sourceName: item.sourceName,
+    sourceRecordId: item.sourceRecordId,
+    status: item.status,
+    updatedAt: item.updatedAt
+  };
+}
+
 function parseSnapshotId(bodyText: string | undefined): string | null {
   if (!bodyText) {
     return null;
@@ -178,4 +477,116 @@ function parseSnapshotId(bodyText: string | undefined): string | null {
   return typeof payload.snapshotId === "string" && payload.snapshotId.trim()
     ? payload.snapshotId.trim()
     : null;
+}
+
+function parseOptionalQueryString(value: string | string[] | undefined): string | undefined {
+  const candidate = Array.isArray(value) ? value[0] : value;
+  return candidate?.trim() || undefined;
+}
+
+function parsePositiveIntegerQueryValue(value: string | string[] | undefined, fallback: number): number {
+  const candidate = Number(parseOptionalQueryString(value));
+  if (!Number.isInteger(candidate) || candidate < 0) {
+    return fallback;
+  }
+
+  return candidate;
+}
+
+function parseReviewStatuses(value: string | string[] | undefined): IngestionProductReviewItemRecord["status"][] | undefined {
+  const rawValue = parseOptionalQueryString(value);
+  if (!rawValue) {
+    return undefined;
+  }
+
+  const statuses = rawValue
+    .split(",")
+    .map((status) => status.trim())
+    .filter((status): status is IngestionProductReviewItemRecord["status"] =>
+      ["accepted", "declined", "failed", "pending", "stale"].includes(status)
+    );
+
+  return statuses.length ? statuses : undefined;
+}
+
+function parseJsonObject(bodyText: string | undefined): Record<string, unknown> | null {
+  if (!bodyText) {
+    return null;
+  }
+
+  try {
+    const payload = JSON.parse(bodyText) as unknown;
+    return payload && typeof payload === "object" && !Array.isArray(payload)
+      ? payload as Record<string, unknown>
+      : null;
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      return null;
+    }
+    throw error;
+  }
+}
+
+function parseReviewItemUpdatePayload(bodyText: string | undefined): {
+  candidate: ProductReviewCandidateDraft;
+  id: string;
+} | null {
+  const payload = parseJsonObject(bodyText);
+  if (!payload) {
+    return null;
+  }
+
+  const candidate = payload["candidate"];
+  if (typeof payload["id"] !== "string" || !isProductReviewCandidateDraft(candidate)) {
+    return null;
+  }
+
+  return {
+    candidate,
+    id: payload["id"].trim()
+  };
+}
+
+function parseReviewDecisionPayload(bodyText: string | undefined, status: "accepted" | "declined"): {
+  acceptedCatalogProductId?: string | null;
+  declineReason?: ProductReviewDecisionReason | null;
+  id: string;
+  note?: string | null;
+} | null {
+  const payload = parseJsonObject(bodyText);
+  if (!payload || typeof payload["id"] !== "string" || !payload["id"].trim()) {
+    return null;
+  }
+
+  const declineReason = typeof payload["declineReason"] === "string"
+    && productReviewDecisionReasons.includes(payload["declineReason"] as ProductReviewDecisionReason)
+      ? payload["declineReason"] as ProductReviewDecisionReason
+      : null;
+  if (status === "declined" && !declineReason) {
+    return null;
+  }
+
+  return {
+    acceptedCatalogProductId: typeof payload["acceptedCatalogProductId"] === "string"
+      ? payload["acceptedCatalogProductId"].trim() || null
+      : null,
+    declineReason,
+    id: payload["id"].trim(),
+    note: typeof payload["note"] === "string" ? payload["note"] : null
+  };
+}
+
+function isProductReviewCandidateDraft(value: unknown): value is ProductReviewCandidateDraft {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+
+  const candidate = value as ProductReviewCandidateDraft;
+  return productReviewCandidateMatchConfidences.includes(candidate.matchConfidence)
+    && Boolean(candidate.product)
+    && typeof candidate.product?.name === "string"
+    && Boolean(candidate.source)
+    && typeof candidate.source?.sourceName === "string"
+    && Array.isArray(candidate.priceObservations)
+    && Array.isArray(candidate.sourceProductIdentifiers);
 }

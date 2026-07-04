@@ -44,6 +44,7 @@ export interface CatalogProductListItem {
   name: string;
   offers: CatalogProductOfferListItem[];
   primaryCategoryKey?: string | null;
+  validationStatus: "unvalidated" | "validated" | "invalid";
   sourceNames: string[];
   tagKeys: string[];
 }

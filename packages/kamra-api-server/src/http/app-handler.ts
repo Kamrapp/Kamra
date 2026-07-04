@@ -6,10 +6,27 @@ import {
   type AppResponse,
   type AppRoute
 } from "./app-route-context.js";
-import { catalogProductsRoute, catalogSourcesRoute } from "./routes/catalog-routes.js";
+import {
+  catalogProductRoute,
+  catalogProductsRoute,
+  catalogProductValidationRoute,
+  catalogSourcesRoute
+} from "./routes/catalog-routes.js";
 import { currentUserRoute, loginRoute, logoutRoute } from "./routes/auth-routes.js";
-import { healthRoute } from "./routes/health-route.js";
-import { ingestionSnapshotsRoute, processIngestionSnapshotRoute } from "./routes/ingestion-routes.js";
+import {
+  healthRoute,
+  markLegacyProductsUnvalidatedRoute,
+  upgradeCatalogValidatorsRoute
+} from "./routes/health-route.js";
+import {
+  acceptProductReviewItemRoute,
+  declineProductReviewItemRoute,
+  ingestionSnapshotsRoute,
+  prepareProductReviewItemsRoute,
+  processIngestionSnapshotRoute,
+  productReviewItemRoute,
+  productReviewItemsRoute
+} from "./routes/ingestion-routes.js";
 import { logRoute } from "./routes/log-route.js";
 
 export type { AppRequest, AppResponse } from "./app-route-context.js";
@@ -20,10 +37,19 @@ const appRoutes: AppRoute[] = [
   logoutRoute,
   currentUserRoute,
   healthRoute,
+  upgradeCatalogValidatorsRoute,
+  markLegacyProductsUnvalidatedRoute,
+  catalogProductRoute,
+  catalogProductValidationRoute,
   catalogProductsRoute,
   catalogSourcesRoute,
   ingestionSnapshotsRoute,
-  processIngestionSnapshotRoute
+  processIngestionSnapshotRoute,
+  prepareProductReviewItemsRoute,
+  productReviewItemsRoute,
+  productReviewItemRoute,
+  acceptProductReviewItemRoute,
+  declineProductReviewItemRoute
 ];
 
 export async function handleAppRequest(

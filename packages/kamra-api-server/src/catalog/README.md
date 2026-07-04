@@ -13,6 +13,7 @@ Changing the active version should be an intentional path change in `current/` a
 ## Model Notes
 
 - `ProductRecord` is the canonical query object for grocery products.
+- `ProductRecord` includes validation state so the app can tell trusted products from crawler-noise products before automated updates or admin edits.
 - `ProductSourceRecord` stores compact source identity, source-local identifiers, and links, not bulky raw page content or image bytes. Retailer-local ids belong here instead of on canonical products.
 - `PriceObservationRecord` stores observed source prices over time. Use separate observations for base, offer, coupon, loyalty-card, and old/original prices instead of collapsing them into one price.
 - `ProductTagRecord` and `ProductTagAssignmentRecord` keep category and keyword signals separate from products for now.

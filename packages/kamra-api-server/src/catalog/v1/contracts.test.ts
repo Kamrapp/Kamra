@@ -23,5 +23,6 @@ describe("Catalog v1 contracts", () => {
     expect(properties["imageUrl"]).toBeUndefined();
     expect(properties["rawHtml"]).toBeUndefined();
     expect(properties["rawImage"]).toBeUndefined();
+    expect(properties["validationStatus"]).toBeDefined();
   });
 });

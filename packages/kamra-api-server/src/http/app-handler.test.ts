@@ -85,6 +85,263 @@ describe("handleAppRequest auth guards", () => {
     });
   });
 
+  it("rejects legacy validation backfill without an admin token", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+
+    const token = createUserToken({
+      email: "user@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "user",
+      secret: "test-secret"
+    });
+
+    const response = await handleAppRequest({
+      headers: {
+        authorization: `Bearer ${token}`
+      },
+      method: "POST",
+      path: "/api/health/backfill-unvalidated-products"
+    });
+
+    expect(response.status).toBe(401);
+    expect(JSON.parse(response.body)).toEqual({
+      error: "unauthorized",
+      message: "Sign in as an admin to view this resource."
+    });
+  });
+
+  it("backfills legacy products to unvalidated with a valid admin token", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "admin@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "admin",
+      secret: "test-secret"
+    });
+
+    const response = await handleAppRequest(
+      {
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "POST",
+        path: "/api/health/backfill-unvalidated-products"
+      },
+      {
+        createCatalogRepository: () => ({
+          markLegacyProductsUnvalidated: async () => {
+            return {
+              skippedCount: 0,
+              status: "updated" as const,
+              updatedCount: 42
+            };
+          },
+          listCatalogProductsForReview: async () => ({
+            products: [],
+            totalCount: 0
+          })
+        }),
+        getMongoClient: async () => ({
+          db: () => ({})
+        } as never)
+      }
+    );
+
+    expect(response.status).toBe(200);
+    expect(JSON.parse(response.body)).toMatchObject({
+      skippedCount: 0,
+      status: "updated",
+      updatedCount: 42
+    });
+  });
+
+  it("upgrades catalog validators with a valid admin token", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "admin@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "admin",
+      secret: "test-secret"
+    });
+
+    const response = await handleAppRequest(
+      {
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "POST",
+        path: "/api/health/upgrade-catalog-validators"
+      },
+      {
+        createCatalogRepository: () => ({
+          listCatalogProductsForReview: async () => ({
+            products: [],
+            totalCount: 0
+          }),
+          upgradeCatalogValidators: async () => ({
+            createdCollections: [],
+            databaseName: "kamra_test",
+            upgradedCollections: ["products"]
+          })
+        }),
+        getMongoClient: async () => ({
+          db: () => ({})
+        } as never)
+      }
+    );
+
+    expect(response.status).toBe(200);
+    expect(JSON.parse(response.body)).toMatchObject({
+      createdCollections: [],
+      databaseName: "kamra_test",
+      upgradedCollections: ["products"]
+    });
+  });
+
+  it("returns a stable error when catalog validator upgrade fails", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "admin@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "admin",
+      secret: "test-secret"
+    });
+
+    const response = await handleAppRequest(
+      {
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "POST",
+        path: "/api/health/upgrade-catalog-validators"
+      },
+      {
+        createCatalogRepository: () => ({
+          listCatalogProductsForReview: async () => ({
+            products: [],
+            totalCount: 0
+          }),
+          upgradeCatalogValidators: async () => {
+            throw new Error("collMod denied");
+          }
+        }),
+        getMongoClient: async () => ({
+          db: () => ({})
+        } as never)
+      }
+    );
+
+    expect(response.status).toBe(500);
+    expect(JSON.parse(response.body)).toEqual({
+      error: "catalog_validator_upgrade_failed",
+      message: "Catalog collection validators could not be upgraded."
+    });
+  });
+
+  it("reports validation fallback when the legacy product collection validator is old", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "admin@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "admin",
+      secret: "test-secret"
+    });
+
+    const response = await handleAppRequest(
+      {
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "POST",
+        path: "/api/health/backfill-unvalidated-products"
+      },
+      {
+        createCatalogRepository: () => ({
+          markLegacyProductsUnvalidated: async () => ({
+            skippedCount: 12,
+            status: "validator_incompatible" as const,
+            updatedCount: 0
+          }),
+          listCatalogProductsForReview: async () => ({
+            products: [],
+            totalCount: 0
+          })
+        }),
+        getMongoClient: async () => ({
+          db: () => ({})
+        } as never)
+      }
+    );
+
+    expect(response.status).toBe(200);
+    expect(JSON.parse(response.body)).toMatchObject({
+      skippedCount: 12,
+      status: "validator_incompatible",
+      updatedCount: 0
+    });
+  });
+
+  it("returns a stable error when legacy validation backfill fails", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "admin@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "admin",
+      secret: "test-secret"
+    });
+
+    const response = await handleAppRequest(
+      {
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "POST",
+        path: "/api/health/backfill-unvalidated-products"
+      },
+      {
+        createCatalogRepository: () => ({
+          markLegacyProductsUnvalidated: async () => {
+            throw new Error("Atlas rejected the product update.");
+          },
+          listCatalogProductsForReview: async () => ({
+            products: [],
+            totalCount: 0
+          })
+        }),
+        getMongoClient: async () => ({
+          db: () => ({})
+        } as never)
+      }
+    );
+
+    expect(response.status).toBe(500);
+    expect(JSON.parse(response.body)).toEqual({
+      error: "catalog_backfill_failed",
+      message: "Legacy products could not be marked as unvalidated."
+    });
+  });
+
   it("rejects health checks for a valid non-admin token", async () => {
     vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
 
@@ -472,6 +729,471 @@ describe("handleAppRequest auth guards", () => {
     });
   });
 
+  it("updates a catalog product with a valid admin token", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "admin@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "admin",
+      secret: "test-secret"
+    });
+    let updateInput: unknown;
+
+    const response = await handleAppRequest(
+      {
+        bodyText: JSON.stringify({
+          brandName: "Kamra",
+          id: "product_1",
+          name: "Corrected milk"
+        }),
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "PATCH",
+        path: "/api/catalog/product"
+      },
+      {
+        createCatalogRepository: () => ({
+          listCatalogProductsForReview: async () => ({
+            products: [],
+            totalCount: 0
+          }),
+          updateCatalogProduct: async (input) => {
+            updateInput = input;
+            return {
+              brandName: input.brandName,
+              householdStockCount: 0,
+              id: input.id,
+              measurements: [],
+              name: input.name ?? "Corrected milk",
+              offers: [],
+              sourceNames: [],
+              tagKeys: [],
+              validationStatus: "unvalidated"
+            };
+          }
+        }),
+        getMongoClient: async () => ({
+          db: () => ({})
+        } as never)
+      }
+    );
+
+    expect(response.status).toBe(200);
+    expect(updateInput).toMatchObject({
+      brandName: "Kamra",
+      id: "product_1",
+      name: "Corrected milk"
+    });
+    expect(JSON.parse(response.body)).toMatchObject({
+      product: {
+        brandName: "Kamra",
+        id: "product_1",
+        name: "Corrected milk"
+      }
+    });
+  });
+
+  it("invalidates a catalog product with the admin user recorded", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "admin@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "admin",
+      secret: "test-secret"
+    });
+    let validationInput: unknown;
+
+    const response = await handleAppRequest(
+      {
+        bodyText: JSON.stringify({
+          id: "product_1",
+          note: "Bad crawler name."
+        }),
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "POST",
+        path: "/api/catalog/product/invalidate"
+      },
+      {
+        createCatalogRepository: () => ({
+          listCatalogProductsForReview: async () => ({
+            products: [],
+            totalCount: 0
+          }),
+          setCatalogProductValidationStatus: async (input) => {
+            validationInput = input;
+            return {
+              householdStockCount: 0,
+              id: input.id,
+              measurements: [],
+              name: "Bad item",
+              offers: [],
+              sourceNames: [],
+              tagKeys: [],
+              validationStatus: input.status
+            };
+          }
+        }),
+        getMongoClient: async () => ({
+          db: () => ({})
+        } as never)
+      }
+    );
+
+    expect(response.status).toBe(200);
+    expect(validationInput).toMatchObject({
+      id: "product_1",
+      note: "Bad crawler name.",
+      reviewerId: "admin@kamra.test",
+      status: "invalid"
+    });
+    expect(JSON.parse(response.body)).toMatchObject({
+      product: {
+        id: "product_1",
+        validationStatus: "invalid"
+      }
+    });
+  });
+
+  it("hard-deletes a catalog product with a valid admin token", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "admin@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "admin",
+      secret: "test-secret"
+    });
+
+    const response = await handleAppRequest(
+      {
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "DELETE",
+        path: "/api/catalog/product",
+        query: {
+          id: "product_1"
+        }
+      },
+      {
+        createCatalogRepository: () => ({
+          deleteCatalogProduct: async (id) => ({
+            deletedIdentifierCount: id === "product_1" ? 1 : 0,
+            deletedPriceObservationCount: 2,
+            deletedProductCount: 1,
+            deletedProductSourceCount: 1,
+            deletedStockCount: 1,
+            deletedTagAssignmentCount: 1
+          }),
+          listCatalogProductsForReview: async () => ({
+            products: [],
+            totalCount: 0
+          })
+        }),
+        getMongoClient: async () => ({
+          db: () => ({})
+        } as never)
+      }
+    );
+
+    expect(response.status).toBe(200);
+    expect(JSON.parse(response.body)).toEqual({
+      id: "product_1",
+      result: {
+        deletedIdentifierCount: 1,
+        deletedPriceObservationCount: 2,
+        deletedProductCount: 1,
+        deletedProductSourceCount: 1,
+        deletedStockCount: 1,
+        deletedTagAssignmentCount: 1
+      }
+    });
+  });
+
+  it("prepares product review items for one ingestion snapshot", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "admin@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "admin",
+      secret: "test-secret"
+    });
+    const reviewItem = createProductReviewItem();
+
+    const response = await handleAppRequest(
+      {
+        bodyText: JSON.stringify({ snapshotId: "simple_html_table_shop:weekly-html-table:2026-07-02" }),
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "POST",
+        path: "/api/admin/ingestion/prepare-review-items"
+      },
+      {
+        createCatalogRepository: () => ({
+          listCatalogProductsForReview: async () => ({
+            products: [],
+            totalCount: 0
+          }),
+          setupCollections: async () => undefined
+        }),
+        createIngestionRepository: () => ({
+          findRawSnapshotById: async () => createIngestionSnapshot(),
+          listRawSnapshots: async () => [],
+          prepareProductReviewItems: async () => [reviewItem],
+          setupCollections: async () => undefined
+        }),
+        getMongoClient: async () => ({
+          db: () => ({})
+        } as never)
+      }
+    );
+
+    expect(response.status).toBe(200);
+    expect(JSON.parse(response.body)).toMatchObject({
+      preparedCount: 1,
+      reviewItems: [
+        {
+          id: reviewItem.id,
+          status: "pending"
+        }
+      ],
+      snapshotId: "simple_html_table_shop:weekly-html-table:2026-07-02"
+    });
+  });
+
+  it("lists product review items with filters", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "admin@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "admin",
+      secret: "test-secret"
+    });
+    let requestedOptions: unknown;
+    const reviewItem = createProductReviewItem();
+
+    const response = await handleAppRequest(
+      {
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "GET",
+        path: "/api/admin/ingestion/review-items",
+        query: {
+          limit: "20",
+          offset: "40",
+          snapshotId: "snapshot-1",
+          sourceName: "lidl-hu-brochure",
+          status: "pending,declined"
+        }
+      },
+      {
+        createCatalogRepository: () => ({
+          listCatalogProductsForReview: async () => ({
+            products: [],
+            totalCount: 0
+          }),
+          setupCollections: async () => undefined
+        }),
+        createIngestionRepository: () => ({
+          findRawSnapshotById: async () => null,
+          listProductReviewItems: async (options) => {
+            requestedOptions = options;
+            return [reviewItem];
+          },
+          listRawSnapshots: async () => [],
+          setupCollections: async () => undefined
+        }),
+        getMongoClient: async () => ({
+          db: () => ({})
+        } as never)
+      }
+    );
+
+    expect(response.status).toBe(200);
+    expect(requestedOptions).toEqual({
+      limit: 20,
+      offset: 40,
+      snapshotId: "snapshot-1",
+      sourceName: "lidl-hu-brochure",
+      status: ["pending", "declined"]
+    });
+    expect(JSON.parse(response.body)).toMatchObject({
+      reviewItems: [
+        {
+          id: reviewItem.id
+        }
+      ]
+    });
+  });
+
+  it("updates one product review candidate from editor JSON", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "admin@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "admin",
+      secret: "test-secret"
+    });
+    const reviewItem = createProductReviewItem();
+    let updatedCandidateName = "";
+
+    const response = await handleAppRequest(
+      {
+        bodyText: JSON.stringify({
+          candidate: {
+            ...reviewItem.candidate,
+            product: {
+              ...reviewItem.candidate.product,
+              name: "Corrected milk"
+            }
+          },
+          id: reviewItem.id
+        }),
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "PATCH",
+        path: "/api/admin/ingestion/review-item"
+      },
+      {
+        createCatalogRepository: () => ({
+          listCatalogProductsForReview: async () => ({
+            products: [],
+            totalCount: 0
+          }),
+          setupCollections: async () => undefined
+        }),
+        createIngestionRepository: () => ({
+          findProductReviewItemById: async () => ({
+            ...reviewItem,
+            candidate: {
+              ...reviewItem.candidate,
+              product: {
+                ...reviewItem.candidate.product,
+                name: updatedCandidateName
+              }
+            }
+          }),
+          findRawSnapshotById: async () => null,
+          listRawSnapshots: async () => [],
+          setupCollections: async () => undefined,
+          updateProductReviewItemCandidate: async (input) => {
+            updatedCandidateName = input.candidate.product.name;
+            return true;
+          }
+        }),
+        getMongoClient: async () => ({
+          db: () => ({})
+        } as never)
+      }
+    );
+
+    expect(response.status).toBe(200);
+    expect(updatedCandidateName).toBe("Corrected milk");
+    expect(JSON.parse(response.body)).toMatchObject({
+      reviewItem: {
+        candidate: {
+          product: {
+            name: "Corrected milk"
+          }
+        },
+        id: reviewItem.id
+      }
+    });
+  });
+
+  it("declines one product review item with a reason", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "admin@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "admin",
+      secret: "test-secret"
+    });
+    let decisionInput: unknown;
+
+    const response = await handleAppRequest(
+      {
+        bodyText: JSON.stringify({
+          declineReason: "bad_name",
+          id: "review-1",
+          note: "Not a product name."
+        }),
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "POST",
+        path: "/api/admin/ingestion/review-item/decline"
+      },
+      {
+        createCatalogRepository: () => ({
+          listCatalogProductsForReview: async () => ({
+            products: [],
+            totalCount: 0
+          }),
+          setupCollections: async () => undefined
+        }),
+        createIngestionRepository: () => ({
+          findRawSnapshotById: async () => null,
+          listRawSnapshots: async () => [],
+          markProductReviewItemDecision: async (input) => {
+            decisionInput = input;
+            return true;
+          },
+          setupCollections: async () => undefined
+        }),
+        getMongoClient: async () => ({
+          db: () => ({})
+        } as never)
+      }
+    );
+
+    expect(response.status).toBe(200);
+    expect(decisionInput).toMatchObject({
+      declineReason: "bad_name",
+      id: "review-1",
+      note: "Not a product name.",
+      reviewerId: "admin@kamra.test",
+      status: "declined"
+    });
+    expect(JSON.parse(response.body)).toEqual({
+      id: "review-1",
+      status: "declined"
+    });
+  });
+
   it("processes one ingestion snapshot with a valid admin token", async () => {
     vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
     vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
@@ -565,5 +1287,72 @@ function createIngestionSnapshot() {
     sourceRecordId: "weekly-html-table",
     sourceUrl: "https://example.invalid/simple-html-table-shop",
     workflowName: "synthetic-html-table-shop"
+  };
+}
+
+function createProductReviewItem() {
+  return {
+    acceptedCatalogProductDeletedAt: null,
+    acceptedCatalogProductId: null,
+    candidate: {
+      matchConfidence: "strong_source_key" as const,
+      origin: {
+        capturedAt: "2026-07-02T09:00:00.000Z",
+        sourceName: "simple_html_table_shop",
+        sourceRecordId: "weekly-html-table",
+        sourceUrl: "https://example.invalid/simple-html-table-shop"
+      },
+      priceObservations: [
+        {
+          currencyCode: "HUF" as const,
+          observedAt: "2026-07-02T09:00:00.000Z",
+          price: 469,
+          priceKind: "base" as const
+        }
+      ],
+      product: {
+        kind: "grocery" as const,
+        measurements: [],
+        name: "Pilos UHT tej 2,8% 1 l",
+        normalizedName: "pilos uht tej 2,8% 1 l",
+        primaryCategoryKey: null
+      },
+      source: {
+        countryCode: "HU" as const,
+        sourceName: "simple_html_table_shop",
+        sourceProductKey: "simple-milk",
+        sourceProductName: "Pilos UHT tej 2,8% 1 l",
+        storeBrandKey: "simple-html-table-shop"
+      },
+      sourceProductIdentifiers: [],
+      stock: {
+        availability: "infinite" as const,
+        countryCode: "HU" as const
+      }
+    },
+    candidateBuilderName: "SourceOfferReviewCandidateBuilder",
+    candidateBuilderVersion: "1.0.0",
+    candidateMatch: "strong_source_key" as const,
+    capturedAt: "2026-07-02T09:00:00.000Z",
+    createdAt: "2026-07-02T09:00:00.000Z",
+    decision: null,
+    id: "review-1",
+    rawRowPreview: {
+      countryCode: "HU" as const,
+      displayName: "Pilos UHT tej 2,8% 1 l",
+      packageLabel: "1 l",
+      priceValue: 469,
+      sourceName: "simple_html_table_shop",
+      sourceProductKey: "simple-milk",
+      sourceRecordId: "simple_html_table_shop:weekly-html-table:2026-07-02:row-1",
+      storeBrandKey: "simple-html-table-shop"
+    },
+    rowFingerprint: "review-fingerprint",
+    rowIndex: 0,
+    snapshotId: "simple_html_table_shop:weekly-html-table:2026-07-02",
+    sourceName: "simple_html_table_shop",
+    sourceRecordId: "simple_html_table_shop:weekly-html-table:2026-07-02:row-1",
+    status: "pending" as const,
+    updatedAt: "2026-07-02T09:00:00.000Z"
   };
 }

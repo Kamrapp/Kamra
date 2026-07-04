@@ -773,6 +773,43 @@
             "string"
           ]
         },
+        "validatedAt": {
+          "bsonType": [
+            "null",
+            "string"
+          ]
+        },
+        "validatedBy": {
+          "bsonType": [
+            "null",
+            "string"
+          ]
+        },
+        "invalidatedAt": {
+          "bsonType": [
+            "null",
+            "string"
+          ]
+        },
+        "invalidatedBy": {
+          "bsonType": [
+            "null",
+            "string"
+          ]
+        },
+        "validationNote": {
+          "bsonType": [
+            "null",
+            "string"
+          ]
+        },
+        "validationStatus": {
+          "enum": [
+            "unvalidated",
+            "validated",
+            "invalid"
+          ]
+        },
         "status": {
           "enum": [
             "active",
@@ -793,7 +830,8 @@
         "normalizedName",
         "origin",
         "status",
-        "updatedAt"
+        "updatedAt",
+        "validationStatus"
       ]
     },
     "source_record_processing_states": {
