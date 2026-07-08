@@ -193,9 +193,9 @@ interface HealthCheckItem {
 
       .status-panel {
         background: color-mix(in srgb, var(--color-surface) 90%, white 10%);
-        border: 1px solid color-mix(in srgb, var(--color-wood) 18%, transparent);
-        border-radius: 8px;
-        box-shadow: 0 1.2rem 2.6rem rgb(48 43 50 / 10%);
+        border: 1px solid var(--line-panel);
+        border-radius: var(--radius-ui);
+        box-shadow: var(--surface-panel-shadow);
         display: grid;
         gap: var(--space-4);
         padding: clamp(1rem, 2.5vw, 1.5rem);
@@ -221,9 +221,9 @@ interface HealthCheckItem {
       }
 
       .run-button {
-        background: var(--color-accent-leaf-strong);
-        border: 1px solid color-mix(in srgb, var(--color-accent-leaf-strong) 72%, black 28%);
-        border-radius: 8px;
+        background: var(--control-primary-background);
+        border: 1px solid var(--control-primary-border);
+        border-radius: var(--radius-ui);
         color: white;
         cursor: pointer;
         font: inherit;
@@ -243,7 +243,7 @@ interface HealthCheckItem {
       .maintenance-button {
         background: color-mix(in srgb, var(--color-wood) 88%, white 12%);
         border: 1px solid color-mix(in srgb, var(--color-wood) 72%, black 28%);
-        border-radius: 8px;
+        border-radius: var(--radius-ui);
         color: white;
         cursor: pointer;
         font: inherit;
@@ -278,7 +278,7 @@ interface HealthCheckItem {
       .check-card {
         background: color-mix(in srgb, var(--color-background-soft) 74%, white 26%);
         border: 1px solid rgb(255 255 255 / 66%);
-        border-radius: 8px;
+        border-radius: var(--radius-ui);
         display: grid;
         gap: var(--space-3);
         padding: 1rem;
@@ -308,7 +308,7 @@ interface HealthCheckItem {
 
       .check-heading span {
         background: rgb(255 255 255 / 60%);
-        border-radius: 8px;
+        border-radius: var(--radius-ui);
         color: var(--color-text-muted);
         font-size: 0.78rem;
         font-weight: 700;
@@ -342,7 +342,7 @@ interface HealthCheckItem {
 
       .error-block {
         background: rgb(255 255 255 / 58%);
-        border-radius: 8px;
+        border-radius: var(--radius-ui);
         display: grid;
         gap: 0.35rem;
         padding: 0.85rem;

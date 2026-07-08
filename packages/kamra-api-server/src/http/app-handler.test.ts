@@ -398,7 +398,7 @@ describe("handleAppRequest auth guards", () => {
     vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
     vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
     vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
-    let requestedProductOptions: { limit?: number; offset?: number } | undefined;
+    let requestedProductOptions: { limit?: number; nameIncludes?: string; offset?: number; sourceNames?: string[] } | undefined;
 
     const token = createUserToken({
       email: "admin@kamra.test",
@@ -619,6 +619,228 @@ describe("handleAppRequest auth guards", () => {
     });
   });
 
+  it("hides accepted product review rows from ingestion snapshots", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "admin@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "admin",
+      secret: "test-secret"
+    });
+    const snapshot = createIngestionSnapshot([
+      createParsedShopProductRow({
+        displayName: "Accepted milk",
+        sourceProductKey: "accepted-milk",
+        sourceRecordId: "row-accepted"
+      }),
+      createParsedShopProductRow({
+        displayName: "Pending bread",
+        sourceProductKey: "pending-bread",
+        sourceRecordId: "row-pending"
+      })
+    ]);
+
+    const response = await handleAppRequest(
+      {
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "GET",
+        path: "/api/admin/ingestion/snapshots"
+      },
+      {
+        createCatalogRepository: () => ({
+          listCatalogProductsForReview: async () => ({
+            products: [],
+            totalCount: 0
+          }),
+          setupCollections: async () => undefined
+        }),
+        createIngestionRepository: () => ({
+          findRawSnapshotById: async () => null,
+          listProductReviewItems: async () => [
+            {
+              ...createProductReviewItem(),
+              id: `${snapshot.id}:0`,
+              rowIndex: 0,
+              snapshotId: snapshot.id,
+              status: "accepted" as const
+            },
+            {
+              ...createProductReviewItem(),
+              id: `${snapshot.id}:1`,
+              rowIndex: 1,
+              snapshotId: snapshot.id,
+              status: "pending" as const
+            }
+          ],
+          listRawSnapshots: async () => [snapshot],
+          setupCollections: async () => undefined
+        }),
+        getMongoClient: async () => ({
+          db: () => ({})
+        } as never)
+      }
+    );
+
+    expect(response.status).toBe(200);
+    expect(JSON.parse(response.body)).toMatchObject({
+      snapshots: [
+        {
+          parsedRowCount: 1,
+          rows: [
+            {
+              displayName: "Pending bread",
+              sourceProductKey: "pending-bread"
+            }
+          ]
+        }
+      ]
+    });
+  });
+
+  it("includes accepted product review rows when requested", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "admin@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "admin",
+      secret: "test-secret"
+    });
+    const snapshot = createIngestionSnapshot([
+      createParsedShopProductRow({
+        displayName: "Accepted milk",
+        sourceProductKey: "accepted-milk",
+        sourceRecordId: "row-accepted"
+      }),
+      createParsedShopProductRow({
+        displayName: "Pending bread",
+        sourceProductKey: "pending-bread",
+        sourceRecordId: "row-pending"
+      })
+    ]);
+
+    const response = await handleAppRequest(
+      {
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "GET",
+        path: "/api/admin/ingestion/snapshots",
+        query: {
+          includeAccepted: "true"
+        }
+      },
+      {
+        createCatalogRepository: () => ({
+          listCatalogProductsForReview: async () => ({
+            products: [],
+            totalCount: 0
+          }),
+          setupCollections: async () => undefined
+        }),
+        createIngestionRepository: () => ({
+          findRawSnapshotById: async () => null,
+          listProductReviewItems: async () => [
+            {
+              ...createProductReviewItem(),
+              id: `${snapshot.id}:0`,
+              rowIndex: 0,
+              snapshotId: snapshot.id,
+              status: "accepted" as const
+            }
+          ],
+          listRawSnapshots: async () => [snapshot],
+          setupCollections: async () => undefined
+        }),
+        getMongoClient: async () => ({
+          db: () => ({})
+        } as never)
+      }
+    );
+
+    expect(response.status).toBe(200);
+    expect(JSON.parse(response.body)).toMatchObject({
+      snapshots: [
+        {
+          parsedRowCount: 2,
+          rows: [
+            {
+              displayName: "Accepted milk",
+              sourceProductKey: "accepted-milk"
+            },
+            {
+              displayName: "Pending bread",
+              sourceProductKey: "pending-bread"
+            }
+          ]
+        }
+      ]
+    });
+  });
+
+  it("hides ingestion snapshots when all review rows are accepted", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "admin@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "admin",
+      secret: "test-secret"
+    });
+    const snapshot = createIngestionSnapshot();
+
+    const response = await handleAppRequest(
+      {
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "GET",
+        path: "/api/admin/ingestion/snapshots"
+      },
+      {
+        createCatalogRepository: () => ({
+          listCatalogProductsForReview: async () => ({
+            products: [],
+            totalCount: 0
+          }),
+          setupCollections: async () => undefined
+        }),
+        createIngestionRepository: () => ({
+          findRawSnapshotById: async () => null,
+          listProductReviewItems: async () => [
+            {
+              ...createProductReviewItem(),
+              snapshotId: snapshot.id,
+              status: "accepted" as const
+            }
+          ],
+          listRawSnapshots: async () => [snapshot],
+          setupCollections: async () => undefined
+        }),
+        getMongoClient: async () => ({
+          db: () => ({})
+        } as never)
+      }
+    );
+
+    expect(response.status).toBe(200);
+    expect(JSON.parse(response.body)).toMatchObject({
+      snapshots: []
+    });
+  });
+
   it("passes catalog product pagination query values to the repository", async () => {
     vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
     vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
@@ -641,6 +863,7 @@ describe("handleAppRequest auth guards", () => {
         method: "GET",
         path: "/api/catalog/products",
         query: {
+          nameIncludes: "tej",
           page: "3",
           pageSize: "50",
           source: "penny_hu_offers"
@@ -666,6 +889,7 @@ describe("handleAppRequest auth guards", () => {
     expect(response.status).toBe(200);
     expect(requestedProductOptions).toEqual({
       limit: 50,
+      nameIncludes: "tej",
       offset: 100,
       sourceNames: ["penny_hu_offers"]
     });
@@ -1381,7 +1605,32 @@ describe("handleAppRequest auth guards", () => {
   });
 });
 
-function createIngestionSnapshot() {
+function createParsedShopProductRow(overrides: Record<string, unknown> = {}) {
+  return {
+    countryCode: "HU" as const,
+    displayName: "Pilos UHT tej 2,8% 1 l",
+    observedAt: "2026-07-02T09:00:00.000Z",
+    priceObservations: [
+      {
+        currencyCode: "HUF" as const,
+        observedAt: "2026-07-02T09:00:00.000Z",
+        price: 469,
+        priceKind: "base" as const
+      }
+    ],
+    sourceName: "simple_html_table_shop",
+    sourceProductKey: "simple-milk",
+    sourceRecordId: "simple_html_table_shop:weekly-html-table:2026-07-02:row-1",
+    stock: {
+      availability: "infinite" as const,
+      countryCode: "HU" as const
+    },
+    storeBrandKey: "simple-html-table-shop",
+    ...overrides
+  };
+}
+
+function createIngestionSnapshot(parsedRows = [createParsedShopProductRow()]) {
   return {
     capturedAt: "2026-07-02T09:00:00.000Z",
     contentHash: "abc123",
@@ -1391,29 +1640,7 @@ function createIngestionSnapshot() {
     id: "simple_html_table_shop:weekly-html-table:2026-07-02",
     parserName: "SimpleHtmlTableShopAdapter",
     parserVersion: "1.0.0",
-    parsedRows: [
-      {
-        countryCode: "HU" as const,
-        displayName: "Pilos UHT tej 2,8% 1 l",
-        observedAt: "2026-07-02T09:00:00.000Z",
-        priceObservations: [
-          {
-            currencyCode: "HUF" as const,
-            observedAt: "2026-07-02T09:00:00.000Z",
-            price: 469,
-            priceKind: "base" as const
-          }
-        ],
-        sourceName: "simple_html_table_shop",
-        sourceProductKey: "simple-milk",
-        sourceRecordId: "simple_html_table_shop:weekly-html-table:2026-07-02:row-1",
-        stock: {
-          availability: "infinite" as const,
-          countryCode: "HU" as const
-        },
-        storeBrandKey: "simple-html-table-shop"
-      }
-    ],
+    parsedRows,
     payloadText: "<table></table>",
     sourceName: "simple_html_table_shop",
     sourceRecordId: "weekly-html-table",

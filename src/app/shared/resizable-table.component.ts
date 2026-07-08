@@ -67,7 +67,7 @@ export interface ResizableTableColumn {
       }
 
       .table-top-scroll {
-        border-bottom: 1px solid color-mix(in srgb, var(--color-wood) 14%, transparent);
+        border-bottom: 1px solid var(--line-subtle);
         height: 0.9rem;
         max-width: 100%;
         overflow-x: auto;
@@ -80,7 +80,7 @@ export interface ResizableTableColumn {
 
       .table-head {
         background: color-mix(in srgb, var(--color-wood-deep) 12%, var(--color-surface) 88%);
-        border-bottom: 1px solid color-mix(in srgb, var(--color-wood) 22%, transparent);
+        border-bottom: 1px solid var(--line-strong);
         box-sizing: border-box;
         color: var(--color-text-muted);
         display: grid;
@@ -104,7 +104,7 @@ export interface ResizableTableColumn {
       .column-resize-handle {
         background: color-mix(in srgb, var(--color-wood-deep) 22%, transparent);
         border: 0;
-        border-radius: 8px;
+        border-radius: var(--radius-ui);
         cursor: col-resize;
         height: 1.5rem;
         margin-left: 0.5rem;
@@ -115,7 +115,7 @@ export interface ResizableTableColumn {
 
       .column-resize-handle::after {
         background: color-mix(in srgb, var(--color-wood-deep) 42%, transparent);
-        border-radius: 999px;
+        border-radius: var(--radius-pill);
         content: "";
         inset: 0.25rem 0.16rem;
         position: absolute;

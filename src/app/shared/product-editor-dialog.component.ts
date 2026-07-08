@@ -133,8 +133,8 @@ type EditorMode = "catalog" | "review";
 
       .editor-dialog {
         background: var(--color-surface);
-        border: 1px solid color-mix(in srgb, var(--color-wood) 24%, transparent);
-        border-radius: 8px;
+        border: 1px solid var(--line-strong);
+        border-radius: var(--radius-ui);
         box-shadow: 0 1.4rem 4rem color-mix(in srgb, black 24%, transparent);
         display: grid;
         gap: var(--space-4);
@@ -199,7 +199,7 @@ type EditorMode = "catalog" | "review";
       textarea {
         background: color-mix(in srgb, var(--color-background-soft) 74%, white 26%);
         border: 1px solid color-mix(in srgb, var(--color-wood) 26%, transparent);
-        border-radius: 8px;
+        border-radius: var(--radius-ui);
         color: var(--color-text);
         font: inherit;
         padding: 0.55rem 0.65rem;
@@ -213,7 +213,7 @@ type EditorMode = "catalog" | "review";
 
       pre {
         background: color-mix(in srgb, var(--color-background-soft) 68%, white 32%);
-        border-radius: 8px;
+        border-radius: var(--radius-ui);
         color: var(--color-text-muted);
         margin: 0;
         max-height: 13rem;
@@ -246,7 +246,7 @@ type EditorMode = "catalog" | "review";
       }
 
       .error-text {
-        color: #9f1d1d;
+        color: var(--color-status-danger);
       }
 
       .icon-button,
@@ -254,7 +254,7 @@ type EditorMode = "catalog" | "review";
       .secondary-button,
       .danger-button {
         border: 0;
-        border-radius: 8px;
+        border-radius: var(--radius-ui);
         cursor: pointer;
         font: inherit;
         font-weight: 800;
@@ -280,8 +280,8 @@ type EditorMode = "catalog" | "review";
       }
 
       .danger-button {
-        background: color-mix(in srgb, #b42318 16%, white 84%);
-        color: #842018;
+        background: var(--danger-soft-background);
+        color: var(--color-status-danger-text);
       }
 
       .json-action-button {

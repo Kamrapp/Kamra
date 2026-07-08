@@ -103,7 +103,7 @@ export interface AppHandlerDependencies {
       reviewerId: string;
     }): Promise<CreateCatalogProductFromReviewCandidateResult>;
     findCatalogProductForReview?(id: string): Promise<CatalogProductListItem | null>;
-    listCatalogProductsForReview(options?: { limit?: number; offset?: number; sourceNames?: string[] }): Promise<{
+    listCatalogProductsForReview(options?: { limit?: number; nameIncludes?: string; offset?: number; sourceNames?: string[] }): Promise<{
       products: unknown[];
       totalCount: number;
     }>;
@@ -131,7 +131,7 @@ export interface AppHandlerDependencies {
   createIngestionRepository?: (database: Db) => {
     findRawSnapshotById(id: string): Promise<IngestionRawSnapshotRecord | null>;
     findProductReviewItemById?(id: string): Promise<IngestionProductReviewItemRecord | null>;
-    listRawSnapshots(options?: { limit?: number; sourceName?: string }): Promise<IngestionRawSnapshotRecord[]>;
+    listRawSnapshots(options?: { limit?: number; offset?: number; sourceName?: string }): Promise<IngestionRawSnapshotRecord[]>;
     listProductReviewItems?(options?: {
       limit?: number;
       offset?: number;
