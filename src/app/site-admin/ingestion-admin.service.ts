@@ -106,6 +106,11 @@ export interface IngestionProductReviewItem {
 }
 
 interface IngestionSnapshotsResponse {
+  pagination?: {
+    hasNextPage: boolean;
+    page: number;
+    pageSize: number;
+  };
   processorName: string;
   processorVersion: string;
   snapshots: IngestionSnapshotListItem[];
@@ -133,6 +138,11 @@ interface ProductReviewDecisionResponse {
 
 export type IngestionAdminLoadResult =
   | {
+      pagination: {
+        hasNextPage: boolean;
+        page: number;
+        pageSize: number;
+      };
       processorName: string;
       processorVersion: string;
       snapshots: IngestionSnapshotListItem[];
@@ -187,7 +197,11 @@ export class IngestionAdminService {
   private readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
 
-  async listSnapshots(): Promise<IngestionAdminLoadResult> {
+  async listSnapshots(
+    includeAccepted = false,
+    page = 1,
+    pageSize = 25
+  ): Promise<IngestionAdminLoadResult> {
     if (!this.auth.token()) {
       return {
         message: "Sign in before loading crawl snapshots.",
@@ -195,7 +209,16 @@ export class IngestionAdminService {
       };
     }
 
-    const response = await fetch("/api/admin/ingestion/snapshots", {
+    const searchParams = new URLSearchParams({
+      page: String(page),
+      pageSize: String(pageSize)
+    });
+    if (includeAccepted) {
+      searchParams.set("includeAccepted", "true");
+    }
+
+    const url = `/api/admin/ingestion/snapshots?${searchParams.toString()}`;
+    const response = await fetch(url, {
       headers: {
         accept: "application/json",
         ...this.auth.getAuthorizationHeaders()
@@ -228,6 +251,11 @@ export class IngestionAdminService {
     const payload = (await response.json()) as IngestionSnapshotsResponse;
 
     return {
+      pagination: payload.pagination ?? {
+        hasNextPage: false,
+        page,
+        pageSize
+      },
       processorName: payload.processorName,
       processorVersion: payload.processorVersion,
       snapshots: payload.snapshots,

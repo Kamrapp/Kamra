@@ -90,10 +90,10 @@ import { Component } from "@angular/core";
       .pulse-card,
       .home-copy,
       article {
-        background: rgb(248 244 241 / 74%);
-        border: 1px solid color-mix(in srgb, var(--color-wood) 16%, transparent);
-        border-radius: 8px;
-        box-shadow: 0 1.2rem 2.8rem rgb(48 43 50 / 10%);
+        background: var(--surface-shell-background);
+        border: 1px solid var(--line-panel);
+        border-radius: var(--radius-ui);
+        box-shadow: var(--surface-panel-shadow);
       }
 
       .pulse-card {
@@ -138,7 +138,7 @@ import { Component } from "@angular/core";
 
       .pulse-orbit span {
         border: 1px solid color-mix(in srgb, var(--color-accent-leaf) 36%, transparent);
-        border-radius: 999px;
+        border-radius: var(--radius-pill);
         box-shadow: 0 1rem 2rem rgb(111 159 33 / 12%);
         position: absolute;
       }
@@ -171,7 +171,7 @@ import { Component } from "@angular/core";
         align-items: center;
         background: rgb(255 255 255 / 56%);
         border: 1px solid rgb(255 255 255 / 72%);
-        border-radius: 8px;
+        border-radius: var(--radius-ui);
         color: var(--color-text-muted);
         display: flex;
         justify-content: space-between;
@@ -229,8 +229,8 @@ import { Component } from "@angular/core";
       }
 
       .mini-stats div {
-        background: color-mix(in srgb, var(--color-background-soft) 70%, white 30%);
-        border-radius: 8px;
+        background: var(--surface-soft-background);
+        border-radius: var(--radius-ui);
         display: grid;
         gap: 0.2rem;
         min-height: 4.6rem;

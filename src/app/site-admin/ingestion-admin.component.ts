@@ -14,13 +14,29 @@ import {
 import { ResizableTableComponent, type ResizableTableColumn } from "../shared/resizable-table.component";
 import { PageRailService, type PageRailSection } from "../shared/page-rail.service";
 import { ProductEditorDialogComponent } from "../shared/product-editor-dialog.component";
+import { TableIconButtonComponent } from "../shared/table-icon-button.component";
+
+interface VisibleSnapshotRow {
+  index: number;
+  offset: number;
+  snapshot: IngestionSnapshotListItem;
+}
 
 @Component({
-  imports: [ProductEditorDialogComponent, ResizableTableComponent],
+  imports: [ProductEditorDialogComponent, ResizableTableComponent, TableIconButtonComponent],
   selector: "app-ingestion-admin",
   standalone: true,
   template: `
     <section class="ingestion-page" aria-labelledby="ingestion-title">
+      <label class="accepted-toggle">
+        <input
+          type="checkbox"
+          [checked]="showAcceptedItems()"
+          (change)="setShowAcceptedItems($any($event.target).checked)"
+        />
+        <span>Show accepted items</span>
+      </label>
+
       <section
         class="crawl-workspace"
         [class.crawl-workspace-single]="!selectedSnapshot()"
@@ -28,27 +44,36 @@ import { ProductEditorDialogComponent } from "../shared/product-editor-dialog.co
         [style.--crawl-detail-fr]="100 - crawlListWidthPercent() + 'fr'"
       >
           <app-resizable-table #snapshotTable class="snapshot-list" ariaLabel="Crawl snapshots" [columns]="snapshotColumns">
-              <div class="snapshot-body">
-                @for (snapshot of snapshots(); track snapshot.id) {
+              <div
+                class="snapshot-body"
+                [style.--snapshot-row-height]="snapshotRowHeight + 'px'"
+                (scroll)="onSnapshotScroll($event)"
+              >
+                @if (!snapshots().length) {
+                  <p class="empty-list">{{ snapshotListPlaceholder() }}</p>
+                }
+
+                <div class="snapshot-spacer" [style.height.px]="snapshotListHeight()">
+                @for (row of visibleSnapshots(); track row.snapshot.id) {
                   <button
                     class="snapshot-row"
                     type="button"
                     role="row"
-                    [class.snapshot-row-selected]="selectedSnapshotId() === snapshot.id"
-                    (click)="selectSnapshot(snapshot.id)"
+                    [class.snapshot-row-selected]="selectedSnapshotId() === row.snapshot.id"
+                    (click)="selectSnapshot(row.snapshot.id)"
                     [style.grid-template-columns]="snapshotTable.columnTemplate()"
+                    [style.transform]="'translateY(' + row.offset + 'px)'"
                   >
                     <span role="cell">
-                      <strong>{{ snapshot.sourceName }}</strong>
-                      <small>{{ snapshot.sourceRecordId }}</small>
+                      <strong>{{ row.snapshot.sourceName }}</strong>
+                      <small>{{ row.snapshot.sourceRecordId }}</small>
                     </span>
-                    <span role="cell">{{ formatDate(snapshot.capturedAt) }}</span>
-                    <span role="cell">{{ snapshot.parsedRowCount }}</span>
-                    <span role="cell">{{ processingStateLabel(snapshot) }}</span>
+                    <span role="cell">{{ formatDate(row.snapshot.capturedAt) }}</span>
+                    <span role="cell">{{ row.snapshot.parsedRowCount }}</span>
+                    <span role="cell">{{ processingStateLabel(row.snapshot) }}</span>
                   </button>
-                } @empty {
-                  <p class="empty-list">No crawl snapshots loaded.</p>
                 }
+                </div>
               </div>
           </app-resizable-table>
 
@@ -69,15 +94,13 @@ import { ProductEditorDialogComponent } from "../shared/product-editor-dialog.co
                     @for (row of snapshot.rows; track row.sourceRecordId || row.sourceProductKey || row.displayName) {
                       <article class="parsed-row" role="row" [style.grid-template-columns]="rowTable.columnTemplate()">
                         <span class="action-cell" role="cell">
-                          <button
-                            class="table-icon-button"
-                            type="button"
-                            title="Review crawl product"
-                            aria-label="Review crawl product"
-                            (click)="openReviewEditor(snapshot, row)"
+                          <app-table-icon-button
+                            titleText="Review crawl product"
+                            ariaLabel="Review crawl product"
+                            (press)="openReviewEditor(snapshot, row)"
                           >
                             ✓
-                          </button>
+                          </app-table-icon-button>
                         </span>
                         <span role="cell">
                           <strong>{{ row.displayName }}</strong>
@@ -159,6 +182,23 @@ import { ProductEditorDialogComponent } from "../shared/product-editor-dialog.co
         min-width: 0;
       }
 
+      .accepted-toggle {
+        align-items: center;
+        color: var(--color-text);
+        display: inline-flex;
+        font-size: 0.92rem;
+        font-weight: 700;
+        gap: var(--space-2);
+        margin-bottom: var(--space-3);
+      }
+
+      .accepted-toggle input {
+        accent-color: var(--color-accent-leaf-strong);
+        height: 1rem;
+        margin: 0;
+        width: 1rem;
+      }
+
       .crawl-workspace-single {
         grid-template-columns: 1fr;
       }
@@ -187,31 +227,40 @@ import { ProductEditorDialogComponent } from "../shared/product-editor-dialog.co
 
       .snapshot-body,
       .row-body {
-        max-height: 36rem;
         overflow-x: hidden;
         overflow-y: auto;
       }
 
       .snapshot-body {
+        height: 36rem;
         min-width: var(--table-width);
+        position: relative;
+      }
+
+      .snapshot-spacer {
+        min-width: 100%;
+        position: relative;
       }
 
       .snapshot-row {
         background: transparent;
         border: 0;
-        border-bottom: 1px solid color-mix(in srgb, var(--color-wood) 12%, transparent);
+        border-bottom: 1px solid var(--line-subtle);
         color: inherit;
         cursor: pointer;
         font: inherit;
         min-height: 4.6rem;
         padding: 0.7rem 1rem;
+        position: absolute;
+        right: 0;
         text-align: left;
+        top: 0;
         width: 100%;
       }
 
       .snapshot-row-selected,
       .snapshot-row:hover {
-        background: color-mix(in srgb, var(--color-accent-sky) 22%, white 78%);
+        background: var(--row-hover-background);
       }
 
       .workspace-resizer {
@@ -228,7 +277,7 @@ import { ProductEditorDialogComponent } from "../shared/product-editor-dialog.co
 
       .workspace-resizer span {
         background: color-mix(in srgb, var(--color-wood-deep) 22%, transparent);
-        border-radius: 999px;
+        border-radius: var(--radius-pill);
         display: block;
         height: min(18rem, 46vh);
         transition: background 160ms ease, width 160ms ease;
@@ -256,22 +305,6 @@ import { ProductEditorDialogComponent } from "../shared/product-editor-dialog.co
         display: flex;
       }
 
-      .table-icon-button {
-        align-items: center;
-        background: color-mix(in srgb, var(--color-accent-sky) 20%, white 80%);
-        border: 1px solid color-mix(in srgb, var(--color-wood) 18%, transparent);
-        border-radius: 8px;
-        color: var(--color-text);
-        cursor: pointer;
-        display: inline-flex;
-        font: inherit;
-        font-weight: 900;
-        height: 2rem;
-        justify-content: center;
-        padding: 0;
-        width: 2rem;
-      }
-
       small {
         color: var(--color-text-muted);
         font-size: 0.78rem;
@@ -292,7 +325,7 @@ import { ProductEditorDialogComponent } from "../shared/product-editor-dialog.co
 
       .parsed-row {
         align-items: center;
-        border-bottom: 1px solid color-mix(in srgb, var(--color-wood) 12%, transparent);
+        border-bottom: 1px solid var(--line-subtle);
         min-height: 4.2rem;
         padding: 0.6rem 1rem;
       }
@@ -330,6 +363,13 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
   readonly loadState = signal<"idle" | "loading" | "success" | "error">("idle");
   readonly processState = signal<"idle" | "loading">("idle");
   readonly crawlListWidthPercent = signal(42);
+  readonly currentSnapshotPage = signal(0);
+  readonly hasNextSnapshotPage = signal(true);
+  readonly snapshotListScrollTop = signal(0);
+  readonly snapshotPageSize = signal(25);
+  readonly snapshotRowHeight = 74;
+  readonly snapshotViewportHeight = 576;
+  readonly showAcceptedItems = signal(false);
   readonly snapshots = signal<IngestionSnapshotListItem[]>([]);
   readonly statusMessage = signal("No crawl snapshots have been loaded yet.");
   readonly selectedSnapshotId = signal<string | null>(null);
@@ -345,6 +385,19 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
   readonly totalRows = computed(() =>
     this.snapshots().reduce((total, snapshot) => total + snapshot.parsedRowCount, 0)
   );
+  readonly snapshotListHeight = computed(() => this.snapshots().length * this.snapshotRowHeight);
+  readonly visibleSnapshots = computed<VisibleSnapshotRow[]>(() => {
+    const snapshots = this.snapshots();
+    const overscan = 5;
+    const start = Math.max(0, Math.floor(this.snapshotListScrollTop() / this.snapshotRowHeight) - overscan);
+    const visibleCount = Math.ceil(this.snapshotViewportHeight / this.snapshotRowHeight) + overscan * 2;
+
+    return snapshots.slice(start, start + visibleCount).map((snapshot, index) => ({
+      index: start + index,
+      offset: (start + index) * this.snapshotRowHeight,
+      snapshot
+    }));
+  });
   readonly pageRailSections = computed<PageRailSection[]>(() => {
     const sections: PageRailSection[] = [
       {
@@ -403,6 +456,7 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
   private readonly syncPageRail = effect(() => {
     this.pageRail.setSections(this.pageRailSections());
   });
+  private snapshotLoadSerial = 0;
 
   ngOnInit(): void {
     if (this.auth.token()) {
@@ -446,6 +500,36 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
     this.selectedSnapshotId.set(snapshotId);
   }
 
+  snapshotListPlaceholder(): string {
+    if (!this.auth.token()) {
+      return "Sign in to load crawl snapshots.";
+    }
+
+    if (this.loadState() === "loading") {
+      return "Loading crawl snapshots...";
+    }
+
+    return "No crawl snapshots loaded.";
+  }
+
+  setShowAcceptedItems(showAccepted: boolean): void {
+    this.showAcceptedItems.set(showAccepted);
+    void this.loadSnapshots();
+  }
+
+  onSnapshotScroll(event: Event): void {
+    const target = event.target;
+
+    if (target instanceof HTMLElement) {
+      this.snapshotListScrollTop.set(target.scrollTop);
+
+      const remainingDistance = target.scrollHeight - target.scrollTop - target.clientHeight;
+      if (remainingDistance < this.snapshotRowHeight * 6) {
+        void this.loadNextSnapshotPage();
+      }
+    }
+  }
+
   startWorkspaceResize(event: PointerEvent): void {
     event.preventDefault();
     const workspace = (event.currentTarget as HTMLElement).closest(".crawl-workspace");
@@ -479,33 +563,82 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
       return;
     }
 
+    const loadSerial = this.snapshotLoadSerial + 1;
+    this.snapshotLoadSerial = loadSerial;
     this.errorMessage.set("");
+    this.currentSnapshotPage.set(0);
+    this.hasNextSnapshotPage.set(true);
     this.loadState.set("loading");
+    this.selectedSnapshotId.set(null);
+    this.snapshotListScrollTop.set(0);
+    this.snapshots.set([]);
     this.statusMessage.set("Loading crawl snapshots...");
 
+    await this.loadNextSnapshotPage(loadSerial);
+  }
+
+  async loadNextSnapshotPage(loadSerial = this.snapshotLoadSerial): Promise<void> {
+    if (!this.auth.token() || (this.loadState() === "loading" && this.currentSnapshotPage() > 0) || !this.hasNextSnapshotPage()) {
+      return;
+    }
+
+    this.errorMessage.set("");
+    this.loadState.set("loading");
+
     try {
-      const result = await this.ingestion.listSnapshots();
+      const pageToLoad = this.currentSnapshotPage() + 1;
+      const result = await this.ingestion.listSnapshots(
+        this.showAcceptedItems(),
+        pageToLoad,
+        this.snapshotPageSize()
+      );
+
+      if (loadSerial !== this.snapshotLoadSerial) {
+        return;
+      }
 
       if (result.status !== "ok") {
         this.snapshots.set([]);
+        this.currentSnapshotPage.set(0);
+        this.hasNextSnapshotPage.set(false);
         this.loadState.set("error");
         this.statusMessage.set("Crawl snapshots could not be loaded.");
         this.errorMessage.set(result.message);
         return;
       }
 
-      this.snapshots.set(result.snapshots);
-      this.selectedSnapshotId.set(result.snapshots[0]?.id ?? null);
+      if (result.snapshots.length === 0 && result.pagination.hasNextPage) {
+        this.currentSnapshotPage.set(result.pagination.page);
+        this.hasNextSnapshotPage.set(true);
+        this.loadState.set("success");
+        await this.loadNextSnapshotPage(loadSerial);
+        return;
+      }
+
+      this.snapshots.update((snapshots) => mergeSnapshotsById(snapshots, result.snapshots));
+      this.currentSnapshotPage.set(result.pagination.page);
+      this.hasNextSnapshotPage.set(result.pagination.hasNextPage);
+      if (!this.selectedSnapshotId()) {
+        this.selectedSnapshotId.set(result.snapshots[0]?.id ?? null);
+      }
       this.loadState.set("success");
-      this.statusMessage.set(`Loaded ${result.snapshots.length} crawl snapshots.`);
+      this.statusMessage.set(`Loaded ${this.snapshots().length} crawl snapshots.`);
 
       logBrowserEvent("info", "Ingestion snapshots loaded", {
+        page: result.pagination.page,
+        pageSize: result.pagination.pageSize,
         processorName: result.processorName,
         processorVersion: result.processorVersion,
-        snapshotCount: result.snapshots.length
+        snapshotCount: this.snapshots().length
       });
     } catch (error: unknown) {
+      if (loadSerial !== this.snapshotLoadSerial) {
+        return;
+      }
+
       this.snapshots.set([]);
+      this.currentSnapshotPage.set(0);
+      this.hasNextSnapshotPage.set(false);
       this.loadState.set("error");
       this.statusMessage.set("The browser could not reach the crawl snapshot route.");
       this.errorMessage.set("Check the shared API path and database configuration.");
@@ -582,6 +715,7 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
 
     this.closeReviewEditor();
     await this.refreshSelectedReviewItems();
+    await this.loadSnapshots();
   }
 
   async declineReviewItem(
@@ -650,4 +784,17 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
       };
     });
   }
+}
+
+function mergeSnapshotsById(
+  existingSnapshots: IngestionSnapshotListItem[],
+  nextSnapshots: IngestionSnapshotListItem[]
+): IngestionSnapshotListItem[] {
+  const snapshotsById = new Map(existingSnapshots.map((snapshot) => [snapshot.id, snapshot]));
+
+  for (const snapshot of nextSnapshots) {
+    snapshotsById.set(snapshot.id, snapshot);
+  }
+
+  return [...snapshotsById.values()];
 }

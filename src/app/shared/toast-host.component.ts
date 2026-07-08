@@ -34,10 +34,10 @@ import { ToastService } from "./toast.service";
       .toast {
         align-items: start;
         background: color-mix(in srgb, white 86%, var(--color-surface) 14%);
-        border: 1px solid color-mix(in srgb, var(--color-wood) 18%, transparent);
+        border: 1px solid var(--line-panel);
         border-left-width: 0.3rem;
-        border-radius: 8px;
-        box-shadow: 0 1rem 2.4rem rgb(48 43 50 / 16%);
+        border-radius: var(--radius-ui);
+        box-shadow: var(--toast-shadow);
         color: var(--color-text);
         display: grid;
         gap: 0.65rem;
@@ -64,19 +64,19 @@ import { ToastService } from "./toast.service";
       }
 
       .toast-error {
-        border-left-color: color-mix(in srgb, #b42318 72%, white 28%);
+        border-left-color: var(--toast-error-border);
       }
 
       .toast-info {
-        border-left-color: color-mix(in srgb, var(--color-accent-sky) 68%, white 32%);
+        border-left-color: var(--toast-info-border);
       }
 
       .toast-success {
-        border-left-color: color-mix(in srgb, var(--color-accent-leaf-strong) 72%, white 28%);
+        border-left-color: var(--toast-success-border);
       }
 
       .toast-warning {
-        border-left-color: color-mix(in srgb, #c97b1d 72%, white 28%);
+        border-left-color: var(--toast-warning-border);
       }
     `
   ]

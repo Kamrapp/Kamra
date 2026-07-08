@@ -240,6 +240,11 @@ function matchesFilter(doc: PlainDoc, filter: MongoFilter<any>): boolean {
         return condition["$exists"] ? value !== undefined : value === undefined;
       }
 
+      if ("$regex" in condition && typeof condition["$regex"] === "string") {
+        const flags = typeof condition["$options"] === "string" ? condition["$options"] : "";
+        return new RegExp(condition["$regex"], flags).test(String(value ?? ""));
+      }
+
       return Object.entries(condition).every(([nestedKey, nestedValue]) => {
         if (nestedKey.startsWith("$")) {
           return true;

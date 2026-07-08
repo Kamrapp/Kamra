@@ -224,6 +224,38 @@ describe("MongoCurrentCatalogRepository", () => {
     });
   });
 
+  it("filters catalog review products by normalized name inclusion", async () => {
+    const db = createFakeDb({
+      products: new FakeCollection("products", [
+        {
+          ...createProductRecord(),
+          id: "product_milk",
+          name: "Friss tej",
+          normalizedName: "friss tej"
+        },
+        {
+          ...createProductRecord(),
+          id: "product_bread",
+          name: "Kenyér",
+          normalizedName: "kenyér"
+        }
+      ])
+    });
+
+    const repository = new MongoCurrentCatalogRepository(db);
+    const page = await repository.listCatalogProductsForReview({
+      nameIncludes: "TEJ"
+    });
+
+    expect(page.totalCount).toBe(1);
+    expect(page.products).toEqual([
+      expect.objectContaining({
+        id: "product_milk",
+        name: "Friss tej"
+      })
+    ]);
+  });
+
   it("backfills missing validation state to unvalidated", async () => {
     const db = createFakeDb({
       products: new FakeCollection("products", [
