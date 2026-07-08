@@ -12,6 +12,7 @@ import {
 import { ResizableTableComponent, type ResizableTableColumn } from "../shared/resizable-table.component";
 import { PageRailService, type PageRailSection } from "../shared/page-rail.service";
 import { ProductEditorDialogComponent } from "../shared/product-editor-dialog.component";
+import { TableIconButtonComponent } from "../shared/table-icon-button.component";
 
 interface VisibleProductRow {
   index: number;
@@ -22,7 +23,7 @@ interface VisibleProductRow {
 const noOfferSourceKey = "__none__";
 
 @Component({
-  imports: [ProductEditorDialogComponent, ResizableTableComponent],
+  imports: [ProductEditorDialogComponent, ResizableTableComponent, TableIconButtonComponent],
   selector: "app-product-catalog",
   standalone: true,
   template: `
@@ -44,15 +45,13 @@ const noOfferSourceKey = "__none__";
                     [style.transform]="'translateY(' + row.offset + 'px)'"
                   >
                     <div class="action-cell" role="cell">
-                      <button
-                        class="table-icon-button"
-                        type="button"
-                        title="Edit product"
-                        aria-label="Edit product"
-                        (click)="openProductEditor(row.product)"
+                      <app-table-icon-button
+                        titleText="Edit product"
+                        ariaLabel="Edit product"
+                        (press)="openProductEditor(row.product)"
                       >
                         ✎
-                      </button>
+                      </app-table-icon-button>
                     </div>
 
                     <div class="product-main" role="cell">
@@ -171,7 +170,7 @@ const noOfferSourceKey = "__none__";
 
       .product-row {
         align-items: center;
-        border-bottom: 1px solid color-mix(in srgb, var(--color-wood) 12%, transparent);
+        border-bottom: 1px solid var(--line-subtle);
         height: var(--row-height);
         left: 0;
         padding: 0.75rem 1rem;
@@ -181,7 +180,7 @@ const noOfferSourceKey = "__none__";
       }
 
       .product-row:nth-child(2n) {
-        background: color-mix(in srgb, var(--color-background-soft) 42%, transparent);
+        background: var(--row-stripe-background);
       }
 
       .product-main,
@@ -196,22 +195,6 @@ const noOfferSourceKey = "__none__";
       .action-cell {
         align-items: center;
         display: flex;
-      }
-
-      .table-icon-button {
-        align-items: center;
-        background: color-mix(in srgb, var(--color-accent-sky) 20%, white 80%);
-        border: 1px solid color-mix(in srgb, var(--color-wood) 18%, transparent);
-        border-radius: 8px;
-        color: var(--color-text);
-        cursor: pointer;
-        display: inline-flex;
-        font: inherit;
-        font-weight: 900;
-        height: 2rem;
-        justify-content: center;
-        padding: 0;
-        width: 2rem;
       }
 
       .row-title,
@@ -240,7 +223,7 @@ const noOfferSourceKey = "__none__";
 
       .price-chip,
       .quiet-chip {
-        border-radius: 8px;
+        border-radius: var(--radius-ui);
         display: inline-flex;
         font-size: 0.8rem;
         font-weight: 800;

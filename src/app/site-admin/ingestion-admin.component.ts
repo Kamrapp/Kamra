@@ -14,9 +14,10 @@ import {
 import { ResizableTableComponent, type ResizableTableColumn } from "../shared/resizable-table.component";
 import { PageRailService, type PageRailSection } from "../shared/page-rail.service";
 import { ProductEditorDialogComponent } from "../shared/product-editor-dialog.component";
+import { TableIconButtonComponent } from "../shared/table-icon-button.component";
 
 @Component({
-  imports: [ProductEditorDialogComponent, ResizableTableComponent],
+  imports: [ProductEditorDialogComponent, ResizableTableComponent, TableIconButtonComponent],
   selector: "app-ingestion-admin",
   standalone: true,
   template: `
@@ -78,15 +79,13 @@ import { ProductEditorDialogComponent } from "../shared/product-editor-dialog.co
                     @for (row of snapshot.rows; track row.sourceRecordId || row.sourceProductKey || row.displayName) {
                       <article class="parsed-row" role="row" [style.grid-template-columns]="rowTable.columnTemplate()">
                         <span class="action-cell" role="cell">
-                          <button
-                            class="table-icon-button"
-                            type="button"
-                            title="Review crawl product"
-                            aria-label="Review crawl product"
-                            (click)="openReviewEditor(snapshot, row)"
+                          <app-table-icon-button
+                            titleText="Review crawl product"
+                            ariaLabel="Review crawl product"
+                            (press)="openReviewEditor(snapshot, row)"
                           >
                             ✓
-                          </button>
+                          </app-table-icon-button>
                         </span>
                         <span role="cell">
                           <strong>{{ row.displayName }}</strong>
@@ -225,7 +224,7 @@ import { ProductEditorDialogComponent } from "../shared/product-editor-dialog.co
       .snapshot-row {
         background: transparent;
         border: 0;
-        border-bottom: 1px solid color-mix(in srgb, var(--color-wood) 12%, transparent);
+        border-bottom: 1px solid var(--line-subtle);
         color: inherit;
         cursor: pointer;
         font: inherit;
@@ -237,7 +236,7 @@ import { ProductEditorDialogComponent } from "../shared/product-editor-dialog.co
 
       .snapshot-row-selected,
       .snapshot-row:hover {
-        background: color-mix(in srgb, var(--color-accent-sky) 22%, white 78%);
+        background: var(--row-hover-background);
       }
 
       .workspace-resizer {
@@ -254,7 +253,7 @@ import { ProductEditorDialogComponent } from "../shared/product-editor-dialog.co
 
       .workspace-resizer span {
         background: color-mix(in srgb, var(--color-wood-deep) 22%, transparent);
-        border-radius: 999px;
+        border-radius: var(--radius-pill);
         display: block;
         height: min(18rem, 46vh);
         transition: background 160ms ease, width 160ms ease;
@@ -282,22 +281,6 @@ import { ProductEditorDialogComponent } from "../shared/product-editor-dialog.co
         display: flex;
       }
 
-      .table-icon-button {
-        align-items: center;
-        background: color-mix(in srgb, var(--color-accent-sky) 20%, white 80%);
-        border: 1px solid color-mix(in srgb, var(--color-wood) 18%, transparent);
-        border-radius: 8px;
-        color: var(--color-text);
-        cursor: pointer;
-        display: inline-flex;
-        font: inherit;
-        font-weight: 900;
-        height: 2rem;
-        justify-content: center;
-        padding: 0;
-        width: 2rem;
-      }
-
       small {
         color: var(--color-text-muted);
         font-size: 0.78rem;
@@ -318,7 +301,7 @@ import { ProductEditorDialogComponent } from "../shared/product-editor-dialog.co
 
       .parsed-row {
         align-items: center;
-        border-bottom: 1px solid color-mix(in srgb, var(--color-wood) 12%, transparent);
+        border-bottom: 1px solid var(--line-subtle);
         min-height: 4.2rem;
         padding: 0.6rem 1rem;
       }

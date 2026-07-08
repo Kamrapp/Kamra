@@ -7,6 +7,7 @@ import {
   type AppRoute,
   type AppRouteContext
 } from "../app-route-context.js";
+import type { UserRole } from "../../auth/user-auth.js";
 import {
   createSourceOfferRecordFingerprint,
   processSourceOfferSnapshot,
@@ -32,32 +33,19 @@ type IngestionRouteRepository = ReturnType<NonNullable<AppRouteContext["dependen
 export const ingestionSnapshotsRoute: AppRoute = {
   match: (request) => request.method === "GET" && request.path === "/api/admin/ingestion/snapshots",
   handle: async (request, context) => {
-    const user = context.authenticateRequestUser(request);
-    if (!user || user.role !== "admin") {
-      return unauthorized("Sign in as an admin to view ingestion snapshots.");
+    const user = requireUserRole("admin", request, context, "Sign in as an admin to view ingestion snapshots.");
+    if ("status" in user) {
+      return user;
     }
 
-    const config = context.config;
-    if (!config.mongodb.uri || !config.mongodb.databaseName) {
-      return json(503, { error: "ingestion_not_configured" });
+    const repositories = await createIngestionRouteRepositories(context);
+    if ("error" in repositories) {
+      return repositories.error;
     }
 
-    const client = await context.getMongoClient(
-      config.mongodb.uri,
-      config.mongodb.dnsServers
-    );
-    const database = client.db(config.mongodb.databaseName);
-    const ingestionRepository = context.dependencies.createIngestionRepository
-      ? context.dependencies.createIngestionRepository(database)
-      : createDefaultIngestionRepository(database);
-    const catalogRepository = context.dependencies.createCatalogRepository
-      ? context.dependencies.createCatalogRepository(database)
-      : createDefaultCatalogRepository(database);
+    const { catalogRepository, ingestionRepository } = repositories;
 
-    await Promise.all([
-      ingestionRepository.setupCollections?.(),
-      catalogRepository.setupCollections?.()
-    ]);
+    await setupIngestionRouteCollections(repositories);
 
     const includeAcceptedItems = parseBooleanQueryValue(request.query?.["includeAccepted"]);
     const snapshots = await ingestionRepository.listRawSnapshots({ limit: snapshotListLimit });
@@ -93,9 +81,9 @@ export const ingestionSnapshotsRoute: AppRoute = {
 export const processIngestionSnapshotRoute: AppRoute = {
   match: (request) => request.method === "POST" && request.path === "/api/admin/ingestion/process-snapshot",
   handle: async (request, context) => {
-    const user = context.authenticateRequestUser(request);
-    if (!user || user.role !== "admin") {
-      return unauthorized("Sign in as an admin to process ingestion snapshots.");
+    const user = requireUserRole("admin", request, context, "Sign in as an admin to process ingestion snapshots.");
+    if ("status" in user) {
+      return user;
     }
 
     const snapshotId = parseSnapshotId(request.bodyText);
@@ -105,31 +93,18 @@ export const processIngestionSnapshotRoute: AppRoute = {
       });
     }
 
-    const config = context.config;
-    if (!config.mongodb.uri || !config.mongodb.databaseName) {
-      return json(503, { error: "ingestion_not_configured" });
+    const repositories = await createIngestionRouteRepositories(context);
+    if ("error" in repositories) {
+      return repositories.error;
     }
 
-    const client = await context.getMongoClient(
-      config.mongodb.uri,
-      config.mongodb.dnsServers
-    );
-    const database = client.db(config.mongodb.databaseName);
-    const ingestionRepository = context.dependencies.createIngestionRepository
-      ? context.dependencies.createIngestionRepository(database)
-      : createDefaultIngestionRepository(database);
-    const catalogRepository = context.dependencies.createCatalogRepository
-      ? context.dependencies.createCatalogRepository(database)
-      : createDefaultCatalogRepository(database);
+    const { catalogRepository, ingestionRepository } = repositories;
 
     if (!catalogRepository.upsertCatalogSeedDataset) {
       return json(503, { error: "processor_not_available" });
     }
 
-    await Promise.all([
-      ingestionRepository.setupCollections?.(),
-      catalogRepository.setupCollections?.()
-    ]);
+    await setupIngestionRouteCollections(repositories);
 
     const snapshot = await ingestionRepository.findRawSnapshotById(snapshotId);
     if (!snapshot) {
@@ -152,9 +127,9 @@ export const processIngestionSnapshotRoute: AppRoute = {
 export const prepareProductReviewItemsRoute: AppRoute = {
   match: (request) => request.method === "POST" && request.path === "/api/admin/ingestion/prepare-review-items",
   handle: async (request, context) => {
-    const user = context.authenticateRequestUser(request);
-    if (!user || user.role !== "admin") {
-      return unauthorized("Sign in as an admin to prepare review items.");
+    const user = requireUserRole("admin", request, context, "Sign in as an admin to prepare review items.");
+    if ("status" in user) {
+      return user;
     }
 
     const snapshotId = parseSnapshotId(request.bodyText);
@@ -169,17 +144,14 @@ export const prepareProductReviewItemsRoute: AppRoute = {
       return repositories.error;
     }
 
-    const { catalogRepository, ingestionRepository } = repositories;
+    const { ingestionRepository } = repositories;
     if (!ingestionRepository.prepareProductReviewItems) {
       return json(501, {
         error: "product_review_not_supported"
       });
     }
 
-    await Promise.all([
-      ingestionRepository.setupCollections?.(),
-      catalogRepository.setupCollections?.()
-    ]);
+    await setupIngestionRouteCollections(repositories);
 
     const snapshot = await ingestionRepository.findRawSnapshotById(snapshotId);
     if (!snapshot) {
@@ -201,9 +173,9 @@ export const prepareProductReviewItemsRoute: AppRoute = {
 export const productReviewItemsRoute: AppRoute = {
   match: (request) => request.method === "GET" && request.path === "/api/admin/ingestion/review-items",
   handle: async (request, context) => {
-    const user = context.authenticateRequestUser(request);
-    if (!user || user.role !== "admin") {
-      return unauthorized("Sign in as an admin to view review items.");
+    const user = requireUserRole("admin", request, context, "Sign in as an admin to view review items.");
+    if ("status" in user) {
+      return user;
     }
 
     const repositories = await createIngestionRouteRepositories(context);
@@ -211,17 +183,14 @@ export const productReviewItemsRoute: AppRoute = {
       return repositories.error;
     }
 
-    const { catalogRepository, ingestionRepository } = repositories;
+    const { ingestionRepository } = repositories;
     if (!ingestionRepository.listProductReviewItems) {
       return json(501, {
         error: "product_review_not_supported"
       });
     }
 
-    await Promise.all([
-      ingestionRepository.setupCollections?.(),
-      catalogRepository.setupCollections?.()
-    ]);
+    await setupIngestionRouteCollections(repositories);
 
     const items = await ingestionRepository.listProductReviewItems({
       limit: parsePositiveIntegerQueryValue(request.query?.["limit"], reviewItemListLimit),
@@ -242,9 +211,9 @@ export const productReviewItemRoute: AppRoute = {
     (request.method === "GET" || request.method === "PATCH")
       && request.path === "/api/admin/ingestion/review-item",
   handle: async (request, context) => {
-    const user = context.authenticateRequestUser(request);
-    if (!user || user.role !== "admin") {
-      return unauthorized("Sign in as an admin to manage review items.");
+    const user = requireUserRole("admin", request, context, "Sign in as an admin to manage review items.");
+    if ("status" in user) {
+      return user;
     }
 
     const repositories = await createIngestionRouteRepositories(context);
@@ -252,17 +221,14 @@ export const productReviewItemRoute: AppRoute = {
       return repositories.error;
     }
 
-    const { catalogRepository, ingestionRepository } = repositories;
+    const { ingestionRepository } = repositories;
     if (!ingestionRepository.findProductReviewItemById) {
       return json(501, {
         error: "product_review_not_supported"
       });
     }
 
-    await Promise.all([
-      ingestionRepository.setupCollections?.(),
-      catalogRepository.setupCollections?.()
-    ]);
+    await setupIngestionRouteCollections(repositories);
 
     if (request.method === "GET") {
       const id = parseOptionalQueryString(request.query?.["id"]);
@@ -418,14 +384,38 @@ async function createIngestionRouteRepositories(context: AppRouteContext): Promi
   };
 }
 
+async function setupIngestionRouteCollections(repositories: {
+  catalogRepository: CatalogRouteRepository;
+  ingestionRepository: IngestionRouteRepository;
+}): Promise<void> {
+  await Promise.all([
+    repositories.ingestionRepository.setupCollections?.(),
+    repositories.catalogRepository.setupCollections?.()
+  ]);
+}
+
+function requireUserRole(
+  role: UserRole,
+  request: Parameters<AppRoute["handle"]>[0],
+  context: AppRouteContext,
+  message: string
+): NonNullable<ReturnType<AppRouteContext["authenticateRequestUser"]>> | AppResponse {
+  const user = context.authenticateRequestUser(request);
+  if (!user || user.role !== role) {
+    return unauthorized(message);
+  }
+
+  return user;
+}
+
 async function markProductReviewItemDecision(
   request: Parameters<AppRoute["handle"]>[0],
   context: AppRouteContext,
   status: "accepted" | "declined"
 ): Promise<AppResponse> {
-  const user = context.authenticateRequestUser(request);
-  if (!user || user.role !== "admin") {
-    return unauthorized("Sign in as an admin to decide review items.");
+  const user = requireUserRole("admin", request, context, "Sign in as an admin to decide review items.");
+  if ("status" in user) {
+    return user;
   }
 
   const repositories = await createIngestionRouteRepositories(context);
@@ -440,10 +430,7 @@ async function markProductReviewItemDecision(
       });
   }
 
-  await Promise.all([
-    ingestionRepository.setupCollections?.(),
-    catalogRepository.setupCollections?.()
-  ]);
+  await setupIngestionRouteCollections(repositories);
 
   const payload = parseReviewDecisionPayload(request.bodyText, status);
   if (!payload) {

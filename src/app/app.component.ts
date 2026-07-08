@@ -11,11 +11,12 @@ import {
 import { logBrowserEvent } from "./browser-logger";
 import { AuthService } from "./auth.service";
 import { PageRailService } from "./shared/page-rail.service";
+import { PageRailOutletComponent } from "./shared/page-rail-outlet.component";
 import { ToastHostComponent } from "./shared/toast-host.component";
 import { ToastService } from "./shared/toast.service";
 
 @Component({
-  imports: [FormsModule, RouterLink, RouterLinkActive, RouterOutlet, ToastHostComponent],
+  imports: [FormsModule, PageRailOutletComponent, RouterLink, RouterLinkActive, RouterOutlet, ToastHostComponent],
   selector: "app-root",
   standalone: true,
   template: `
@@ -40,149 +41,7 @@ import { ToastService } from "./shared/toast.service";
           <p class="rail-title">{{ currentPageTitle() }}</p>
         </section>
 
-        @for (section of pageRail.sections(); track section.key) {
-          <section class="page-context-card page-rail-card" [attr.aria-label]="section.kicker">
-            @switch (section.kind) {
-              @case ("summary") {
-                <div class="rail-section-header">
-                  <div>
-                    <p class="rail-kicker">{{ section.kicker }}</p>
-                    @if (section.title) {
-                      <p class="rail-title rail-section-title">{{ section.title }}</p>
-                    }
-                  </div>
-
-                  @if (section.actionLabel && section.onAction) {
-                    <button class="ui-action-button rail-action" type="button" [disabled]="section.actionDisabled" (click)="section.onAction()">
-                      {{ section.actionLabel }}
-                    </button>
-                  }
-                </div>
-
-                @if (section.items?.length) {
-                  <dl class="rail-summary-grid">
-                    @for (item of section.items; track item.label) {
-                      <div>
-                        <dt>{{ item.label }}</dt>
-                        <dd>{{ item.value }}</dd>
-                      </div>
-                    }
-                  </dl>
-                }
-
-                @if (section.note) {
-                  <p class="rail-message">{{ section.note }}</p>
-                }
-
-                @if (section.error) {
-                  <p class="error-message">{{ section.error }}</p>
-                }
-              }
-
-              @case ("status") {
-                <div class="rail-section-header">
-                  <div>
-                    <p class="rail-kicker">{{ section.kicker }}</p>
-                    @if (section.title) {
-                      <p class="rail-title rail-section-title">{{ section.title }}</p>
-                    }
-                  </div>
-
-                  @if (section.actionLabel && section.onAction) {
-                    <button class="ui-action-button rail-action" type="button" [disabled]="section.actionDisabled" (click)="section.onAction()">
-                      {{ section.actionLabel }}
-                    </button>
-                  }
-                </div>
-
-                @if (section.message) {
-                  <p class="rail-message">{{ section.message }}</p>
-                }
-
-                @if (section.error) {
-                  <p class="error-message">{{ section.error }}</p>
-                }
-              }
-
-              @case ("filters") {
-                <div class="rail-section-header">
-                  <div>
-                    <p class="rail-kicker">{{ section.kicker }}</p>
-                    @if (section.title) {
-                      <div class="rail-filter-title-row">
-                        <button
-                          class="rail-filter-toggle"
-                          type="button"
-                          [attr.aria-expanded]="openFilterKey() === section.key"
-                          (click)="toggleRailFilter(section.key)"
-                        >
-                          <span class="rail-title rail-section-title">{{ section.title }}</span>
-                          <span class="rail-filter-count">
-                            {{ section.selectedCount ?? 0 }}/{{ section.optionCount ?? section.options?.length ?? 0 }}
-                          </span>
-                          <svg aria-hidden="true" viewBox="0 0 24 24" class="rail-filter-icon">
-                            <path d="M7 10.5 12 15.5 17 10.5H7Z"></path>
-                          </svg>
-                        </button>
-
-                        @if (section.secondaryActionLabel && section.onSecondaryAction) {
-                          <button
-                            class="rail-filter-secondary"
-                            type="button"
-                            [disabled]="section.secondaryActionDisabled"
-                            (click)="section.onSecondaryAction()"
-                          >
-                            {{ section.secondaryActionLabel }}
-                          </button>
-                        }
-                      </div>
-                    }
-                  </div>
-                </div>
-
-                @if (section.note) {
-                  <p class="rail-message">{{ section.note }}</p>
-                }
-
-                @if (section.options?.length) {
-                  <div class="rail-filter-popover" [class.rail-filter-popover-open]="openFilterKey() === section.key">
-                    @for (option of section.options; track option.key) {
-                      <label class="rail-filter-option">
-                        <input type="checkbox" [checked]="option.checked" (change)="option.onToggle()" />
-                        <span>{{ option.label }}</span>
-                      </label>
-                    }
-                  </div>
-                }
-              }
-
-              @case ("action") {
-                <div class="rail-section-header">
-                  <div>
-                    <p class="rail-kicker">{{ section.kicker }}</p>
-                    @if (section.title) {
-                      <p class="rail-title rail-section-title">{{ section.title }}</p>
-                    }
-                  </div>
-                </div>
-
-                @if (section.note) {
-                  <p class="rail-message">{{ section.note }}</p>
-                }
-
-                @if (section.error) {
-                  <p class="error-message">{{ section.error }}</p>
-                }
-
-                @if (section.actionLabel && section.onAction) {
-                  <button class="ui-action-button rail-action" type="button" [disabled]="section.actionDisabled" (click)="section.onAction()">
-                    {{ section.actionLabel }}
-                  </button>
-                }
-              }
-            }
-          </section>
-        }
+        <app-page-rail-outlet [resetToken]="railResetToken()" [sections]="pageRail.sections()" />
       </aside>
 
       <section class="page-body" aria-label="Current page">
@@ -238,7 +97,7 @@ import { ToastService } from "./shared/toast.service";
       }
 
       <div class="radial-menu" [class.radial-menu-open]="isMenuOpen">
-        <nav id="primary-menu" class="radial-nav" aria-label="Primary" [attr.aria-hidden]="!isMenuOpen">
+        <nav id="primary-menu" class="radial-nav" aria-label="Primary">
           @for (item of menuItems; track item.path) {
             <a
               class="radial-nav-item"
@@ -246,7 +105,7 @@ import { ToastService } from "./shared/toast.service";
               routerLinkActive="active"
               [routerLinkActiveOptions]="item.exact ? { exact: true } : { exact: false }"
               [style.--item-angle]="item.angle + 'deg'"
-              [attr.tabindex]="isMenuOpen ? null : -1"
+              [attr.aria-label]="item.label"
               (click)="closeMenu()"
             >
               <svg aria-hidden="true" viewBox="0 0 24 24">
@@ -316,10 +175,10 @@ import { ToastService } from "./shared/toast.service";
       .auth-card,
       .page-context-card {
         backdrop-filter: blur(14px);
-        background: rgb(248 244 241 / 76%);
-        border: 1px solid color-mix(in srgb, var(--color-wood) 16%, transparent);
-        border-radius: 8px;
-        box-shadow: 0 1rem 2.4rem rgb(48 43 50 / 12%);
+        background: var(--surface-shell-background);
+        border: 1px solid var(--line-panel);
+        border-radius: var(--radius-ui);
+        box-shadow: var(--surface-shell-shadow);
       }
 
       .brand-card {
@@ -370,10 +229,6 @@ import { ToastService } from "./shared/toast.service";
         padding: 0.65rem 0.75rem;
       }
 
-      .page-rail-card {
-        gap: 0.55rem;
-      }
-
       .rail-kicker,
       .rail-title {
         margin: 0;
@@ -394,147 +249,6 @@ import { ToastService } from "./shared/toast.service";
         line-height: 1.1;
       }
 
-      .rail-section-title {
-        font-size: 0.93rem;
-      }
-
-      .rail-section-header {
-        align-items: start;
-        display: flex;
-        gap: var(--space-3);
-        justify-content: space-between;
-      }
-
-      .rail-summary-grid {
-        display: grid;
-        gap: var(--space-2);
-        grid-template-columns: 1fr;
-        margin: 0;
-      }
-
-      .rail-summary-grid div {
-        align-items: center;
-        background: color-mix(in srgb, var(--color-background-soft) 72%, white 28%);
-        border: 1px solid color-mix(in srgb, var(--color-wood) 14%, transparent);
-        border-radius: 8px;
-        display: grid;
-        gap: var(--space-2);
-        grid-template-columns: minmax(0, 1fr) auto;
-        min-height: 3rem;
-        padding: 0.42rem 0.55rem;
-      }
-
-      .rail-summary-grid dd,
-      .rail-summary-grid dt {
-        margin: 0;
-        min-width: 0;
-      }
-
-      .rail-summary-grid dd {
-        color: var(--color-text);
-        font-size: 0.8rem;
-        font-weight: 800;
-        overflow-wrap: anywhere;
-        text-align: right;
-      }
-
-      .rail-summary-grid dt {
-        font-size: 0.68rem;
-      }
-
-      .rail-message {
-        color: var(--color-text-muted);
-        font-size: 0.82rem;
-        line-height: 1.35;
-      }
-
-      .rail-action {
-        min-height: 2rem;
-        padding: 0.35rem 0.55rem;
-      }
-
-      .rail-filter-list {
-        display: none;
-      }
-
-      .rail-filter-toggle {
-        align-items: center;
-        background: transparent;
-        border: 0;
-        color: inherit;
-        cursor: pointer;
-        display: inline-flex;
-        gap: 0.45rem;
-        padding: 0;
-      }
-
-      .rail-filter-title-row {
-        align-items: center;
-        display: flex;
-        gap: 0.45rem;
-        justify-content: space-between;
-      }
-
-      .rail-filter-count {
-        color: var(--color-text-muted);
-        font-size: 0.75rem;
-        font-weight: 700;
-        margin-left: 0.1rem;
-      }
-
-      .rail-filter-icon {
-        color: var(--color-text-muted);
-        height: 0.9rem;
-        margin-left: 0.1rem;
-        width: 0.9rem;
-      }
-
-      .rail-filter-secondary {
-        background: color-mix(in srgb, var(--color-accent-sky) 18%, white 82%);
-        border: 1px solid color-mix(in srgb, var(--color-wood) 14%, transparent);
-        border-radius: 8px;
-        color: var(--color-text);
-        cursor: pointer;
-        font: inherit;
-        font-size: 0.72rem;
-        font-weight: 800;
-        min-height: 1.65rem;
-        padding: 0.18rem 0.5rem;
-        white-space: nowrap;
-      }
-
-      .rail-filter-popover {
-        display: none;
-        gap: 0.35rem;
-        margin-top: 0.35rem;
-        max-height: 14rem;
-        overflow: auto;
-        padding-right: 0.1rem;
-      }
-
-      .rail-filter-popover-open {
-        display: grid;
-      }
-
-      .rail-filter-option {
-        align-items: center;
-        background: color-mix(in srgb, var(--color-accent-sky) 14%, white 86%);
-        border: 1px solid color-mix(in srgb, var(--color-wood) 14%, transparent);
-        border-radius: 8px;
-        display: flex;
-        font-size: 0.8rem;
-        font-weight: 800;
-        gap: 0.42rem;
-        min-height: 2rem;
-        padding: 0.3rem 0.55rem;
-      }
-
-      .rail-filter-option input {
-        accent-color: var(--color-accent-leaf-strong);
-        height: 0.95rem;
-        width: 0.95rem;
-      }
-
       .login-form,
       .user-chip {
         align-items: center;
@@ -543,9 +257,9 @@ import { ToastService } from "./shared/toast.service";
       }
 
       .login-form input {
-        background: color-mix(in srgb, var(--color-surface) 88%, white 12%);
-        border: 1px solid color-mix(in srgb, var(--color-wood) 18%, transparent);
-        border-radius: 8px;
+        background: var(--form-field-background);
+        border: 1px solid var(--line-panel);
+        border-radius: var(--radius-ui);
         color: var(--color-text);
         font: inherit;
         min-height: 2.15rem;
@@ -555,9 +269,9 @@ import { ToastService } from "./shared/toast.service";
 
       .login-form button,
       .user-chip button {
-        background: var(--color-accent-leaf-strong);
-        border: 1px solid color-mix(in srgb, var(--color-accent-leaf-strong) 72%, black 28%);
-        border-radius: 8px;
+        background: var(--control-primary-background);
+        border: 1px solid var(--control-primary-border);
+        border-radius: var(--radius-ui);
         color: white;
         cursor: pointer;
         font: inherit;
@@ -573,8 +287,8 @@ import { ToastService } from "./shared/toast.service";
 
       .user-chip {
         background: color-mix(in srgb, var(--color-surface) 82%, white 18%);
-        border: 1px solid color-mix(in srgb, var(--color-wood) 18%, transparent);
-        border-radius: 8px;
+        border: 1px solid var(--line-panel);
+        border-radius: var(--radius-ui);
         padding: 0.25rem;
       }
 
@@ -605,9 +319,9 @@ import { ToastService } from "./shared/toast.service";
 
       .login-message {
         backdrop-filter: blur(12px);
-        border-radius: 8px;
+        border-radius: var(--radius-ui);
         bottom: max(var(--space-5), env(safe-area-inset-bottom));
-        box-shadow: 0 1rem 2.6rem rgb(48 43 50 / 14%);
+        box-shadow: var(--surface-floating-shadow);
         color: var(--color-text);
         max-width: min(24rem, calc(100vw - 2rem));
         padding: 0.8rem 0.95rem;
@@ -628,6 +342,7 @@ import { ToastService } from "./shared/toast.service";
 
       .radial-menu {
         --item-radius: clamp(5.2rem, 8vw, 6.8rem);
+        --mini-item-radius: clamp(3.65rem, 5vw, 4.2rem);
         height: 1px;
         position: fixed;
         right: max(1.25rem, env(safe-area-inset-right));
@@ -640,7 +355,7 @@ import { ToastService } from "./shared/toast.service";
         align-items: center;
         background: color-mix(in srgb, var(--color-accent-leaf-strong) 82%, var(--color-wood-deep) 18%);
         border: 1px solid color-mix(in srgb, var(--color-accent-leaf-strong) 55%, white 45%);
-        border-radius: 999px;
+        border-radius: var(--radius-pill);
         box-shadow: 0 1rem 2.6rem rgb(48 43 50 / 22%);
         color: white;
         cursor: pointer;
@@ -677,38 +392,60 @@ import { ToastService } from "./shared/toast.service";
 
       .radial-nav {
         inset: 0;
-        pointer-events: none;
         position: absolute;
       }
 
       .radial-nav-item {
         align-items: center;
         background: color-mix(in srgb, var(--color-surface) 92%, white 8%);
-        border: 1px solid color-mix(in srgb, var(--color-wood) 20%, transparent);
-        border-radius: 999px;
-        box-shadow: 0 0.8rem 2rem rgb(48 43 50 / 14%);
+        border: 1px solid var(--line-strong);
+        border-radius: var(--radius-pill);
+        box-shadow: 0 0.45rem 1.2rem rgb(48 43 50 / 16%);
         color: var(--color-text);
         display: flex;
-        gap: 0.55rem;
-        min-height: 3rem;
-        min-width: 7.4rem;
-        opacity: 0;
-        padding: 0.48rem 0.68rem;
-        pointer-events: none;
+        gap: 0;
+        height: 2.35rem;
+        justify-content: center;
+        min-height: 2.35rem;
+        min-width: 2.35rem;
+        opacity: 0.96;
+        overflow: hidden;
+        padding: 0;
+        pointer-events: auto;
         position: absolute;
         right: 0;
         top: 0;
         text-decoration: none;
-        transform: translate(0, -50%) rotate(var(--item-angle)) translateX(0) rotate(calc(-1 * var(--item-angle))) scale(0.72);
+        transform: translate(0, -50%) rotate(var(--item-angle)) translateX(var(--mini-item-radius)) rotate(calc(-1 * var(--item-angle))) scale(0.94);
         transform-origin: center;
-        transition: background 160ms ease, opacity 180ms ease, transform 220ms ease;
+        transition:
+          background 160ms ease,
+          border-color 160ms ease,
+          box-shadow 180ms ease,
+          gap 220ms ease,
+          height 240ms cubic-bezier(0.2, 0.9, 0.2, 1.08),
+          min-height 240ms cubic-bezier(0.2, 0.9, 0.2, 1.08),
+          min-width 240ms cubic-bezier(0.2, 0.9, 0.2, 1.08),
+          opacity 180ms ease,
+          padding 240ms cubic-bezier(0.2, 0.9, 0.2, 1.08),
+          transform 260ms cubic-bezier(0.2, 0.9, 0.2, 1.08);
         white-space: nowrap;
+        width: 2.35rem;
+        z-index: 1;
       }
 
       .radial-menu-open .radial-nav-item {
+        box-shadow: 0 0.8rem 2rem rgb(48 43 50 / 14%);
+        gap: 0.55rem;
+        height: auto;
+        justify-content: flex-start;
+        min-height: 3rem;
+        min-width: 7.4rem;
         opacity: 1;
-        pointer-events: auto;
+        overflow: visible;
+        padding: 0.48rem 0.68rem;
         transform: translate(0, -50%) rotate(var(--item-angle)) translateX(var(--item-radius)) rotate(calc(-1 * var(--item-angle))) scale(1);
+        width: auto;
       }
 
       .radial-nav-item:hover,
@@ -719,6 +456,12 @@ import { ToastService } from "./shared/toast.service";
       .radial-nav-item svg {
         color: var(--color-wood-deep);
         flex: 0 0 auto;
+        height: 1rem;
+        transition: height 220ms ease, width 220ms ease;
+        width: 1rem;
+      }
+
+      .radial-menu-open .radial-nav-item svg {
         height: 1.18rem;
         width: 1.18rem;
       }
@@ -726,6 +469,15 @@ import { ToastService } from "./shared/toast.service";
       .radial-nav-item span {
         font-size: 0.86rem;
         font-weight: 800;
+        max-width: 0;
+        opacity: 0;
+        overflow: hidden;
+        transition: max-width 220ms ease, opacity 160ms ease 70ms;
+      }
+
+      .radial-menu-open .radial-nav-item span {
+        max-width: 7rem;
+        opacity: 1;
       }
 
       @media (max-width: 1180px) {
@@ -822,7 +574,7 @@ import { ToastService } from "./shared/toast.service";
           right: 0.9rem;
         }
 
-        .radial-nav-item {
+        .radial-menu-open .radial-nav-item {
           min-width: 6.8rem;
         }
       }
@@ -837,6 +589,7 @@ export class AppComponent implements OnInit {
   readonly loginMessage = signal("");
   readonly loginMessageTone = signal<"error" | "success">("success");
   readonly loginState = signal<"idle" | "loading">("idle");
+  readonly railResetToken = signal(0);
   readonly menuItems = [
     {
       angle: 225,
@@ -868,7 +621,6 @@ export class AppComponent implements OnInit {
     }
   ];
   isMenuOpen = false;
-  readonly openFilterKey = signal<string | null>(null);
   loginEmail = "";
   loginPassword = "";
   private readonly router = inject(Router);
@@ -879,7 +631,7 @@ export class AppComponent implements OnInit {
       if (event instanceof NavigationEnd) {
         this.currentPageTitle.set(this.pageTitleForUrl(event.urlAfterRedirects));
         this.closeMenu();
-        this.openFilterKey.set(null);
+        this.railResetToken.update((token) => token + 1);
       }
     });
   }
@@ -896,10 +648,6 @@ export class AppComponent implements OnInit {
 
   closeMenu(): void {
     this.isMenuOpen = false;
-  }
-
-  toggleRailFilter(key: string): void {
-    this.openFilterKey.set(this.openFilterKey() === key ? null : key);
   }
 
   toggleMenu(): void {
