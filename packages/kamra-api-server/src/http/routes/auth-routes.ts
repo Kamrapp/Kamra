@@ -1,5 +1,6 @@
 import {
   authenticateUser,
+  isUserLanguagePreference,
   isUserThemePreference,
   toAuthenticatedUser,
   type UserProfile,
@@ -41,16 +42,33 @@ function readLoginPayload(bodyText: string | undefined):
 function readProfilePayload(bodyText: string | undefined): UserProfile | null {
   try {
     const payload = JSON.parse(bodyText ?? "{}") as {
+      language?: unknown;
       theme?: unknown;
     };
 
-    if (!isUserThemePreference(payload.theme)) {
+    const profile: UserProfile = {};
+
+    if (payload.language !== undefined) {
+      if (!isUserLanguagePreference(payload.language)) {
+        return null;
+      }
+
+      profile.language = payload.language;
+    }
+
+    if (payload.theme !== undefined) {
+      if (!isUserThemePreference(payload.theme)) {
+        return null;
+      }
+
+      profile.theme = payload.theme;
+    }
+
+    if (profile.language === undefined && profile.theme === undefined) {
       return null;
     }
 
-    return {
-      theme: payload.theme
-    };
+    return profile;
   } catch {
     return null;
   }
@@ -177,6 +195,7 @@ export const userPreferencesRoute: AppRoute = {
     }
 
     writeServerLog("info", "User preferences updated", {
+      language: profile.language,
       theme: profile.theme,
       username: user.email
     });

@@ -1,9 +1,11 @@
 import { verifyPassword, type PasswordHash } from "./password-hash.js";
 
 export type UserRole = "admin" | "user";
+export type UserLanguagePreference = "en" | "hu";
 export type UserThemePreference = "dark" | "light";
 
 export interface UserProfile {
+  language?: UserLanguagePreference;
   theme?: UserThemePreference;
 }
 
@@ -46,10 +48,17 @@ export function isUserThemePreference(value: unknown): value is UserThemePrefere
   return value === "dark" || value === "light";
 }
 
+export function isUserLanguagePreference(value: unknown): value is UserLanguagePreference {
+  return value === "en" || value === "hu";
+}
+
 export function toAuthenticatedUser(user: UserDocument): AuthenticatedUser {
   return {
     email: user.email,
     profile: {
+      language: isUserLanguagePreference(user.profile?.language)
+        ? user.profile.language
+        : undefined,
       theme: isUserThemePreference(user.profile?.theme)
         ? user.profile.theme
         : undefined

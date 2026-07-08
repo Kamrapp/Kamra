@@ -17,16 +17,25 @@ export class MongoUserRepository implements UserRepository {
   }
 
   async updateUserProfile(email: string, profile: UserProfile): Promise<UserDocument | null> {
+    const fieldsToSet: Record<string, Date | UserProfile[keyof UserProfile]> = {
+      updatedAt: new Date()
+    };
+
+    if (profile.language !== undefined) {
+      fieldsToSet["profile.language"] = profile.language;
+    }
+
+    if (profile.theme !== undefined) {
+      fieldsToSet["profile.theme"] = profile.theme;
+    }
+
     const result = await this.usersCollection.findOneAndUpdate(
       {
         email,
         status: "active"
       },
       {
-        $set: {
-          profile,
-          updatedAt: new Date()
-        }
+        $set: fieldsToSet
       },
       {
         returnDocument: "after"

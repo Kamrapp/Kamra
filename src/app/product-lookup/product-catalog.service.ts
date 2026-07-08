@@ -2,6 +2,7 @@ import { Injectable, inject } from "@angular/core";
 
 import { AuthService } from "../auth.service";
 import { readApiErrorMessage } from "../shared/api-errors";
+import { LocalizationService } from "../shared/localization.service";
 import { ToastService } from "../shared/toast.service";
 
 export interface ProductMeasurement {
@@ -115,12 +116,13 @@ export type ProductCatalogDeleteResult =
 })
 export class ProductCatalogService {
   private readonly auth = inject(AuthService);
+  private readonly loc = inject(LocalizationService);
   private readonly toast = inject(ToastService);
 
   async listOfferSourceNames(): Promise<ProductCatalogSourcesLoadResult> {
     if (!this.auth.token()) {
       return {
-        message: "Sign in before loading offer sources.",
+        message: this.loc.t("product.signInBeforeOfferSources"),
         status: "unauthenticated"
       };
     }
@@ -135,20 +137,20 @@ export class ProductCatalogService {
 
     if (response.status === 401) {
       return this.withToast({
-        message: "The current session does not have access to catalog sources.",
+        message: this.loc.t("product.catalogSourcesAccess"),
         status: "forbidden"
       });
     }
 
     if (response.status === 503) {
       return this.withToast({
-        message: "The catalog database is not configured for this environment.",
+        message: this.loc.t("product.catalogDatabaseMissing"),
         status: "not_configured"
       });
     }
 
     if (!response.ok) {
-      const message = await readApiErrorMessage(response, "The catalog sources route returned an error.");
+      const message = await readApiErrorMessage(response, this.loc.t("product.catalogSourcesRouteError"));
       return {
         message: this.toastMessage(message),
         status: "unavailable"
@@ -171,7 +173,7 @@ export class ProductCatalogService {
   ): Promise<ProductCatalogLoadResult> {
     if (!this.auth.token()) {
       return {
-        message: "Sign in before loading products.",
+        message: this.loc.t("product.signInBeforeLoad"),
         status: "unauthenticated"
       };
     }
@@ -196,20 +198,20 @@ export class ProductCatalogService {
 
     if (response.status === 401) {
       return this.withToast({
-        message: "The current session does not have access to the product catalog.",
+        message: this.loc.t("product.catalogAccess"),
         status: "forbidden"
       });
     }
 
     if (response.status === 503) {
       return this.withToast({
-        message: "The catalog database is not configured for this environment.",
+        message: this.loc.t("product.catalogDatabaseMissing"),
         status: "not_configured"
       });
     }
 
     if (!response.ok) {
-      const message = await readApiErrorMessage(response, "The product catalog route returned an error.");
+      const message = await readApiErrorMessage(response, this.loc.t("product.catalogRouteError"));
       return {
         message: this.toastMessage(message),
         status: "unavailable"
@@ -246,7 +248,7 @@ export class ProductCatalogService {
   async deleteProduct(id: string): Promise<ProductCatalogDeleteResult> {
     if (!this.auth.token()) {
       return {
-        message: "Sign in before deleting products.",
+        message: this.loc.t("product.signInBeforeDelete"),
         status: "unauthenticated"
       };
     }
@@ -259,7 +261,7 @@ export class ProductCatalogService {
       method: "DELETE"
     });
 
-    const error = await readCatalogWriteError(response);
+    const error = await this.readCatalogWriteError(response);
     if (error) {
       return this.withToast(error);
     }
@@ -274,7 +276,7 @@ export class ProductCatalogService {
   ): Promise<ProductCatalogWriteResult> {
     if (!this.auth.token()) {
       return {
-        message: "Sign in before editing products.",
+        message: this.loc.t("product.signInBeforeEdit"),
         status: "unauthenticated"
       };
     }
@@ -289,7 +291,7 @@ export class ProductCatalogService {
       method
     });
 
-    const error = await readCatalogWriteError(response);
+    const error = await this.readCatalogWriteError(response);
     if (error) {
       return this.withToast(error);
     }
@@ -311,30 +313,30 @@ export class ProductCatalogService {
     this.toast.push(error.message, "error");
     return error;
   }
-}
 
-async function readCatalogWriteError(response: Response): Promise<ProductCatalogWriteError | null> {
-  if (response.status === 401) {
-    return {
-      message: "The current session does not have access to edit the product catalog.",
-      status: "forbidden"
-    };
+  private async readCatalogWriteError(response: Response): Promise<ProductCatalogWriteError | null> {
+    if (response.status === 401) {
+      return {
+        message: this.loc.t("product.catalogEditAccess"),
+        status: "forbidden"
+      };
+    }
+
+    if (response.status === 503) {
+      return {
+        message: this.loc.t("product.catalogDatabaseMissing"),
+        status: "not_configured"
+      };
+    }
+
+    if (!response.ok) {
+      const message = await readApiErrorMessage(response, this.loc.t("product.catalogEditRouteError"));
+      return {
+        message,
+        status: "unavailable"
+      };
+    }
+
+    return null;
   }
-
-  if (response.status === 503) {
-    return {
-      message: "The catalog database is not configured for this environment.",
-      status: "not_configured"
-    };
-  }
-
-  if (!response.ok) {
-    const message = await readApiErrorMessage(response, "The product catalog edit route returned an error.");
-    return {
-      message,
-      status: "unavailable"
-    };
-  }
-
-  return null;
 }

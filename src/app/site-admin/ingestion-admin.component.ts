@@ -15,6 +15,7 @@ import { ResizableTableComponent, type ResizableTableColumn } from "../shared/re
 import { PageRailService, type PageRailSection } from "../shared/page-rail.service";
 import { ProductEditorDialogComponent } from "../shared/product-editor-dialog.component";
 import { TableIconButtonComponent } from "../shared/table-icon-button.component";
+import { LocalizationService, type TranslationKey } from "../shared/localization.service";
 
 interface VisibleSnapshotRow {
   index: number;
@@ -34,7 +35,7 @@ interface VisibleSnapshotRow {
           [checked]="showAcceptedItems()"
           (change)="setShowAcceptedItems($any($event.target).checked)"
         />
-        <span>Show accepted items</span>
+        <span>{{ loc.t("crawl.showAccepted") }}</span>
       </label>
 
       <section
@@ -43,7 +44,7 @@ interface VisibleSnapshotRow {
         [style.--crawl-list-fr]="crawlListWidthPercent() + 'fr'"
         [style.--crawl-detail-fr]="100 - crawlListWidthPercent() + 'fr'"
       >
-          <app-resizable-table #snapshotTable class="snapshot-list" ariaLabel="Crawl snapshots" [columns]="snapshotColumns">
+          <app-resizable-table #snapshotTable class="snapshot-list" [ariaLabel]="loc.t('crawl.snapshotTable')" [columns]="snapshotColumns()">
               <div
                 class="snapshot-body"
                 [style.--snapshot-row-height]="snapshotRowHeight + 'px'"
@@ -81,22 +82,22 @@ interface VisibleSnapshotRow {
             <button
               class="workspace-resizer"
               type="button"
-              aria-label="Resize crawl list and detail panels"
-              title="Resize panels"
+              [attr.aria-label]="loc.t('common.resizePanels')"
+              [title]="loc.t('common.resizePanels')"
               (pointerdown)="startWorkspaceResize($event)"
             >
               <span aria-hidden="true"></span>
             </button>
 
-            <aside class="detail-panel surface-panel" aria-label="Selected crawl snapshot">
-              <app-resizable-table #rowTable class="row-table" ariaLabel="Parsed crawl rows" [columns]="rowColumns">
+            <aside class="detail-panel surface-panel" [attr.aria-label]="loc.t('crawl.selectedSnapshot')">
+              <app-resizable-table #rowTable class="row-table" [ariaLabel]="loc.t('crawl.rowsTable')" [columns]="rowColumns()">
                   <div class="row-body">
                     @for (row of snapshot.rows; track row.sourceRecordId || row.sourceProductKey || row.displayName) {
                       <article class="parsed-row" role="row" [style.grid-template-columns]="rowTable.columnTemplate()">
                         <span class="action-cell" role="cell">
                           <app-table-icon-button
-                            titleText="Review crawl product"
-                            ariaLabel="Review crawl product"
+                            [titleText]="loc.t('common.reviewProduct')"
+                            [ariaLabel]="loc.t('common.reviewProduct')"
                             (press)="openReviewEditor(snapshot, row)"
                           >
                             ✓
@@ -104,9 +105,9 @@ interface VisibleSnapshotRow {
                         </span>
                         <span role="cell">
                           <strong>{{ row.displayName }}</strong>
-                          <small>{{ row.packageLabel || "no package" }}</small>
+                          <small>{{ row.packageLabel || loc.t("common.noPackage") }}</small>
                         </span>
-                        <span role="cell">{{ row.sourceProductKey || "none" }}</span>
+                        <span role="cell">{{ row.sourceProductKey || loc.t("common.none") }}</span>
                         <span role="cell">{{ formatPrice(row) }}</span>
                         <span role="cell">{{ formatValidity(row) }}</span>
                       </article>
@@ -345,20 +346,21 @@ interface VisibleSnapshotRow {
 export class IngestionAdminComponent implements OnInit, OnDestroy {
   readonly auth = inject(AuthService);
   readonly ingestion = inject(IngestionAdminService);
+  readonly loc = inject(LocalizationService);
   readonly pageRail = inject(PageRailService);
-  readonly snapshotColumns: readonly ResizableTableColumn[] = [
-    { key: "source", label: "Source", minWidth: 80, maxWidth: 640, width: 180 },
-    { key: "captured", label: "Captured", minWidth: 80, maxWidth: 640, width: 120 },
-    { key: "rows", label: "Rows", minWidth: 60, maxWidth: 640, width: 70 },
-    { key: "state", label: "State", minWidth: 80, maxWidth: 640, width: 120 }
-  ];
-  readonly rowColumns: readonly ResizableTableColumn[] = [
+  readonly snapshotColumns = computed<readonly ResizableTableColumn[]>(() => [
+    { key: "source", label: this.loc.t("common.source"), minWidth: 80, maxWidth: 640, width: 180 },
+    { key: "captured", label: this.loc.t("common.captured"), minWidth: 80, maxWidth: 640, width: 120 },
+    { key: "rows", label: this.loc.t("common.rows"), minWidth: 60, maxWidth: 640, width: 70 },
+    { key: "state", label: this.loc.t("common.state"), minWidth: 80, maxWidth: 640, width: 120 }
+  ]);
+  readonly rowColumns = computed<readonly ResizableTableColumn[]>(() => [
     { key: "actions", label: "", minWidth: 52, maxWidth: 72, width: 56 },
-    { key: "product", label: "Product", minWidth: 120, maxWidth: 820, width: 360 },
-    { key: "key", label: "Key", minWidth: 60, maxWidth: 540, width: 100 },
-    { key: "price", label: "Price", minWidth: 60, maxWidth: 540, width: 100 },
-    { key: "validity", label: "Validity", minWidth: 130, maxWidth: 540, width: 240 }
-  ];
+    { key: "product", label: this.loc.t("common.product"), minWidth: 120, maxWidth: 820, width: 360 },
+    { key: "key", label: this.loc.t("common.key"), minWidth: 60, maxWidth: 540, width: 100 },
+    { key: "price", label: this.loc.t("common.price"), minWidth: 60, maxWidth: 540, width: 100 },
+    { key: "validity", label: this.loc.t("common.validity"), minWidth: 130, maxWidth: 540, width: 240 }
+  ]);
   readonly errorMessage = signal("");
   readonly loadState = signal<"idle" | "loading" | "success" | "error">("idle");
   readonly processState = signal<"idle" | "loading">("idle");
@@ -371,7 +373,7 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
   readonly snapshotViewportHeight = 576;
   readonly showAcceptedItems = signal(false);
   readonly snapshots = signal<IngestionSnapshotListItem[]>([]);
-  readonly statusMessage = signal("No crawl snapshots have been loaded yet.");
+  readonly statusMessage = signal("");
   readonly selectedSnapshotId = signal<string | null>(null);
   readonly editingReviewItem = signal<IngestionProductReviewItem | null>(null);
   readonly reviewEditorOpen = signal(false);
@@ -412,14 +414,14 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
       {
         key: "crawl-summary",
         kind: "summary",
-        kicker: "Site admin",
-        title: "Crawls",
+        kicker: this.loc.t("common.siteAdmin"),
+        title: this.loc.t("common.crawls"),
         items: [
-          { label: "Snapshots", value: `${this.snapshots().length}` },
-          { label: "Rows", value: `${this.totalRows()}` },
-          { label: "Pending", value: `${this.pendingSnapshots()}` }
+          { label: this.loc.t("crawl.snapshots"), value: `${this.snapshots().length}` },
+          { label: this.loc.t("common.rows"), value: `${this.totalRows()}` },
+          { label: this.loc.t("common.pending"), value: `${this.pendingSnapshots()}` }
         ],
-        actionLabel: this.loadState() === "loading" ? "Loading..." : "Refresh",
+        actionLabel: this.loadState() === "loading" ? this.loc.t("common.loading") : this.loc.t("common.refresh"),
         actionDisabled: this.loadState() === "loading",
         error: this.errorMessage() || undefined,
         onAction: () => {
@@ -432,8 +434,8 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
       sections.push({
         key: "crawl-auth",
         kind: "status",
-        kicker: "Admin only",
-        message: "Sign in to view crawl snapshots."
+        kicker: this.loc.t("common.adminOnly"),
+        message: this.loc.t("crawl.signIn")
       });
       return sections;
     }
@@ -444,13 +446,13 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
       sections.push({
         key: "crawl-sources",
         kind: "filters",
-        kicker: "Crawl sources",
-        title: "Sources",
+        kicker: this.loc.t("crawl.crawlSources"),
+        title: this.loc.t("common.sources"),
         selectedCount: this.selectedCrawlSources().size,
         optionCount: this.crawlSourceOptions().length,
-        secondaryActionLabel: allSourcesSelected ? "Deselect all" : "Select all",
+        secondaryActionLabel: allSourcesSelected ? this.loc.t("common.deselectAll") : this.loc.t("common.selectAll"),
         onSecondaryAction: () => this.toggleAllCrawlSources(),
-        note: `${this.snapshots().length} crawl snapshots loaded`,
+        note: this.loc.t("crawl.loadedNote", { count: this.snapshots().length }),
         options: this.crawlSourceOptions().map((source) => ({
           key: source.key,
           label: source.label,
@@ -467,13 +469,13 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
         kicker: snapshot.workflowName,
         title: snapshot.sourceName,
         items: [
-          { label: "Captured", value: this.formatDateTime(snapshot.capturedAt) },
-          { label: "Parser", value: `${snapshot.parserName} ${snapshot.parserVersion}` },
-          { label: "Content", value: snapshot.contentType },
-          { label: "Processing", value: this.processingStateLabel(snapshot) }
+          { label: this.loc.t("common.captured"), value: this.formatDateTime(snapshot.capturedAt) },
+          { label: this.loc.t("common.parser"), value: `${snapshot.parserName} ${snapshot.parserVersion}` },
+          { label: this.loc.t("common.content"), value: snapshot.contentType },
+          { label: this.loc.t("common.processing"), value: this.processingStateLabel(snapshot) }
         ],
         note: snapshot.processingState?.lastErrorMessage ?? undefined,
-        actionLabel: this.processState() === "loading" ? "Processing..." : "Process",
+        actionLabel: this.processState() === "loading" ? this.loc.t("common.processingEllipsis") : this.loc.t("common.process"),
         actionDisabled: this.processState() === "loading",
         onAction: () => {
           void this.processSelectedSnapshot();
@@ -511,7 +513,7 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
       return `${row.priceValue.toLocaleString("hu-HU")} HUF`;
     }
 
-    return row.priceText || "none";
+    return row.priceText || this.loc.t("common.none");
   }
 
   formatValidity(row: IngestionRowPreview): string {
@@ -519,11 +521,12 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
       return `${row.validFrom ?? "?"} - ${row.validTo ?? "?"}`;
     }
 
-    return "none";
+    return this.loc.t("common.none");
   }
 
   processingStateLabel(snapshot: IngestionSnapshotListItem): string {
-    return snapshot.processingState?.state ?? "pending";
+    const state = snapshot.processingState?.state ?? "pending";
+    return this.loc.t(`processingState.${state}` as TranslationKey);
   }
 
   selectSnapshot(snapshotId: string): void {
@@ -532,14 +535,14 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
 
   snapshotListPlaceholder(): string {
     if (!this.auth.token()) {
-      return "Sign in to load crawl snapshots.";
+      return this.loc.t("crawl.signInLoad");
     }
 
     if (this.loadState() === "loading") {
-      return "Loading crawl snapshots...";
+      return this.loc.t("crawl.loadingSnapshots");
     }
 
-    return "No crawl snapshots loaded.";
+    return this.loc.t("crawl.noSnapshots");
   }
 
   setShowAcceptedItems(showAccepted: boolean): void {
@@ -616,7 +619,7 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
   async loadSnapshots(): Promise<void> {
     if (!this.auth.token()) {
       this.loadState.set("error");
-      this.statusMessage.set("Sign in before loading crawl snapshots.");
+      this.statusMessage.set(this.loc.t("crawl.signInBeforeLoad"));
       return;
     }
 
@@ -629,7 +632,7 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
     this.selectedSnapshotId.set(null);
     this.snapshotListScrollTop.set(0);
     this.snapshots.set([]);
-    this.statusMessage.set("Loading crawl snapshots...");
+    this.statusMessage.set(this.loc.t("crawl.loadingSnapshots"));
 
     await this.loadNextSnapshotPage(loadSerial);
   }
@@ -648,7 +651,7 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
         this.currentSnapshotPage.set(1);
         this.hasNextSnapshotPage.set(false);
         this.loadState.set("success");
-        this.statusMessage.set("No crawl source filters selected.");
+        this.statusMessage.set(this.loc.t("crawl.noSourceFilters"));
         return;
       }
 
@@ -669,7 +672,7 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
         this.currentSnapshotPage.set(0);
         this.hasNextSnapshotPage.set(false);
         this.loadState.set("error");
-        this.statusMessage.set("Crawl snapshots could not be loaded.");
+        this.statusMessage.set(this.loc.t("crawl.snapshotsFailure"));
         this.errorMessage.set(result.message);
         return;
       }
@@ -693,7 +696,7 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
         this.selectedSnapshotId.set(result.snapshots[0]?.id ?? null);
       }
       this.loadState.set("success");
-      this.statusMessage.set(`Loaded ${this.snapshots().length} crawl snapshots.`);
+      this.statusMessage.set(this.loc.t("crawl.loadedCount", { count: this.snapshots().length }));
 
       logBrowserEvent("info", "Ingestion snapshots loaded", {
         page: result.pagination.page,
@@ -711,8 +714,8 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
       this.currentSnapshotPage.set(0);
       this.hasNextSnapshotPage.set(false);
       this.loadState.set("error");
-      this.statusMessage.set("The browser could not reach the crawl snapshot route.");
-      this.errorMessage.set("Check the shared API path and database configuration.");
+      this.statusMessage.set(this.loc.t("crawl.routeFailure"));
+      this.errorMessage.set(this.loc.t("crawl.routeHint"));
 
       logBrowserEvent("error", "Ingestion snapshot request failed", error);
     }
@@ -735,7 +738,7 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.statusMessage.set(`Processed ${result.processedRowCount} rows from ${snapshot.sourceName}.`);
+    this.statusMessage.set(this.loc.t("crawl.processedRows", { count: result.processedRowCount, source: snapshot.sourceName }));
     await this.loadSnapshots();
   }
 
@@ -753,7 +756,7 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
     ) ?? items[0] ?? null;
 
     if (!reviewItem) {
-      this.errorMessage.set("No review item could be prepared for this crawl row.");
+      this.errorMessage.set(this.loc.t("crawl.noReviewItem"));
       return;
     }
 
@@ -784,7 +787,7 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (!window.confirm(formatAcceptancePreview(preview.preview))) {
+    if (!window.confirm(this.formatAcceptancePreview(preview.preview))) {
       return;
     }
 
@@ -805,7 +808,7 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
     note: string | null
   ): Promise<void> {
     if (!productReviewDecisionReasons.includes(reason)) {
-      this.errorMessage.set("Choose a valid decline reason.");
+      this.errorMessage.set(this.loc.t("crawl.chooseDecline"));
       return;
     }
 
@@ -874,6 +877,34 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
       ? []
       : selectedRealSources;
   }
+
+  private formatAcceptancePreview(preview: {
+    action: "create" | "merge";
+    existingProduct?: { id: string; name: string; sourceNames: string[] } | null;
+    productId: string;
+    reason: string;
+  }): string {
+    if (preview.action === "merge" && preview.existingProduct) {
+      return [
+        this.loc.t("crawl.acceptMerge", { name: preview.existingProduct.name }),
+        preview.reason,
+        this.loc.t("crawl.acceptTargetId", { id: preview.productId }),
+        this.loc.t("crawl.acceptExistingSources", {
+          sources: preview.existingProduct.sourceNames.join(", ") || this.loc.t("common.none")
+        }),
+        "",
+        this.loc.t("crawl.continue")
+      ].join("\n");
+    }
+
+    return [
+      this.loc.t("crawl.acceptCreate"),
+      preview.reason,
+      this.loc.t("crawl.acceptNewId", { id: preview.productId }),
+      "",
+      this.loc.t("crawl.continue")
+    ].join("\n");
+  }
 }
 
 function mergeSnapshotsById(
@@ -887,30 +918,4 @@ function mergeSnapshotsById(
   }
 
   return [...snapshotsById.values()];
-}
-
-function formatAcceptancePreview(preview: {
-  action: "create" | "merge";
-  existingProduct?: { id: string; name: string; sourceNames: string[] } | null;
-  productId: string;
-  reason: string;
-}): string {
-  if (preview.action === "merge" && preview.existingProduct) {
-    return [
-      `Accepting this crawl product will merge it into "${preview.existingProduct.name}".`,
-      preview.reason,
-      `Target product id: ${preview.productId}`,
-      `Existing sources: ${preview.existingProduct.sourceNames.join(", ") || "none"}`,
-      "",
-      "Continue?"
-    ].join("\n");
-  }
-
-  return [
-    "Accepting this crawl product will create a new catalog product.",
-    preview.reason,
-    `New product id: ${preview.productId}`,
-    "",
-    "Continue?"
-  ].join("\n");
 }
