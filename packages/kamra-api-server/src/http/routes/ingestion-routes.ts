@@ -8,6 +8,7 @@ import {
   type AppRouteContext
 } from "../app-route-context.js";
 import type { UserRole } from "../../auth/user-auth.js";
+import { writeServerLog } from "../../logging/kamra-logger.js";
 import {
   createSourceOfferRecordFingerprint,
   processSourceOfferSnapshot,
@@ -23,7 +24,9 @@ import {
   type ProductReviewDecisionReason
 } from "../../ingestion/v1/review-contracts.js";
 
-const snapshotListLimit = 75;
+const defaultSnapshotPage = 1;
+const defaultSnapshotPageSize = 25;
+const maxSnapshotPageSize = 75;
 const rowPreviewLimit = 250;
 const reviewItemListLimit = 100;
 
@@ -48,8 +51,18 @@ export const ingestionSnapshotsRoute: AppRoute = {
     await setupIngestionRouteCollections(repositories);
 
     const includeAcceptedItems = parseBooleanQueryValue(request.query?.["includeAccepted"]);
-    const snapshots = await ingestionRepository.listRawSnapshots({ limit: snapshotListLimit });
-    const items = (await Promise.all(snapshots.map(async (snapshot) => {
+    const page = Math.max(1, parsePositiveIntegerQueryValue(request.query?.["page"], defaultSnapshotPage));
+    const pageSize = Math.min(
+      Math.max(1, parsePositiveIntegerQueryValue(request.query?.["pageSize"], defaultSnapshotPageSize)),
+      maxSnapshotPageSize
+    );
+    const offset = (page - 1) * pageSize;
+    const snapshots = await ingestionRepository.listRawSnapshots({
+      limit: pageSize + 1,
+      offset
+    });
+    const pageSnapshots = snapshots.slice(0, pageSize);
+    const items = (await Promise.all(pageSnapshots.map(async (snapshot) => {
       const visibleRows = includeAcceptedItems
         ? snapshot.parsedRows
         : await listVisibleSnapshotRows(ingestionRepository, snapshot);
@@ -71,6 +84,11 @@ export const ingestionSnapshotsRoute: AppRoute = {
     }))).filter((item): item is NonNullable<typeof item> => item !== null);
 
     return json(200, {
+      pagination: {
+        hasNextPage: snapshots.length > pageSize,
+        page,
+        pageSize
+      },
       processorName: sourceOfferProcessorName,
       processorVersion: sourceOfferProcessorVersion,
       snapshots: items
@@ -440,6 +458,7 @@ async function markProductReviewItemDecision(
   }
 
   let acceptedCatalogProductId = payload.acceptedCatalogProductId ?? null;
+  let reviewItemForDecision: IngestionProductReviewItemRecord | null = null;
   if (status === "accepted") {
     const reviewItem = await ingestionRepository.findProductReviewItemById?.(payload.id);
     if (!reviewItem) {
@@ -447,6 +466,7 @@ async function markProductReviewItemDecision(
         error: "review_item_not_found"
       });
     }
+    reviewItemForDecision = reviewItem;
 
     if (!acceptedCatalogProductId) {
       if (!catalogRepository.createCatalogProductFromReviewCandidate) {
@@ -461,6 +481,12 @@ async function markProductReviewItemDecision(
         reviewerId: user.email
       });
       acceptedCatalogProductId = createdProduct.productId;
+      writeServerLog("info", "Accepted crawl review item created catalog product", {
+        acceptedCatalogProductId,
+        reviewItem,
+        reviewItemJson: JSON.stringify(reviewItem),
+        reviewerId: user.email
+      });
     }
   }
 
@@ -479,6 +505,16 @@ async function markProductReviewItemDecision(
       error: "review_item_not_found"
     });
   }
+
+  writeServerLog("info", "Product review item decision recorded", {
+    acceptedCatalogProductId,
+    declineReason: payload.declineReason ?? null,
+    id: payload.id,
+    note: payload.note ?? null,
+    reviewItem: reviewItemForDecision,
+    reviewerId: user.email,
+    status
+  });
 
   return json(200, {
     id: payload.id,

@@ -398,7 +398,7 @@ describe("handleAppRequest auth guards", () => {
     vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
     vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
     vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
-    let requestedProductOptions: { limit?: number; offset?: number } | undefined;
+    let requestedProductOptions: { limit?: number; nameIncludes?: string; offset?: number; sourceNames?: string[] } | undefined;
 
     const token = createUserToken({
       email: "admin@kamra.test",
@@ -863,6 +863,7 @@ describe("handleAppRequest auth guards", () => {
         method: "GET",
         path: "/api/catalog/products",
         query: {
+          nameIncludes: "tej",
           page: "3",
           pageSize: "50",
           source: "penny_hu_offers"
@@ -888,6 +889,7 @@ describe("handleAppRequest auth guards", () => {
     expect(response.status).toBe(200);
     expect(requestedProductOptions).toEqual({
       limit: 50,
+      nameIncludes: "tej",
       offset: 100,
       sourceNames: ["penny_hu_offers"]
     });

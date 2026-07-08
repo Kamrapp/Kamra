@@ -37,9 +37,11 @@ export const catalogProductsRoute: AppRoute = {
       maxProductPageSize
     );
     const offset = (page - 1) * pageSize;
+    const nameIncludes = readSingleString(request.query?.["nameIncludes"]) ?? undefined;
     const sourceNames = readStringList(request.query?.["source"]);
     const result = await repository.listCatalogProductsForReview({
       limit: pageSize,
+      ...(nameIncludes ? { nameIncludes } : {}),
       offset,
       sourceNames
     });

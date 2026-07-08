@@ -45,6 +45,7 @@ export interface IngestionCleanupResult {
 
 export interface ListRawSnapshotsOptions {
   limit?: number;
+  offset?: number;
   sourceName?: string;
 }
 
@@ -215,11 +216,17 @@ export class MongoIngestionRepository {
       ? { sourceName: options.sourceName }
       : {};
 
-    return this.rawSnapshotsCollection
+    let query = this.rawSnapshotsCollection
       .find(filter)
-      .sort({ capturedAt: -1 })
-      .limit(options.limit ?? 50)
-      .toArray();
+      .sort({ capturedAt: -1 });
+
+    if (typeof options.offset === "number" && options.offset > 0) {
+      query = query.skip(options.offset);
+    }
+
+    query = query.limit(options.limit ?? 50);
+
+    return query.toArray();
   }
 
   async findRawSnapshotById(id: string): Promise<IngestionRawSnapshotRecord | null> {

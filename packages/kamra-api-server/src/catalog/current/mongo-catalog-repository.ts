@@ -31,6 +31,7 @@ interface CollectionIndexPlan {
 
 export interface CatalogProductReviewPageOptions {
   limit?: number;
+  nameIncludes?: string;
   offset?: number;
   sourceNames?: string[];
 }
@@ -300,6 +301,14 @@ export class MongoCurrentCatalogRepository {
   ): Promise<CatalogProductReviewPage> {
     const requestedSourceNames = [...new Set(options.sourceNames ?? [])].filter((sourceName) => sourceName.length > 0);
     const productFilter: Filter<ProductRecord> = { status: "active" };
+    const normalizedNameIncludes = normalizeProductName(options.nameIncludes ?? "");
+
+    if (normalizedNameIncludes) {
+      productFilter.normalizedName = {
+        $regex: escapeRegex(normalizedNameIncludes),
+        $options: "i"
+      };
+    }
 
     if (requestedSourceNames.length > 0) {
       const productIdsForSources = (await this.productSourcesCollection.distinct("productId", {
@@ -388,7 +397,14 @@ export class MongoCurrentCatalogRepository {
         return null;
       }
 
-      return await this.findCatalogProductForReview(input.id);
+      const product = await this.findCatalogProductForReview(input.id);
+      writeServerLog("info", "Catalog product updated", {
+        id: input.id,
+        product,
+        update: input
+      });
+
+      return product;
     } catch (error: unknown) {
       if (isDocumentValidationError(error)) {
         writeServerLog("error", "Catalog product update validation failed", {
@@ -436,7 +452,16 @@ export class MongoCurrentCatalogRepository {
         return null;
       }
 
-      return await this.findCatalogProductForReview(input.id);
+      const product = await this.findCatalogProductForReview(input.id);
+      writeServerLog("info", "Catalog product validation state changed", {
+        id: input.id,
+        product,
+        reviewedAt: input.reviewedAt,
+        reviewerId: input.reviewerId,
+        status: input.status
+      });
+
+      return product;
     } catch (error: unknown) {
       if (isDocumentValidationError(error)) {
         writeServerLog("error", "Catalog product validation state change failed", {
@@ -474,7 +499,7 @@ export class MongoCurrentCatalogRepository {
       this.productsCollection.deleteMany({ id })
     ]);
 
-    return {
+    const result = {
       deletedIdentifierCount: identifiers.deletedCount ?? 0,
       deletedPriceObservationCount: priceObservations.deletedCount ?? 0,
       deletedProductCount: products.deletedCount ?? 0,
@@ -482,6 +507,14 @@ export class MongoCurrentCatalogRepository {
       deletedStockCount: stocks.deletedCount ?? 0,
       deletedTagAssignmentCount: tagAssignments.deletedCount ?? 0
     };
+
+    writeServerLog("info", "Catalog product deleted", {
+      id,
+      productSourceIds,
+      result
+    });
+
+    return result;
   }
 
   async createCatalogProductFromReviewCandidate(
@@ -596,6 +629,19 @@ export class MongoCurrentCatalogRepository {
       if (priceObservations.length > 0) {
         await this.upsertMany(this.priceObservationsCollection, priceObservations);
       }
+
+      writeServerLog("info", "Catalog product created from review candidate", {
+        createdRecords: {
+          priceObservations,
+          product,
+          productSource,
+          sourceIdentifiers,
+          stock
+        },
+        input,
+        productId,
+        productSourceId
+      });
 
       return { productId };
     } catch (error: unknown) {
@@ -970,6 +1016,10 @@ function isDocumentValidationError(error: unknown): boolean {
 
 function normalizeProductName(name: string): string {
   return name.trim().toLocaleLowerCase("hu-HU").replace(/\s+/g, " ");
+}
+
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function summarizeMongoValidationError(error: unknown): Record<string, unknown> {

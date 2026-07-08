@@ -13,11 +13,16 @@ import { ResizableTableComponent, type ResizableTableColumn } from "../shared/re
 import { PageRailService, type PageRailSection } from "../shared/page-rail.service";
 import { ProductEditorDialogComponent } from "../shared/product-editor-dialog.component";
 import { TableIconButtonComponent } from "../shared/table-icon-button.component";
+import { DebouncedFilterAction } from "../shared/filter-debounce";
 
 interface VisibleProductRow {
   index: number;
   offset: number;
   product: CatalogProductListItem;
+}
+
+interface ProductCatalogFilters {
+  nameIncludes: string;
 }
 
 const noOfferSourceKey = "__none__";
@@ -29,67 +34,85 @@ const noOfferSourceKey = "__none__";
   template: `
     <section class="products-page" aria-labelledby="products-title">
       <main class="page-main">
-        @if (products().length) {
-          <app-resizable-table #productTable ariaLabel="Product offer table" [columns]="tableColumns">
-            <div
-              class="table-viewport"
-              [style.--row-height]="rowHeight + 'px'"
-              (scroll)="onTableScroll($event)"
-            >
-              <div class="table-spacer" [style.height.px]="tableHeight()">
-                @for (row of visibleRows(); track row.product.id) {
-                  <article
-                    class="product-row"
-                    role="row"
-                    [style.grid-template-columns]="productTable.columnTemplate()"
-                    [style.transform]="'translateY(' + row.offset + 'px)'"
-                  >
-                    <div class="action-cell" role="cell">
-                      <app-table-icon-button
-                        titleText="Edit product"
-                        ariaLabel="Edit product"
-                        (press)="openProductEditor(row.product)"
-                      >
-                        ✎
-                      </app-table-icon-button>
-                    </div>
+        <section class="product-filter-bar" aria-label="Product filters">
+          <label class="filter-field">
+            <span>Name</span>
+            <input
+              type="search"
+              [value]="productFilterDrafts().nameIncludes"
+              placeholder="Contains..."
+              (input)="setNameFilter($any($event.target).value)"
+            />
+          </label>
 
-                    <div class="product-main" role="cell">
-                      <p class="row-title">{{ row.product.name }}</p>
-                      <p class="row-muted">
-                        {{ row.product.brandName || "unbranded" }} · {{ formatMeasurements(row.product.measurements) }}
-                      </p>
-                      <p class="row-muted">{{ row.product.primaryCategoryKey || "uncategorized" }}</p>
-                    </div>
+          @if (activeProductFilterCount()) {
+            <button class="filter-clear-button" type="button" (click)="clearProductFilters()">Clear</button>
+          }
+        </section>
 
-                    <div class="price-cell" role="cell">
-                      @for (price of priceChips(row.product); track price) {
-                        <span class="price-chip">{{ price }}</span>
-                      } @empty {
-                        <span class="quiet-chip">no price yet</span>
-                      }
-                    </div>
+        <app-resizable-table #productTable ariaLabel="Product offer table" [columns]="tableColumns">
+          <div
+            class="table-viewport"
+            [style.--row-height]="rowHeight + 'px'"
+            (scroll)="onTableScroll($event)"
+          >
+            @if (!visibleRows().length) {
+              <p class="table-empty-state">{{ productTablePlaceholder() }}</p>
+            }
 
-                    <div class="source-cell" role="cell">
-                      <p class="row-strong">{{ filteredOffers(row.product).length }} offers · {{ filteredSourceNames(row.product).length }} sources</p>
-                      <p class="row-muted">{{ formatSources(row.product) }}</p>
-                      <p class="row-muted">{{ formatOfferNames(row.product) }}</p>
-                    </div>
+            <div class="table-spacer" [style.height.px]="tableHeight()">
+              @for (row of visibleRows(); track row.product.id) {
+                <article
+                  class="product-row"
+                  role="row"
+                  [style.grid-template-columns]="productTable.columnTemplate()"
+                  [style.transform]="'translateY(' + row.offset + 'px)'"
+                >
+                  <div class="action-cell" role="cell">
+                    <app-table-icon-button
+                      titleText="Edit product"
+                      ariaLabel="Edit product"
+                      (press)="openProductEditor(row.product)"
+                    >
+                      ✎
+                    </app-table-icon-button>
+                  </div>
 
-                    <div class="identifier-cell" role="cell">
-                      <p class="row-muted">{{ formatIdentifiers(row.product) }}</p>
-                    </div>
+                  <div class="product-main" role="cell">
+                    <p class="row-title">{{ row.product.name }}</p>
+                    <p class="row-muted">
+                      {{ row.product.brandName || "unbranded" }} · {{ formatMeasurements(row.product.measurements) }}
+                    </p>
+                    <p class="row-muted">{{ row.product.primaryCategoryKey || "uncategorized" }}</p>
+                  </div>
 
-                    <div class="state-cell" role="cell">
-                      <p class="row-strong">{{ formatLatestObserved(row.product) }}</p>
-                      <p class="row-muted">{{ row.product.householdStockCount }} household · {{ row.product.tagKeys.length }} tags</p>
-                    </div>
-                  </article>
-                }
-              </div>
+                  <div class="price-cell" role="cell">
+                    @for (price of priceChips(row.product); track price) {
+                      <span class="price-chip">{{ price }}</span>
+                    } @empty {
+                      <span class="quiet-chip">no price yet</span>
+                    }
+                  </div>
+
+                  <div class="source-cell" role="cell">
+                    <p class="row-strong">{{ filteredOffers(row.product).length }} offers · {{ filteredSourceNames(row.product).length }} sources</p>
+                    <p class="row-muted">{{ formatSources(row.product) }}</p>
+                    <p class="row-muted">{{ formatOfferNames(row.product) }}</p>
+                  </div>
+
+                  <div class="identifier-cell" role="cell">
+                    <p class="row-muted">{{ formatIdentifiers(row.product) }}</p>
+                  </div>
+
+                  <div class="state-cell" role="cell">
+                    <p class="row-strong">{{ formatLatestObserved(row.product) }}</p>
+                    <p class="row-muted">{{ row.product.householdStockCount }} household · {{ row.product.tagKeys.length }} tags</p>
+                  </div>
+                </article>
+              }
             </div>
-          </app-resizable-table>
-        }
+          </div>
+        </app-resizable-table>
       </main>
 
       <app-product-editor-dialog
@@ -147,6 +170,55 @@ const noOfferSourceKey = "__none__";
         color: var(--color-text-muted);
       }
 
+      .product-filter-bar {
+        align-items: end;
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-3);
+        margin-block-end: 0.45rem;
+        min-width: 0;
+      }
+
+      .filter-field {
+        color: var(--color-text-muted);
+        display: grid;
+        font-size: 0.75rem;
+        font-weight: 800;
+        gap: 0.25rem;
+        min-width: min(18rem, 100%);
+      }
+
+      .filter-field input {
+        background: var(--surface-shell-background);
+        border: 1px solid var(--line-subtle);
+        border-radius: var(--radius-ui);
+        color: var(--color-text);
+        font: inherit;
+        font-size: 0.88rem;
+        font-weight: 700;
+        min-height: 2.15rem;
+        min-width: 0;
+        padding: 0.35rem 0.55rem;
+      }
+
+      .filter-field input::placeholder {
+        color: var(--color-text-muted);
+        font-weight: 600;
+      }
+
+      .filter-clear-button {
+        background: var(--control-quiet-background);
+        border: 1px solid var(--line-subtle);
+        border-radius: var(--radius-ui);
+        color: var(--color-text);
+        cursor: pointer;
+        font: inherit;
+        font-size: 0.84rem;
+        font-weight: 800;
+        min-height: 2.15rem;
+        padding: 0.35rem 0.7rem;
+      }
+
       .product-row {
         box-sizing: border-box;
         display: grid;
@@ -166,6 +238,16 @@ const noOfferSourceKey = "__none__";
       .table-spacer {
         min-width: 100%;
         position: relative;
+      }
+
+      .table-empty-state {
+        color: var(--color-text-muted);
+        font-size: 0.9rem;
+        font-weight: 700;
+        left: 1rem;
+        margin: 0;
+        position: absolute;
+        top: 1rem;
       }
 
       .product-row {
@@ -265,6 +347,8 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
   readonly totalPages = signal(0);
   readonly editingProduct = signal<CatalogProductListItem | null>(null);
   readonly editorOpen = signal(false);
+  readonly productFilterDrafts = signal<ProductCatalogFilters>(createEmptyProductCatalogFilters());
+  readonly productFilters = signal<ProductCatalogFilters>(createEmptyProductCatalogFilters());
   readonly tableColumns: readonly ResizableTableColumn[] = [
     { key: "actions", label: "", minWidth: 52, maxWidth: 72, width: 56 },
     { key: "product", label: "Product", minWidth: 140, maxWidth: 640, width: 300 },
@@ -287,9 +371,14 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
       label: "none"
     }
   ]);
-  readonly filteredProducts = computed(() =>
-    this.products().filter((product) => this.productMatchesSelectedSources(product))
-  );
+  readonly activeProductFilterCount = computed(() => countActiveProductFilters(this.productFilterDrafts()));
+  readonly filteredProducts = computed(() => {
+    const productFilters = this.productFilters();
+
+    return this.products().filter((product) =>
+      this.productMatchesSelectedSources(product) && productMatchesFilters(product, productFilters)
+    );
+  });
   readonly tableHeight = computed(() => this.filteredProducts().length * this.rowHeight);
   readonly totalOfferCount = computed(() =>
     this.products().reduce((total, product) => total + product.offers.length, 0)
@@ -349,7 +438,7 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
       return sections;
     }
 
-    if (this.products().length || this.sourceFilterTouched()) {
+    if (this.auth.token()) {
       const allSourcesSelected = this.selectedOfferSources().size === this.offerSourceOptions().length;
       sections.push({
         key: "catalog-sources",
@@ -389,6 +478,8 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
   private readonly syncPageRail = effect(() => {
     this.pageRail.setSections(this.pageRailSections());
   });
+  private readonly debouncedFilterReload = new DebouncedFilterAction();
+  private catalogReloadSerial = 0;
 
   ngOnInit(): void {
     if (this.auth.token()) {
@@ -397,6 +488,7 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.debouncedFilterReload.cancel();
     this.pageRail.clearSections();
   }
 
@@ -454,6 +546,22 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
     const sources = this.filteredSourceNames(product);
 
     return sources.length ? sources.join(" · ") : "no source";
+  }
+
+  productTablePlaceholder(): string {
+    if (!this.auth.token()) {
+      return "Sign in to load products.";
+    }
+
+    if (this.loadState() === "loading") {
+      return "Loading products...";
+    }
+
+    if (this.activeProductFilterCount()) {
+      return "No products match the current filters.";
+    }
+
+    return "No products loaded.";
   }
 
   onTableScroll(event: Event): void {
@@ -552,6 +660,24 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
     this.closeProductEditor();
   }
 
+  setNameFilter(nameIncludes: string): void {
+    this.productFilterDrafts.update((filters) => ({
+      ...filters,
+      nameIncludes
+    }));
+    this.debouncedFilterReload.schedule(() => {
+      this.productFilters.set(this.productFilterDrafts());
+      void this.reloadProductsForCurrentFilters();
+    });
+  }
+
+  clearProductFilters(): void {
+    this.debouncedFilterReload.cancel();
+    this.productFilterDrafts.set(createEmptyProductCatalogFilters());
+    this.productFilters.set(createEmptyProductCatalogFilters());
+    void this.reloadProductsForCurrentFilters();
+  }
+
   toggleOfferSource(sourceKey: string): void {
     this.sourceFilterTouched.set(true);
     this.selectedOfferSources.update((selectedSources) => {
@@ -586,6 +712,7 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
       return;
     }
 
+    this.catalogReloadSerial += 1;
     this.errorMessage.set("");
     this.products.set([]);
     this.currentPage.set(0);
@@ -608,10 +735,10 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
 
     this.offerSourceNames.set(sourceResult.sourceNames);
     this.selectedOfferSources.set(new Set(this.offerSourceOptions().map((source) => source.key)));
-    await this.loadNextProductsPage();
+    await this.loadNextProductsPage(this.catalogReloadSerial);
   }
 
-  async loadNextProductsPage(): Promise<void> {
+  async loadNextProductsPage(reloadSerial = this.catalogReloadSerial): Promise<void> {
     if (!this.auth.token() || this.loadState() === "loading" || !this.hasNextPage()) {
       return;
     }
@@ -632,7 +759,16 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
         return;
       }
 
-      const result = await this.catalog.listProductsForReview(pageToLoad, this.pageSize(), selectedServerSources);
+      const result = await this.catalog.listProductsForReview(
+        pageToLoad,
+        this.pageSize(),
+        selectedServerSources,
+        this.productFilters().nameIncludes
+      );
+
+      if (reloadSerial !== this.catalogReloadSerial) {
+        return;
+      }
 
       if (result.status !== "ok") {
         this.loadState.set("error");
@@ -666,6 +802,10 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
         totalProductCount: result.pagination.totalCount
       });
     } catch (error: unknown) {
+      if (reloadSerial !== this.catalogReloadSerial) {
+        return;
+      }
+
       this.loadState.set("error");
       this.statusMessage.set("The browser could not reach the product catalog route.");
       this.errorMessage.set("Check the shared API path and database configuration.");
@@ -685,12 +825,15 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
   }
 
   private async reloadProductsForCurrentFilters(): Promise<void> {
+    const reloadSerial = this.catalogReloadSerial + 1;
+    this.catalogReloadSerial = reloadSerial;
     this.products.set([]);
     this.currentPage.set(0);
     this.totalProductCount.set(0);
     this.totalPages.set(0);
     this.scrollTop.set(0);
-    await this.loadNextProductsPage();
+    this.loadState.set("idle");
+    await this.loadNextProductsPage(reloadSerial);
   }
 
   private selectedServerSourceNames(): string[] {
@@ -721,6 +864,37 @@ function mergeProductsById(
   }
 
   return [...productsById.values()];
+}
+
+function createEmptyProductCatalogFilters(): ProductCatalogFilters {
+  return {
+    nameIncludes: ""
+  };
+}
+
+function countActiveProductFilters(filters: ProductCatalogFilters): number {
+  return normalizeFilterText(filters.nameIncludes) ? 1 : 0;
+}
+
+function productMatchesFilters(
+  product: CatalogProductListItem,
+  filters: ProductCatalogFilters
+): boolean {
+  return productMatchesNameFilter(product, filters.nameIncludes);
+}
+
+function productMatchesNameFilter(product: CatalogProductListItem, nameIncludes: string): boolean {
+  const expectedNamePart = normalizeFilterText(nameIncludes);
+
+  if (!expectedNamePart) {
+    return true;
+  }
+
+  return normalizeFilterText(product.name).includes(expectedNamePart);
+}
+
+function normalizeFilterText(value: string): string {
+  return value.trim().toLocaleLowerCase("hu-HU");
 }
 
 function formatPrice(price: CatalogProductOfferPrice): string {

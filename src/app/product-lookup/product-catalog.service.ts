@@ -166,7 +166,8 @@ export class ProductCatalogService {
   async listProductsForReview(
     page: number,
     pageSize: number,
-    sourceNames: readonly string[]
+    sourceNames: readonly string[],
+    nameIncludes: string | null
   ): Promise<ProductCatalogLoadResult> {
     if (!this.auth.token()) {
       return {
@@ -181,6 +182,9 @@ export class ProductCatalogService {
     });
     for (const sourceName of sourceNames) {
       searchParams.append("source", sourceName);
+    }
+    if (nameIncludes?.trim()) {
+      searchParams.set("nameIncludes", nameIncludes.trim());
     }
     const response = await fetch(`/api/catalog/products?${searchParams.toString()}`, {
       headers: {
