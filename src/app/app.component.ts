@@ -12,6 +12,7 @@ import { logBrowserEvent } from "./browser-logger";
 import { AuthService } from "./auth.service";
 import { PageRailService } from "./shared/page-rail.service";
 import { PageRailOutletComponent } from "./shared/page-rail-outlet.component";
+import { ThemePreferenceService, type ThemePreference } from "./shared/theme-preference.service";
 import { ToastHostComponent } from "./shared/toast-host.component";
 import { ToastService } from "./shared/toast.service";
 
@@ -80,6 +81,18 @@ import { ToastService } from "./shared/toast.service";
               </button>
             </form>
           }
+
+          <label class="preference-field">
+            <span>Theme</span>
+            <select
+              name="theme"
+              [ngModel]="theme.theme()"
+              (ngModelChange)="setTheme($event)"
+            >
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+            </select>
+          </label>
         </section>
       </aside>
 
@@ -250,13 +263,15 @@ import { ToastService } from "./shared/toast.service";
       }
 
       .login-form,
+      .preference-field,
       .user-chip {
         align-items: center;
         display: grid;
         gap: var(--space-2);
       }
 
-      .login-form input {
+      .login-form input,
+      .preference-field select {
         background: var(--form-field-background);
         border: 1px solid var(--line-panel);
         border-radius: var(--radius-ui);
@@ -265,6 +280,17 @@ import { ToastService } from "./shared/toast.service";
         min-height: 2.15rem;
         padding: 0.45rem 0.62rem;
         width: 100%;
+      }
+
+      .preference-field {
+        margin-top: var(--space-2);
+      }
+
+      .preference-field span {
+        color: var(--color-text-muted);
+        font-size: 0.72rem;
+        font-weight: 800;
+        text-transform: uppercase;
       }
 
       .login-form button,
@@ -506,6 +532,7 @@ import { ToastService } from "./shared/toast.service";
         }
 
         .login-form,
+        .preference-field,
         .user-chip {
           align-items: center;
           display: flex;
@@ -513,7 +540,8 @@ import { ToastService } from "./shared/toast.service";
           justify-content: flex-end;
         }
 
-        .login-form input {
+        .login-form input,
+        .preference-field select {
           width: min(11rem, 28vw);
         }
 
@@ -552,11 +580,13 @@ import { ToastService } from "./shared/toast.service";
           grid-row: 3;
         }
 
-        .login-form input {
+        .login-form input,
+        .preference-field select {
           width: min(100%, 11rem);
         }
 
         .login-form,
+        .preference-field,
         .user-chip {
           align-items: stretch;
           display: grid;
@@ -584,6 +614,7 @@ import { ToastService } from "./shared/toast.service";
 export class AppComponent implements OnInit {
   readonly auth = inject(AuthService);
   readonly pageRail = inject(PageRailService);
+  readonly theme = inject(ThemePreferenceService);
   readonly toast = inject(ToastService);
   readonly currentPageTitle = signal("Home");
   readonly loginMessage = signal("");
@@ -637,7 +668,7 @@ export class AppComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    void this.auth.loadCurrentUser();
+    void this.loadCurrentUserProfile();
     this.currentPageTitle.set(this.pageTitleForUrl(this.router.url));
 
     logBrowserEvent("info", "Browser app ready", {
@@ -668,13 +699,33 @@ export class AppComponent implements OnInit {
     }
 
     this.loginPassword = "";
+    this.theme.applyUserTheme(this.auth.user()?.profile.theme);
     this.showLoginToast(`Signed in as ${this.auth.user()?.email ?? this.loginEmail}.`, "success");
   }
 
   async logout(): Promise<void> {
     await this.auth.logout();
     this.loginPassword = "";
+    this.theme.applyUserTheme(undefined);
     this.showLoginToast("Signed out.", "success");
+  }
+
+  async setTheme(theme: ThemePreference): Promise<void> {
+    if (this.auth.user()) {
+      this.theme.setTheme(theme);
+      await this.auth.updateThemePreference(theme);
+      return;
+    }
+
+    this.theme.setAnonymousTheme(theme);
+  }
+
+  private async loadCurrentUserProfile(): Promise<void> {
+    await this.auth.loadCurrentUser();
+    const userTheme = this.auth.user()?.profile.theme;
+    if (userTheme) {
+      this.theme.applyUserTheme(userTheme);
+    }
   }
 
   private clearLoginToast(): void {

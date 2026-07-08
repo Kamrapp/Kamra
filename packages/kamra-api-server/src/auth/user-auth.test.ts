@@ -15,6 +15,15 @@ class InMemoryUserRepository implements UserRepository {
       ? this.user
       : null;
   }
+
+  async updateUserProfile(email: string, profile: UserDocument["profile"]): Promise<UserDocument | null> {
+    return this.user?.email === email && this.user.status === "active"
+      ? {
+          ...this.user,
+          profile
+        }
+      : null;
+  }
 }
 
 async function createUser(
@@ -45,6 +54,7 @@ describe("authenticateUser", () => {
       status: "authenticated",
       user: {
         email: "admin@kamra.test",
+        profile: {},
         role: "admin"
       }
     });
@@ -66,7 +76,33 @@ describe("authenticateUser", () => {
       status: "authenticated",
       user: {
         email: "user@kamra.test",
+        profile: {},
         role: "user"
+      }
+    });
+  });
+
+  it("returns persisted profile preferences for an active user", async () => {
+    const repository = new InMemoryUserRepository(
+      await createUser("correct-password", {
+        profile: {
+          theme: "dark"
+        }
+      })
+    );
+
+    await expect(authenticateUser(
+      "admin@kamra.test",
+      "correct-password",
+      repository
+    )).resolves.toEqual({
+      status: "authenticated",
+      user: {
+        email: "admin@kamra.test",
+        profile: {
+          theme: "dark"
+        },
+        role: "admin"
       }
     });
   });

@@ -1,7 +1,6 @@
 import type { Db } from "mongodb";
 
-import type { MongoUserRepository } from "../auth/mongo-user-repository.js";
-import type { AuthenticatedUser } from "../auth/user-auth.js";
+import type { AuthenticatedUser, UserRepository } from "../auth/user-auth.js";
 import { verifyUserToken } from "../auth/user-token.js";
 import {
   MongoCurrentCatalogRepository,
@@ -163,7 +162,7 @@ export interface AppHandlerDependencies {
       updatedAt: string;
     }): Promise<boolean>;
   };
-  createUserRepository?: (database: Db) => MongoUserRepository;
+  createUserRepository?: (database: Db) => UserRepository;
   getMongoClient?: typeof getMongoClient;
 }
 
@@ -268,6 +267,7 @@ function authenticateRequestUser(
 
   return {
     email: result.payload.email,
+    profile: {},
     role: result.payload.role
   };
 }

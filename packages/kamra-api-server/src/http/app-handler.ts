@@ -13,7 +13,7 @@ import {
   catalogProductValidationRoute,
   catalogSourcesRoute
 } from "./routes/catalog-routes.js";
-import { currentUserRoute, loginRoute, logoutRoute } from "./routes/auth-routes.js";
+import { currentUserRoute, loginRoute, logoutRoute, userPreferencesRoute } from "./routes/auth-routes.js";
 import {
   healthRoute,
   markLegacyProductsUnvalidatedRoute,
@@ -38,6 +38,7 @@ const appRoutes: AppRoute[] = [
   loginRoute,
   logoutRoute,
   currentUserRoute,
+  userPreferencesRoute,
   healthRoute,
   upgradeCatalogValidatorsRoute,
   markLegacyProductsUnvalidatedRoute,

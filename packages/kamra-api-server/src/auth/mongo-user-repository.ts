@@ -1,6 +1,6 @@
 import type { Collection, Db } from "mongodb";
 
-import type { UserDocument, UserRepository } from "./user-auth.js";
+import type { UserDocument, UserProfile, UserRepository } from "./user-auth.js";
 
 export class MongoUserRepository implements UserRepository {
   private readonly usersCollection: Collection<UserDocument>;
@@ -14,5 +14,25 @@ export class MongoUserRepository implements UserRepository {
       email,
       status: "active"
     });
+  }
+
+  async updateUserProfile(email: string, profile: UserProfile): Promise<UserDocument | null> {
+    const result = await this.usersCollection.findOneAndUpdate(
+      {
+        email,
+        status: "active"
+      },
+      {
+        $set: {
+          profile,
+          updatedAt: new Date()
+        }
+      },
+      {
+        returnDocument: "after"
+      }
+    );
+
+    return result;
   }
 }

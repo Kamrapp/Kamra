@@ -59,6 +59,51 @@
   line-height: 1.5;
 }
 
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-accent-leaf: #b5d85f;
+  --color-accent-leaf-strong: #94bf3f;
+  --color-accent-sky: #78bdd8;
+  --color-background: #15111b;
+  --color-background-soft: #211a2a;
+  --color-scrollbar-thumb: #9b8eaa;
+  --color-scrollbar-thumb-hover: #b4a7c4;
+  --color-status-danger: #ff8c7f;
+  --color-status-danger-text: #ffd6d1;
+  --color-status-warning: #f3b35e;
+  --color-surface: #25202b;
+  --color-text: #f5eef8;
+  --color-text-muted: #c7bacd;
+  --color-wood: #c2a28d;
+  --color-wood-deep: #e1c8b8;
+  --app-background:
+    radial-gradient(circle at 18% 12%, color-mix(in srgb, var(--color-accent-sky) 24%, transparent), transparent 34%),
+    radial-gradient(circle at 82% 20%, color-mix(in srgb, var(--color-accent-leaf) 18%, transparent), transparent 30%),
+    linear-gradient(180deg, var(--color-background-soft) 0%, var(--color-background) 100%);
+  --control-primary-background: color-mix(in srgb, var(--color-accent-leaf-strong) 86%, black 14%);
+  --control-primary-border: color-mix(in srgb, var(--color-accent-leaf-strong) 60%, white 40%);
+  --control-quiet-background: color-mix(in srgb, var(--color-accent-sky) 22%, var(--color-surface) 78%);
+  --control-quiet-border: color-mix(in srgb, var(--color-wood) 28%, transparent);
+  --danger-soft-background: color-mix(in srgb, var(--color-status-danger) 18%, var(--color-surface) 82%);
+  --form-field-background: color-mix(in srgb, var(--color-surface) 84%, black 16%);
+  --line-subtle: color-mix(in srgb, var(--color-wood) 18%, transparent);
+  --line-panel: color-mix(in srgb, var(--color-wood) 24%, transparent);
+  --line-strong: color-mix(in srgb, var(--color-wood) 34%, transparent);
+  --row-hover-background: color-mix(in srgb, var(--color-accent-sky) 20%, var(--color-surface) 80%);
+  --row-stripe-background: color-mix(in srgb, var(--color-background-soft) 60%, transparent);
+  --surface-panel-background: rgb(37 32 43 / 86%);
+  --surface-panel-shadow: 0 1rem 2.6rem rgb(0 0 0 / 28%);
+  --surface-floating-shadow: 0 1rem 2.6rem rgb(0 0 0 / 34%);
+  --surface-shell-background: rgb(37 32 43 / 82%);
+  --surface-shell-shadow: 0 1rem 2.4rem rgb(0 0 0 / 30%);
+  --surface-soft-background: color-mix(in srgb, var(--color-background-soft) 74%, var(--color-surface) 26%);
+  --toast-shadow: 0 1rem 2.4rem rgb(0 0 0 / 32%);
+  --toast-error-border: color-mix(in srgb, var(--color-status-danger) 64%, white 36%);
+  --toast-info-border: color-mix(in srgb, var(--color-accent-sky) 62%, white 38%);
+  --toast-success-border: color-mix(in srgb, var(--color-accent-leaf-strong) 64%, white 36%);
+  --toast-warning-border: color-mix(in srgb, var(--color-status-warning) 66%, white 34%);
+}
+
 * {
   box-sizing: border-box;
 }

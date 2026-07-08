@@ -1,12 +1,18 @@
 import { verifyPassword, type PasswordHash } from "./password-hash.js";
 
 export type UserRole = "admin" | "user";
+export type UserThemePreference = "dark" | "light";
+
+export interface UserProfile {
+  theme?: UserThemePreference;
+}
 
 export interface UserDocument {
   authProvider: "bootstrap_credentials";
   createdAt?: Date;
   email: string;
   passwordHash: PasswordHash;
+  profile?: UserProfile;
   role: UserRole;
   status: "active" | "disabled";
   updatedAt?: Date;
@@ -14,11 +20,13 @@ export interface UserDocument {
 
 export interface AuthenticatedUser {
   email: string;
+  profile: UserProfile;
   role: UserRole;
 }
 
 export interface UserRepository {
   findActiveUserByEmail(email: string): Promise<UserDocument | null>;
+  updateUserProfile(email: string, profile: UserProfile): Promise<UserDocument | null>;
 }
 
 export type AuthenticateUserResult =
@@ -32,6 +40,22 @@ export type AuthenticateUserResult =
 
 export function normalizeUserEmail(email: string): string {
   return email.trim().toLowerCase();
+}
+
+export function isUserThemePreference(value: unknown): value is UserThemePreference {
+  return value === "dark" || value === "light";
+}
+
+export function toAuthenticatedUser(user: UserDocument): AuthenticatedUser {
+  return {
+    email: user.email,
+    profile: {
+      theme: isUserThemePreference(user.profile?.theme)
+        ? user.profile.theme
+        : undefined
+    },
+    role: user.role
+  };
 }
 
 export async function authenticateUser(
@@ -56,9 +80,6 @@ export async function authenticateUser(
 
   return {
     status: "authenticated",
-    user: {
-      email: user.email,
-      role: user.role
-    }
+    user: toAuthenticatedUser(user)
   };
 }

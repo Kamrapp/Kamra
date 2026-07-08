@@ -1,6 +1,7 @@
 import { computed, Injectable, signal } from "@angular/core";
 
 import { readApiErrorMessage } from "./shared/api-errors";
+import { isThemePreference, type ThemePreference } from "./shared/theme-preference.service";
 
 export type UserRole = "admin" | "user";
 
@@ -14,8 +15,15 @@ interface CurrentUserResponse {
   user: AuthenticatedUser;
 }
 
+interface UserPreferencesResponse {
+  user: AuthenticatedUser;
+}
+
 export interface AuthenticatedUser {
   email: string;
+  profile: {
+    theme?: ThemePreference;
+  };
   role: UserRole;
 }
 
@@ -65,7 +73,7 @@ export class AuthService {
     }
 
     const payload = (await response.json()) as CurrentUserResponse;
-    this.user.set(payload.user);
+    this.user.set(this.normalizeUser(payload.user));
   }
 
   async login(email: string, password: string): Promise<LoginResult> {
@@ -89,7 +97,7 @@ export class AuthService {
 
     const payload = (await response.json()) as LoginResponse;
     this.storeToken(payload.token);
-    this.user.set(payload.user);
+    this.user.set(this.normalizeUser(payload.user));
 
     return { status: "ok" };
   }
@@ -100,6 +108,25 @@ export class AuthService {
       method: "POST"
     }).catch(() => undefined);
     this.clearToken();
+  }
+
+  async updateThemePreference(theme: ThemePreference): Promise<void> {
+    const response = await fetch("/api/admin/preferences", {
+      body: JSON.stringify({ theme }),
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+        ...this.getAuthorizationHeaders()
+      },
+      method: "PATCH"
+    });
+
+    if (!response.ok) {
+      return;
+    }
+
+    const payload = (await response.json()) as UserPreferencesResponse;
+    this.user.set(this.normalizeUser(payload.user));
   }
 
   private clearToken(): void {
@@ -115,5 +142,17 @@ export class AuthService {
   private storeToken(token: string): void {
     window.localStorage.setItem(userTokenStorageKey, token);
     this.token.set(token);
+  }
+
+  private normalizeUser(user: AuthenticatedUser): AuthenticatedUser {
+    return {
+      email: user.email,
+      profile: {
+        theme: isThemePreference(user.profile?.theme)
+          ? user.profile.theme
+          : undefined
+      },
+      role: user.role
+    };
   }
 }
