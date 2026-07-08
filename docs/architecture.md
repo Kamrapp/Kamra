@@ -48,13 +48,16 @@ Responsibilities:
 - sign-in and account session UI
 - admin dashboard UI for operators
 - admin whitelist management UI when the whitelist feature is enabled
+- shell-level user preferences for theme and language
 
 The frontend should not own business-critical product matching or ingestion logic.
 
 User-facing screens should focus on household workflows. Admin screens should focus on ingestion visibility, crawled/fetched product review, and data maintenance.
 
 Frontend localization should be treated as an early MVP concern, not a later polish item.
-Default application resources should come from files for stable content such as category labels, product names, and shell copy, while site-admin-managed database overrides can gradually fill in runtime translations and missing values.
+Default application resources currently come from nested JSON files under `src/app/i18n/` for English and Hungarian. Keep those files in a standard library-friendly shape so a later i18next-style adapter can consume them without reshaping content. Site-admin-managed database overrides can gradually fill in runtime translations and missing values later.
+
+Theme support should remain token-based. The current light and dark themes are CSS custom-property sets in `src/styles.css`; feature code should use semantic tokens instead of hard-coded theme colors so future themes can swap cleanly.
 
 ### API Layer
 
@@ -68,6 +71,7 @@ Responsibilities:
 - enforce authentication and authorization
 - separate household user access from admin access
 - enforce registration whitelist checks when public self-registration is disabled
+- persist lightweight user profile preferences such as theme and language
 - send invitation and expiry emails only when the whitelist feature is enabled
 
 API routes must remain stateless and should not perform crawling or long-running transformations.
@@ -79,6 +83,8 @@ Expected business failures should use Result-style responses or an equivalent ex
 When frontend and API shapes are genuinely the same, prefer shared TypeScript contracts instead of duplicative 1:1 DTOs. Use explicit mapping layers where auth, admin actions, raw snapshots, or public API boundaries differ.
 
 The initial admin-only login can be bootstrapped with Vercel-managed credentials or secrets, but the authenticated admin identity should still map to a database record so roles, auditing, and future expansion remain data-driven.
+
+Current user profiles persist shell preferences in the `users.profile` object. Anonymous preference choices are stored client-side in cookies and should be overwritten by the signed-in user's profile after login.
 
 ### Ingestion Layer
 
@@ -141,6 +147,7 @@ Expected access boundaries:
 - authenticated users access their own household data
 - household members may access shared household lists and items according to membership rules
 - admins can inspect crawled/fetched products and ingestion state
+- admins manually accept, decline, edit, or merge crawled product candidates before they become trusted catalog data
 - ingestion jobs write raw and transformed data through controlled credentials
 
 Google account sign-in is an expected later authentication direction, but the household/product MVP can operate with admin-controlled and whitelisted access.
@@ -215,6 +222,7 @@ External source
 - obvious future fields may exist empty when they prevent disruptive schema churn later
 - uncertain matches should be represented explicitly, not hidden as confident canonical products
 - uncertain store-product identity should remain unlinked until verified by stronger evidence or explicit review
+- accepting crawled product candidates should make create-versus-merge behavior explicit to the operator before writing catalog data
 - household inventory concepts should stay separate from store-offer observations even if they share some fields
 - shared contracts should be designed for reuse by frontend and API first, with generated compatibility for workflow runtimes where needed
 - composition should be modeled explicitly so compound products or household items can reference their parts

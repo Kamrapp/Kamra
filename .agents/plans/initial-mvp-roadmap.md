@@ -20,7 +20,7 @@ Roadmap priorities:
 | Stage 1 | Legacy inventory and extraction | Completed (docs) | Discovery strengthened the Angular-retention assumption, shared-contract direction, and migration-ledger need. |
 | Stage 2 | Minimal serverless foundation | Completed | Vercel app/API and MongoDB connectivity are running; Stage 2 followups should be handled only when they block later stages. |
 | Stage 3 | Product model foundation and seeded data | Completed | Finalized versioned product contracts, seed data, smoke validation, and admin-only product inspection before crawler work. |
-| Stage 4 | Crawler intake and processing pipeline | In progress | Raw ingestion exists for synthetic HTML plus PENNY, ALDI, COOP, and Lidl brochure/PDF sources; processor/local orchestration and compact product-offer visibility are in place; next work is manual processing workflow and focused operator UI. SPAR and Tesco are moved out of Stage 4 and should be revisited near the end of the MVP. |
+| Stage 4 | Crawler intake and processing pipeline | In progress | Raw ingestion exists for synthetic HTML plus PENNY, ALDI, COOP, and Lidl brochure/PDF sources; processor/local orchestration, compact product-offer visibility, paged crawl review, source filters, accepted-item hiding, and explicit accept create/merge confirmation are in place. SPAR and Tesco are moved out of Stage 4 and should be revisited near the end of the MVP. |
 | Stage 5 | Household stock foundation | Planned | Treat households as stock locations where useful, while preserving user-household authorization boundaries. |
 | Stage 6 | Shopping list and low-stock notices | Planned | Favor deterministic core logic over premature optimization. |
 | Stage 7 | Controlled alpha access and app module shell | Planned | Move external demo access later, after household and list value exist; keep public/product, household, site-admin, and dev-admin concerns visibly separate. |
@@ -236,6 +236,11 @@ Current status:
 - `SimpleHtmlTableShop`, PENNY, ALDI, and COOP crawlers write ingestion runs and raw snapshots.
 - Source-specific processing now writes queryable catalog records, source identifiers, price observations, stocks, and processing states for the current raw snapshot set.
 - Price observations preserve offer history and restrictions; processors may write a current/collated `stocks.price` only when a safe default price is clear.
+- Product lookup has server-backed paging, source filtering, and simple name-inclusion filtering with a debounce so filtering does not reload on every keystroke.
+- The site-admin crawl view pages and virtualizes snapshot rows, can filter by crawl source, hides accepted items by default, and offers a toggle to include accepted items when needed.
+- Accepting a crawl review item now previews whether the action will merge into an existing product or create a new one before writing catalog data.
+- The app shell supports light/dark theme and English/Hungarian language preferences; signed-in preferences persist on the user profile and anonymous preferences persist in browser cookies.
+- Default localization resources are nested JSON files under `src/app/i18n/`, currently `en.json` and `hu.json`, with a lightweight service in front of them.
 - Tesco live product crawling is deferred because no documented public product/offers API/feed was found and the location-tagged offers page returned HTTP 403 from the crawler runner.
 - Controlled PDF support through `SimplePdfShop` and Lidl brochure/PDF ingestion are in place.
 - SPAR and Tesco brochure/catalogue work is intentionally moved out of Stage 4. Revisit them near the end of the MVP, after the current crawled-shop data has supported product lookup, household stock, and shopping-list/notice features.
@@ -428,9 +433,10 @@ Current direction:
 
 ## First Recommended Next Step
 
-Continue Stage 4 from the active Stage 4 plan:
+Close the remaining Stage 4 review loop before moving into Stage 5:
 
-- add manual processing workflow and focused `site-admin` crawl/operator visibility
+- verify the manual crawl review path end to end against current dev data, including accepted-row hiding, accepted-complete crawl hiding, source filters, and merge/create acceptance confirmation
+- decide whether any Stage 4 manual product-gateway gaps remain large enough to block household stock work
 - keep SPAR and Tesco out of Stage 4 until near the end of the MVP
 
 Treat broader crawler expansion as deliberately paused unless a later plan promotes a source back into active scope.

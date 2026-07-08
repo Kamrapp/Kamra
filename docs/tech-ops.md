@@ -131,6 +131,13 @@ For the current Stage 2 MongoDB setup, prefer storing the full connection string
 - `MONGODB_DB_NAME`
 - `AUTH_TOKEN_SECRET` for signed browser-persisted user tokens
 
+Authenticated user records now carry lightweight profile preferences:
+
+- `profile.theme` stores `light` or `dark`
+- `profile.language` stores `en` or `hu`
+
+Anonymous users can still switch theme and language. Those choices are stored in browser cookies and are replaced by the signed-in user's profile preferences after login.
+
 The current database environment matrix is documented in [docs/database-environments.md](./database-environments.md). In short:
 
 - `kamra_prod` is the main production database
@@ -177,6 +184,22 @@ The seed runner reads these shared database values from local environment files 
 The deployed `api/` Vercel Function entrypoints do not use a separate secrets layer inside the repository. They read runtime values from `process.env` through `readAppConfig()`, so the active Vercel environment must define the same variables that local development uses. Login and admin-only API checks also require `AUTH_TOKEN_SECRET`.
 
 Stage 2 health reporting intentionally uses `database` as the public health-check contract name even though the underlying connectivity check currently pings MongoDB. Keep the external shape platform-neutral unless a later plan deliberately adds store-specific or engine-specific diagnostics.
+
+## Frontend Preferences And Localization
+
+The Angular shell currently supports:
+
+- light and dark themes via CSS custom properties in `src/styles.css`
+- language switching between English and Hungarian
+- per-user persistence through `PATCH /api/admin/preferences`
+- anonymous fallback persistence through cookies
+
+Default translations live in standard nested JSON files:
+
+- `src/app/i18n/en.json`
+- `src/app/i18n/hu.json`
+
+Keep locale resources grouped by product area, such as `app`, `common`, `product`, `crawl`, `health`, and `editor`. The lightweight `LocalizationService` reads those JSON files now; future i18n libraries should be able to consume the same shape without a content migration.
 
 Each seed owns its own optional env values. If all env values for an optional seed are present, that seed runs silently. If they are missing, `npm run seed` asks whether to run that seed and prompts for the missing values.
 

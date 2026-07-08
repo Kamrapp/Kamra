@@ -27,6 +27,11 @@ Implemented:
 - processed `product_source_identifiers` catalog collection for retailer-local ids and future GTIN/common ids
 - processing snapshots into catalog products, product sources, stocks, identifiers, prices, and processing states
 - same-day source-record idempotency
+- admin crawl snapshot browsing with paged/virtualized loading
+- crawl source filtering in the admin left rail
+- default hiding of accepted crawl rows and accepted-complete crawls, with a `Show accepted items` toggle
+- manual review editor for crawl products before catalog writes
+- acceptance preview that tells the operator whether a crawl product will create a new catalog product or merge into an existing one before executing
 - cleanup by crawl run id
 - manual and nightly Smoke workflow for synthetic ingestion
 - manually dispatchable workflows for PENNY, ALDI, and COOP
@@ -172,6 +177,24 @@ Manual inputs:
 - `reprocess`: whether to reprocess snapshots already marked processed by the current processor version
 
 The workflow installs dependencies, typechecks API/scripts, runs ingestion tests, runs `npm run process:ingestion`, and then runs `npm run validate:processed-ingestion`.
+
+## Manual Crawl Review UI
+
+The site-admin ingestion page is the current operator surface for Stage 4 manual supervision.
+
+Current behavior:
+
+- crawl snapshots load by page and render through virtualized rows so the admin page does not load every snapshot at once
+- the left rail includes crawl-source filters populated from available snapshot sources
+- accepted review items are hidden by default
+- enabling `Show accepted items` includes accepted rows and their parent snapshots again
+- when every review item for a crawl snapshot has been accepted, that crawl snapshot is hidden by default as completed review work
+- selecting a crawl snapshot shows parsed source rows and opens the shared product editor for the chosen row
+- accepting a review item first previews whether the action will create a new catalog product or merge into an existing product, with the reason such as matching identifier evidence
+- accepted rows are removed from the default crawl view after the write succeeds
+- declined rows remain review history but do not create catalog product data
+
+The UI is intentionally operator-focused. It is not a customer product lookup surface, and raw source content should still be treated as untrusted until reviewed or processed.
 
 ## Penny Workflow
 
