@@ -1,6 +1,7 @@
 import type { DeleteResult, Document, Filter } from "mongodb";
 
 import type {
+  IngestionV1CollectionName,
   IngestionProductReviewItemRecord,
   IngestionRawSnapshotRecord,
   IngestionRunRecord,
@@ -94,20 +95,13 @@ export class MongoIngestionRepository {
       (await this.database.listCollections({}, { nameOnly: true }).toArray()).map((entry) => entry.name)
     );
 
-    if (!existingCollections.has("ingestion_runs")) {
-      await this.database.createCollection("ingestion_runs");
-    }
-    if (!existingCollections.has("ingestion_raw_snapshots")) {
-      await this.database.createCollection("ingestion_raw_snapshots");
-    }
-    if (!existingCollections.has("ingestion_product_review_items")) {
-      await this.database.createCollection("ingestion_product_review_items", {
-        validationAction: "error",
-        validationLevel: "strict",
-        validator: {
-          $jsonSchema: ingestionV1CollectionSchemas.ingestion_product_review_items
-        }
-      });
+    for (const collectionName of Object.keys(ingestionV1CollectionSchemas) as IngestionV1CollectionName[]) {
+      if (!existingCollections.has(collectionName)) {
+        await this.database.createCollection(
+          collectionName,
+          strictValidationOptions(ingestionV1CollectionSchemas[collectionName])
+        );
+      }
     }
 
     await Promise.all([
@@ -408,6 +402,16 @@ export class MongoIngestionRepository {
 
 function deletedCount(result: DeleteResult): number {
   return result.deletedCount ?? 0;
+}
+
+function strictValidationOptions(schema: Record<string, unknown>): Document {
+  return {
+    validationAction: "error",
+    validationLevel: "strict",
+    validator: {
+      $jsonSchema: schema
+    }
+  };
 }
 
 function isMongoValidationError(error: unknown): boolean {

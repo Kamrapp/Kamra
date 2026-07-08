@@ -20,8 +20,8 @@ Roadmap priorities:
 | Stage 1 | Legacy inventory and extraction | Completed (docs) | Discovery strengthened the Angular-retention assumption, shared-contract direction, and migration-ledger need. |
 | Stage 2 | Minimal serverless foundation | Completed | Vercel app/API and MongoDB connectivity are running; Stage 2 followups should be handled only when they block later stages. |
 | Stage 3 | Product model foundation and seeded data | Completed | Finalized versioned product contracts, seed data, smoke validation, and admin-only product inspection before crawler work. |
-| Stage 4 | Crawler intake and processing pipeline | In progress | Raw ingestion exists for synthetic HTML plus PENNY, ALDI, COOP, and Lidl brochure/PDF sources; processor/local orchestration, compact product-offer visibility, paged crawl review, source filters, accepted-item hiding, and explicit accept create/merge confirmation are in place. SPAR and Tesco are moved out of Stage 4 and should be revisited near the end of the MVP. |
-| Stage 5 | Household stock foundation | Planned | Treat households as stock locations where useful, while preserving user-household authorization boundaries. |
+| Stage 4 | Crawler intake and processing pipeline | Completed | Current in-scope ingestion, processing, operator review, product acceptance, source filtering, accepted-item hiding, strict new-ingestion collection validators, and explicit accept create/merge confirmation are in place. SPAR and Tesco are moved out of Stage 4 and should be revisited near the end of the MVP. |
+| Stage 5 | Household stock foundation | Planned | Plan drafted in `2026-07-08-stage-5-household-stock-foundation-plan.md`; treat household stock separately from crawler/source stock while preserving user-household authorization boundaries. |
 | Stage 6 | Shopping list and low-stock notices | Planned | Favor deterministic core logic over premature optimization. |
 | Stage 7 | Controlled alpha access and app module shell | Planned | Move external demo access later, after household and list value exist; keep public/product, household, site-admin, and dev-admin concerns visibly separate. |
 | Stage 8 | Expiry and buffer logic | Planned | This completes the first strong product MVP loop with buy-before style usefulness. |
@@ -245,6 +245,13 @@ Current status:
 - Controlled PDF support through `SimplePdfShop` and Lidl brochure/PDF ingestion are in place.
 - SPAR and Tesco brochure/catalogue work is intentionally moved out of Stage 4. Revisit them near the end of the MVP, after the current crawled-shop data has supported product lookup, household stock, and shopping-list/notice features.
 
+Completion status:
+
+- Stage 4 is complete for the current in-scope source set and manual supervision workflow as of 2026-07-08.
+- Skipped/deferred shops, especially SPAR and Tesco, are not Stage 4 completion blockers and remain end-of-MVP expansion candidates.
+- New ingestion collections are created with strict Mongo JSON schema validators; existing populated collections are not destructively recreated during normal setup.
+- Final validation on 2026-07-08 passed: `npm run typecheck`, `npm run test`, `npm run lint`, `npm run build`, plus targeted `npm test -- packages/kamra-api-server/src/ingestion` after the final validator wiring.
+
 Validation:
 
 - manual workflow dispatch works before schedule enablement
@@ -433,10 +440,6 @@ Current direction:
 
 ## First Recommended Next Step
 
-Close the remaining Stage 4 review loop before moving into Stage 5:
-
-- verify the manual crawl review path end to end against current dev data, including accepted-row hiding, accepted-complete crawl hiding, source filters, and merge/create acceptance confirmation
-- decide whether any Stage 4 manual product-gateway gaps remain large enough to block household stock work
-- keep SPAR and Tesco out of Stage 4 until near the end of the MVP
+Review and approve `.agents/plans/2026-07-08-stage-5-household-stock-foundation-plan.md`, then implement Stage 5 in commit-sized slices starting with household contracts, persistence, and authorization tests.
 
 Treat broader crawler expansion as deliberately paused unless a later plan promotes a source back into active scope.

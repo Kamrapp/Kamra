@@ -23,6 +23,7 @@ Implemented:
 - parsed source rows with product identity, stock availability, and separate price observations
 - `ingestion_runs`
 - `ingestion_raw_snapshots`
+- strict Mongo JSON schema validators for newly created ingestion collections
 - processed `price_observations` catalog collection for historical/source price records
 - processed `product_source_identifiers` catalog collection for retailer-local ids and future GTIN/common ids
 - processing snapshots into catalog products, product sources, stocks, identifiers, prices, and processing states
@@ -36,11 +37,12 @@ Implemented:
 - manual and nightly Smoke workflow for synthetic ingestion
 - manually dispatchable workflows for PENNY, ALDI, and COOP
 
-Not implemented yet:
+Deferred or not production-approved yet:
 
 - production-approved real shop crawling
-- strict Mongo JSON schema validation for ingestion collections
 - strict validation for richer real-source parsed rows
+
+Stage 4 is considered complete for the current in-scope source set and manual supervision workflow as of 2026-07-08. SPAR, Tesco, and wider production-approved crawling remain deliberately deferred.
 
 ## Run Identity
 
