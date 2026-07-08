@@ -187,7 +187,7 @@ export class IngestionAdminService {
   private readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
 
-  async listSnapshots(): Promise<IngestionAdminLoadResult> {
+  async listSnapshots(includeAccepted = false): Promise<IngestionAdminLoadResult> {
     if (!this.auth.token()) {
       return {
         message: "Sign in before loading crawl snapshots.",
@@ -195,7 +195,10 @@ export class IngestionAdminService {
       };
     }
 
-    const response = await fetch("/api/admin/ingestion/snapshots", {
+    const url = includeAccepted
+      ? "/api/admin/ingestion/snapshots?includeAccepted=true"
+      : "/api/admin/ingestion/snapshots";
+    const response = await fetch(url, {
       headers: {
         accept: "application/json",
         ...this.auth.getAuthorizationHeaders()

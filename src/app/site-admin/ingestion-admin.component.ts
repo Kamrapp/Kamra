@@ -21,6 +21,15 @@ import { ProductEditorDialogComponent } from "../shared/product-editor-dialog.co
   standalone: true,
   template: `
     <section class="ingestion-page" aria-labelledby="ingestion-title">
+      <label class="accepted-toggle">
+        <input
+          type="checkbox"
+          [checked]="showAcceptedItems()"
+          (change)="setShowAcceptedItems($any($event.target).checked)"
+        />
+        <span>Show accepted items</span>
+      </label>
+
       <section
         class="crawl-workspace"
         [class.crawl-workspace-single]="!selectedSnapshot()"
@@ -157,6 +166,23 @@ import { ProductEditorDialogComponent } from "../shared/product-editor-dialog.co
         grid-template-columns: minmax(20rem, var(--crawl-list-fr)) 0.75rem minmax(24rem, var(--crawl-detail-fr));
         min-height: 42rem;
         min-width: 0;
+      }
+
+      .accepted-toggle {
+        align-items: center;
+        color: var(--color-text);
+        display: inline-flex;
+        font-size: 0.92rem;
+        font-weight: 700;
+        gap: var(--space-2);
+        margin-bottom: var(--space-3);
+      }
+
+      .accepted-toggle input {
+        accent-color: var(--color-accent-leaf-strong);
+        height: 1rem;
+        margin: 0;
+        width: 1rem;
       }
 
       .crawl-workspace-single {
@@ -330,6 +356,7 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
   readonly loadState = signal<"idle" | "loading" | "success" | "error">("idle");
   readonly processState = signal<"idle" | "loading">("idle");
   readonly crawlListWidthPercent = signal(42);
+  readonly showAcceptedItems = signal(false);
   readonly snapshots = signal<IngestionSnapshotListItem[]>([]);
   readonly statusMessage = signal("No crawl snapshots have been loaded yet.");
   readonly selectedSnapshotId = signal<string | null>(null);
@@ -446,6 +473,11 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
     this.selectedSnapshotId.set(snapshotId);
   }
 
+  setShowAcceptedItems(showAccepted: boolean): void {
+    this.showAcceptedItems.set(showAccepted);
+    void this.loadSnapshots();
+  }
+
   startWorkspaceResize(event: PointerEvent): void {
     event.preventDefault();
     const workspace = (event.currentTarget as HTMLElement).closest(".crawl-workspace");
@@ -484,7 +516,7 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
     this.statusMessage.set("Loading crawl snapshots...");
 
     try {
-      const result = await this.ingestion.listSnapshots();
+      const result = await this.ingestion.listSnapshots(this.showAcceptedItems());
 
       if (result.status !== "ok") {
         this.snapshots.set([]);
@@ -582,6 +614,7 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
 
     this.closeReviewEditor();
     await this.refreshSelectedReviewItems();
+    await this.loadSnapshots();
   }
 
   async declineReviewItem(

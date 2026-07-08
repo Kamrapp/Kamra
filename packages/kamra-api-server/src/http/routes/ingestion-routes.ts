@@ -59,18 +59,28 @@ export const ingestionSnapshotsRoute: AppRoute = {
       catalogRepository.setupCollections?.()
     ]);
 
+    const includeAcceptedItems = parseBooleanQueryValue(request.query?.["includeAccepted"]);
     const snapshots = await ingestionRepository.listRawSnapshots({ limit: snapshotListLimit });
-    const items = await Promise.all(snapshots.map(async (snapshot) => ({
-      ...toSnapshotListItem(snapshot),
-      processingState: catalogRepository.findProcessingState
-        ? await catalogRepository.findProcessingState({
-            processorName: sourceOfferProcessorName,
-            processorVersion: sourceOfferProcessorVersion,
-            recordFingerprint: createSourceOfferRecordFingerprint(snapshot),
-            sourceName: snapshot.sourceName
-          })
-        : null
-    })));
+    const items = (await Promise.all(snapshots.map(async (snapshot) => {
+      const visibleRows = includeAcceptedItems
+        ? snapshot.parsedRows
+        : await listVisibleSnapshotRows(ingestionRepository, snapshot);
+      if (visibleRows.length === 0) {
+        return null;
+      }
+
+      return {
+        ...toSnapshotListItem(snapshot, visibleRows),
+        processingState: catalogRepository.findProcessingState
+          ? await catalogRepository.findProcessingState({
+              processorName: sourceOfferProcessorName,
+              processorVersion: sourceOfferProcessorVersion,
+              recordFingerprint: createSourceOfferRecordFingerprint(snapshot),
+              sourceName: snapshot.sourceName
+            })
+          : null
+      };
+    }))).filter((item): item is NonNullable<typeof item> => item !== null);
 
     return json(200, {
       processorName: sourceOfferProcessorName,
@@ -316,7 +326,35 @@ export const declineProductReviewItemRoute: AppRoute = {
   handle: async (request, context) => markProductReviewItemDecision(request, context, "declined")
 };
 
-function toSnapshotListItem(snapshot: IngestionRawSnapshotRecord): Record<string, unknown> {
+async function listVisibleSnapshotRows(
+  ingestionRepository: IngestionRouteRepository,
+  snapshot: IngestionRawSnapshotRecord
+): Promise<ParsedShopProductRow[]> {
+  if (!ingestionRepository.listProductReviewItems) {
+    return snapshot.parsedRows;
+  }
+
+  const reviewItems = await ingestionRepository.listProductReviewItems({
+    limit: Math.max(snapshot.parsedRows.length, 1),
+    snapshotId: snapshot.id
+  });
+  if (reviewItems.length === 0) {
+    return snapshot.parsedRows;
+  }
+
+  const acceptedRowIndexes = new Set(
+    reviewItems
+      .filter((item) => item.status === "accepted")
+      .map((item) => item.rowIndex)
+  );
+
+  return snapshot.parsedRows.filter((_row, rowIndex) => !acceptedRowIndexes.has(rowIndex));
+}
+
+function toSnapshotListItem(
+  snapshot: IngestionRawSnapshotRecord,
+  visibleRows: ParsedShopProductRow[] = snapshot.parsedRows
+): Record<string, unknown> {
   return {
     capturedAt: snapshot.capturedAt,
     contentHash: snapshot.contentHash,
@@ -326,8 +364,8 @@ function toSnapshotListItem(snapshot: IngestionRawSnapshotRecord): Record<string
     id: snapshot.id,
     parserName: snapshot.parserName,
     parserVersion: snapshot.parserVersion,
-    parsedRowCount: snapshot.parsedRows.length,
-    rows: snapshot.parsedRows.slice(0, rowPreviewLimit).map(toRowPreview),
+    parsedRowCount: visibleRows.length,
+    rows: visibleRows.slice(0, rowPreviewLimit).map(toRowPreview),
     rowPreviewLimit,
     sourceName: snapshot.sourceName,
     sourceRecordId: snapshot.sourceRecordId,
@@ -508,6 +546,10 @@ function parseSnapshotId(bodyText: string | undefined): string | null {
 function parseOptionalQueryString(value: string | string[] | undefined): string | undefined {
   const candidate = Array.isArray(value) ? value[0] : value;
   return candidate?.trim() || undefined;
+}
+
+function parseBooleanQueryValue(value: string | string[] | undefined): boolean {
+  return parseOptionalQueryString(value) === "true";
 }
 
 function parsePositiveIntegerQueryValue(value: string | string[] | undefined, fallback: number): number {
