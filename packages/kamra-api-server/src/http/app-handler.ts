@@ -24,6 +24,7 @@ import {
   declineProductReviewItemRoute,
   ingestionSnapshotsRoute,
   prepareProductReviewItemsRoute,
+  previewProductReviewItemAcceptanceRoute,
   processIngestionSnapshotRoute,
   productReviewItemRoute,
   productReviewItemsRoute
@@ -47,6 +48,7 @@ const appRoutes: AppRoute[] = [
   ingestionSnapshotsRoute,
   processIngestionSnapshotRoute,
   prepareProductReviewItemsRoute,
+  previewProductReviewItemAcceptanceRoute,
   productReviewItemsRoute,
   productReviewItemRoute,
   acceptProductReviewItemRoute,

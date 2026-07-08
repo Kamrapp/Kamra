@@ -113,6 +113,7 @@ interface IngestionSnapshotsResponse {
   };
   processorName: string;
   processorVersion: string;
+  sourceNames?: string[];
   snapshots: IngestionSnapshotListItem[];
 }
 
@@ -136,6 +137,22 @@ interface ProductReviewDecisionResponse {
   status: "accepted" | "declined";
 }
 
+export interface ProductReviewAcceptancePreview {
+  action: "create" | "merge";
+  existingProduct?: {
+    id: string;
+    name: string;
+    sourceNames: string[];
+  } | null;
+  productId: string;
+  reason: string;
+  reviewItemId: string;
+}
+
+interface ProductReviewAcceptancePreviewResponse {
+  preview: ProductReviewAcceptancePreview;
+}
+
 export type IngestionAdminLoadResult =
   | {
       pagination: {
@@ -145,6 +162,7 @@ export type IngestionAdminLoadResult =
       };
       processorName: string;
       processorVersion: string;
+      sourceNames: string[];
       snapshots: IngestionSnapshotListItem[];
       status: "ok";
     }
@@ -190,6 +208,13 @@ export type ProductReviewItemsResult =
     }
   | ProductReviewError;
 
+export type ProductReviewAcceptancePreviewResult =
+  | {
+      preview: ProductReviewAcceptancePreview;
+      status: "ok";
+    }
+  | ProductReviewError;
+
 @Injectable({
   providedIn: "root"
 })
@@ -200,7 +225,8 @@ export class IngestionAdminService {
   async listSnapshots(
     includeAccepted = false,
     page = 1,
-    pageSize = 25
+    pageSize = 25,
+    sourceNames: readonly string[] = []
   ): Promise<IngestionAdminLoadResult> {
     if (!this.auth.token()) {
       return {
@@ -215,6 +241,9 @@ export class IngestionAdminService {
     });
     if (includeAccepted) {
       searchParams.set("includeAccepted", "true");
+    }
+    for (const sourceName of sourceNames) {
+      searchParams.append("source", sourceName);
     }
 
     const url = `/api/admin/ingestion/snapshots?${searchParams.toString()}`;
@@ -258,6 +287,7 @@ export class IngestionAdminService {
       },
       processorName: payload.processorName,
       processorVersion: payload.processorVersion,
+      sourceNames: payload.sourceNames ?? [],
       snapshots: payload.snapshots,
       status: "ok"
     };
@@ -367,6 +397,33 @@ export class IngestionAdminService {
       id,
       note
     }, "decision") as ProductReviewDecisionResult;
+  }
+
+  async previewReviewItemAcceptance(id: string): Promise<ProductReviewAcceptancePreviewResult> {
+    if (!this.auth.token()) {
+      return {
+        message: "Sign in before previewing review acceptance.",
+        status: "unauthenticated"
+      };
+    }
+
+    const response = await fetch(`/api/admin/ingestion/review-item/acceptance-preview?id=${encodeURIComponent(id)}`, {
+      headers: {
+        accept: "application/json",
+        ...this.auth.getAuthorizationHeaders()
+      },
+      method: "GET"
+    });
+    const error = await readReviewItemError(response);
+    if (error) {
+      return this.withToast(error);
+    }
+
+    const payload = (await response.json()) as ProductReviewAcceptancePreviewResponse;
+    return {
+      preview: payload.preview,
+      status: "ok"
+    };
   }
 
   async declineReviewItem(

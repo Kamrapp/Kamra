@@ -46,6 +46,7 @@ export interface IngestionCleanupResult {
 export interface ListRawSnapshotsOptions {
   limit?: number;
   offset?: number;
+  sourceNames?: string[];
   sourceName?: string;
 }
 
@@ -212,8 +213,12 @@ export class MongoIngestionRepository {
   }
 
   async listRawSnapshots(options: ListRawSnapshotsOptions = {}): Promise<IngestionRawSnapshotRecord[]> {
-    const filter: Filter<IngestionRawSnapshotRecord> = options.sourceName
-      ? { sourceName: options.sourceName }
+    const sourceNames = [...new Set([
+      ...(options.sourceNames ?? []),
+      ...(options.sourceName ? [options.sourceName] : [])
+    ])].filter((sourceName) => sourceName.length > 0);
+    const filter: Filter<IngestionRawSnapshotRecord> = sourceNames.length
+      ? { sourceName: { $in: sourceNames } }
       : {};
 
     let query = this.rawSnapshotsCollection
@@ -231,6 +236,12 @@ export class MongoIngestionRepository {
 
   async findRawSnapshotById(id: string): Promise<IngestionRawSnapshotRecord | null> {
     return await this.rawSnapshotsCollection.findOne({ id });
+  }
+
+  async listRawSnapshotSourceNames(): Promise<string[]> {
+    const sourceNames = (await this.rawSnapshotsCollection.distinct("sourceName")) as string[];
+
+    return sourceNames.sort((left, right) => left.localeCompare(right, "hu-HU"));
   }
 
   async prepareProductReviewItems(snapshot: IngestionRawSnapshotRecord): Promise<IngestionProductReviewItemRecord[]> {

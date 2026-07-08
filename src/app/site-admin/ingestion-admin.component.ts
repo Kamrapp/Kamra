@@ -376,6 +376,9 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
   readonly editingReviewItem = signal<IngestionProductReviewItem | null>(null);
   readonly reviewEditorOpen = signal(false);
   readonly reviewItemsBySnapshot = signal<Record<string, IngestionProductReviewItem[]>>({});
+  readonly crawlSourceFilterTouched = signal(false);
+  readonly crawlSourceNames = signal<string[]>([]);
+  readonly selectedCrawlSources = signal<Set<string>>(new Set());
   readonly selectedSnapshot = computed(() =>
     this.snapshots().find((snapshot) => snapshot.id === this.selectedSnapshotId()) ?? this.snapshots()[0] ?? null
   );
@@ -384,6 +387,12 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
   );
   readonly totalRows = computed(() =>
     this.snapshots().reduce((total, snapshot) => total + snapshot.parsedRowCount, 0)
+  );
+  readonly crawlSourceOptions = computed(() =>
+    this.crawlSourceNames().map((sourceName) => ({
+      key: sourceName,
+      label: sourceName
+    }))
   );
   readonly snapshotListHeight = computed(() => this.snapshots().length * this.snapshotRowHeight);
   readonly visibleSnapshots = computed<VisibleSnapshotRow[]>(() => {
@@ -430,6 +439,27 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
     }
 
     const snapshot = this.selectedSnapshot();
+    if (this.crawlSourceOptions().length || this.crawlSourceFilterTouched()) {
+      const allSourcesSelected = this.selectedCrawlSources().size === this.crawlSourceOptions().length;
+      sections.push({
+        key: "crawl-sources",
+        kind: "filters",
+        kicker: "Crawl sources",
+        title: "Sources",
+        selectedCount: this.selectedCrawlSources().size,
+        optionCount: this.crawlSourceOptions().length,
+        secondaryActionLabel: allSourcesSelected ? "Deselect all" : "Select all",
+        onSecondaryAction: () => this.toggleAllCrawlSources(),
+        note: `${this.snapshots().length} crawl snapshots loaded`,
+        options: this.crawlSourceOptions().map((source) => ({
+          key: source.key,
+          label: source.label,
+          checked: this.selectedCrawlSources().has(source.key),
+          onToggle: () => this.toggleCrawlSource(source.key)
+        }))
+      });
+    }
+
     if (snapshot) {
       sections.push({
         key: "crawl-selected",
@@ -517,6 +547,33 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
     void this.loadSnapshots();
   }
 
+  toggleCrawlSource(sourceKey: string): void {
+    this.crawlSourceFilterTouched.set(true);
+    this.selectedCrawlSources.update((selectedSources) => {
+      const next = new Set(selectedSources);
+
+      if (next.has(sourceKey)) {
+        next.delete(sourceKey);
+      } else {
+        next.add(sourceKey);
+      }
+
+      return next;
+    });
+    void this.loadSnapshots();
+  }
+
+  toggleAllCrawlSources(): void {
+    const allSources = new Set(this.crawlSourceOptions().map((source) => source.key));
+    const nextSources = this.selectedCrawlSources().size === allSources.size
+      ? new Set<string>()
+      : allSources;
+
+    this.crawlSourceFilterTouched.set(true);
+    this.selectedCrawlSources.set(nextSources);
+    void this.loadSnapshots();
+  }
+
   onSnapshotScroll(event: Event): void {
     const target = event.target;
 
@@ -586,11 +643,21 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
     this.loadState.set("loading");
 
     try {
+      if (this.crawlSourceFilterTouched() && this.selectedCrawlSources().size === 0) {
+        this.snapshots.set([]);
+        this.currentSnapshotPage.set(1);
+        this.hasNextSnapshotPage.set(false);
+        this.loadState.set("success");
+        this.statusMessage.set("No crawl source filters selected.");
+        return;
+      }
+
       const pageToLoad = this.currentSnapshotPage() + 1;
       const result = await this.ingestion.listSnapshots(
         this.showAcceptedItems(),
         pageToLoad,
-        this.snapshotPageSize()
+        this.snapshotPageSize(),
+        this.selectedServerCrawlSourceNames()
       );
 
       if (loadSerial !== this.snapshotLoadSerial) {
@@ -617,6 +684,10 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
 
       this.snapshots.update((snapshots) => mergeSnapshotsById(snapshots, result.snapshots));
       this.currentSnapshotPage.set(result.pagination.page);
+      this.crawlSourceNames.set(result.sourceNames);
+      if (!this.crawlSourceFilterTouched()) {
+        this.selectedCrawlSources.set(new Set(result.sourceNames));
+      }
       this.hasNextSnapshotPage.set(result.pagination.hasNextPage);
       if (!this.selectedSnapshotId()) {
         this.selectedSnapshotId.set(result.snapshots[0]?.id ?? null);
@@ -707,6 +778,16 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
   }
 
   async acceptReviewItem(id: string, note: string | null): Promise<void> {
+    const preview = await this.ingestion.previewReviewItemAcceptance(id);
+    if (preview.status !== "ok") {
+      this.errorMessage.set(preview.message);
+      return;
+    }
+
+    if (!window.confirm(formatAcceptancePreview(preview.preview))) {
+      return;
+    }
+
     const result = await this.ingestion.acceptReviewItem(id, note);
     if (result.status !== "ok") {
       this.errorMessage.set(result.message);
@@ -784,6 +865,15 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
       };
     });
   }
+
+  private selectedServerCrawlSourceNames(): string[] {
+    const selectedSources = this.selectedCrawlSources();
+    const selectedRealSources = this.crawlSourceNames().filter((sourceName) => selectedSources.has(sourceName));
+
+    return selectedRealSources.length === this.crawlSourceNames().length
+      ? []
+      : selectedRealSources;
+  }
 }
 
 function mergeSnapshotsById(
@@ -797,4 +887,30 @@ function mergeSnapshotsById(
   }
 
   return [...snapshotsById.values()];
+}
+
+function formatAcceptancePreview(preview: {
+  action: "create" | "merge";
+  existingProduct?: { id: string; name: string; sourceNames: string[] } | null;
+  productId: string;
+  reason: string;
+}): string {
+  if (preview.action === "merge" && preview.existingProduct) {
+    return [
+      `Accepting this crawl product will merge it into "${preview.existingProduct.name}".`,
+      preview.reason,
+      `Target product id: ${preview.productId}`,
+      `Existing sources: ${preview.existingProduct.sourceNames.join(", ") || "none"}`,
+      "",
+      "Continue?"
+    ].join("\n");
+  }
+
+  return [
+    "Accepting this crawl product will create a new catalog product.",
+    preview.reason,
+    `New product id: ${preview.productId}`,
+    "",
+    "Continue?"
+  ].join("\n");
 }

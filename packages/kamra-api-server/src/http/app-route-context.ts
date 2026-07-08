@@ -8,7 +8,8 @@ import {
   type CatalogValidatorUpgradeResult,
   type CreateCatalogProductFromReviewCandidateResult,
   type DeleteCatalogProductResult,
-  type MarkLegacyProductsUnvalidatedResult
+  type MarkLegacyProductsUnvalidatedResult,
+  type PreviewCatalogProductFromReviewCandidateResult
 } from "../catalog/current/mongo-catalog-repository.js";
 import type {
   CatalogProductListItem,
@@ -102,6 +103,9 @@ export interface AppHandlerDependencies {
       createdAt: string;
       reviewerId: string;
     }): Promise<CreateCatalogProductFromReviewCandidateResult>;
+    previewCatalogProductFromReviewCandidate?(input: {
+      candidate: ProductReviewCandidateDraft;
+    }): Promise<PreviewCatalogProductFromReviewCandidateResult>;
     findCatalogProductForReview?(id: string): Promise<CatalogProductListItem | null>;
     listCatalogProductsForReview(options?: { limit?: number; nameIncludes?: string; offset?: number; sourceNames?: string[] }): Promise<{
       products: unknown[];
@@ -131,7 +135,8 @@ export interface AppHandlerDependencies {
   createIngestionRepository?: (database: Db) => {
     findRawSnapshotById(id: string): Promise<IngestionRawSnapshotRecord | null>;
     findProductReviewItemById?(id: string): Promise<IngestionProductReviewItemRecord | null>;
-    listRawSnapshots(options?: { limit?: number; offset?: number; sourceName?: string }): Promise<IngestionRawSnapshotRecord[]>;
+    listRawSnapshots(options?: { limit?: number; offset?: number; sourceNames?: string[]; sourceName?: string }): Promise<IngestionRawSnapshotRecord[]>;
+    listRawSnapshotSourceNames?(): Promise<string[]>;
     listProductReviewItems?(options?: {
       limit?: number;
       offset?: number;
