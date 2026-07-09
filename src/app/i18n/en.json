@@ -18,6 +18,7 @@
     "login": "Login",
     "loginFailure": "Login is not available right now.",
     "loginInvalid": "The email or password did not match an active user.",
+    "loginNotConfigured": "Login is not configured for this environment yet.",
     "logout": "Logout",
     "password": "Password",
     "primaryNavigation": "Primary",

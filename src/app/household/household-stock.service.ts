@@ -1,5 +1,6 @@
 import { Injectable, inject } from "@angular/core";
 
+import { buildApiUrl } from "../api-url";
 import { AuthService } from "../auth.service";
 import { readApiErrorMessage } from "../shared/api-errors";
 import { LocalizationService } from "../shared/localization.service";
@@ -140,7 +141,7 @@ export class HouseholdStockService {
       };
     }
 
-    const response = await fetch("/api/households", {
+    const response = await fetch(buildApiUrl("/api/households"), {
       headers: {
         accept: "application/json",
         ...this.auth.getAuthorizationHeaders()
@@ -167,7 +168,7 @@ export class HouseholdStockService {
       };
     }
 
-    const response = await fetch("/api/households", {
+    const response = await fetch(buildApiUrl("/api/households"), {
       body: JSON.stringify({ name }),
       headers: {
         accept: "application/json",
@@ -196,7 +197,7 @@ export class HouseholdStockService {
       };
     }
 
-    const response = await fetch(`/api/household/items?householdId=${encodeURIComponent(householdId)}`, {
+    const response = await fetch(buildApiUrl(`/api/household/items?householdId=${encodeURIComponent(householdId)}`), {
       headers: {
         accept: "application/json",
         ...this.auth.getAuthorizationHeaders()
@@ -215,11 +216,11 @@ export class HouseholdStockService {
   }
 
   async createStockItem(input: CreateHouseholdStockInput): Promise<HouseholdPageResult> {
-    return await this.writeHouseholdStock("/api/household/items", "POST", input);
+    return await this.writeHouseholdStock(buildApiUrl("/api/household/items"), "POST", input);
   }
 
   async updateStockItem(input: UpdateHouseholdStockInput): Promise<HouseholdPageResult> {
-    return await this.writeHouseholdStock("/api/household/items", "PATCH", input);
+    return await this.writeHouseholdStock(buildApiUrl("/api/household/items"), "PATCH", input);
   }
 
   async archiveStockItem(input: { householdId: string; id: string }): Promise<HouseholdPageResult> {
@@ -231,7 +232,7 @@ export class HouseholdStockService {
     }
 
     const response = await fetch(
-      `/api/household/items?householdId=${encodeURIComponent(input.householdId)}&id=${encodeURIComponent(input.id)}`,
+      buildApiUrl(`/api/household/items?householdId=${encodeURIComponent(input.householdId)}&id=${encodeURIComponent(input.id)}`),
       {
         headers: {
           accept: "application/json",

@@ -1,3 +1,5 @@
+import { buildApiUrl } from "./api-url";
+
 export interface BrowserLogPayload {
   details?: unknown;
   level: "debug" | "info" | "warn" | "error";
@@ -29,7 +31,7 @@ export function logBrowserEvent(
     message
   };
 
-  void fetch("/api/log", {
+  void fetch(buildApiUrl("/api/log"), {
     body: JSON.stringify(payload),
     headers: {
       "content-type": "application/json"

@@ -1,5 +1,6 @@
 import { Injectable, inject } from "@angular/core";
 
+import { buildApiUrl } from "../api-url";
 import { AuthService } from "../auth.service";
 import { readApiErrorMessage } from "../shared/api-errors";
 import { LocalizationService } from "../shared/localization.service";
@@ -248,7 +249,7 @@ export class IngestionAdminService {
       searchParams.append("source", sourceName);
     }
 
-    const url = `/api/admin/ingestion/snapshots?${searchParams.toString()}`;
+    const url = buildApiUrl(`/api/admin/ingestion/snapshots?${searchParams.toString()}`);
     const response = await fetch(url, {
       headers: {
         accept: "application/json",
@@ -303,7 +304,7 @@ export class IngestionAdminService {
       };
     }
 
-    const response = await fetch("/api/admin/ingestion/process-snapshot", {
+    const response = await fetch(buildApiUrl("/api/admin/ingestion/process-snapshot"), {
       body: JSON.stringify({ snapshotId }),
       headers: {
         accept: "application/json",
@@ -352,7 +353,7 @@ export class IngestionAdminService {
   }
 
   async prepareReviewItems(snapshotId: string): Promise<ProductReviewItemsResult> {
-    return await this.writeReviewItem("/api/admin/ingestion/prepare-review-items", {
+    return await this.writeReviewItem(buildApiUrl("/api/admin/ingestion/prepare-review-items"), {
       snapshotId
     }, "reviewItems") as ProductReviewItemsResult;
   }
@@ -365,7 +366,7 @@ export class IngestionAdminService {
       };
     }
 
-    const response = await fetch(`/api/admin/ingestion/review-items?snapshotId=${encodeURIComponent(snapshotId)}&limit=250`, {
+    const response = await fetch(buildApiUrl(`/api/admin/ingestion/review-items?snapshotId=${encodeURIComponent(snapshotId)}&limit=250`), {
       headers: {
         accept: "application/json",
         ...this.auth.getAuthorizationHeaders()
@@ -388,14 +389,14 @@ export class IngestionAdminService {
     id: string,
     candidate: ProductReviewCandidateDraft
   ): Promise<ProductReviewItemResult> {
-    return await this.writeReviewItem("/api/admin/ingestion/review-item", {
+    return await this.writeReviewItem(buildApiUrl("/api/admin/ingestion/review-item"), {
       candidate,
       id
     }, "reviewItem", "PATCH") as ProductReviewItemResult;
   }
 
   async acceptReviewItem(id: string, note: string | null): Promise<ProductReviewDecisionResult> {
-    return await this.writeReviewItem("/api/admin/ingestion/review-item/accept", {
+    return await this.writeReviewItem(buildApiUrl("/api/admin/ingestion/review-item/accept"), {
       id,
       note
     }, "decision") as ProductReviewDecisionResult;
@@ -409,7 +410,7 @@ export class IngestionAdminService {
       };
     }
 
-    const response = await fetch(`/api/admin/ingestion/review-item/acceptance-preview?id=${encodeURIComponent(id)}`, {
+    const response = await fetch(buildApiUrl(`/api/admin/ingestion/review-item/acceptance-preview?id=${encodeURIComponent(id)}`), {
       headers: {
         accept: "application/json",
         ...this.auth.getAuthorizationHeaders()
@@ -433,7 +434,7 @@ export class IngestionAdminService {
     declineReason: ProductReviewDecisionReason,
     note: string | null
   ): Promise<ProductReviewDecisionResult> {
-    return await this.writeReviewItem("/api/admin/ingestion/review-item/decline", {
+    return await this.writeReviewItem(buildApiUrl("/api/admin/ingestion/review-item/decline"), {
       declineReason,
       id,
       note
