@@ -105,6 +105,8 @@ For early product MVP planning, admin-controlled access and whitelisted registra
 
 Early user access should be controlled by the admin. Public registration is not open by default.
 
+Current user profiles can store lightweight application preferences such as theme and language. Anonymous users can still set those preferences locally in the browser, but signing in should switch the app to the user's saved profile preferences.
+
 ### Household
 
 A user-owned or user-shared workspace for grocery planning.
@@ -143,10 +145,12 @@ Initial MVP should focus on:
 - storing raw snapshots
 - transforming snapshots into canonical product data
 - querying products and offers
+- filtering product offers by name and source
 - admin-created demo users through a feature-flagged registration whitelist
 - household-level item and list workflows
 - low-stock, missing-item, and buy-before notices so users can avoid running out silently, starting with in-app notices
 - admin review of crawled/fetched products
+- explicit manual confirmation before crawled products create new catalog records or merge into existing products
 - generating basic shopping-list recommendations
 - keeping infrastructure low-cost and low-maintenance
 - staying within free-tier limits for hosting, database, and scheduled jobs
@@ -202,7 +206,7 @@ Likely future work:
 - manual enrichment workflows
 - richer admin moderation and product merge tools
 - richer identity-resolution tooling
-- user-specific preferences
+- richer user-specific preferences beyond the current theme and language settings
 - mobile app or installable PWA shopping-list experience
 - route optimization with max-shop constraints, distance, travel time, price, and quality preferences
 

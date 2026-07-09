@@ -1,4 +1,4 @@
-import { Component, inject, signal, type OnInit } from "@angular/core";
+import { Component, effect, inject, signal, type OnInit } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import {
   NavigationEnd,
@@ -12,6 +12,8 @@ import { logBrowserEvent } from "./browser-logger";
 import { AuthService } from "./auth.service";
 import { PageRailService } from "./shared/page-rail.service";
 import { PageRailOutletComponent } from "./shared/page-rail-outlet.component";
+import { LocalizationService, type LanguagePreference } from "./shared/localization.service";
+import { ThemePreferenceService, type ThemePreference } from "./shared/theme-preference.service";
 import { ToastHostComponent } from "./shared/toast-host.component";
 import { ToastService } from "./shared/toast.service";
 
@@ -20,9 +22,9 @@ import { ToastService } from "./shared/toast.service";
   selector: "app-root",
   standalone: true,
   template: `
-    <main class="shell" aria-label="Kamra app">
-      <aside class="left-rail" aria-label="Application context">
-        <a class="brand-card" routerLink="/" (click)="closeMenu()" aria-label="Kamra home">
+    <main class="shell" aria-label="Kamra">
+      <aside class="left-rail" [attr.aria-label]="loc.t('app.context')">
+        <a class="brand-card" routerLink="/" (click)="closeMenu()" [attr.aria-label]="loc.t('app.home')">
           <span class="brand-line">
             <img
               class="brand-mark"
@@ -33,36 +35,36 @@ import { ToastService } from "./shared/toast.service";
             />
             <span class="brand-name">Kamra</span>
           </span>
-          <span class="brand-title">Pantry foundations, gently stocked.</span>
+          <span class="brand-title">{{ loc.t("app.brandTitle") }}</span>
         </a>
 
-        <section class="page-context-card" aria-label="Page context">
-          <p class="rail-kicker">Context</p>
+        <section class="page-context-card" [attr.aria-label]="loc.t('app.context')">
+          <p class="rail-kicker">{{ loc.t("app.context") }}</p>
           <p class="rail-title">{{ currentPageTitle() }}</p>
         </section>
 
         <app-page-rail-outlet [resetToken]="railResetToken()" [sections]="pageRail.sections()" />
       </aside>
 
-      <section class="page-body" aria-label="Current page">
+      <section class="page-body" [attr.aria-label]="loc.t('app.currentPage')">
         <div class="page-scroll">
           <router-outlet />
         </div>
       </section>
 
-      <aside class="right-rail" aria-label="Account and actions">
-        <section class="auth-card" aria-label="Account">
+      <aside class="right-rail" [attr.aria-label]="loc.t('app.actions')">
+        <section class="auth-card" [attr.aria-label]="loc.t('app.account')">
           @if (auth.user(); as user) {
             <div class="user-chip">
               <span>{{ user.email }}</span>
-              <button type="button" (click)="logout()">Logout</button>
+              <button type="button" (click)="logout()">{{ loc.t("app.logout") }}</button>
             </div>
           } @else {
             <form class="login-form" (ngSubmit)="login()">
               <input
                 autocomplete="username"
                 name="email"
-                placeholder="Email"
+                [placeholder]="loc.t('app.email')"
                 type="email"
                 [(ngModel)]="loginEmail"
                 [disabled]="loginState() === 'loading'"
@@ -70,16 +72,40 @@ import { ToastService } from "./shared/toast.service";
               <input
                 autocomplete="current-password"
                 name="password"
-                placeholder="Password"
+                [placeholder]="loc.t('app.password')"
                 type="password"
                 [(ngModel)]="loginPassword"
                 [disabled]="loginState() === 'loading'"
               />
               <button type="submit" [disabled]="loginState() === 'loading'">
-                {{ loginState() === "loading" ? "Logging in" : "Login" }}
+                {{ loginState() === "loading" ? loc.t("app.loadingLogin") : loc.t("app.login") }}
               </button>
             </form>
           }
+
+          <label class="preference-field">
+            <span>{{ loc.t("app.theme") }}</span>
+            <select
+              name="theme"
+              [ngModel]="theme.theme()"
+              (ngModelChange)="setTheme($event)"
+            >
+              <option value="light">{{ loc.t("app.light") }}</option>
+              <option value="dark">{{ loc.t("app.dark") }}</option>
+            </select>
+          </label>
+
+          <label class="preference-field">
+            <span>{{ loc.t("app.language.label") }}</span>
+            <select
+              name="language"
+              [ngModel]="loc.language()"
+              (ngModelChange)="setLanguage($event)"
+            >
+              <option value="en">{{ loc.t("app.language.english") }}</option>
+              <option value="hu">{{ loc.t("app.language.hungarian") }}</option>
+            </select>
+          </label>
         </section>
       </aside>
 
@@ -97,7 +123,7 @@ import { ToastService } from "./shared/toast.service";
       }
 
       <div class="radial-menu" [class.radial-menu-open]="isMenuOpen">
-        <nav id="primary-menu" class="radial-nav" aria-label="Primary">
+        <nav id="primary-menu" class="radial-nav" [attr.aria-label]="loc.t('app.primaryNavigation')">
           @for (item of menuItems; track item.path) {
             <a
               class="radial-nav-item"
@@ -105,13 +131,13 @@ import { ToastService } from "./shared/toast.service";
               routerLinkActive="active"
               [routerLinkActiveOptions]="item.exact ? { exact: true } : { exact: false }"
               [style.--item-angle]="item.angle + 'deg'"
-              [attr.aria-label]="item.label"
+              [attr.aria-label]="loc.t(item.labelKey)"
               (click)="closeMenu()"
             >
               <svg aria-hidden="true" viewBox="0 0 24 24">
                 <path [attr.d]="item.iconPath"></path>
               </svg>
-              <span>{{ item.label }}</span>
+              <span>{{ loc.t(item.labelKey) }}</span>
             </a>
           }
         </nav>
@@ -119,7 +145,7 @@ import { ToastService } from "./shared/toast.service";
         <button
           class="radial-menu-button"
           type="button"
-          aria-label="Toggle navigation"
+          [attr.aria-label]="loc.t('app.toggleNavigation')"
           aria-controls="primary-menu"
           [attr.aria-expanded]="isMenuOpen"
           (click)="toggleMenu()"
@@ -250,13 +276,15 @@ import { ToastService } from "./shared/toast.service";
       }
 
       .login-form,
+      .preference-field,
       .user-chip {
         align-items: center;
         display: grid;
         gap: var(--space-2);
       }
 
-      .login-form input {
+      .login-form input,
+      .preference-field select {
         background: var(--form-field-background);
         border: 1px solid var(--line-panel);
         border-radius: var(--radius-ui);
@@ -265,6 +293,17 @@ import { ToastService } from "./shared/toast.service";
         min-height: 2.15rem;
         padding: 0.45rem 0.62rem;
         width: 100%;
+      }
+
+      .preference-field {
+        margin-top: var(--space-2);
+      }
+
+      .preference-field span {
+        color: var(--color-text-muted);
+        font-size: 0.72rem;
+        font-weight: 800;
+        text-transform: uppercase;
       }
 
       .login-form button,
@@ -506,6 +545,7 @@ import { ToastService } from "./shared/toast.service";
         }
 
         .login-form,
+        .preference-field,
         .user-chip {
           align-items: center;
           display: flex;
@@ -513,7 +553,8 @@ import { ToastService } from "./shared/toast.service";
           justify-content: flex-end;
         }
 
-        .login-form input {
+        .login-form input,
+        .preference-field select {
           width: min(11rem, 28vw);
         }
 
@@ -552,11 +593,13 @@ import { ToastService } from "./shared/toast.service";
           grid-row: 3;
         }
 
-        .login-form input {
+        .login-form input,
+        .preference-field select {
           width: min(100%, 11rem);
         }
 
         .login-form,
+        .preference-field,
         .user-chip {
           align-items: stretch;
           display: grid;
@@ -583,9 +626,11 @@ import { ToastService } from "./shared/toast.service";
 })
 export class AppComponent implements OnInit {
   readonly auth = inject(AuthService);
+  readonly loc = inject(LocalizationService);
   readonly pageRail = inject(PageRailService);
+  readonly theme = inject(ThemePreferenceService);
   readonly toast = inject(ToastService);
-  readonly currentPageTitle = signal("Home");
+  readonly currentPageTitle = signal("");
   readonly loginMessage = signal("");
   readonly loginMessageTone = signal<"error" | "success">("success");
   readonly loginState = signal<"idle" | "loading">("idle");
@@ -595,28 +640,28 @@ export class AppComponent implements OnInit {
       angle: 225,
       exact: true,
       iconPath: "M4 10.5 12 4 20 10.5V20H14.5V14H9.5V20H4V10.5Z",
-      label: "Home",
+      labelKey: "app.home" as const,
       path: "/"
     },
     {
       angle: 195,
       exact: false,
       iconPath: "M12 3C8.1 3 5 6.1 5 10C5 15.2 12 21 12 21S19 15.2 19 10C19 6.1 15.9 3 12 3ZM12 12.5C10.6 12.5 9.5 11.4 9.5 10S10.6 7.5 12 7.5 14.5 8.6 14.5 10 13.4 12.5 12 12.5Z",
-      label: "Health",
+      labelKey: "common.health" as const,
       path: "/health"
     },
     {
       angle: 165,
       exact: false,
       iconPath: "M5 5H19V8H5V5ZM5 10.5H19V13.5H5V10.5ZM5 16H19V19H5V16Z",
-      label: "Products",
+      labelKey: "common.products" as const,
       path: "/products"
     },
     {
       angle: 135,
       exact: false,
       iconPath: "M4 5H20V9H4V5ZM6 11H18V14H6V11ZM8 16H16V19H8V16Z",
-      label: "Crawls",
+      labelKey: "common.crawls" as const,
       path: "/admin/ingestion"
     }
   ];
@@ -629,16 +674,21 @@ export class AppComponent implements OnInit {
   constructor() {
     this.router.events.subscribe((event) => {
       if (event instanceof NavigationEnd) {
-        this.currentPageTitle.set(this.pageTitleForUrl(event.urlAfterRedirects));
+        this.updateCurrentPageTitle(event.urlAfterRedirects);
         this.closeMenu();
         this.railResetToken.update((token) => token + 1);
       }
     });
+
+    effect(() => {
+      this.loc.language();
+      this.updateCurrentPageTitle(this.router.url);
+    });
   }
 
   ngOnInit(): void {
-    void this.auth.loadCurrentUser();
-    this.currentPageTitle.set(this.pageTitleForUrl(this.router.url));
+    void this.loadCurrentUserProfile();
+    this.updateCurrentPageTitle(this.router.url);
 
     logBrowserEvent("info", "Browser app ready", {
       hostname: window.location.hostname,
@@ -668,13 +718,46 @@ export class AppComponent implements OnInit {
     }
 
     this.loginPassword = "";
-    this.showLoginToast(`Signed in as ${this.auth.user()?.email ?? this.loginEmail}.`, "success");
+    this.theme.applyUserTheme(this.auth.user()?.profile.theme);
+    this.loc.applyUserLanguage(this.auth.user()?.profile.language);
+    this.showLoginToast(this.loc.t("app.signedIn", { email: this.auth.user()?.email ?? this.loginEmail }), "success");
   }
 
   async logout(): Promise<void> {
     await this.auth.logout();
     this.loginPassword = "";
-    this.showLoginToast("Signed out.", "success");
+    this.theme.applyUserTheme(undefined);
+    this.loc.applyUserLanguage(undefined);
+    this.showLoginToast(this.loc.t("app.signedOut"), "success");
+  }
+
+  async setTheme(theme: ThemePreference): Promise<void> {
+    if (this.auth.user()) {
+      this.theme.setTheme(theme);
+      await this.auth.updateThemePreference(theme);
+      return;
+    }
+
+    this.theme.setAnonymousTheme(theme);
+  }
+
+  async setLanguage(language: LanguagePreference): Promise<void> {
+    if (this.auth.user()) {
+      this.loc.setLanguage(language);
+      await this.auth.updateUserPreferences({ language });
+      return;
+    }
+
+    this.loc.setAnonymousLanguage(language);
+  }
+
+  private async loadCurrentUserProfile(): Promise<void> {
+    await this.auth.loadCurrentUser();
+    const userTheme = this.auth.user()?.profile.theme;
+    if (userTheme) {
+      this.theme.applyUserTheme(userTheme);
+    }
+    this.loc.applyUserLanguage(this.auth.user()?.profile.language);
   }
 
   private clearLoginToast(): void {
@@ -700,19 +783,23 @@ export class AppComponent implements OnInit {
     }, 3200);
   }
 
+  private updateCurrentPageTitle(url: string): void {
+    this.currentPageTitle.set(this.pageTitleForUrl(url));
+  }
+
   private pageTitleForUrl(url: string): string {
     if (url.startsWith("/admin/ingestion")) {
-      return "Crawls";
+      return this.loc.t("common.crawls");
     }
 
     if (url.startsWith("/products")) {
-      return "Product offers";
+      return this.loc.t("app.productOffers");
     }
 
     if (url.startsWith("/health")) {
-      return "Health check";
+      return this.loc.t("common.healthCheck");
     }
 
-    return "Home";
+    return this.loc.t("app.home");
   }
 }

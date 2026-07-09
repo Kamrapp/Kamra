@@ -132,6 +132,13 @@ export interface CreateCatalogProductFromReviewCandidateResult {
   productId: string;
 }
 
+export interface PreviewCatalogProductFromReviewCandidateResult {
+  action: "create" | "merge";
+  existingProduct: CatalogProductListItem | null;
+  productId: string;
+  reason: string;
+}
+
 const collectionPlans: CollectionIndexPlan[] = [
   {
     indexes: [
@@ -656,6 +663,23 @@ export class MongoCurrentCatalogRepository {
     }
   }
 
+  async previewCatalogProductFromReviewCandidate(input: {
+    candidate: CreateCatalogProductFromReviewCandidateInput["candidate"];
+  }): Promise<PreviewCatalogProductFromReviewCandidateResult> {
+    const identity = describeReviewCandidateProductIdentity(input.candidate);
+    const productId = createProductIdFromReviewCandidate(input.candidate);
+    const existingProduct = await this.findCatalogProductForReview(productId);
+
+    return {
+      action: existingProduct ? "merge" : "create",
+      existingProduct,
+      productId,
+      reason: existingProduct
+        ? `It will merge into the existing product because ${identity.reason}.`
+        : `It will create a new product because no active catalog product currently matches ${identity.reason}.`
+    };
+  }
+
   private async hydrateCatalogProducts(products: ProductRecord[]): Promise<CatalogProductListItem[]> {
     const productIds = products.map((product) => product.id);
     const [productTagAssignments, productSources, householdStocks] = await Promise.all([
@@ -1054,12 +1078,50 @@ function createProductIdFromReviewCandidate(candidate: {
     value: string;
   }>;
 }): string {
+  const identity = describeReviewCandidateProductIdentity(candidate);
+
+  if (identity.kind === "identifier") {
+    return `product_${identity.identifierKind}_${stableSlug(identity.identifierValue)}`;
+  }
+
+  return `product_name_${stableSlug(identity.value)}`;
+}
+
+function describeReviewCandidateProductIdentity(candidate: {
+  product: {
+    measurements: ProductRecord["measurements"];
+    name: string;
+    normalizedName: string;
+  };
+  sourceProductIdentifiers: Array<{
+    kind: ProductSourceIdentifierRecord["kind"];
+    value: string;
+  }>;
+}): 
+  | {
+    identifierKind: ProductSourceIdentifierRecord["kind"];
+    identifierValue: string;
+    kind: "identifier";
+    reason: string;
+    value: string;
+  }
+  | {
+    kind: "name_package";
+    reason: string;
+    value: string;
+  } {
   const commonIdentifier = candidate.sourceProductIdentifiers.find((identifier) =>
     identifier.kind === "gtin" || identifier.kind === "national_code"
   );
 
   if (commonIdentifier) {
-    return `product_${commonIdentifier.kind}_${stableSlug(commonIdentifier.value)}`;
+    return {
+      identifierKind: commonIdentifier.kind,
+      identifierValue: commonIdentifier.value,
+      kind: "identifier",
+      reason: `${commonIdentifier.kind} is equal to ${commonIdentifier.value}`,
+      value: commonIdentifier.value
+    };
   }
 
   const packageIdentity = candidate.product.measurements
@@ -1070,7 +1132,13 @@ function createProductIdFromReviewCandidate(candidate: {
     ? `${candidate.product.normalizedName} ${packageIdentity}`
     : candidate.product.normalizedName || normalizeProductName(candidate.product.name);
 
-  return `product_name_${stableSlug(identity)}`;
+  return {
+    kind: "name_package",
+    reason: packageIdentity
+      ? `normalized name and package are equal to "${identity}"`
+      : `normalized name is equal to "${identity}"`,
+    value: identity
+  };
 }
 
 function createReviewLocation(sourceName: string, storeBrandKey: string, countryCode: string): StockRecord["location"] {

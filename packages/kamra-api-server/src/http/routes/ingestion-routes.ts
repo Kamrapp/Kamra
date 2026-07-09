@@ -51,6 +51,7 @@ export const ingestionSnapshotsRoute: AppRoute = {
     await setupIngestionRouteCollections(repositories);
 
     const includeAcceptedItems = parseBooleanQueryValue(request.query?.["includeAccepted"]);
+    const sourceNames = parseQueryStringList(request.query?.["source"]);
     const page = Math.max(1, parsePositiveIntegerQueryValue(request.query?.["page"], defaultSnapshotPage));
     const pageSize = Math.min(
       Math.max(1, parsePositiveIntegerQueryValue(request.query?.["pageSize"], defaultSnapshotPageSize)),
@@ -59,8 +60,12 @@ export const ingestionSnapshotsRoute: AppRoute = {
     const offset = (page - 1) * pageSize;
     const snapshots = await ingestionRepository.listRawSnapshots({
       limit: pageSize + 1,
-      offset
+      offset,
+      sourceNames
     });
+    const availableSourceNames = ingestionRepository.listRawSnapshotSourceNames
+      ? await ingestionRepository.listRawSnapshotSourceNames()
+      : [];
     const pageSnapshots = snapshots.slice(0, pageSize);
     const items = (await Promise.all(pageSnapshots.map(async (snapshot) => {
       const visibleRows = includeAcceptedItems
@@ -91,6 +96,7 @@ export const ingestionSnapshotsRoute: AppRoute = {
       },
       processorName: sourceOfferProcessorName,
       processorVersion: sourceOfferProcessorVersion,
+      sourceNames: availableSourceNames,
       snapshots: items
     });
   }
@@ -303,6 +309,58 @@ export const productReviewItemRoute: AppRoute = {
 export const acceptProductReviewItemRoute: AppRoute = {
   match: (request) => request.method === "POST" && request.path === "/api/admin/ingestion/review-item/accept",
   handle: async (request, context) => markProductReviewItemDecision(request, context, "accepted")
+};
+
+export const previewProductReviewItemAcceptanceRoute: AppRoute = {
+  match: (request) => request.method === "GET" && request.path === "/api/admin/ingestion/review-item/acceptance-preview",
+  handle: async (request, context) => {
+    const user = requireUserRole("admin", request, context, "Sign in as an admin to preview review item acceptance.");
+    if ("status" in user) {
+      return user;
+    }
+
+    const id = parseOptionalQueryString(request.query?.["id"]);
+    if (!id) {
+      return json(400, {
+        error: "invalid_review_item_id"
+      });
+    }
+
+    const repositories = await createIngestionRouteRepositories(context);
+    if ("error" in repositories) {
+      return repositories.error;
+    }
+
+    const { catalogRepository, ingestionRepository } = repositories;
+    if (!ingestionRepository.findProductReviewItemById || !catalogRepository.previewCatalogProductFromReviewCandidate) {
+      return json(501, {
+        error: "product_review_acceptance_preview_not_supported"
+      });
+    }
+
+    await setupIngestionRouteCollections(repositories);
+
+    const reviewItem = await ingestionRepository.findProductReviewItemById(id);
+    if (!reviewItem) {
+      return json(404, {
+        error: "review_item_not_found"
+      });
+    }
+
+    const preview = await catalogRepository.previewCatalogProductFromReviewCandidate({
+      candidate: reviewItem.candidate
+    });
+
+    return json(200, {
+      preview: {
+        action: preview.action,
+        existingProduct: preview.existingProduct,
+        productId: preview.productId,
+        reason: preview.reason,
+        reviewItemId: reviewItem.id
+      }
+    });
+  }
 };
 
 export const declineProductReviewItemRoute: AppRoute = {
@@ -569,6 +627,15 @@ function parseSnapshotId(bodyText: string | undefined): string | null {
 function parseOptionalQueryString(value: string | string[] | undefined): string | undefined {
   const candidate = Array.isArray(value) ? value[0] : value;
   return candidate?.trim() || undefined;
+}
+
+function parseQueryStringList(value: string | string[] | undefined): string[] {
+  const values = Array.isArray(value) ? value : typeof value === "string" ? [value] : [];
+
+  return values
+    .flatMap((item) => item.split(","))
+    .map((item) => item.trim())
+    .filter((item, index, items) => item.length > 0 && items.indexOf(item) === index);
 }
 
 function parseBooleanQueryValue(value: string | string[] | undefined): boolean {

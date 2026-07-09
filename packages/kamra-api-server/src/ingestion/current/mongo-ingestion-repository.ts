@@ -1,6 +1,7 @@
 import type { DeleteResult, Document, Filter } from "mongodb";
 
 import type {
+  IngestionV1CollectionName,
   IngestionProductReviewItemRecord,
   IngestionRawSnapshotRecord,
   IngestionRunRecord,
@@ -46,6 +47,7 @@ export interface IngestionCleanupResult {
 export interface ListRawSnapshotsOptions {
   limit?: number;
   offset?: number;
+  sourceNames?: string[];
   sourceName?: string;
 }
 
@@ -93,20 +95,13 @@ export class MongoIngestionRepository {
       (await this.database.listCollections({}, { nameOnly: true }).toArray()).map((entry) => entry.name)
     );
 
-    if (!existingCollections.has("ingestion_runs")) {
-      await this.database.createCollection("ingestion_runs");
-    }
-    if (!existingCollections.has("ingestion_raw_snapshots")) {
-      await this.database.createCollection("ingestion_raw_snapshots");
-    }
-    if (!existingCollections.has("ingestion_product_review_items")) {
-      await this.database.createCollection("ingestion_product_review_items", {
-        validationAction: "error",
-        validationLevel: "strict",
-        validator: {
-          $jsonSchema: ingestionV1CollectionSchemas.ingestion_product_review_items
-        }
-      });
+    for (const collectionName of Object.keys(ingestionV1CollectionSchemas) as IngestionV1CollectionName[]) {
+      if (!existingCollections.has(collectionName)) {
+        await this.database.createCollection(
+          collectionName,
+          strictValidationOptions(ingestionV1CollectionSchemas[collectionName])
+        );
+      }
     }
 
     await Promise.all([
@@ -212,8 +207,12 @@ export class MongoIngestionRepository {
   }
 
   async listRawSnapshots(options: ListRawSnapshotsOptions = {}): Promise<IngestionRawSnapshotRecord[]> {
-    const filter: Filter<IngestionRawSnapshotRecord> = options.sourceName
-      ? { sourceName: options.sourceName }
+    const sourceNames = [...new Set([
+      ...(options.sourceNames ?? []),
+      ...(options.sourceName ? [options.sourceName] : [])
+    ])].filter((sourceName) => sourceName.length > 0);
+    const filter: Filter<IngestionRawSnapshotRecord> = sourceNames.length
+      ? { sourceName: { $in: sourceNames } }
       : {};
 
     let query = this.rawSnapshotsCollection
@@ -231,6 +230,12 @@ export class MongoIngestionRepository {
 
   async findRawSnapshotById(id: string): Promise<IngestionRawSnapshotRecord | null> {
     return await this.rawSnapshotsCollection.findOne({ id });
+  }
+
+  async listRawSnapshotSourceNames(): Promise<string[]> {
+    const sourceNames = (await this.rawSnapshotsCollection.distinct("sourceName")) as string[];
+
+    return sourceNames.sort((left, right) => left.localeCompare(right, "hu-HU"));
   }
 
   async prepareProductReviewItems(snapshot: IngestionRawSnapshotRecord): Promise<IngestionProductReviewItemRecord[]> {
@@ -397,6 +402,16 @@ export class MongoIngestionRepository {
 
 function deletedCount(result: DeleteResult): number {
   return result.deletedCount ?? 0;
+}
+
+function strictValidationOptions(schema: Record<string, unknown>): Document {
+  return {
+    validationAction: "error",
+    validationLevel: "strict",
+    validator: {
+      $jsonSchema: schema
+    }
+  };
 }
 
 function isMongoValidationError(error: unknown): boolean {

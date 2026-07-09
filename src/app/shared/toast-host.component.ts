@@ -1,16 +1,17 @@
 import { Component, inject } from "@angular/core";
 
+import { LocalizationService } from "./localization.service";
 import { ToastService } from "./toast.service";
 
 @Component({
   selector: "app-toast-host",
   standalone: true,
   template: `
-    <section class="toast-stack" aria-live="assertive" aria-label="Notifications">
+    <section class="toast-stack" aria-live="assertive" [attr.aria-label]="loc.t('common.notifications')">
       @for (toast of toastService.toasts(); track toast.id) {
         <article class="toast" [class.toast-error]="toast.tone === 'error'" [class.toast-info]="toast.tone === 'info'" [class.toast-success]="toast.tone === 'success'" [class.toast-warning]="toast.tone === 'warning'">
           <p>{{ toast.message }}</p>
-          <button type="button" aria-label="Dismiss notification" (click)="toastService.dismiss(toast.id)">×</button>
+          <button type="button" [attr.aria-label]="loc.t('common.dismissNotification')" (click)="toastService.dismiss(toast.id)">×</button>
         </article>
       }
     </section>
@@ -82,5 +83,6 @@ import { ToastService } from "./toast.service";
   ]
 })
 export class ToastHostComponent {
+  protected readonly loc = inject(LocalizationService);
   protected readonly toastService = inject(ToastService);
 }

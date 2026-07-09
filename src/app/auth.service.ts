@@ -1,6 +1,8 @@
-import { computed, Injectable, signal } from "@angular/core";
+import { computed, inject, Injectable, signal } from "@angular/core";
 
 import { readApiErrorMessage } from "./shared/api-errors";
+import { isLanguagePreference, LocalizationService, type LanguagePreference } from "./shared/localization.service";
+import { isThemePreference, type ThemePreference } from "./shared/theme-preference.service";
 
 export type UserRole = "admin" | "user";
 
@@ -14,8 +16,16 @@ interface CurrentUserResponse {
   user: AuthenticatedUser;
 }
 
+interface UserPreferencesResponse {
+  user: AuthenticatedUser;
+}
+
 export interface AuthenticatedUser {
   email: string;
+  profile: {
+    language?: LanguagePreference;
+    theme?: ThemePreference;
+  };
   role: UserRole;
 }
 
@@ -34,6 +44,7 @@ const userTokenStorageKey = "kamra_user_token";
   providedIn: "root"
 })
 export class AuthService {
+  private readonly loc = inject(LocalizationService);
   readonly token = signal<string | null>(this.readStoredToken());
   readonly user = signal<AuthenticatedUser | null>(null);
   readonly isAuthenticated = computed(() => Boolean(this.token() && this.user()));
@@ -65,7 +76,7 @@ export class AuthService {
     }
 
     const payload = (await response.json()) as CurrentUserResponse;
-    this.user.set(payload.user);
+    this.user.set(this.normalizeUser(payload.user));
   }
 
   async login(email: string, password: string): Promise<LoginResult> {
@@ -81,15 +92,15 @@ export class AuthService {
     if (!response.ok) {
       return {
         message: response.status === 401
-          ? "The email or password did not match an active user."
-          : await readApiErrorMessage(response, "Login is not available right now."),
+          ? this.loc.t("app.loginInvalid")
+          : await readApiErrorMessage(response, this.loc.t("app.loginFailure")),
         status: "error"
       };
     }
 
     const payload = (await response.json()) as LoginResponse;
     this.storeToken(payload.token);
-    this.user.set(payload.user);
+    this.user.set(this.normalizeUser(payload.user));
 
     return { status: "ok" };
   }
@@ -100,6 +111,29 @@ export class AuthService {
       method: "POST"
     }).catch(() => undefined);
     this.clearToken();
+  }
+
+  async updateUserPreferences(preferences: { language?: LanguagePreference; theme?: ThemePreference }): Promise<void> {
+    const response = await fetch("/api/admin/preferences", {
+      body: JSON.stringify(preferences),
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+        ...this.getAuthorizationHeaders()
+      },
+      method: "PATCH"
+    });
+
+    if (!response.ok) {
+      return;
+    }
+
+    const payload = (await response.json()) as UserPreferencesResponse;
+    this.user.set(this.normalizeUser(payload.user));
+  }
+
+  async updateThemePreference(theme: ThemePreference): Promise<void> {
+    await this.updateUserPreferences({ theme });
   }
 
   private clearToken(): void {
@@ -115,5 +149,20 @@ export class AuthService {
   private storeToken(token: string): void {
     window.localStorage.setItem(userTokenStorageKey, token);
     this.token.set(token);
+  }
+
+  private normalizeUser(user: AuthenticatedUser): AuthenticatedUser {
+    return {
+      email: user.email,
+      profile: {
+        language: isLanguagePreference(user.profile?.language)
+          ? user.profile.language
+          : undefined,
+        theme: isThemePreference(user.profile?.theme)
+          ? user.profile.theme
+          : undefined
+      },
+      role: user.role
+    };
   }
 }

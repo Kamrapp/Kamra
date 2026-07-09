@@ -13,7 +13,7 @@ import {
   catalogProductValidationRoute,
   catalogSourcesRoute
 } from "./routes/catalog-routes.js";
-import { currentUserRoute, loginRoute, logoutRoute } from "./routes/auth-routes.js";
+import { currentUserRoute, loginRoute, logoutRoute, userPreferencesRoute } from "./routes/auth-routes.js";
 import {
   healthRoute,
   markLegacyProductsUnvalidatedRoute,
@@ -24,6 +24,7 @@ import {
   declineProductReviewItemRoute,
   ingestionSnapshotsRoute,
   prepareProductReviewItemsRoute,
+  previewProductReviewItemAcceptanceRoute,
   processIngestionSnapshotRoute,
   productReviewItemRoute,
   productReviewItemsRoute
@@ -37,6 +38,7 @@ const appRoutes: AppRoute[] = [
   loginRoute,
   logoutRoute,
   currentUserRoute,
+  userPreferencesRoute,
   healthRoute,
   upgradeCatalogValidatorsRoute,
   markLegacyProductsUnvalidatedRoute,
@@ -47,6 +49,7 @@ const appRoutes: AppRoute[] = [
   ingestionSnapshotsRoute,
   processIngestionSnapshotRoute,
   prepareProductReviewItemsRoute,
+  previewProductReviewItemAcceptanceRoute,
   productReviewItemsRoute,
   productReviewItemRoute,
   acceptProductReviewItemRoute,

@@ -1,6 +1,6 @@
 # Stage 4 Extension: Manual Product Gateway Plan
 
-Status: Draft plan for review
+Status: Completed for current in-scope Stage 4 work
 
 ## Objective
 
@@ -200,6 +200,20 @@ Included:
 - This plan supersedes the Stage 4 assumption that a whole snapshot can be processed directly from the Crawl UI once the source parser runs.
 - Workflow/manual script processing should be redesigned rather than removed: existing validated products may still be updated automatically on strong matches, but new or uncertain product creation should route through row-level review until parsers are trustworthy enough to bypass it.
 - SPAR and Tesco remain deferred. This plan is about quality-gating current crawled data before Stage 5, not expanding sources.
+
+## Completion Status
+
+Completed as of 2026-07-08 for the current Stage 4 source set and one-admin manual supervision workflow.
+
+Implemented behavior includes row-level review items, accepted/declined review state, accepted-item hiding by default, accepted-complete crawl hiding by default, paged/virtualized crawl loading, crawl source filters, reusable product editor behavior, catalog update/delete/validate actions, and pre-accept confirmation explaining whether the action will create a new product or merge into an existing one.
+
+Known deferred work:
+
+- SPAR and Tesco remain out of Stage 4 and should be revisited near the end of the MVP.
+- Broad production approval for real-shop schedules remains source-policy work before any production-like rollout.
+- Multi-admin conflict handling remains a later hardening item; the current workflow assumes one operator.
+
+Final validation on 2026-07-08 passed: `npm run typecheck`, `npm run test`, `npm run lint`, `npm run build`, and targeted `npm test -- packages/kamra-api-server/src/ingestion` after the final ingestion validator wiring.
 
 ## Proposed Data Shape
 

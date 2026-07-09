@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, signal } from "@angular/core";
+import { Component, EventEmitter, inject, Input, Output, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 
 import type { CatalogProductListItem } from "../product-lookup/product-catalog.service";
@@ -8,6 +8,7 @@ import {
   type ProductReviewCandidateDraft,
   type ProductReviewDecisionReason
 } from "../site-admin/ingestion-admin.service";
+import { LocalizationService, type TranslationKey } from "./localization.service";
 
 type EditorMode = "catalog" | "review";
 
@@ -21,44 +22,44 @@ type EditorMode = "catalog" | "review";
         <article class="editor-dialog" role="dialog" aria-modal="true" [attr.aria-label]="title" (click)="$event.stopPropagation()">
           <header class="editor-header">
             <div>
-              <p class="kicker">{{ mode === "review" ? "Crawl review" : "Catalog product" }}</p>
+              <p class="kicker">{{ mode === "review" ? loc.t("common.crawlReview") : loc.t("common.catalogProduct") }}</p>
               <h2>{{ title }}</h2>
               <p class="muted">{{ subtitle }}</p>
             </div>
-            <button class="icon-button" type="button" title="Close" aria-label="Close editor" (click)="close.emit()">x</button>
+            <button class="icon-button" type="button" [title]="loc.t('common.close')" [attr.aria-label]="loc.t('common.closeEditor')" (click)="close.emit()">x</button>
           </header>
 
           <div class="editor-body">
             <form class="field-panel" (submit)="$event.preventDefault()">
               <label>
-                Product name
+                {{ loc.t("editor.productName") }}
                 <input name="name" [(ngModel)]="draftName" />
               </label>
               <label>
-                Brand
-                <input name="brand" [(ngModel)]="draftBrandName" placeholder="unbranded" />
+                {{ loc.t("editor.brand") }}
+                <input name="brand" [(ngModel)]="draftBrandName" [placeholder]="loc.t('common.unbranded')" />
               </label>
               <label>
-                Category key
-                <input name="category" [(ngModel)]="draftCategoryKey" placeholder="uncategorized" />
+                {{ loc.t("editor.categoryKey") }}
+                <input name="category" [(ngModel)]="draftCategoryKey" [placeholder]="loc.t('common.uncategorized')" />
               </label>
               <label>
-                Note
+                {{ loc.t("editor.note") }}
                 <textarea name="note" rows="3" [(ngModel)]="draftNote"></textarea>
               </label>
 
               @if (mode === "review" && reviewItem) {
-                <section class="context-panel" aria-label="Raw crawl context">
-                  <p class="kicker">Raw crawl context</p>
+                <section class="context-panel" [attr.aria-label]="loc.t('editor.rawCrawlContext')">
+                  <p class="kicker">{{ loc.t("editor.rawCrawlContext") }}</p>
                   <pre>{{ formatJson(reviewItem.rawRowPreview) }}</pre>
                 </section>
               }
 
               @if (mode === "catalog" && product) {
-                <section class="context-panel" aria-label="Catalog context">
-                  <p class="kicker">Catalog context</p>
-                  <p class="muted">{{ product.validationStatus }} · {{ product.sourceNames.join(", ") || "no source" }}</p>
-                  <p class="muted">{{ product.offers.length }} offers · {{ product.tagKeys.length }} tags</p>
+                <section class="context-panel" [attr.aria-label]="loc.t('editor.catalogContext')">
+                  <p class="kicker">{{ loc.t("editor.catalogContext") }}</p>
+                  <p class="muted">{{ validationStatusLabel(product.validationStatus) }} · {{ product.sourceNames.join(", ") || loc.t("common.noSource") }}</p>
+                  <p class="muted">{{ product.offers.length }} {{ loc.t("common.offers") }} · {{ product.tagKeys.length }} {{ loc.t("common.tags") }}</p>
                 </section>
               }
             </form>
@@ -66,26 +67,26 @@ type EditorMode = "catalog" | "review";
             <aside class="json-panel">
               <div class="json-panel-header">
                 <label class="json-panel-title">
-                  JSON editor
+                  {{ loc.t("editor.jsonEditor") }}
                 </label>
                 <div class="json-actions">
                   <button
                     class="secondary-button json-action-button"
                     type="button"
                     [disabled]="hasPriceObservations()"
-                    title="Insert an empty price observation entry"
+                    [title]="loc.t('editor.addEmptyPriceObservationTitle')"
                     (click)="addEmptyPriceObservation()"
                   >
-                    Add empty priceObservation
+                    {{ loc.t("editor.addEmptyPriceObservation") }}
                   </button>
                   <button
                     class="secondary-button json-action-button"
                     type="button"
                     [disabled]="hasMeasurements()"
-                    title="Insert an empty measurement entry"
+                    [title]="loc.t('editor.addEmptyMeasurementTitle')"
                     (click)="addEmptyMeasurement()"
                   >
-                    Add empty measurement
+                    {{ loc.t("editor.addEmptyMeasurement") }}
                   </button>
                 </div>
               </div>
@@ -93,25 +94,25 @@ type EditorMode = "catalog" | "review";
               @if (jsonError()) {
                 <p class="error-text">{{ jsonError() }}</p>
               }
-              <button class="secondary-button" type="button" (click)="applyJson()">Apply JSON</button>
+              <button class="secondary-button" type="button" (click)="applyJson()">{{ loc.t("common.applyJson") }}</button>
             </aside>
           </div>
 
           <footer class="editor-actions">
             @if (mode === "review" && reviewItem) {
-              <select [(ngModel)]="declineReason" aria-label="Decline reason">
+              <select [(ngModel)]="declineReason" [attr.aria-label]="loc.t('editor.declineReason')">
                 @for (reason of declineReasons; track reason) {
-                  <option [ngValue]="reason">{{ reason }}</option>
+                  <option [ngValue]="reason">{{ declineReasonLabel(reason) }}</option>
                 }
               </select>
-              <button class="secondary-button" type="button" (click)="emitReviewPatch()">Save draft</button>
-              <button class="danger-button" type="button" (click)="declineReview.emit({ id: reviewItem.id, note: draftNote || null, reason: declineReason })">Decline</button>
-              <button class="primary-button" type="button" (click)="acceptReview.emit({ id: reviewItem.id, note: draftNote || null })">Accept</button>
+              <button class="secondary-button" type="button" (click)="emitReviewPatch()">{{ loc.t("common.saveDraft") }}</button>
+              <button class="danger-button" type="button" (click)="declineReview.emit({ id: reviewItem.id, note: draftNote || null, reason: declineReason })">{{ loc.t("common.decline") }}</button>
+              <button class="primary-button" type="button" (click)="acceptReview.emit({ id: reviewItem.id, note: draftNote || null })">{{ loc.t("common.accept") }}</button>
             } @else if (mode === "catalog" && product) {
-              <button class="danger-button" type="button" (click)="deleteProduct.emit(product.id)">Delete</button>
-              <button class="secondary-button" type="button" (click)="invalidateProduct.emit({ id: product.id, note: draftNote || null })">Invalidate</button>
-              <button class="secondary-button" type="button" (click)="validateProduct.emit({ id: product.id, note: draftNote || null })">Validate</button>
-              <button class="primary-button" type="button" (click)="emitProductSave()">Save</button>
+              <button class="danger-button" type="button" (click)="deleteProduct.emit(product.id)">{{ loc.t("common.delete") }}</button>
+              <button class="secondary-button" type="button" (click)="invalidateProduct.emit({ id: product.id, note: draftNote || null })">{{ loc.t("common.invalidate") }}</button>
+              <button class="secondary-button" type="button" (click)="validateProduct.emit({ id: product.id, note: draftNote || null })">{{ loc.t("common.validate") }}</button>
+              <button class="primary-button" type="button" (click)="emitProductSave()">{{ loc.t("common.save") }}</button>
             }
           </footer>
         </article>
@@ -303,6 +304,7 @@ type EditorMode = "catalog" | "review";
   ]
 })
 export class ProductEditorDialogComponent {
+  readonly loc = inject(LocalizationService);
   @Input() mode: EditorMode = "catalog";
   @Input() open = false;
   @Output() readonly acceptReview = new EventEmitter<{ id: string; note: string | null }>();
@@ -357,22 +359,38 @@ export class ProductEditorDialogComponent {
   }
 
   get title(): string {
-    return this.mode === "review" ? this.draftName || "Review product" : this.draftName || "Edit product";
+    return this.mode === "review" ? this.draftName || this.loc.t("editor.reviewProduct") : this.draftName || this.loc.t("editor.editProduct");
   }
 
   get subtitle(): string {
     if (this.mode === "review" && this.reviewItem) {
-      return `${this.reviewItem.sourceName} · ${this.reviewItem.candidateMatch} · ${this.reviewItem.status}`;
+      return `${this.reviewItem.sourceName} · ${this.candidateMatchLabel(this.reviewItem.candidateMatch)} · ${this.reviewStatusLabel(this.reviewItem.status)}`;
     }
 
-    return this.product ? `${this.product.id} · ${this.product.validationStatus}` : "";
+    return this.product ? `${this.product.id} · ${this.validationStatusLabel(this.product.validationStatus)}` : "";
+  }
+
+  candidateMatchLabel(match: ProductReviewCandidateDraft["matchConfidence"]): string {
+    return this.loc.t(`candidateMatch.${match}` as TranslationKey);
+  }
+
+  declineReasonLabel(reason: ProductReviewDecisionReason): string {
+    return this.loc.t(`reviewReason.${reason}` as TranslationKey);
+  }
+
+  reviewStatusLabel(status: IngestionProductReviewItem["status"]): string {
+    return this.loc.t(`reviewStatus.${status}` as TranslationKey);
+  }
+
+  validationStatusLabel(status: CatalogProductListItem["validationStatus"]): string {
+    return this.loc.t(`validationStatus.${status}` as TranslationKey);
   }
 
   applyJson(): void {
     try {
       const parsed = JSON.parse(this.jsonText) as unknown;
       if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-        this.jsonError.set("JSON must be an object.");
+        this.jsonError.set(this.loc.t("editor.jsonInvalidObject"));
         return;
       }
 
@@ -390,7 +408,7 @@ export class ProductEditorDialogComponent {
       this.draftBrandName = product.brandName ?? "";
       this.draftCategoryKey = product.primaryCategoryKey ?? "";
     } catch {
-      this.jsonError.set("JSON could not be parsed.");
+      this.jsonError.set(this.loc.t("editor.jsonParseError"));
     }
   }
 
@@ -478,7 +496,7 @@ export class ProductEditorDialogComponent {
         id: this.reviewItem.id
       });
     } catch {
-      this.jsonError.set("JSON could not be parsed.");
+      this.jsonError.set(this.loc.t("editor.jsonParseError"));
     }
   }
 

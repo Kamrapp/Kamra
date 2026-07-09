@@ -8,23 +8,19 @@ import { IngestionAdminComponent } from "./site-admin/ingestion-admin.component"
 export const routes: Routes = [
   {
     path: "",
-    component: HomeComponent,
-    title: "Kamra"
+    component: HomeComponent
   },
   {
     path: "health",
-    component: HealthCheckComponent,
-    title: "Kamra Health Check"
+    component: HealthCheckComponent
   },
   {
     path: "products",
-    component: ProductCatalogComponent,
-    title: "Kamra Products"
+    component: ProductCatalogComponent
   },
   {
     path: "admin/ingestion",
-    component: IngestionAdminComponent,
-    title: "Kamra Crawls"
+    component: IngestionAdminComponent
   },
   {
     path: "**",

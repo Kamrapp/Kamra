@@ -3,6 +3,7 @@ import { Component, computed, inject, signal, type OnInit } from "@angular/core"
 import { logBrowserEvent } from "./browser-logger";
 import { AuthService } from "./auth.service";
 import { readApiErrorMessage } from "./shared/api-errors";
+import { LocalizationService } from "./shared/localization.service";
 import { ToastService } from "./shared/toast.service";
 
 interface HealthReport {
@@ -36,28 +37,27 @@ interface HealthCheckItem {
   template: `
     <section class="health-page" aria-labelledby="health-title">
       <div class="health-copy">
-        <p class="eyebrow">Runtime</p>
-        <h1 id="health-title">Health check</h1>
+        <p class="eyebrow">{{ loc.t("health.runtime") }}</p>
+        <h1 id="health-title">{{ loc.t("common.healthCheck") }}</h1>
         <p>
-          Verify the shared API route and database connection path used by local
-          development and Vercel Functions.
+          {{ loc.t("health.description") }}
         </p>
       </div>
 
       @if (!auth.token()) {
         <section class="status-panel unauthorized-panel" aria-live="polite">
           <div class="status-heading">
-            <p class="status-kicker">Admin only</p>
-            <p class="status-summary">Sign in to view health checks.</p>
+            <p class="status-kicker">{{ loc.t("common.adminOnly") }}</p>
+            <p class="status-summary">{{ loc.t("health.signIn") }}</p>
           </div>
           <p class="status-message">
-            Use the header login with an active admin user, then the health checklist will be available here.
+            {{ loc.t("health.intro") }}
           </p>
         </section>
       } @else {
         <section class="status-panel" aria-live="polite">
         <div class="status-heading">
-          <p class="status-kicker">Current State</p>
+          <p class="status-kicker">{{ loc.t("common.state") }}</p>
           <p class="status-summary">{{ healthSummary() }}</p>
         </div>
 
@@ -72,27 +72,27 @@ interface HealthCheckItem {
             (click)="runHealthCheck()"
             [disabled]="isMaintenanceBusy()"
           >
-            {{ healthState() === "loading" ? "Checking..." : "Run health check" }}
+            {{ healthState() === "loading" ? loc.t("health.checking") : loc.t("health.run") }}
           </button>
 
           <button
             class="maintenance-button"
             type="button"
-            title="Runs MongoDB collMod for each catalog collection, replacing its validator with the current catalog/v1 JSON schema. Requires a MongoDB user with collection validator privileges such as dbAdmin."
+            [title]="loc.t('health.upgradeTitle')"
             (click)="upgradeCatalogValidators()"
             [disabled]="isMaintenanceBusy()"
           >
-            {{ validatorUpgradeState() === "loading" ? "Upgrading..." : "Upgrade catalog validators" }}
+            {{ validatorUpgradeState() === "loading" ? loc.t("health.upgrading") : loc.t("health.upgradeValidators") }}
           </button>
 
           <button
             class="maintenance-button"
             type="button"
-            title="Sets missing product validation fields to validationStatus=unvalidated on legacy product documents. Run the validator upgrade first if MongoDB rejects the new validation fields."
+            [title]="loc.t('health.backfillTitle')"
             (click)="backfillLegacyProductsAsUnvalidated()"
             [disabled]="isMaintenanceBusy()"
           >
-            {{ invalidationState() === "loading" ? "Updating..." : "Set legacy products unvalidated" }}
+            {{ invalidationState() === "loading" ? loc.t("health.updating") : loc.t("health.unvalidated") }}
           </button>
         </div>
 
@@ -105,7 +105,7 @@ interface HealthCheckItem {
         }
 
         @if (healthChecks().length) {
-          <div class="check-list" aria-label="Health checks">
+          <div class="check-list" [attr.aria-label]="loc.t('common.healthCheck')">
             @for (check of healthChecks(); track check.id) {
               <article
                 class="check-card"
@@ -121,8 +121,8 @@ interface HealthCheckItem {
                 @if (check.databaseName !== undefined) {
                   <dl>
                     <div>
-                      <dt>Database</dt>
-                      <dd>{{ check.databaseName ?? "not configured" }}</dd>
+                      <dt>{{ loc.t("common.database") }}</dt>
+                      <dd>{{ check.databaseName ?? loc.t("common.notConfigured") }}</dd>
                     </div>
                   </dl>
                 }
@@ -132,7 +132,7 @@ interface HealthCheckItem {
                     <p class="error-title">{{ error.name }}</p>
                     <p>{{ error.message }}</p>
                     @if (error.code) {
-                      <p>Code: {{ error.code }}</p>
+                      <p>{{ loc.t("common.code") }}: {{ error.code }}</p>
                     }
                   </div>
                 }
@@ -368,8 +368,9 @@ interface HealthCheckItem {
 })
 export class HealthCheckComponent implements OnInit {
   readonly auth = inject(AuthService);
+  readonly loc = inject(LocalizationService);
   readonly toast = inject(ToastService);
-  readonly healthMessage = signal("Run the health check to verify the shared server path.");
+  readonly healthMessage = signal("");
   readonly healthReport = signal<HealthReport | null>(null);
   readonly healthState = signal<"idle" | "loading" | "error" | "success">("idle");
   readonly invalidationMessage = signal("");
@@ -393,18 +394,18 @@ export class HealthCheckComponent implements OnInit {
     const report = this.healthReport();
 
     if (state === "loading") {
-      return "Checking API and database connectivity...";
+      return this.loc.t("health.checkingConnectivity");
     }
 
     if (report) {
-      return `Health is ${report.status}.`;
+      return this.loc.t("health.summary", { status: report.status });
     }
 
     if (state === "error") {
-      return "Health check could not be completed.";
+      return this.loc.t("health.failure");
     }
 
-    return "No health check has been run yet.";
+    return this.loc.t("health.noRun");
   });
   readonly isMaintenanceBusy = computed(() =>
     this.healthState() === "loading"
@@ -414,13 +415,14 @@ export class HealthCheckComponent implements OnInit {
 
   ngOnInit(): void {
     void this.auth.loadCurrentUser();
+    this.healthMessage.set(this.loc.t("health.runFirst"));
   }
 
   async runHealthCheck(): Promise<void> {
     if (!this.auth.token()) {
       this.healthReport.set(null);
       this.healthState.set("error");
-      this.healthMessage.set("Sign in before running the health check.");
+      this.healthMessage.set(this.loc.t("health.signInBeforeRun"));
       return;
     }
 
@@ -444,8 +446,8 @@ export class HealthCheckComponent implements OnInit {
         await this.auth.logout();
         this.healthReport.set(null);
         this.healthState.set("error");
-        this.healthMessage.set("Sign in before running the health check.");
-        this.toast.push("Sign in before running the health check.", "error");
+        this.healthMessage.set(this.loc.t("health.signInBeforeRun"));
+        this.toast.push(this.loc.t("health.signInBeforeRun"), "error");
         return;
       }
 
@@ -454,10 +456,10 @@ export class HealthCheckComponent implements OnInit {
       this.healthReport.set(report);
       this.healthState.set(response.ok ? "success" : "error");
       this.healthMessage.set(response.ok
-        ? "Shared API health route responded successfully."
-        : "Shared API health route responded with a degraded or failed status.");
+        ? this.loc.t("health.success")
+        : this.loc.t("health.degraded"));
       if (!response.ok) {
-        this.toast.push(await readApiErrorMessage(response, "The health route returned an error."), "error");
+        this.toast.push(await readApiErrorMessage(response, this.loc.t("health.routeError")), "error");
       }
 
       logBrowserEvent("info", "Health check response received", {
@@ -468,8 +470,8 @@ export class HealthCheckComponent implements OnInit {
     } catch (error: unknown) {
       this.healthReport.set(null);
       this.healthState.set("error");
-      this.healthMessage.set("The browser could not reach the health route.");
-      this.toast.push("The browser could not reach the health route.", "error");
+      this.healthMessage.set(this.loc.t("health.browserHealthFailure"));
+      this.toast.push(this.loc.t("health.browserHealthFailure"), "error");
 
       logBrowserEvent("error", "Health check request failed", error);
     }
@@ -478,7 +480,7 @@ export class HealthCheckComponent implements OnInit {
   async upgradeCatalogValidators(): Promise<void> {
     if (!this.auth.token()) {
       this.validatorUpgradeState.set("error");
-      this.validatorUpgradeMessage.set("Sign in before using the validator upgrade action.");
+      this.validatorUpgradeMessage.set(this.loc.t("health.signInBeforeValidator"));
       return;
     }
 
@@ -501,8 +503,8 @@ export class HealthCheckComponent implements OnInit {
       if (response.status === 401) {
         await this.auth.logout();
         this.validatorUpgradeState.set("error");
-        this.validatorUpgradeMessage.set("Sign in before using the validator upgrade action.");
-        this.toast.push("Sign in before using the validator upgrade action.", "error");
+        this.validatorUpgradeMessage.set(this.loc.t("health.signInBeforeValidator"));
+        this.toast.push(this.loc.t("health.signInBeforeValidator"), "error");
         return;
       }
 
@@ -514,10 +516,13 @@ export class HealthCheckComponent implements OnInit {
 
       this.validatorUpgradeState.set(response.ok ? "success" : "error");
       this.validatorUpgradeMessage.set(response.ok
-        ? `Upgraded ${payload.upgradedCollections?.length ?? 0} catalog validators and created ${payload.createdCollections?.length ?? 0} missing collections.`
-        : "Catalog validators could not be upgraded.");
+        ? this.loc.t("health.upgradeSuccess", {
+          created: payload.createdCollections?.length ?? 0,
+          upgraded: payload.upgradedCollections?.length ?? 0
+        })
+        : this.loc.t("health.upgradeFailure"));
       if (!response.ok) {
-        this.toast.push(payload.message ?? "Catalog validators could not be upgraded.", "error");
+        this.toast.push(payload.message ?? this.loc.t("health.upgradeFailure"), "error");
       }
 
       logBrowserEvent("info", "Catalog validator upgrade response received", {
@@ -527,8 +532,8 @@ export class HealthCheckComponent implements OnInit {
       });
     } catch (error: unknown) {
       this.validatorUpgradeState.set("error");
-      this.validatorUpgradeMessage.set("The browser could not reach the validator upgrade route.");
-      this.toast.push("The browser could not reach the validator upgrade route.", "error");
+      this.validatorUpgradeMessage.set(this.loc.t("health.browserValidatorFailure"));
+      this.toast.push(this.loc.t("health.browserValidatorFailure"), "error");
 
       logBrowserEvent("error", "Catalog validator upgrade request failed", error);
     }
@@ -537,7 +542,7 @@ export class HealthCheckComponent implements OnInit {
   async backfillLegacyProductsAsUnvalidated(): Promise<void> {
     if (!this.auth.token()) {
       this.invalidationState.set("error");
-      this.invalidationMessage.set("Sign in before using the maintenance action.");
+      this.invalidationMessage.set(this.loc.t("health.signInBeforeMaintenance"));
       return;
     }
 
@@ -560,8 +565,8 @@ export class HealthCheckComponent implements OnInit {
       if (response.status === 401) {
         await this.auth.logout();
         this.invalidationState.set("error");
-        this.invalidationMessage.set("Sign in before using the maintenance action.");
-        this.toast.push("Sign in before using the maintenance action.", "error");
+        this.invalidationMessage.set(this.loc.t("health.signInBeforeMaintenance"));
+        this.toast.push(this.loc.t("health.signInBeforeMaintenance"), "error");
         return;
       }
 
@@ -575,9 +580,9 @@ export class HealthCheckComponent implements OnInit {
       this.invalidationState.set(response.ok ? "success" : "error");
       this.invalidationMessage.set(response.ok
         ? this.formatLegacyBackfillMessage(payload)
-        : "Legacy product backfill could not be completed.");
+        : this.loc.t("health.backfillFailure"));
       if (!response.ok) {
-        this.toast.push(payload.message ?? "Legacy product backfill could not be completed.", "error");
+        this.toast.push(payload.message ?? this.loc.t("health.backfillFailure"), "error");
       }
 
       logBrowserEvent("info", "Legacy validation backfill response received", {
@@ -588,8 +593,8 @@ export class HealthCheckComponent implements OnInit {
       });
     } catch (error: unknown) {
       this.invalidationState.set("error");
-      this.invalidationMessage.set("The browser could not reach the backfill route.");
-      this.toast.push("The browser could not reach the backfill route.", "error");
+      this.invalidationMessage.set(this.loc.t("health.browserBackfillFailure"));
+      this.toast.push(this.loc.t("health.browserBackfillFailure"), "error");
 
       logBrowserEvent("error", "Legacy validation backfill request failed", error);
     }
@@ -602,9 +607,9 @@ export class HealthCheckComponent implements OnInit {
     updatedCount?: number;
   }): string {
     if (payload.status === "validator_incompatible") {
-      return `No product documents were changed; ${payload.skippedCount ?? 0} legacy products are already shown as unvalidated by compatibility fallback.`;
+      return this.loc.t("health.backfillIncompatible", { count: payload.skippedCount ?? 0 });
     }
 
-    return `Marked ${payload.updatedCount ?? 0} legacy products as unvalidated.`;
+    return this.loc.t("health.backfillSuccess", { count: payload.updatedCount ?? 0 });
   }
 }
