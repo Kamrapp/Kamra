@@ -5,6 +5,7 @@ import type {
   HouseholdLocalProductRecord,
   HouseholdMembershipRecord,
   HouseholdRecord,
+  HouseholdShoppingListPreviewRequest,
   HouseholdStockItemRecord,
   HouseholdStockPageRequest,
   UpdateHouseholdStockItemRequest
@@ -13,6 +14,7 @@ import {
   householdLocalProductStatuses,
   householdMembershipRoles,
   householdMembershipStatuses,
+  householdShoppingScales,
   householdStatuses,
   householdStockItemStatuses
 } from "./contracts.js";
@@ -83,6 +85,11 @@ export function assertHouseholdRecord(value: unknown, label = "household"): asse
   assertObject(value, label);
   assertIsoDateString(value["createdAt"], `${label}.createdAt`);
   assertNonEmptyString(value["createdByUserId"], `${label}.createdByUserId`);
+  assertOptionalNonNegativeNumber(
+    value["defaultCalculatedMaxLimitMultiplier"],
+    `${label}.defaultCalculatedMaxLimitMultiplier`
+  );
+  assertOptionalNonEmptyString(value["favouriteShopId"], `${label}.favouriteShopId`);
   assertNonEmptyString(value["id"], `${label}.id`);
   assertNonEmptyString(value["name"], `${label}.name`);
   assertEnum(value["status"], householdStatuses, `${label}.status`);
@@ -116,6 +123,7 @@ export function assertHouseholdLocalProductRecord(
   assertOptionalNonEmptyString(value["gtin"], `${label}.gtin`);
   assertNonEmptyString(value["householdId"], `${label}.householdId`);
   assertNonEmptyString(value["id"], `${label}.id`);
+  assertOptionalNonEmptyString(value["productSourceId"], `${label}.productSourceId`);
   assertOptionalNonEmptyString(value["sourceName"], `${label}.sourceName`);
   assertOptionalNonEmptyString(value["sourceProductUrl"], `${label}.sourceProductUrl`);
   assertNonEmptyString(value["stockGroupKey"], `${label}.stockGroupKey`);
@@ -139,9 +147,11 @@ export function assertHouseholdStockItemRecord(
   assertNonEmptyString(value["householdId"], `${label}.householdId`);
   assertNonEmptyString(value["householdProductId"], `${label}.householdProductId`);
   assertNonEmptyString(value["id"], `${label}.id`);
+  assertOptionalNonNegativeNumber(value["idealMaxLimit"], `${label}.idealMaxLimit`);
   assertNonNegativeNumber(value["initialAmount"], `${label}.initialAmount`);
   assertNonNegativeNumber(value["minLimit"], `${label}.minLimit`);
   assertOptionalString(value["note"], `${label}.note`);
+  assertOptionalNonEmptyString(value["productSourceId"], `${label}.productSourceId`);
   assertOptionalNonEmptyString(value["sourceName"], `${label}.sourceName`);
   assertOptionalNonEmptyString(value["sourceProductUrl"], `${label}.sourceProductUrl`);
   assertIsoDateString(value["stockedAt"], `${label}.stockedAt`);
@@ -184,9 +194,11 @@ export function assertCreateHouseholdStockItemRequest(
   assertOptionalNonEmptyString(value["gtin"], `${label}.gtin`);
   assertNonEmptyString(value["householdId"], `${label}.householdId`);
   assertOptionalNonEmptyString(value["householdProductId"], `${label}.householdProductId`);
+  assertOptionalNonNegativeNumber(value["idealMaxLimit"], `${label}.idealMaxLimit`);
   assertOptionalNonNegativeNumber(value["initialAmount"], `${label}.initialAmount`);
   assertNonNegativeNumber(value["minLimit"], `${label}.minLimit`);
   assertOptionalString(value["note"], `${label}.note`);
+  assertOptionalNonEmptyString(value["productSourceId"], `${label}.productSourceId`);
   assertOptionalNonEmptyString(value["sourceName"], `${label}.sourceName`);
   assertOptionalNonEmptyString(value["sourceProductUrl"], `${label}.sourceProductUrl`);
   assertIsoDateString(value["stockedAt"], `${label}.stockedAt`);
@@ -210,6 +222,9 @@ export function assertUpdateHouseholdStockItemRequest(
   assertOptionalNonEmptyString(value["gtin"], `${label}.gtin`);
   assertNonEmptyString(value["householdId"], `${label}.householdId`);
   assertNonEmptyString(value["id"], `${label}.id`);
+  if (value["idealMaxLimit"] !== undefined) {
+    assertNonNegativeNumber(value["idealMaxLimit"], `${label}.idealMaxLimit`);
+  }
   if (value["initialAmount"] !== undefined) {
     assertNonNegativeNumber(value["initialAmount"], `${label}.initialAmount`);
   }
@@ -217,6 +232,7 @@ export function assertUpdateHouseholdStockItemRequest(
     assertNonNegativeNumber(value["minLimit"], `${label}.minLimit`);
   }
   assertOptionalString(value["note"], `${label}.note`);
+  assertOptionalNonEmptyString(value["productSourceId"], `${label}.productSourceId`);
   assertOptionalNonEmptyString(value["sourceName"], `${label}.sourceName`);
   assertOptionalNonEmptyString(value["sourceProductUrl"], `${label}.sourceProductUrl`);
   if (value["stockedAt"] !== undefined) {
@@ -235,9 +251,11 @@ export function assertUpdateHouseholdStockItemRequest(
     value["currentAmount"] !== undefined ||
     value["displayName"] !== undefined ||
     value["gtin"] !== undefined ||
+    value["idealMaxLimit"] !== undefined ||
     value["initialAmount"] !== undefined ||
     value["minLimit"] !== undefined ||
     value["note"] !== undefined ||
+    value["productSourceId"] !== undefined ||
     value["sourceName"] !== undefined ||
     value["sourceProductUrl"] !== undefined ||
     value["stockedAt"] !== undefined ||
@@ -256,4 +274,13 @@ export function assertDeleteHouseholdStockItemRequest(
   assertObject(value, label);
   assertNonEmptyString(value["householdId"], `${label}.householdId`);
   assertNonEmptyString(value["id"], `${label}.id`);
+}
+
+export function assertHouseholdShoppingListPreviewRequest(
+  value: unknown,
+  label = "householdShoppingListPreviewRequest"
+): asserts value is HouseholdShoppingListPreviewRequest {
+  assertObject(value, label);
+  assertNonEmptyString(value["householdId"], `${label}.householdId`);
+  assertEnum(value["scale"], householdShoppingScales, `${label}.scale`);
 }

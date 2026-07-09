@@ -16,3 +16,6 @@ Durable product and operations context lives in `docs/household.md`.
 - Household-local products should carry a stable `stockGroupKey` so future group-aware limits and consumption logic have a consistent anchor.
 - Household stock rows keep `stockedAt` and amount history for later forecasting, while manual stock edits remain the source of truth.
 - The low-soon classifier is intentionally deterministic so the API and UI can share the same threshold later.
+- Stage 6 shopping-list generation lives in `current/shopping-list.ts` as a pure helper so the API and UI can reuse the same inclusion, ordering, and target-amount rules.
+- Shopping-list target amount uses `idealMaxLimit` when a stock row has one; otherwise it falls back to `minLimit * household.defaultCalculatedMaxLimitMultiplier`, with the household multiplier defaulting to `2`.
+- Missing catalog or source linkage should stay explicit in shopping-list output through uncertainty flags instead of hiding household-local items.
