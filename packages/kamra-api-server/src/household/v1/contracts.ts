@@ -2,7 +2,11 @@ export const householdV1CollectionNames = [
   "households",
   "household_memberships",
   "household_local_products",
-  "household_stock_items"
+  "household_stock_items",
+  "household_feature_flags",
+  "household_purchase_price_observations",
+  "household_shopping_lists",
+  "household_shops"
 ] as const;
 
 export type HouseholdV1CollectionName = (typeof householdV1CollectionNames)[number];
@@ -55,6 +59,12 @@ export type HouseholdShoppingListStockApplicationStatus =
 export const householdShopStatuses = ["active", "archived"] as const;
 export type HouseholdShopStatus = (typeof householdShopStatuses)[number];
 
+export const householdShoppingListUpdateScopes = ["update_ticked_only", "tick_all_and_update"] as const;
+export type HouseholdShoppingListUpdateScope = (typeof householdShoppingListUpdateScopes)[number];
+
+export const householdFeatureFlagKeys = ["allowAutoTickingAllShoppingListEntries"] as const;
+export type HouseholdFeatureFlagKey = (typeof householdFeatureFlagKeys)[number];
+
 export interface HouseholdRecord {
   createdAt: string;
   createdByUserId: string;
@@ -74,6 +84,15 @@ export interface HouseholdMembershipRecord {
   status: HouseholdMembershipStatus;
   updatedAt: string;
   userId: string;
+}
+
+export interface HouseholdFeatureFlagRecord {
+  createdAt: string;
+  enabled: boolean;
+  id: string;
+  key: HouseholdFeatureFlagKey;
+  updatedAt: string;
+  updatedByUserId: string;
 }
 
 export interface HouseholdLocalProductRecord {
@@ -311,12 +330,63 @@ export interface HouseholdShoppingListRecord {
   householdId: string;
   id: string;
   items: HouseholdShoppingListLineRecord[];
+  schemaVersion: string;
   scale: HouseholdShoppingScale;
   shopId?: string | null;
   status: HouseholdShoppingListStatus;
   stockAppliedAt?: string | null;
   updatedAt: string;
   updatedByUserId: string;
+}
+
+export interface CreateHouseholdShoppingListRequest {
+  householdId: string;
+  scale: HouseholdShoppingScale;
+  shopId?: string | null;
+}
+
+export interface UpdateHouseholdShoppingListRequest {
+  householdId: string;
+  id: string;
+  items?: HouseholdShoppingListLineRecord[];
+  shopId?: string | null;
+}
+
+export interface UpdateHouseholdShoppingListStocksRequest {
+  confirmationMode?: HouseholdShoppingListUpdateScope | null;
+  householdId: string;
+  id: string;
+  stockAppliedAt: string;
+}
+
+export interface HouseholdShoppingListResponse {
+  shoppingList: HouseholdShoppingListRecord;
+}
+
+export interface HouseholdShopListResponse {
+  shops: HouseholdShopRecord[];
+}
+
+export interface HouseholdFeatureFlagListItem {
+  enabled: boolean;
+  key: HouseholdFeatureFlagKey;
+}
+
+export interface HouseholdFeatureFlagListResponse {
+  featureFlags: HouseholdFeatureFlagListItem[];
+}
+
+export interface UpdateHouseholdFeatureFlagRequest {
+  enabled: boolean;
+  key: HouseholdFeatureFlagKey;
+}
+
+export interface HouseholdShoppingListStockUpdateResponse {
+  allowedConfirmationModes?: HouseholdShoppingListUpdateScope[];
+  appliedLineCount: number;
+  confirmationRequired: boolean;
+  householdStockPage?: HouseholdStockPageResponse;
+  shoppingList: HouseholdShoppingListRecord;
 }
 
 export interface HouseholdPurchasePriceObservationRecord

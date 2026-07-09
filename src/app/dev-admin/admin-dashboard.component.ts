@@ -45,6 +45,11 @@ interface HealthCheckItem {
   status: string;
 }
 
+interface FeatureFlagListItem {
+  enabled: boolean;
+  key: string;
+}
+
 type AsyncActionState = "idle" | "loading" | "error" | "success";
 
 @Component({
@@ -176,20 +181,31 @@ type AsyncActionState = "idle" | "loading" | "error" | "success";
               <p class="status-summary">{{ loc.t("health.featureFlagsTitle") }}</p>
             </div>
             <p class="status-message">{{ loc.t("health.featureFlagsDescription") }}</p>
-            <div class="placeholder-list" aria-hidden="true">
-              <div class="placeholder-row">
-                <span>{{ loc.t("health.featureFlagInvites") }}</span>
-                <strong>{{ loc.t("health.placeholderOff") }}</strong>
-              </div>
-              <div class="placeholder-row">
-                <span>{{ loc.t("health.featureFlagNotifications") }}</span>
-                <strong>{{ loc.t("health.placeholderOff") }}</strong>
-              </div>
-              <div class="placeholder-row">
-                <span>{{ loc.t("health.featureFlagMobilePush") }}</span>
-                <strong>{{ loc.t("health.placeholderOff") }}</strong>
-              </div>
+            <div class="placeholder-list">
+              <label class="placeholder-row" for="shopping-list-auto-tick-flag">
+                <span>{{ loc.t("health.featureFlagAutoTickAllShoppingListEntries") }}</span>
+                <input
+                  id="shopping-list-auto-tick-flag"
+                  type="checkbox"
+                  [checked]="allowAutoTickingAllShoppingListEntriesEnabled()"
+                  [disabled]="featureFlagsState() === 'loading' || !isAdminUser()"
+                  (change)="setAllowAutoTickingAllShoppingListEntriesEnabled($any($event.target).checked)"
+                >
+              </label>
             </div>
+            <div class="button-row">
+              <button
+                class="run-button ui-button"
+                type="button"
+                (click)="saveShoppingListFeatureFlags()"
+                [disabled]="isMaintenanceBusy() || featureFlagsState() === 'loading'"
+              >
+                {{ featureFlagsState() === "loading" ? loc.t("health.updating") : loc.t("common.save") }}
+              </button>
+            </div>
+            @if (featureFlagsMessage(); as message) {
+              <p class="maintenance-message">{{ message }}</p>
+            }
           </article>
 
           <article class="status-panel utility-card">
@@ -481,6 +497,10 @@ export class AdminDashboardComponent implements OnInit {
   readonly demoSeedState = signal<AsyncActionState>("idle");
   readonly invalidationMessage = signal("");
   readonly invalidationState = signal<AsyncActionState>("idle");
+  readonly featureFlags = signal<FeatureFlagListItem[]>([]);
+  readonly featureFlagsMessage = signal("");
+  readonly featureFlagsState = signal<AsyncActionState>("idle");
+  readonly allowAutoTickingAllShoppingListEntriesEnabled = signal(true);
   readonly validatorUpgradeMessage = signal("");
   readonly validatorUpgradeState = signal<AsyncActionState>("idle");
   readonly healthChecks = computed((): HealthCheckItem[] => {
@@ -516,13 +536,22 @@ export class AdminDashboardComponent implements OnInit {
   readonly isMaintenanceBusy = computed(() =>
     this.healthState() === "loading"
       || this.demoSeedState() === "loading"
+      || this.featureFlagsState() === "loading"
       || this.invalidationState() === "loading"
       || this.validatorUpgradeState() === "loading"
   );
 
   ngOnInit(): void {
-    void this.auth.loadCurrentUser();
+    void this.initializeDashboard();
     this.healthMessage.set(this.loc.t("health.runFirst"));
+  }
+
+  async initializeDashboard(): Promise<void> {
+    await this.auth.loadCurrentUser();
+
+    if (this.isAdminUser()) {
+      await this.loadFeatureFlags();
+    }
   }
 
   async reseedDemoHousehold(): Promise<void> {
@@ -780,6 +809,103 @@ export class AdminDashboardComponent implements OnInit {
       this.toast.push(this.loc.t("health.browserBackfillFailure"), "error");
 
       logBrowserEvent("error", "Legacy validation backfill request failed", error);
+    }
+  }
+
+  async loadFeatureFlags(): Promise<void> {
+    if (!this.requireAdminAccess(this.featureFlagsState, this.featureFlagsMessage, "health.signInBeforeFeatureFlags")) {
+      return;
+    }
+
+    this.featureFlagsState.set("loading");
+    this.featureFlagsMessage.set("");
+
+    try {
+      const response = await this.fetchAdminDashboardRoute("/api/admin/dashboard/feature-flags", {
+        headers: {
+          accept: "application/json",
+          ...this.auth.getAuthorizationHeaders()
+        },
+        method: "GET"
+      });
+
+      if (response.status === 401) {
+        this.handleUnauthorizedResponse(this.featureFlagsState, this.featureFlagsMessage);
+        return;
+      }
+
+      const { message, payload } = await this.readRoutePayload<{ featureFlags?: FeatureFlagListItem[] }>(
+        response,
+        this.loc.t("health.featureFlagsLoadFailure")
+      );
+      const featureFlags = payload?.featureFlags ?? [];
+
+      this.featureFlags.set(featureFlags);
+      this.allowAutoTickingAllShoppingListEntriesEnabled.set(
+        featureFlags.find((flag) => flag.key === "allowAutoTickingAllShoppingListEntries")?.enabled ?? true
+      );
+      this.featureFlagsState.set(response.ok ? "success" : "error");
+      this.featureFlagsMessage.set(response.ok ? "" : message);
+    } catch (error: unknown) {
+      this.featureFlagsState.set("error");
+      this.featureFlagsMessage.set(this.loc.t("health.browserFeatureFlagsFailure"));
+      this.toast.push(this.loc.t("health.browserFeatureFlagsFailure"), "error");
+
+      logBrowserEvent("error", "Feature flag load request failed", error);
+    }
+  }
+
+  setAllowAutoTickingAllShoppingListEntriesEnabled(enabled: boolean): void {
+    this.allowAutoTickingAllShoppingListEntriesEnabled.set(enabled);
+  }
+
+  async saveShoppingListFeatureFlags(): Promise<void> {
+    if (!this.requireAdminAccess(this.featureFlagsState, this.featureFlagsMessage, "health.signInBeforeFeatureFlags")) {
+      return;
+    }
+
+    this.featureFlagsState.set("loading");
+    this.featureFlagsMessage.set("");
+
+    try {
+      const response = await this.fetchAdminDashboardRoute("/api/admin/dashboard/feature-flags", {
+        body: JSON.stringify({
+          enabled: this.allowAutoTickingAllShoppingListEntriesEnabled(),
+          key: "allowAutoTickingAllShoppingListEntries"
+        }),
+        headers: {
+          accept: "application/json",
+          "content-type": "application/json",
+          ...this.auth.getAuthorizationHeaders()
+        },
+        method: "PATCH"
+      });
+
+      if (response.status === 401) {
+        this.handleUnauthorizedResponse(this.featureFlagsState, this.featureFlagsMessage);
+        return;
+      }
+
+      const { message, payload } = await this.readRoutePayload<{ featureFlags?: FeatureFlagListItem[] }>(
+        response,
+        this.loc.t("health.featureFlagsSaveFailure")
+      );
+      const featureFlags = payload?.featureFlags ?? [];
+      this.featureFlags.set(featureFlags);
+      this.featureFlagsState.set(response.ok ? "success" : "error");
+      this.featureFlagsMessage.set(response.ok
+        ? this.loc.t("health.featureFlagsSaveSuccess")
+        : message);
+
+      if (!response.ok) {
+        this.toast.push(message, "error");
+      }
+    } catch (error: unknown) {
+      this.featureFlagsState.set("error");
+      this.featureFlagsMessage.set(this.loc.t("health.browserFeatureFlagsFailure"));
+      this.toast.push(this.loc.t("health.browserFeatureFlagsFailure"), "error");
+
+      logBrowserEvent("error", "Feature flag save request failed", error);
     }
   }
 

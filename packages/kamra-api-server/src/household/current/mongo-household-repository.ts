@@ -5,11 +5,16 @@ import type {
   CreateHouseholdRequest,
   CreateHouseholdStockItemRequest,
   DeleteHouseholdStockItemRequest,
+  HouseholdFeatureFlagKey,
+  HouseholdFeatureFlagRecord,
   HouseholdListItem,
   HouseholdLocalProductListItem,
   HouseholdLocalProductRecord,
   HouseholdMembershipRecord,
+  HouseholdPurchasePriceObservationRecord,
   HouseholdRecord,
+  HouseholdShopRecord,
+  HouseholdShoppingListRecord,
   HouseholdStockItemListItem,
   HouseholdStockItemRecord,
   HouseholdStockPageRequest,
@@ -83,6 +88,66 @@ const collectionPlans: CollectionIndexPlan[] = [
     indexes: [
       {
         key: { id: 1 },
+        options: { name: "household_feature_flags_id_unique", unique: true }
+      },
+      {
+        key: { key: 1 },
+        options: { name: "household_feature_flags_key_unique", unique: true }
+      }
+    ],
+    name: "household_feature_flags"
+  },
+  {
+    indexes: [
+      {
+        key: { id: 1 },
+        options: { name: "household_purchase_price_observations_id_unique", unique: true }
+      },
+      {
+        key: { householdId: 1, observedAt: -1 },
+        options: { name: "household_purchase_price_observations_household_observed_at" }
+      },
+      {
+        key: { shoppingListId: 1, shoppingListLineId: 1 },
+        options: { name: "household_purchase_price_observations_list_line" }
+      }
+    ],
+    name: "household_purchase_price_observations"
+  },
+  {
+    indexes: [
+      {
+        key: { id: 1 },
+        options: { name: "household_shopping_lists_id_unique", unique: true }
+      },
+      {
+        key: { householdId: 1, createdAt: -1 },
+        options: { name: "household_shopping_lists_household_created_at" }
+      },
+      {
+        key: { householdId: 1, status: 1, updatedAt: -1 },
+        options: { name: "household_shopping_lists_household_status_updated_at" }
+      }
+    ],
+    name: "household_shopping_lists"
+  },
+  {
+    indexes: [
+      {
+        key: { id: 1 },
+        options: { name: "household_shops_id_unique", unique: true }
+      },
+      {
+        key: { status: 1, label: 1 },
+        options: { name: "household_shops_status_label" }
+      }
+    ],
+    name: "household_shops"
+  },
+  {
+    indexes: [
+      {
+        key: { id: 1 },
         options: { name: "household_stock_items_id_unique", unique: true }
       },
       {
@@ -121,22 +186,36 @@ export interface CreateHouseholdResult {
 }
 
 export interface HouseholdSeedDataset {
+  householdFeatureFlags?: HouseholdFeatureFlagRecord[];
   households: HouseholdRecord[];
   householdLocalProducts: HouseholdLocalProductRecord[];
   householdMemberships: HouseholdMembershipRecord[];
+  householdPurchasePriceObservations: HouseholdPurchasePriceObservationRecord[];
+  householdShops: HouseholdShopRecord[];
+  householdShoppingLists: HouseholdShoppingListRecord[];
   householdStockItems: HouseholdStockItemRecord[];
 }
 
 export class MongoHouseholdRepository {
+  private readonly householdFeatureFlagsCollection: MongoCollectionLike<HouseholdFeatureFlagRecord>;
   private readonly householdsCollection: MongoCollectionLike<HouseholdRecord>;
   private readonly householdMembershipsCollection: MongoCollectionLike<HouseholdMembershipRecord>;
   private readonly householdLocalProductsCollection: MongoCollectionLike<HouseholdLocalProductRecord>;
+  private readonly householdPurchasePriceObservationsCollection: MongoCollectionLike<HouseholdPurchasePriceObservationRecord>;
+  private readonly householdShoppingListsCollection: MongoCollectionLike<HouseholdShoppingListRecord>;
+  private readonly householdShopsCollection: MongoCollectionLike<HouseholdShopRecord>;
   private readonly householdStockItemsCollection: MongoCollectionLike<HouseholdStockItemRecord>;
 
   constructor(private readonly database: MongoDatabaseLike) {
+    this.householdFeatureFlagsCollection = database.collection<HouseholdFeatureFlagRecord>("household_feature_flags");
     this.householdsCollection = database.collection<HouseholdRecord>("households");
     this.householdMembershipsCollection = database.collection<HouseholdMembershipRecord>("household_memberships");
     this.householdLocalProductsCollection = database.collection<HouseholdLocalProductRecord>("household_local_products");
+    this.householdPurchasePriceObservationsCollection = database.collection<HouseholdPurchasePriceObservationRecord>(
+      "household_purchase_price_observations"
+    );
+    this.householdShoppingListsCollection = database.collection<HouseholdShoppingListRecord>("household_shopping_lists");
+    this.householdShopsCollection = database.collection<HouseholdShopRecord>("household_shops");
     this.householdStockItemsCollection = database.collection<HouseholdStockItemRecord>("household_stock_items");
   }
 
@@ -202,6 +281,8 @@ export class MongoHouseholdRepository {
     const household: HouseholdRecord = {
       createdAt,
       createdByUserId: input.createdByUserId,
+      defaultCalculatedMaxLimitMultiplier: 2,
+      favouriteShopId: null,
       id: input.id,
       name: input.name,
       status: "active",
@@ -339,9 +420,11 @@ export class MongoHouseholdRepository {
       householdId: input.householdId,
       householdProductId,
       id: createHouseholdStockItemId(input.householdId, householdProductId, input.stockedAt),
+      idealMaxLimit: input.idealMaxLimit ?? null,
       initialAmount,
       minLimit: input.minLimit,
       note: input.note ?? null,
+      productSourceId: localProduct.productSourceId ?? null,
       sourceName: localProduct.sourceName ?? null,
       sourceProductUrl: localProduct.sourceProductUrl ?? null,
       stockedAt: input.stockedAt,
@@ -406,7 +489,13 @@ export class MongoHouseholdRepository {
     const nextCatalogProductNameSnapshot = input.catalogProductNameSnapshot !== undefined
       ? input.catalogProductNameSnapshot ?? null
       : localProduct.catalogProductNameSnapshot ?? null;
+    const nextProductSourceId = input.productSourceId !== undefined
+      ? input.productSourceId ?? null
+      : localProduct.productSourceId ?? null;
     const nextCurrentAmount = input.currentAmount ?? stockItem.currentAmount;
+    const nextIdealMaxLimit = input.idealMaxLimit !== undefined
+      ? input.idealMaxLimit ?? null
+      : stockItem.idealMaxLimit ?? null;
     const nextInitialAmount = input.initialAmount ?? stockItem.initialAmount;
     const nextMinLimit = input.minLimit ?? stockItem.minLimit;
     const nextNote = input.note !== undefined ? input.note ?? null : stockItem.note ?? null;
@@ -425,6 +514,7 @@ export class MongoHouseholdRepository {
           catalogProductNameSnapshot: nextCatalogProductNameSnapshot,
           displayName: nextDisplayName,
           gtin: nextGtin,
+          productSourceId: nextProductSourceId,
           sourceName: nextSourceName,
           sourceProductUrl: nextSourceProductUrl,
           stockGroupKey: nextStockGroupKey,
@@ -447,9 +537,11 @@ export class MongoHouseholdRepository {
           currentAmount: nextCurrentAmount,
           displayName: nextDisplayName,
           gtin: nextGtin,
+          idealMaxLimit: nextIdealMaxLimit,
           initialAmount: nextInitialAmount,
           minLimit: nextMinLimit,
           note: nextNote,
+          productSourceId: nextProductSourceId,
           sourceName: nextSourceName,
           sourceProductUrl: nextSourceProductUrl,
           stockedAt: nextStockedAt,
@@ -589,9 +681,16 @@ export class MongoHouseholdRepository {
   }
 
   async upsertSeedDataset(dataset: HouseholdSeedDataset): Promise<void> {
+    await this.upsertMany(this.householdFeatureFlagsCollection, dataset.householdFeatureFlags ?? []);
     await this.upsertMany(this.householdsCollection, dataset.households);
     await this.upsertMany(this.householdMembershipsCollection, dataset.householdMemberships);
     await this.upsertMany(this.householdLocalProductsCollection, dataset.householdLocalProducts);
+    await this.upsertMany(
+      this.householdPurchasePriceObservationsCollection,
+      dataset.householdPurchasePriceObservations
+    );
+    await this.upsertMany(this.householdShoppingListsCollection, dataset.householdShoppingLists);
+    await this.upsertMany(this.householdShopsCollection, dataset.householdShops);
     await this.upsertMany(this.householdStockItemsCollection, dataset.householdStockItems);
   }
 
@@ -601,13 +700,28 @@ export class MongoHouseholdRepository {
     deletedHouseholds: number;
     deletedLocalProducts: number;
     deletedMemberships: number;
+    deletedPurchasePriceObservations: number;
+    deletedShoppingLists: number;
     deletedStockItems: number;
   }> {
-    const [deletedMemberships, deletedLocalProducts, deletedStockItems, deletedHouseholds] = await Promise.all([
+    const [
+      deletedMemberships,
+      deletedLocalProducts,
+      deletedPurchasePriceObservations,
+      deletedShoppingLists,
+      deletedStockItems,
+      deletedHouseholds
+    ] = await Promise.all([
       this.householdMembershipsCollection.deleteMany({
         householdId: { $in: ids.householdIds }
       }),
       this.householdLocalProductsCollection.deleteMany({
+        householdId: { $in: ids.householdIds }
+      }),
+      this.householdPurchasePriceObservationsCollection.deleteMany({
+        householdId: { $in: ids.householdIds }
+      }),
+      this.householdShoppingListsCollection.deleteMany({
         householdId: { $in: ids.householdIds }
       }),
       this.householdStockItemsCollection.deleteMany({
@@ -622,8 +736,164 @@ export class MongoHouseholdRepository {
       deletedHouseholds: deletedHouseholds.deletedCount ?? 0,
       deletedLocalProducts: deletedLocalProducts.deletedCount ?? 0,
       deletedMemberships: deletedMemberships.deletedCount ?? 0,
+      deletedPurchasePriceObservations: deletedPurchasePriceObservations.deletedCount ?? 0,
+      deletedShoppingLists: deletedShoppingLists.deletedCount ?? 0,
       deletedStockItems: deletedStockItems.deletedCount ?? 0
     };
+  }
+
+  async listShops(): Promise<HouseholdShopRecord[]> {
+    return await this.householdShopsCollection.find({
+      status: "active"
+    }).sort({ label: 1 }).toArray();
+  }
+
+  async listFeatureFlags(): Promise<HouseholdFeatureFlagRecord[]> {
+    return await this.householdFeatureFlagsCollection.find({}).sort({ key: 1 }).toArray();
+  }
+
+  async readFeatureFlag(
+    key: HouseholdFeatureFlagKey,
+    defaultEnabled: boolean
+  ): Promise<{ enabled: boolean; key: HouseholdFeatureFlagKey }> {
+    const record = await this.householdFeatureFlagsCollection.findOne({ key });
+    return {
+      enabled: record?.enabled ?? defaultEnabled,
+      key
+    };
+  }
+
+  async updateFeatureFlag(input: {
+    enabled: boolean;
+    key: HouseholdFeatureFlagKey;
+    updatedAt: string;
+    updatedByUserId: string;
+  }): Promise<HouseholdFeatureFlagRecord> {
+    await this.householdFeatureFlagsCollection.updateOne(
+      {
+        key: input.key
+      },
+      {
+        $set: {
+          enabled: input.enabled,
+          updatedAt: input.updatedAt,
+          updatedByUserId: input.updatedByUserId
+        },
+        $setOnInsert: {
+          createdAt: input.updatedAt,
+          id: `household_feature_flag_${stableSlug(input.key)}`,
+          key: input.key
+        }
+      },
+      {
+        upsert: true
+      }
+    );
+
+    return await this.householdFeatureFlagsCollection.findOne({ key: input.key }) as HouseholdFeatureFlagRecord;
+  }
+
+  async findShopById(id: string): Promise<HouseholdShopRecord | null> {
+    return await this.householdShopsCollection.findOne({
+      id,
+      status: "active"
+    });
+  }
+
+  async createShoppingList(input: HouseholdShoppingListRecord & { userId: string }): Promise<HouseholdShoppingListRecord | null> {
+    const accessibleHousehold = await this.findAccessibleHousehold(input.userId, input.householdId);
+    if (!accessibleHousehold) {
+      return null;
+    }
+
+    await this.householdShoppingListsCollection.insertOne(input);
+    return await this.householdShoppingListsCollection.findOne({ id: input.id });
+  }
+
+  async getLatestShoppingList(input: {
+    householdId: string;
+    userId: string;
+  }): Promise<HouseholdShoppingListRecord | null> {
+    const accessibleHousehold = await this.findAccessibleHousehold(input.userId, input.householdId);
+    if (!accessibleHousehold) {
+      return null;
+    }
+
+    return await this.householdShoppingListsCollection.find({
+      householdId: input.householdId,
+      status: { $in: ["active", "completed"] }
+    }).sort({ createdAt: -1 }).limit(1).toArray().then((items) => items[0] ?? null);
+  }
+
+  async getShoppingList(input: {
+    householdId: string;
+    id: string;
+    userId: string;
+  }): Promise<HouseholdShoppingListRecord | null> {
+    const accessibleHousehold = await this.findAccessibleHousehold(input.userId, input.householdId);
+    if (!accessibleHousehold) {
+      return null;
+    }
+
+    return await this.householdShoppingListsCollection.findOne({
+      householdId: input.householdId,
+      id: input.id
+    });
+  }
+
+  async updateShoppingList(input: {
+    householdId: string;
+    id: string;
+    items?: HouseholdShoppingListRecord["items"];
+    shopId?: string | null;
+    status?: HouseholdShoppingListRecord["status"];
+    stockAppliedAt?: string | null;
+    updatedAt: string;
+    updatedByUserId: string;
+    userId: string;
+  }): Promise<HouseholdShoppingListRecord | null> {
+    const accessibleHousehold = await this.findAccessibleHousehold(input.userId, input.householdId);
+    if (!accessibleHousehold) {
+      return null;
+    }
+
+    const updateFields: Partial<HouseholdShoppingListRecord> = {
+      updatedAt: input.updatedAt,
+      updatedByUserId: input.updatedByUserId
+    };
+    if (input.items !== undefined) {
+      updateFields.items = input.items;
+    }
+    if (input.shopId !== undefined) {
+      updateFields.shopId = input.shopId;
+    }
+    if (input.status !== undefined) {
+      updateFields.status = input.status;
+    }
+    if (input.stockAppliedAt !== undefined) {
+      updateFields.stockAppliedAt = input.stockAppliedAt;
+    }
+
+    await this.householdShoppingListsCollection.updateOne(
+      {
+        householdId: input.householdId,
+        id: input.id
+      },
+      {
+        $set: updateFields
+      }
+    );
+
+    return await this.householdShoppingListsCollection.findOne({
+      householdId: input.householdId,
+      id: input.id
+    });
+  }
+
+  async upsertHouseholdPurchasePriceObservations(
+    records: readonly HouseholdPurchasePriceObservationRecord[]
+  ): Promise<void> {
+    await this.upsertMany(this.householdPurchasePriceObservationsCollection, records);
   }
 
   private async findAccessibleHousehold(userId: string, householdId: string): Promise<HouseholdRecord | null> {
@@ -666,6 +936,7 @@ export class MongoHouseholdRepository {
       gtin: input.gtin ?? null,
       householdId: input.householdId,
       id: householdProductId,
+      productSourceId: input.productSourceId ?? null,
       sourceName: input.sourceName ?? null,
       sourceProductUrl: input.sourceProductUrl ?? null,
       stockGroupKey: input.stockGroupKey,
@@ -682,6 +953,8 @@ export class MongoHouseholdRepository {
   ): HouseholdListItem {
     return {
       createdAt: household.createdAt,
+      defaultCalculatedMaxLimitMultiplier: household.defaultCalculatedMaxLimitMultiplier ?? 2,
+      favouriteShopId: household.favouriteShopId ?? null,
       id: household.id,
       membershipRole,
       memberCount,
@@ -722,6 +995,7 @@ function toHouseholdLocalProductListItem(
     gtin: product.gtin ?? null,
     householdId: product.householdId,
     id: product.id,
+    productSourceId: product.productSourceId ?? null,
     sourceName: product.sourceName ?? null,
     sourceProductUrl: product.sourceProductUrl ?? null,
     stockGroupKey: product.stockGroupKey,
@@ -743,9 +1017,11 @@ function toHouseholdStockItemListItem(
     householdId: stockItem.householdId,
     householdProductId: stockItem.householdProductId,
     id: stockItem.id,
+    idealMaxLimit: stockItem.idealMaxLimit ?? null,
     initialAmount: stockItem.initialAmount,
     minLimit: stockItem.minLimit,
     note: stockItem.note ?? null,
+    productSourceId: stockItem.productSourceId ?? null,
     sourceName: stockItem.sourceName ?? null,
     sourceProductUrl: stockItem.sourceProductUrl ?? null,
     stockedAt: stockItem.stockedAt,

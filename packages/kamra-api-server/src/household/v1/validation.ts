@@ -1,20 +1,33 @@
 import type {
+  CreateHouseholdShoppingListRequest,
   CreateHouseholdRequest,
   CreateHouseholdStockItemRequest,
   DeleteHouseholdStockItemRequest,
+  HouseholdFeatureFlagRecord,
   HouseholdLocalProductRecord,
   HouseholdMembershipRecord,
   HouseholdRecord,
+  HouseholdShoppingListLineRecord,
   HouseholdShoppingListPreviewRequest,
   HouseholdStockItemRecord,
   HouseholdStockPageRequest,
+  UpdateHouseholdFeatureFlagRequest,
+  UpdateHouseholdShoppingListRequest,
+  UpdateHouseholdShoppingListStocksRequest,
   UpdateHouseholdStockItemRequest
 } from "./contracts.js";
 import {
+  householdFeatureFlagKeys,
   householdLocalProductStatuses,
   householdMembershipRoles,
   householdMembershipStatuses,
+  householdShoppingListLineSourceKinds,
+  householdShoppingListReasonCodes,
+  householdShoppingListStockApplicationStatuses,
+  householdShoppingListUpdateScopes,
   householdShoppingScales,
+  householdShoppingListItemUncertaintyFlags,
+  householdStockStatuses,
   householdStatuses,
   householdStockItemStatuses
 } from "./contracts.js";
@@ -81,6 +94,12 @@ function assertIsoDateString(value: unknown, label: string): asserts value is st
   }
 }
 
+function assertArray(value: unknown, label: string): asserts value is unknown[] {
+  if (!Array.isArray(value)) {
+    throw new Error(`${label} must be an array.`);
+  }
+}
+
 export function assertHouseholdRecord(value: unknown, label = "household"): asserts value is HouseholdRecord {
   assertObject(value, label);
   assertIsoDateString(value["createdAt"], `${label}.createdAt`);
@@ -108,6 +127,21 @@ export function assertHouseholdMembershipRecord(
   assertEnum(value["status"], householdMembershipStatuses, `${label}.status`);
   assertIsoDateString(value["updatedAt"], `${label}.updatedAt`);
   assertNonEmptyString(value["userId"], `${label}.userId`);
+}
+
+export function assertHouseholdFeatureFlagRecord(
+  value: unknown,
+  label = "householdFeatureFlag"
+): asserts value is HouseholdFeatureFlagRecord {
+  assertObject(value, label);
+  assertIsoDateString(value["createdAt"], `${label}.createdAt`);
+  if (typeof value["enabled"] !== "boolean") {
+    throw new Error(`${label}.enabled must be a boolean.`);
+  }
+  assertNonEmptyString(value["id"], `${label}.id`);
+  assertEnum(value["key"], householdFeatureFlagKeys, `${label}.key`);
+  assertIsoDateString(value["updatedAt"], `${label}.updatedAt`);
+  assertNonEmptyString(value["updatedByUserId"], `${label}.updatedByUserId`);
 }
 
 export function assertHouseholdLocalProductRecord(
@@ -147,7 +181,9 @@ export function assertHouseholdStockItemRecord(
   assertNonEmptyString(value["householdId"], `${label}.householdId`);
   assertNonEmptyString(value["householdProductId"], `${label}.householdProductId`);
   assertNonEmptyString(value["id"], `${label}.id`);
-  assertOptionalNonNegativeNumber(value["idealMaxLimit"], `${label}.idealMaxLimit`);
+  if (value["idealMaxLimit"] !== undefined && value["idealMaxLimit"] !== null) {
+    assertNonNegativeNumber(value["idealMaxLimit"], `${label}.idealMaxLimit`);
+  }
   assertNonNegativeNumber(value["initialAmount"], `${label}.initialAmount`);
   assertNonNegativeNumber(value["minLimit"], `${label}.minLimit`);
   assertOptionalString(value["note"], `${label}.note`);
@@ -194,7 +230,9 @@ export function assertCreateHouseholdStockItemRequest(
   assertOptionalNonEmptyString(value["gtin"], `${label}.gtin`);
   assertNonEmptyString(value["householdId"], `${label}.householdId`);
   assertOptionalNonEmptyString(value["householdProductId"], `${label}.householdProductId`);
-  assertOptionalNonNegativeNumber(value["idealMaxLimit"], `${label}.idealMaxLimit`);
+  if (value["idealMaxLimit"] !== undefined && value["idealMaxLimit"] !== null) {
+    assertNonNegativeNumber(value["idealMaxLimit"], `${label}.idealMaxLimit`);
+  }
   assertOptionalNonNegativeNumber(value["initialAmount"], `${label}.initialAmount`);
   assertNonNegativeNumber(value["minLimit"], `${label}.minLimit`);
   assertOptionalString(value["note"], `${label}.note`);
@@ -222,7 +260,7 @@ export function assertUpdateHouseholdStockItemRequest(
   assertOptionalNonEmptyString(value["gtin"], `${label}.gtin`);
   assertNonEmptyString(value["householdId"], `${label}.householdId`);
   assertNonEmptyString(value["id"], `${label}.id`);
-  if (value["idealMaxLimit"] !== undefined) {
+  if (value["idealMaxLimit"] !== undefined && value["idealMaxLimit"] !== null) {
     assertNonNegativeNumber(value["idealMaxLimit"], `${label}.idealMaxLimit`);
   }
   if (value["initialAmount"] !== undefined) {
@@ -283,4 +321,118 @@ export function assertHouseholdShoppingListPreviewRequest(
   assertObject(value, label);
   assertNonEmptyString(value["householdId"], `${label}.householdId`);
   assertEnum(value["scale"], householdShoppingScales, `${label}.scale`);
+}
+
+function assertObservedPriceInput(value: unknown, label: string): void {
+  if (value === undefined || value === null) {
+    return;
+  }
+
+  assertObject(value, label);
+  assertNonNegativeNumber(value["amount"], `${label}.amount`);
+  assertNonEmptyString(value["currencyCode"], `${label}.currencyCode`);
+  assertIsoDateString(value["observedAt"], `${label}.observedAt`);
+}
+
+export function assertHouseholdShoppingListLineRecord(
+  value: unknown,
+  label = "householdShoppingListLine"
+): asserts value is HouseholdShoppingListLineRecord {
+  assertObject(value, label);
+  assertOptionalNonEmptyString(value["catalogProductId"], `${label}.catalogProductId`);
+  assertOptionalNonEmptyString(value["catalogProductNameSnapshot"], `${label}.catalogProductNameSnapshot`);
+  if (value["currentAmount"] !== undefined && value["currentAmount"] !== null) {
+    assertNonNegativeNumber(value["currentAmount"], `${label}.currentAmount`);
+  }
+  assertNonEmptyString(value["displayName"], `${label}.displayName`);
+  assertOptionalNonEmptyString(value["gtin"], `${label}.gtin`);
+  assertOptionalNonEmptyString(value["householdProductId"], `${label}.householdProductId`);
+  assertOptionalNonEmptyString(value["householdStockItemId"], `${label}.householdStockItemId`);
+  assertNonEmptyString(value["id"], `${label}.id`);
+  if (value["idealMaxLimit"] !== undefined && value["idealMaxLimit"] !== null) {
+    assertNonNegativeNumber(value["idealMaxLimit"], `${label}.idealMaxLimit`);
+  }
+  if (value["minLimit"] !== undefined && value["minLimit"] !== null) {
+    assertNonNegativeNumber(value["minLimit"], `${label}.minLimit`);
+  }
+  assertObservedPriceInput(value["observedPrice"], `${label}.observedPrice`);
+  assertNonNegativeNumber(value["plannedAmount"], `${label}.plannedAmount`);
+  assertOptionalNonEmptyString(value["productSourceId"], `${label}.productSourceId`);
+  assertNonNegativeNumber(value["purchasedAmount"], `${label}.purchasedAmount`);
+  if (value["reasonCode"] !== undefined && value["reasonCode"] !== null) {
+    assertEnum(value["reasonCode"], householdShoppingListReasonCodes, `${label}.reasonCode`);
+  }
+  assertEnum(value["sourceKind"], householdShoppingListLineSourceKinds, `${label}.sourceKind`);
+  assertOptionalNonEmptyString(value["sourceName"], `${label}.sourceName`);
+  assertOptionalNonEmptyString(value["sourceProductUrl"], `${label}.sourceProductUrl`);
+  assertEnum(value["status"], householdShoppingListStockApplicationStatuses, `${label}.status`);
+  assertOptionalNonEmptyString(value["stockGroupKey"], `${label}.stockGroupKey`);
+  if (value["stockStatus"] !== undefined && value["stockStatus"] !== null) {
+    assertEnum(value["stockStatus"], householdStockStatuses, `${label}.stockStatus`);
+  }
+  assertNonNegativeNumber(value["suggestedBuyAmount"], `${label}.suggestedBuyAmount`);
+  assertNonNegativeNumber(value["targetAmount"], `${label}.targetAmount`);
+  if (typeof value["ticked"] !== "boolean") {
+    throw new Error(`${label}.ticked must be a boolean.`);
+  }
+  assertArray(value["uncertaintyFlags"], `${label}.uncertaintyFlags`);
+  for (const [index, flag] of value["uncertaintyFlags"].entries()) {
+    assertEnum(flag, householdShoppingListItemUncertaintyFlags, `${label}.uncertaintyFlags[${index}]`);
+  }
+  assertNonEmptyString(value["unit"], `${label}.unit`);
+}
+
+export function assertCreateHouseholdShoppingListRequest(
+  value: unknown,
+  label = "createHouseholdShoppingListRequest"
+): asserts value is CreateHouseholdShoppingListRequest {
+  assertObject(value, label);
+  assertNonEmptyString(value["householdId"], `${label}.householdId`);
+  assertEnum(value["scale"], householdShoppingScales, `${label}.scale`);
+  assertOptionalNonEmptyString(value["shopId"], `${label}.shopId`);
+}
+
+export function assertUpdateHouseholdShoppingListRequest(
+  value: unknown,
+  label = "updateHouseholdShoppingListRequest"
+): asserts value is UpdateHouseholdShoppingListRequest {
+  assertObject(value, label);
+  assertNonEmptyString(value["householdId"], `${label}.householdId`);
+  assertNonEmptyString(value["id"], `${label}.id`);
+  assertOptionalNonEmptyString(value["shopId"], `${label}.shopId`);
+
+  if (value["items"] !== undefined) {
+    assertArray(value["items"], `${label}.items`);
+    for (const [index, item] of value["items"].entries()) {
+      assertHouseholdShoppingListLineRecord(item, `${label}.items[${index}]`);
+    }
+  }
+
+  if (value["items"] === undefined && value["shopId"] === undefined) {
+    throw new Error(`${label} must include items or shopId.`);
+  }
+}
+
+export function assertUpdateHouseholdShoppingListStocksRequest(
+  value: unknown,
+  label = "updateHouseholdShoppingListStocksRequest"
+): asserts value is UpdateHouseholdShoppingListStocksRequest {
+  assertObject(value, label);
+  if (value["confirmationMode"] !== undefined && value["confirmationMode"] !== null) {
+    assertEnum(value["confirmationMode"], householdShoppingListUpdateScopes, `${label}.confirmationMode`);
+  }
+  assertNonEmptyString(value["householdId"], `${label}.householdId`);
+  assertNonEmptyString(value["id"], `${label}.id`);
+  assertIsoDateString(value["stockAppliedAt"], `${label}.stockAppliedAt`);
+}
+
+export function assertUpdateHouseholdFeatureFlagRequest(
+  value: unknown,
+  label = "updateHouseholdFeatureFlagRequest"
+): asserts value is UpdateHouseholdFeatureFlagRequest {
+  assertObject(value, label);
+  if (typeof value["enabled"] !== "boolean") {
+    throw new Error(`${label}.enabled must be a boolean.`);
+  }
+  assertEnum(value["key"], householdFeatureFlagKeys, `${label}.key`);
 }
