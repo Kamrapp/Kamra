@@ -213,6 +213,15 @@ Current seed particles:
 - `demo_household` reads `SEED_DEMO_HOUSEHOLD_PASSWORD`
 - `demo_household` stores the demo login identifiers as `usera` and `userb` to match the current auth layer's lowercase login normalization
 
+The same reset is available to signed-in admins through the admin dashboard:
+
+- frontend route: `/admin/dashboard`
+- API route: `POST /api/admin/dashboard/reseed-demo-household`
+
+The admin dashboard also keeps read-only runtime health checks separate from modifying maintenance actions. The health route is `GET /api/admin/dashboard/health`; catalog validator upgrade and legacy validation backfill remain explicit modifier actions in the maintenance block.
+
+For the full household stock model, current Stage 5 behavior, seeded rows, and Stage 6 handoff, see [docs/household.md](./household.md).
+
 Catalog seed direction:
 
 - product-model seed data should be synthetic, clearly marked by source and environment metadata, and safe to inspect in the deployed app
@@ -221,15 +230,15 @@ Catalog seed direction:
 - product seed refresh or cleanup behavior should be explicit so real database testing does not leave ambiguous sample records behind
 - catalog setup creates missing collections with the current JSON Schema validators, but normal seed and smoke runs do not modify validators on existing collections
 - validator changes on existing collections must be handled by a deliberate migration or admin-maintenance operation, because MongoDB `collMod` requires elevated database privileges beyond normal app read/write access
-- the Health view includes an explicit `Upgrade catalog validators` maintenance action that runs `collMod` for existing catalog collections and creates any missing catalog collections with current validators; use it only with a temporary MongoDB user that has validator-management privileges such as `dbAdmin`
-- after catalog validators are upgraded, run the Health view `Set legacy products unvalidated` maintenance action to physically add missing validation fields to legacy product documents
+- the admin dashboard includes an explicit `Upgrade catalog validators` maintenance action that runs `collMod` for existing catalog collections and creates any missing catalog collections with current validators; use it only with a temporary MongoDB user that has validator-management privileges such as `dbAdmin`
+- after catalog validators are upgraded, run the admin dashboard `Set legacy products unvalidated` maintenance action to physically add missing validation fields to legacy product documents
 - if the legacy-product backfill reports that documents are shown as unvalidated by compatibility fallback, the product data is still readable, but the `products` collection validator has not yet accepted the new validation fields; run `Upgrade catalog validators` first, then retry the backfill
 - on 2026-07-03, the Stage 4 manual-gateway maintenance run upgraded 9 existing catalog validators, created 0 missing catalog collections, and marked 1130 legacy products as `unvalidated`
 
 Catalog validator maintenance procedure:
 
 1. Temporarily run the local API with a MongoDB user that has validator-management privileges for the target database, such as `dbAdmin`.
-2. Sign in as a Kamra admin and open the Health view.
+2. Sign in as a Kamra admin and open the admin dashboard.
 3. Click `Upgrade catalog validators`; the button runs `collMod` for existing catalog collections and creates any missing catalog collections with current validators.
 4. Confirm the message reports the expected upgraded/created collection counts.
 5. Click `Set legacy products unvalidated` to backfill missing product validation fields.

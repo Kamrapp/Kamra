@@ -2,6 +2,8 @@
 
 This package area will hold Kamra's household-owned stock model.
 
+Durable product and operations context lives in `docs/household.md`.
+
 ## Layout
 
 - `v1/` contains the versioned household collections, DTOs, and validation helpers.

@@ -54,6 +54,8 @@ The frontend should not own business-critical product matching or ingestion logi
 
 User-facing screens should focus on household workflows. Admin screens should focus on ingestion visibility, crawled/fetched product review, and data maintenance.
 
+The current household stock foundation is documented in [docs/household.md](./household.md). Treat that document as the durable Stage 5 reference for household-owned stock, household-local products, demo household behavior, and future shopping-list direction.
+
 Frontend localization should be treated as an early MVP concern, not a later polish item.
 Default application resources currently come from nested JSON files under `src/app/i18n/` for English and Hungarian. Keep those files in a standard library-friendly shape so a later i18next-style adapter can consume them without reshaping content. Site-admin-managed database overrides can gradually fill in runtime translations and missing values later.
 
@@ -225,6 +227,8 @@ External source
 - uncertain store-product identity should remain unlinked until verified by stronger evidence or explicit review
 - accepting crawled product candidates should make create-versus-merge behavior explicit to the operator before writing catalog data
 - household inventory concepts should stay separate from store-offer observations even if they share some fields
+- household-local products are the first-class user-owned path for pantry tracking; catalog links are optional enrichment and should not block manual household stock entry
+- household stock group keys should remain stable because future list generation, limits, and consumption estimates need to reason about needs that may span multiple concrete products
 - shared contracts should be designed for reuse by frontend and API first, with generated compatibility for workflow runtimes where needed
 - composition should be modeled explicitly so compound products or household items can reference their parts
 - composition should support quantity plus unit, with ratio represented through the same model instead of a special unrelated relation shape

@@ -1,12 +1,18 @@
 # Stage 5 Household Stock Foundation Plan
 
-Status: Draft plan revalidated for sequential implementation
+Status: Completed on 2026-07-09
 
 ## Objective
 
 Implement the first user-facing household stock foundation so signed-in users can create or access a household, maintain household stock items, and link those items to catalog products when useful.
 
 This stage should turn the Stage 4 product pipeline into household value without treating shop/source stock as user-owned household inventory.
+
+Closeout:
+
+- Durable behavior documentation lives in `docs/household.md`.
+- Roadmap status is updated in `.agents/plans/initial-mvp-roadmap.md`.
+- Remaining shopping-list generation, notices, expiry, mobile, and catalog-linking enhancements are deferred to Stage 6, Stage 8, or post-MVP followups.
 
 ## Context Read
 
@@ -584,4 +590,4 @@ Manual:
 
 ## Approval Checkpoint
 
-No Stage 5 implementation is approved by this draft alone. Review this plan, adjust the scope if needed, then approve Step 1 as the first commit-sized implementation slice.
+Completed. Future work should start from Stage 6 planning rather than reopening this Stage 5 implementation plan unless a regression is found.

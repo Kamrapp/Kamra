@@ -5,7 +5,7 @@
 - Date: 2026-07-09
 - Plan: `.agents/plans/2026-07-08-stage-5-household-stock-foundation-plan.md`
 - Branch: unknown
-- Current objective: Implement the first end-to-end Stage 5 household flow so a seeded user can sign in, see low-stock pulse data, and manage custom household stock with minimum limits.
+- Current objective: Stage 5 is complete. The seeded user can sign in, see low-stock pulse data, manage custom household stock with minimum limits, and the household concept is documented for Stage 6 and post-MVP planning.
 
 ## Completed
 
@@ -32,12 +32,18 @@
 - Item: Hardened admin dashboard route-response handling so non-JSON or malformed health responses now surface as route errors instead of false browser-reachability failures, and updated the global toast host to use dedicated dark-theme text colors with readable contrast.
 - Item: Switched dark-theme toasts from the temporary light card treatment to a proper dark panel surface with light text so the shared toast host now matches the overall dark theme.
 - Item: Simplified the home pulse shopping-list action button so it now uses the shared quiet surface styling instead of a glossy gradient highlight, especially in dark mode.
+- Item: Added quick minus/input/plus controls for the household stock minimum limit editor.
+- Item: Added `docs/household.md` as the durable household stock concept, current-state, operations, Stage 6, and post-MVP reference.
+- Item: Updated architecture, tech-ops, script, package README, Stage 5 plan, and MVP roadmap docs to mark Stage 5 complete and point future work toward Stage 6 shopping-list generation.
 
 ## Changed Files
 
 - Path: `.agents/sessions/2026-07-09-stage-5-household-stock-foundation.md`
 - Path: `.agents/plans/2026-07-08-stage-5-household-stock-foundation-plan.md`
+- Path: `.agents/plans/initial-mvp-roadmap.md`
 - Path: `docs/architecture.md`
+- Path: `docs/household.md`
+- Path: `docs/tech-ops.md`
 - Path: `packages/kamra-api-server/src/household/README.md`
 - Path: `packages/kamra-api-server/src/household/current/stock-status.ts`
 - Path: `packages/kamra-api-server/src/household/current/stock-status.test.ts`
@@ -148,6 +154,16 @@
 - Result: passed after simplifying the shopping-list action button styling
 - Ran: `npm run build`
 - Result: passed after simplifying the shopping-list action button styling; Angular reported an initial bundle size of 524.83 kB
+- Ran: `npm run typecheck`
+- Result: passed for final Stage 5 closeout
+- Ran: `npm test`
+- Result: passed for final Stage 5 closeout; 28 test files and 122 tests passed
+- Ran: `npm run lint`
+- Result: passed for final Stage 5 closeout
+- Ran: `npm run build`
+- Result: passed for final Stage 5 closeout; Angular reported an initial bundle size of 526.20 kB
+- Ran: locale parity check for `src/app/i18n/en.json` and `src/app/i18n/hu.json`
+- Result: passed for final Stage 5 closeout; both locales contain 356 leaf keys
 
 ## Decisions
 
@@ -163,6 +179,8 @@
 - Reason: this makes the admin surface read more intentionally, keeps the Vercel/API routing explicit, and avoids leaving the old health naming mixed with broader admin tooling.
 - Decision: Keep unauthorized admin dashboard requests in place and show admin-access errors instead of logging the current user out.
 - Reason: admin-only access failures are not the same thing as an invalid end-user session, and logging out `usera` was both confusing and incorrect.
+- Decision: Close Stage 5 with a home-page side editor and quick minimum-limit controls instead of introducing a separate modal.
+- Reason: the implemented two-panel home workspace covers the planned add/edit/archive flow while preserving the requested layout direction.
 
 ## Open Issues
 
@@ -170,28 +188,24 @@
 - Impact: if that happens, the plan will need an explicit follow-up before route work starts.
 - Issue: Demo users are stored as lowercase login keys (`usera`, `userb`) even though the plan names them `userA` and `userB`.
 - Impact: this keeps auth compatible today; ops/script docs now note the lowercase identifiers, and later UI copy should do the same if it displays demo credentials.
-- Issue: The home page now supports direct custom-stock management, but the plan’s richer dedicated modal flow is not implemented yet.
-- Impact: the core user journey works now, but a later Stage 5 follow-up can still refine this into the planned modal/editor experience if desired.
 - Issue: Shopping-list generation is still a placeholder toast; the scale only changes the displayed candidate item count in the pulse.
 - Impact: Stage 6 still needs real list generation, persistence, and downstream actions.
-- Issue: The Angular production build initial bundle is now 512.23 kB.
+- Issue: The Angular production build initial bundle is now 526.20 kB.
 - Impact: the build still succeeds, but the home/dashboard additions may deserve a later trim pass if bundle budget pressure becomes distracting.
 - Issue: `src/app/home.component.ts` component styles now exceed the Angular component CSS budget at 10.20 kB against an 8.00 kB budget.
 - Impact: the build still succeeds, but the home page should be a candidate for CSS extraction or simplification if the warning becomes noisy.
-- Issue: Stage 5 still lacks a durable household-specific doc page or closeout roadmap/doc refresh for the finished household/admin utility behavior.
-- Impact: the product behavior now exists, but the final documentation/closeout step should still capture the household model, demo reseed boundary, and remaining Stage 6 handoff.
 - Issue: The dashboard health check still depends on the local/shared API actually being reachable at `/api/admin/dashboard/health`; if the local API server is not running, the browser-reachability toast is still the expected result.
 - Impact: the UI now distinguishes malformed route responses from network failures correctly, but local run instructions still matter for successful checks.
 
 ## Roadmap Or Plan Updates
 
-- Needed: no
-- Status: none
+- Needed: yes
+- Status: updated `.agents/plans/initial-mvp-roadmap.md` to mark Stage 5 complete and make Stage 6 the next recommended planning target.
 
 ## Next Step
 
-Document the finished Stage 5 household/admin behavior next, then decide whether to start Stage 6 shopping-list generation or do a focused bundle/CSS cleanup pass first.
+Plan Stage 6 shopping-list generation from `docs/household.md`, especially the stock status model, shopping-scale preview levels, and requirement that unmatched household-local needs remain visible.
 
 ## Notes For Future Agent
 
-The household package area now exists under `packages/kamra-api-server/src/household/` with contracts, schemas, validators, stock status helpers, Mongo repository tests, demo reseed support, and user-facing HTTP routes. The home page now consumes the new API through `src/app/household/household-stock.service.ts` and shows a real priority-ordered household stock pulse plus merged add/edit custom stock editing for signed-in household members. The pulse shopping scale is currently UI-only: `Business as usual` counts below-limit/at-limit rows, `Keep it chill` adds low-soon rows, and `Stock 'em up!` counts every tracked row. The pulse header now has three visual columns: custom shopping-scale slider, pulse count, and placeholder shopping-list action. That shopping-list action now uses the same quiet surface language as the rest of the app instead of a glossy highlight treatment. Shell auth feedback no longer uses a separate fixed message; all notifications now flow through the shared global toast host. The old health screen is now an admin dashboard under `/admin/dashboard`, backed by `/api/admin/dashboard/*`, with a dedicated read-only health-check card, a separate maintenance card for modifier actions, and role-based menu/page guarding so non-admin users do not see the dashboard content or get logged out by unauthorized admin requests. The admin dashboard now also reads route responses more defensively, so malformed or unexpected payloads surface as route-level errors instead of being mislabeled as browser connectivity failures. In dark theme, the shared toast host now uses an actual dark panel surface with light text instead of reusing a light toast card.
+Stage 5 is closed. The household package area now exists under `packages/kamra-api-server/src/household/` with contracts, schemas, validators, stock status helpers, Mongo repository tests, demo reseed support, and user-facing HTTP routes. The home page now consumes the new API through `src/app/household/household-stock.service.ts` and shows a real priority-ordered household stock pulse plus merged add/edit custom stock editing for signed-in household members, including quick minimum-limit controls. The pulse shopping scale is currently UI-only: `Business as usual` counts below-limit/at-limit rows, `Keep it chill` adds low-soon rows, and `Stock 'em up!` counts every tracked row. Shell auth feedback and page feedback now flow through the shared global toast host. The old health screen is now an admin dashboard under `/admin/dashboard`, backed by `/api/admin/dashboard/*`, with a dedicated read-only health-check card, a separate maintenance card for modifier actions, and role-based menu/page guarding. Final closeout validation passed: `npm run typecheck`, `npm test`, `npm run lint`, `npm run build`, and locale parity.

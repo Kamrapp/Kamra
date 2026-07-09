@@ -21,8 +21,8 @@ Roadmap priorities:
 | Stage 2 | Minimal serverless foundation | Completed | Vercel app/API and MongoDB connectivity are running; Stage 2 followups should be handled only when they block later stages. |
 | Stage 3 | Product model foundation and seeded data | Completed | Finalized versioned product contracts, seed data, smoke validation, and admin-only product inspection before crawler work. |
 | Stage 4 | Crawler intake and processing pipeline | Completed | Current in-scope ingestion, processing, operator review, product acceptance, source filtering, accepted-item hiding, strict new-ingestion collection validators, and explicit accept create/merge confirmation are in place. SPAR and Tesco are moved out of Stage 4 and should be revisited near the end of the MVP. |
-| Stage 5 | Household stock foundation | Planned | Plan drafted in `2026-07-08-stage-5-household-stock-foundation-plan.md`; treat household stock separately from crawler/source stock while preserving user-household authorization boundaries. |
-| Stage 6 | Shopping list and low-stock notices | Planned | Favor deterministic core logic over premature optimization. |
+| Stage 5 | Household stock foundation | Completed | User-owned household collections, membership-checked routes, demo household reseed, signed-in home pulse/editor, shopping-scale preview, admin dashboard controls, and durable `docs/household.md` are in place. |
+| Stage 6 | Shopping list and low-stock notices | Planned | Build on the Stage 5 household stock rows and shopping-scale preview; favor deterministic core logic over premature optimization. |
 | Stage 7 | Controlled alpha access and app module shell | Planned | Move external demo access later, after household and list value exist; keep public/product, household, site-admin, and dev-admin concerns visibly separate. |
 | Stage 8 | Expiry and buffer logic | Planned | This completes the first strong product MVP loop with buy-before style usefulness. |
 
@@ -273,6 +273,12 @@ Questions:
 
 ## Stage 5: Household Stock Foundation
 
+Status:
+
+- Completed on 2026-07-09.
+- Durable closeout: `docs/household.md`.
+- Stage 5 shipped household-owned stock collections, membership-checked API routes, demo household reseeding, signed-in home stock pulse/editor, shopping-scale preview levels, and an admin dashboard reset/maintenance surface.
+
 Goal:
 
 - Let users organize products around households.
@@ -298,6 +304,10 @@ Validation:
 - data shape leaves room for units, package sizes, and product matching uncertainty
 - household stock can reference seeded products and still support unmatched manual items
 - store/source stock and household stock do not leak into each other's authorization or update paths
+
+Final validation:
+
+- household, route, typecheck, lint, locale parity, and production build checks passed during Stage 5 closeout
 
 ## Stage 6: Shopping List And Low-Stock Notices
 
@@ -440,6 +450,6 @@ Current direction:
 
 ## First Recommended Next Step
 
-Review and approve `.agents/plans/2026-07-08-stage-5-household-stock-foundation-plan.md`, then implement Stage 5 in commit-sized slices starting with household contracts, persistence, and authorization tests.
+Plan Stage 6 shopping-list generation from the documented Stage 5 household stock model and shopping-scale preview.
 
 Treat broader crawler expansion as deliberately paused unless a later plan promotes a source back into active scope.
