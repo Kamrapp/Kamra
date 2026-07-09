@@ -1,14 +1,14 @@
 import type { Db } from "mongodb";
 
-import type { MongoUserRepository } from "../auth/mongo-user-repository.js";
-import type { AuthenticatedUser } from "../auth/user-auth.js";
+import type { AuthenticatedUser, UserRepository } from "../auth/user-auth.js";
 import { verifyUserToken } from "../auth/user-token.js";
 import {
   MongoCurrentCatalogRepository,
   type CatalogValidatorUpgradeResult,
   type CreateCatalogProductFromReviewCandidateResult,
   type DeleteCatalogProductResult,
-  type MarkLegacyProductsUnvalidatedResult
+  type MarkLegacyProductsUnvalidatedResult,
+  type PreviewCatalogProductFromReviewCandidateResult
 } from "../catalog/current/mongo-catalog-repository.js";
 import type {
   CatalogProductListItem,
@@ -102,6 +102,9 @@ export interface AppHandlerDependencies {
       createdAt: string;
       reviewerId: string;
     }): Promise<CreateCatalogProductFromReviewCandidateResult>;
+    previewCatalogProductFromReviewCandidate?(input: {
+      candidate: ProductReviewCandidateDraft;
+    }): Promise<PreviewCatalogProductFromReviewCandidateResult>;
     findCatalogProductForReview?(id: string): Promise<CatalogProductListItem | null>;
     listCatalogProductsForReview(options?: { limit?: number; nameIncludes?: string; offset?: number; sourceNames?: string[] }): Promise<{
       products: unknown[];
@@ -131,7 +134,8 @@ export interface AppHandlerDependencies {
   createIngestionRepository?: (database: Db) => {
     findRawSnapshotById(id: string): Promise<IngestionRawSnapshotRecord | null>;
     findProductReviewItemById?(id: string): Promise<IngestionProductReviewItemRecord | null>;
-    listRawSnapshots(options?: { limit?: number; offset?: number; sourceName?: string }): Promise<IngestionRawSnapshotRecord[]>;
+    listRawSnapshots(options?: { limit?: number; offset?: number; sourceNames?: string[]; sourceName?: string }): Promise<IngestionRawSnapshotRecord[]>;
+    listRawSnapshotSourceNames?(): Promise<string[]>;
     listProductReviewItems?(options?: {
       limit?: number;
       offset?: number;
@@ -158,7 +162,7 @@ export interface AppHandlerDependencies {
       updatedAt: string;
     }): Promise<boolean>;
   };
-  createUserRepository?: (database: Db) => MongoUserRepository;
+  createUserRepository?: (database: Db) => UserRepository;
   getMongoClient?: typeof getMongoClient;
 }
 
@@ -263,6 +267,7 @@ function authenticateRequestUser(
 
   return {
     email: result.payload.email,
+    profile: {},
     role: result.payload.role
   };
 }

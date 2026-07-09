@@ -16,7 +16,9 @@ export interface PageRailSection {
   key: string;
   kind: "summary" | "status" | "filters" | "action";
   kicker: string;
+  loading?: boolean;
   optionCount?: number;
+  placeholderRows?: number;
   selectedCount?: number;
   secondaryActionDisabled?: boolean;
   secondaryActionLabel?: string;

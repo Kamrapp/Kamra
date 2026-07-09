@@ -1,4 +1,6 @@
-import { Component, computed, input, signal } from "@angular/core";
+import { Component, computed, inject, input, signal } from "@angular/core";
+
+import { LocalizationService } from "./localization.service";
 
 export interface ResizableTableColumn {
   key: string;
@@ -37,8 +39,8 @@ export interface ResizableTableColumn {
               <button
                 class="column-resize-handle"
                 type="button"
-                title="Resize column"
-                [attr.aria-label]="'Resize ' + column.label + ' column'"
+                [title]="loc.t('common.resizeColumn')"
+                [attr.aria-label]="loc.t('common.resizeColumn') + ': ' + column.label"
                 (pointerdown)="startColumnResize($event, column.key)"
               ></button>
             </span>
@@ -124,6 +126,7 @@ export interface ResizableTableColumn {
   ]
 })
 export class ResizableTableComponent {
+  readonly loc = inject(LocalizationService);
   readonly ariaLabel = input.required<string>();
   readonly columns = input.required<readonly ResizableTableColumn[]>();
   readonly columnWidths = signal<Record<string, number>>({});

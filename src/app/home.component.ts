@@ -1,11 +1,13 @@
-import { Component } from "@angular/core";
+import { Component, inject } from "@angular/core";
+
+import { LocalizationService } from "./shared/localization.service";
 
 @Component({
   selector: "app-home",
   standalone: true,
   template: `
     <section class="home-board" aria-labelledby="home-title">
-      <div class="pulse-card" aria-label="Pantry activity preview">
+      <div class="pulse-card" [attr.aria-label]="loc.t('home.activityPreview')">
         <div class="pulse-orbit">
           <span></span>
           <span></span>
@@ -13,62 +15,61 @@ import { Component } from "@angular/core";
         </div>
         <div class="pulse-list">
           <div class="pulse-row strong">
-            <span>Milk</span>
-            <span>low soon</span>
+            <span>{{ loc.t("home.milk") }}</span>
+            <span>{{ loc.t("home.lowSoon") }}</span>
           </div>
           <div class="pulse-row">
-            <span>Rice</span>
-            <span>steady</span>
+            <span>{{ loc.t("home.rice") }}</span>
+            <span>{{ loc.t("home.steady") }}</span>
           </div>
           <div class="pulse-row">
-            <span>Coffee</span>
-            <span>watch</span>
+            <span>{{ loc.t("home.coffee") }}</span>
+            <span>{{ loc.t("home.watch") }}</span>
           </div>
         </div>
       </div>
 
       <div class="home-copy">
-        <p class="eyebrow">Today</p>
-        <h1 id="home-title">Pantry pulse</h1>
+        <p class="eyebrow">{{ loc.t("home.today") }}</p>
+        <h1 id="home-title">{{ loc.t("home.pantryPulse") }}</h1>
         <p>
-          A soft landing for household stock, shopping rhythm, and the little
-          decisions that make the next grocery run feel less chaotic.
+          {{ loc.t("home.description") }}
         </p>
 
         <dl class="mini-stats">
           <div>
-            <dt>Notes</dt>
+            <dt>{{ loc.t("home.notes") }}</dt>
             <dd>3</dd>
           </div>
           <div>
-            <dt>Lists</dt>
+            <dt>{{ loc.t("home.lists") }}</dt>
             <dd>1</dd>
           </div>
           <div>
-            <dt>Sources</dt>
+            <dt>{{ loc.t("home.sources") }}</dt>
             <dd>0</dd>
           </div>
         </dl>
       </div>
     </section>
 
-    <section class="placeholder-grid" aria-label="Kamra home preview">
+    <section class="placeholder-grid" [attr.aria-label]="loc.t('home.kamraPreview')">
       <article>
-        <p class="card-kicker">Queue</p>
-        <h2>Stocking Notes</h2>
-        <p>Three pantry notes are waiting for a real product model to land.</p>
+        <p class="card-kicker">{{ loc.t("home.cardQueue") }}</p>
+        <h2>{{ loc.t("home.stockingNotes") }}</h2>
+        <p>{{ loc.t("home.queueDescription") }}</p>
       </article>
 
       <article>
-        <p class="card-kicker">Shape</p>
-        <h2>Shopping Plan</h2>
-        <p>Store choices, household limits, and list tradeoffs will live here.</p>
+        <p class="card-kicker">{{ loc.t("home.cardShape") }}</p>
+        <h2>{{ loc.t("home.shoppingPlan") }}</h2>
+        <p>{{ loc.t("home.shoppingPlanDescription") }}</p>
       </article>
 
       <article>
-        <p class="card-kicker">Ops</p>
-        <h2>Source Review</h2>
-        <p>Ingestion status and operator review can join the drawer when ready.</p>
+        <p class="card-kicker">{{ loc.t("home.cardOps") }}</p>
+        <h2>{{ loc.t("home.sourceReview") }}</h2>
+        <p>{{ loc.t("home.opsDescription") }}</p>
       </article>
     </section>
   `,
@@ -97,9 +98,7 @@ import { Component } from "@angular/core";
       }
 
       .pulse-card {
-        background:
-          linear-gradient(145deg, rgb(248 244 241 / 90%), rgb(255 255 255 / 62%)),
-          color-mix(in srgb, var(--color-accent-sky) 18%, var(--color-surface));
+        background: var(--pulse-card-background);
         display: grid;
         gap: var(--space-5);
         min-height: 20rem;
@@ -113,7 +112,7 @@ import { Component } from "@angular/core";
         background: linear-gradient(
           90deg,
           transparent,
-          rgb(255 255 255 / 46%),
+          var(--pulse-sheen-background),
           transparent
         );
         content: "";
@@ -145,7 +144,7 @@ import { Component } from "@angular/core";
 
       .pulse-orbit span:nth-child(1) {
         animation: breathe 2200ms ease-in-out infinite;
-        background: color-mix(in srgb, var(--color-accent-leaf) 30%, white 70%);
+        background: var(--pulse-core-background);
         height: 4.8rem;
         width: 4.8rem;
       }
@@ -169,10 +168,10 @@ import { Component } from "@angular/core";
 
       .pulse-row {
         align-items: center;
-        background: rgb(255 255 255 / 56%);
-        border: 1px solid rgb(255 255 255 / 72%);
+        background: var(--pulse-row-background);
+        border: 1px solid var(--pulse-row-border);
         border-radius: var(--radius-ui);
-        color: var(--color-text-muted);
+        color: var(--pulse-row-text);
         display: flex;
         justify-content: space-between;
         min-height: 3rem;
@@ -180,7 +179,7 @@ import { Component } from "@angular/core";
       }
 
       .pulse-row.strong {
-        color: var(--color-text);
+        color: var(--pulse-row-text);
         font-weight: 700;
       }
 
@@ -313,4 +312,6 @@ import { Component } from "@angular/core";
     `
   ]
 })
-export class HomeComponent {}
+export class HomeComponent {
+  readonly loc = inject(LocalizationService);
+}

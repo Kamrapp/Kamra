@@ -2,11 +2,39 @@ import { describe, expect, it } from "vitest";
 
 import { MongoIngestionRepository } from "./mongo-ingestion-repository.js";
 import type { IngestionRawSnapshotRecord, ParsedShopProductRow } from "../v1/contracts.js";
+import { ingestionV1CollectionNames } from "../v1/contracts.js";
 import { createFakeDb } from "../../test-support/fake-mongo.js";
 
 const capturedAt = "2026-07-01T08:00:00.000Z";
 
 describe("MongoIngestionRepository", () => {
+  it("creates all ingestion collections with strict JSON schema validation", async () => {
+    const db = createFakeDb();
+    const createCollectionCalls: Array<{ name: string; options?: Record<string, unknown> }> = [];
+    const createCollection = db.createCollection.bind(db);
+    db.createCollection = async (name, options) => {
+      createCollectionCalls.push({ name, options });
+      return createCollection(name, options);
+    };
+    db.listCollections = () => ({
+      toArray: async () => []
+    });
+    const repository = new MongoIngestionRepository(db);
+
+    await repository.setupCollections();
+
+    expect(createCollectionCalls.map((call) => call.name).sort()).toEqual([...ingestionV1CollectionNames].sort());
+    for (const call of createCollectionCalls) {
+      expect(call.options).toMatchObject({
+        validationAction: "error",
+        validationLevel: "strict",
+        validator: {
+          $jsonSchema: expect.any(Object)
+        }
+      });
+    }
+  });
+
   it("creates the review collection and persists review items for a snapshot", async () => {
     const db = createFakeDb();
     const repository = new MongoIngestionRepository(db);

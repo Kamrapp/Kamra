@@ -1,6 +1,6 @@
 # Stage 4 Synthetic Crawler Intake Plan
 
-Status: Active implementation plan
+Status: Completed for current in-scope Stage 4 work
 
 ## Objective
 
@@ -305,7 +305,7 @@ Status: Completed for the current processor-ready shape.
 
 ### Step 2: Add Mongo Persistence For Ingestion Runs And Raw Snapshots
 
-Status: Partially completed. Collections, indexes, idempotent writes, and cleanup exist; strict Mongo JSON schema validation remains open.
+Status: Completed. Collections, strict new-collection JSON schema validators, indexes, idempotent writes, and cleanup exist.
 
 - Goal: Create ingestion repositories that set up schema-validated collections, indexes, and idempotent raw snapshot writes.
 - Files likely affected:
@@ -592,4 +592,4 @@ Manual review:
 
 ## Approval Checkpoint
 
-Current next approved direction: continue with Step 10 manual processing workflow and Step 11 focused operator visibility/UI improvements. SPAR and Tesco are moved out of Stage 4 and should be revisited near the end of the MVP after product and household feature work can use the already crawled shops.
+Stage 4 is complete for the current in-scope crawler intake, processing, and operator visibility work as of 2026-07-08. SPAR and Tesco are moved out of Stage 4 and should be revisited near the end of the MVP after product and household feature work can use the already crawled shops.

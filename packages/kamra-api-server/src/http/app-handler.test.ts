@@ -80,6 +80,67 @@ describe("handleAppRequest auth guards", () => {
     expect(JSON.parse(response.body)).toEqual({
       user: {
         email: "user@kamra.test",
+        profile: {},
+        role: "user"
+      }
+    });
+  });
+
+  it("updates profile preferences for the current user", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "user@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "user",
+      secret: "test-secret"
+    });
+
+    const response = await handleAppRequest(
+      {
+        bodyText: JSON.stringify({ theme: "dark" }),
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "PATCH",
+        path: "/api/admin/preferences"
+      },
+      {
+        createUserRepository: () => ({
+          findActiveUserByEmail: async () => null,
+          updateUserProfile: async (email, profile) => ({
+            authProvider: "bootstrap_credentials" as const,
+            email,
+            passwordHash: {
+              algorithm: "scrypt" as const,
+              blockSize: 8,
+              cost: 16384,
+              hash: "hash",
+              keyLength: 64,
+              parallelization: 1,
+              salt: "salt",
+            },
+            profile,
+            role: "user" as const,
+            status: "active" as const
+          })
+        }),
+        getMongoClient: async () => ({
+          db: () => ({})
+        }) as never
+      }
+    );
+
+    expect(response.status).toBe(200);
+    expect(JSON.parse(response.body)).toEqual({
+      user: {
+        email: "user@kamra.test",
+        profile: {
+          theme: "dark"
+        },
         role: "user"
       }
     });
