@@ -1,7 +1,7 @@
 import type { Routes } from "@angular/router";
 
 import { ProductCatalogComponent } from "./product-lookup/product-catalog.component";
-import { HealthCheckComponent } from "./health-check.component";
+import { AdminDashboardComponent } from "./dev-admin/admin-dashboard.component";
 import { HomeComponent } from "./home.component";
 import { IngestionAdminComponent } from "./site-admin/ingestion-admin.component";
 
@@ -11,8 +11,12 @@ export const routes: Routes = [
     component: HomeComponent
   },
   {
+    path: "admin/dashboard",
+    component: AdminDashboardComponent
+  },
+  {
     path: "health",
-    component: HealthCheckComponent
+    redirectTo: "admin/dashboard"
   },
   {
     path: "products",

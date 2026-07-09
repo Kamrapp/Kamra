@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createUserToken } from "../auth/user-token.js";
+import { MongoHouseholdRepository } from "../household/current/mongo-household-repository.js";
+import { createFakeDb } from "../test-support/fake-mongo.js";
 import { handleAppRequest } from "./app-handler.js";
 
 afterEach(() => {
@@ -14,7 +16,7 @@ describe("handleAppRequest auth guards", () => {
     const response = await handleAppRequest({
       headers: {},
       method: "GET",
-      path: "/api/health"
+      path: "/api/admin/dashboard/health"
     });
 
     expect(response.status).toBe(401);
@@ -40,7 +42,7 @@ describe("handleAppRequest auth guards", () => {
         authorization: `Bearer ${token}`
       },
       method: "GET",
-      path: "/api/health"
+      path: "/api/admin/dashboard/health"
     });
 
     expect(response.status).toBe(503);
@@ -83,6 +85,233 @@ describe("handleAppRequest auth guards", () => {
         profile: {},
         role: "user"
       }
+    });
+  });
+
+  it("lists household stock for a signed-in household member", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "usera",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "user",
+      secret: "test-secret"
+    });
+    const db = createFakeDb();
+    const repository = new MongoHouseholdRepository(db);
+    await repository.setupCollections();
+    await repository.createHousehold({
+      createdAt: "2026-07-09T10:00:00.000Z",
+      createdByUserId: "usera",
+      id: "household1",
+      name: "Demo household"
+    });
+    await repository.createHouseholdStockItem({
+      createdAt: "2026-07-09T10:05:00.000Z",
+      createdByUserId: "usera",
+      currentAmount: 0.2,
+      displayName: "Kenyér",
+      householdId: "household1",
+      minLimit: 0.5,
+      stockedAt: "2026-07-07T10:05:00.000Z",
+      stockGroupKey: "kenyer",
+      unit: "kg",
+      userId: "usera"
+    });
+
+    const response = await handleAppRequest(
+      {
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "GET",
+        path: "/api/household/items",
+        query: {
+          householdId: "household1"
+        }
+      },
+      {
+        createHouseholdRepository: () => new MongoHouseholdRepository(db),
+        getMongoClient: async () => ({
+          db: () => db
+        }) as never
+      }
+    );
+
+    expect(response.status).toBe(200);
+    expect(JSON.parse(response.body)).toMatchObject({
+      household: {
+        id: "household1"
+      },
+      stockItems: [
+        {
+          displayName: "Kenyér",
+          stockStatus: "below_limit"
+        }
+      ]
+    });
+  });
+
+  it("creates and updates a custom household stock item for a signed-in member", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "usera",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "user",
+      secret: "test-secret"
+    });
+    const db = createFakeDb();
+    const repository = new MongoHouseholdRepository(db);
+    await repository.setupCollections();
+    await repository.createHousehold({
+      createdAt: "2026-07-09T10:00:00.000Z",
+      createdByUserId: "usera",
+      id: "household1",
+      name: "Demo household"
+    });
+
+    const createResponse = await handleAppRequest(
+      {
+        bodyText: JSON.stringify({
+          currentAmount: 0,
+          displayName: "Flour",
+          gtin: "5991234567890",
+          householdId: "household1",
+          minLimit: 1.5,
+          sourceName: "manual-demo",
+          sourceProductUrl: "https://example.test/flour",
+          stockedAt: "2026-07-09T10:10:00.000Z",
+          stockGroupKey: "flour",
+          unit: "kg"
+        }),
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "POST",
+        path: "/api/household/items"
+      },
+      {
+        createHouseholdRepository: () => new MongoHouseholdRepository(db),
+        getMongoClient: async () => ({
+          db: () => db
+        }) as never
+      }
+    );
+
+    expect(createResponse.status).toBe(200);
+    const createdPage = JSON.parse(createResponse.body) as {
+      stockItems: Array<{
+        displayName: string;
+        gtin?: string | null;
+        id: string;
+        minLimit: number;
+        sourceName?: string | null;
+        sourceProductUrl?: string | null;
+      }>;
+    };
+    expect(createdPage.stockItems).toEqual([
+      expect.objectContaining({
+        displayName: "Flour",
+        gtin: "5991234567890",
+        minLimit: 1.5,
+        sourceName: "manual-demo",
+        sourceProductUrl: "https://example.test/flour"
+      })
+    ]);
+
+    const createdItemId = createdPage.stockItems[0]!.id;
+    const updateResponse = await handleAppRequest(
+      {
+        bodyText: JSON.stringify({
+          currentAmount: 0.8,
+          gtin: "5991234567891",
+          householdId: "household1",
+          id: createdItemId,
+          minLimit: 2,
+          sourceName: "manual-update",
+          unit: "kg"
+        }),
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "PATCH",
+        path: "/api/household/items"
+      },
+      {
+        createHouseholdRepository: () => new MongoHouseholdRepository(db),
+        getMongoClient: async () => ({
+          db: () => db
+        }) as never
+      }
+    );
+
+    expect(updateResponse.status).toBe(200);
+    expect(JSON.parse(updateResponse.body)).toMatchObject({
+      stockItems: [
+        {
+          currentAmount: 0.8,
+          displayName: "Flour",
+          gtin: "5991234567891",
+          minLimit: 2,
+          sourceName: "manual-update",
+          sourceProductUrl: "https://example.test/flour",
+          stockStatus: "below_limit"
+        }
+      ]
+    });
+  });
+
+  it("blocks household stock access for users outside the household", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "outsider",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "user",
+      secret: "test-secret"
+    });
+    const db = createFakeDb();
+    const repository = new MongoHouseholdRepository(db);
+    await repository.setupCollections();
+    await repository.createHousehold({
+      createdAt: "2026-07-09T10:00:00.000Z",
+      createdByUserId: "usera",
+      id: "household1",
+      name: "Demo household"
+    });
+
+    const response = await handleAppRequest(
+      {
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "GET",
+        path: "/api/household/items",
+        query: {
+          householdId: "household1"
+        }
+      },
+      {
+        createHouseholdRepository: () => new MongoHouseholdRepository(db),
+        getMongoClient: async () => ({
+          db: () => db
+        }) as never
+      }
+    );
+
+    expect(response.status).toBe(404);
+    expect(JSON.parse(response.body)).toEqual({
+      error: "household_not_found"
     });
   });
 
@@ -162,7 +391,7 @@ describe("handleAppRequest auth guards", () => {
         authorization: `Bearer ${token}`
       },
       method: "POST",
-      path: "/api/health/backfill-unvalidated-products"
+      path: "/api/admin/dashboard/backfill-unvalidated-products"
     });
 
     expect(response.status).toBe(401);
@@ -191,7 +420,7 @@ describe("handleAppRequest auth guards", () => {
           authorization: `Bearer ${token}`
         },
         method: "POST",
-        path: "/api/health/backfill-unvalidated-products"
+        path: "/api/admin/dashboard/backfill-unvalidated-products"
       },
       {
         createCatalogRepository: () => ({
@@ -240,7 +469,7 @@ describe("handleAppRequest auth guards", () => {
           authorization: `Bearer ${token}`
         },
         method: "POST",
-        path: "/api/health/upgrade-catalog-validators"
+        path: "/api/admin/dashboard/upgrade-catalog-validators"
       },
       {
         createCatalogRepository: () => ({
@@ -287,7 +516,7 @@ describe("handleAppRequest auth guards", () => {
           authorization: `Bearer ${token}`
         },
         method: "POST",
-        path: "/api/health/upgrade-catalog-validators"
+        path: "/api/admin/dashboard/upgrade-catalog-validators"
       },
       {
         createCatalogRepository: () => ({
@@ -331,7 +560,7 @@ describe("handleAppRequest auth guards", () => {
           authorization: `Bearer ${token}`
         },
         method: "POST",
-        path: "/api/health/backfill-unvalidated-products"
+        path: "/api/admin/dashboard/backfill-unvalidated-products"
       },
       {
         createCatalogRepository: () => ({
@@ -378,7 +607,7 @@ describe("handleAppRequest auth guards", () => {
           authorization: `Bearer ${token}`
         },
         method: "POST",
-        path: "/api/health/backfill-unvalidated-products"
+        path: "/api/admin/dashboard/backfill-unvalidated-products"
       },
       {
         createCatalogRepository: () => ({
@@ -419,7 +648,7 @@ describe("handleAppRequest auth guards", () => {
         authorization: `Bearer ${token}`
       },
       method: "GET",
-      path: "/api/health"
+      path: "/api/admin/dashboard/health"
     });
 
     expect(response.status).toBe(401);
@@ -427,6 +656,135 @@ describe("handleAppRequest auth guards", () => {
       error: "unauthorized",
       message: "Sign in as an admin to view this resource."
     });
+  });
+
+  it("rejects demo household reseed without an admin token", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+
+    const response = await handleAppRequest({
+      headers: {},
+      method: "POST",
+      path: "/api/admin/dashboard/reseed-demo-household"
+    });
+
+    expect(response.status).toBe(401);
+    expect(JSON.parse(response.body)).toEqual({
+      error: "unauthorized",
+      message: "Sign in as an admin to view this resource."
+    });
+  });
+
+  it("rejects demo household reseed for a valid non-admin token", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+
+    const token = createUserToken({
+      email: "user@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "user",
+      secret: "test-secret"
+    });
+
+    const response = await handleAppRequest({
+      headers: {
+        authorization: `Bearer ${token}`
+      },
+      method: "POST",
+      path: "/api/admin/dashboard/reseed-demo-household"
+    });
+
+    expect(response.status).toBe(401);
+    expect(JSON.parse(response.body)).toEqual({
+      error: "unauthorized",
+      message: "Sign in as an admin to view this resource."
+    });
+  });
+
+  it("reseeds the demo household for an admin without touching unrelated users", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+    vi.stubEnv("SEED_DEMO_HOUSEHOLD_PASSWORD", "demo-password");
+
+    const token = createUserToken({
+      email: "admin@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "admin",
+      secret: "test-secret"
+    });
+    const db = createFakeDb();
+    await db.collection("users").insertOne({
+      authProvider: "bootstrap_credentials",
+      createdAt: new Date("2026-07-09T08:00:00.000Z"),
+      email: "outside_user",
+      passwordHash: "hash",
+      role: "user",
+      status: "active",
+      updatedAt: new Date("2026-07-09T08:00:00.000Z")
+    });
+
+    const firstResponse = await handleAppRequest(
+      {
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "POST",
+        path: "/api/admin/dashboard/reseed-demo-household"
+      },
+      {
+        getMongoClient: async () => ({
+          db: () => db
+        }) as never
+      }
+    );
+
+    expect(firstResponse.status).toBe(200);
+    expect(JSON.parse(firstResponse.body)).toMatchObject({
+      counts: {
+        households: 1,
+        localProducts: 12,
+        memberships: 2,
+        stockItems: 12,
+        users: 2
+      },
+      databaseName: "fake_db",
+      message: "Demo household data was reseeded."
+    });
+
+    const secondResponse = await handleAppRequest(
+      {
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "POST",
+        path: "/api/admin/dashboard/reseed-demo-household"
+      },
+      {
+        getMongoClient: async () => ({
+          db: () => db
+        }) as never
+      }
+    );
+
+    expect(secondResponse.status).toBe(200);
+    expect(JSON.parse(secondResponse.body)).toMatchObject({
+      counts: {
+        deletedHouseholds: 1,
+        deletedLocalProducts: 12,
+        deletedMemberships: 2,
+        deletedStockItems: 12,
+        deletedUsers: 2,
+        households: 1,
+        localProducts: 12,
+        memberships: 2,
+        stockItems: 12,
+        users: 2
+      }
+    });
+
+    const userEmails = db.__collections["users"]?.docs.map((user) => user.email).sort();
+    expect(userEmails).toEqual(["outside_user", "usera", "userb"]);
   });
 
   it("rejects admin product list requests for a valid non-admin token", async () => {

@@ -18,6 +18,7 @@ import type {
 } from "../catalog/v1/contracts.js";
 import { readAppConfig, type AppConfig } from "../config/app-config.js";
 import { getMongoClient } from "../db/mongo-client.js";
+import { MongoHouseholdRepository } from "../household/current/mongo-household-repository.js";
 import { MongoIngestionRepository } from "../ingestion/current/mongo-ingestion-repository.js";
 import type { IngestionRawSnapshotRecord } from "../ingestion/v1/contracts.js";
 import type {
@@ -131,6 +132,7 @@ export interface AppHandlerDependencies {
     upgradeCatalogValidators?(): Promise<CatalogValidatorUpgradeResult>;
     upsertCatalogSeedDataset?(dataset: CatalogV1SeedDataset): Promise<void>;
   };
+  createHouseholdRepository?: (database: Db) => MongoHouseholdRepository;
   createIngestionRepository?: (database: Db) => {
     findRawSnapshotById(id: string): Promise<IngestionRawSnapshotRecord | null>;
     findProductReviewItemById?(id: string): Promise<IngestionProductReviewItemRecord | null>;
@@ -274,6 +276,10 @@ function authenticateRequestUser(
 
 export function createDefaultCatalogRepository(database: Db): MongoCurrentCatalogRepository {
   return new MongoCurrentCatalogRepository(database);
+}
+
+export function createDefaultHouseholdRepository(database: Db): MongoHouseholdRepository {
+  return new MongoHouseholdRepository(database);
 }
 
 export function createDefaultIngestionRepository(database: Db): MongoIngestionRepository {

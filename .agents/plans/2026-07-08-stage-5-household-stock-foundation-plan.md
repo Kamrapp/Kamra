@@ -1,12 +1,18 @@
 # Stage 5 Household Stock Foundation Plan
 
-Status: Draft plan revalidated for sequential implementation
+Status: Completed on 2026-07-09
 
 ## Objective
 
 Implement the first user-facing household stock foundation so signed-in users can create or access a household, maintain household stock items, and link those items to catalog products when useful.
 
 This stage should turn the Stage 4 product pipeline into household value without treating shop/source stock as user-owned household inventory.
+
+Closeout:
+
+- Durable behavior documentation lives in `docs/household.md`.
+- Roadmap status is updated in `.agents/plans/initial-mvp-roadmap.md`.
+- Remaining shopping-list generation, notices, expiry, mobile, and catalog-linking enhancements are deferred to Stage 6, Stage 8, or post-MVP followups.
 
 ## Context Read
 
@@ -23,7 +29,7 @@ This stage should turn the Stage 4 product pipeline into household value without
 - `packages/kamra-api-server/src/http/routes/auth-routes.ts`
 - `src/app/product-lookup/product-catalog.component.ts` through current-session context
 - `src/app/home.component.ts`
-- `src/app/health-check.component.ts`
+- `src/app/dev-admin/admin-dashboard.component.ts`
 - `src/app/app.routes.ts`
 - `src/app/household/` current filesystem state
 
@@ -50,6 +56,7 @@ Use a short research gate only if a later implementation step introduces externa
 - Home should show a `low soon` category for items around or below stock limits and an all-stock block.
 - Stock entries should open a modal for managing stock, adding new household-local products with zero stock, editing the unit text, and quickly adjusting the minimum level with minus/input/plus controls.
 - Add future notes for showing stock value and a shopping-list block with generation and actions such as `push to mobile`.
+- Add a visible shopping-list generation placeholder on the home pulse with three preview levels: `Business as usual` includes below-limit and at-limit items, `Keep it chill` also includes low-soon items, and `Stock 'em up!` includes all tracked stock rows.
 - Add a post-MVP note for a mobile app focused on shopping list management and invoice reading.
 - Each household stock row should carry the date the stock was created/acquired, separate from audit metadata.
 - Seeded stock rows should include realistic acquisition dates and initial amounts, for example buying 1 kg of bread two days ago and having 0.2 kg left now.
@@ -121,6 +128,7 @@ Included:
 - `Low soon` home block for items at or near their minimum limits.
 - All-stock home block with item click/edit behavior.
 - Household stock modal for adding local products, editing unit text, editing current amount, and changing minimum limits through minus/input/plus controls.
+- A home pulse shopping-scale preview that changes the displayed candidate purchase count without generating or persisting a shopping list yet.
 - Manual current-amount updates treated as authoritative stock truth.
 - Reseedable demo household data for local/demo testing.
 - Admin health view update with seed/reseed actions, database health/validation, future feature toggles, and one reserved empty block.
@@ -130,6 +138,7 @@ Included:
 ## Non-Goals
 
 - No shopping list generation in Stage 5; that is Stage 6.
+- Stage 5 may expose a non-persistent shopping-scale preview only; clicking generate should remain a placeholder until Stage 6 implements list creation.
 - No low-stock notice engine beyond storing `currentAmount` and `minLimit`.
 - No expiry dates or buy-before buffer logic; that is Stage 8.
 - No public registration expansion.
@@ -270,7 +279,7 @@ The plan is executable sequentially if implementation follows these constraints:
 - Do not start the next step while the current step has failing validation.
 - Keep household-local products as the required product path; catalog linking fields are structural future-proofing only.
 - Keep demo reseed scoped to stable demo ids only: `userA`, `userB`, `household1`, and the seeded household-local products/items.
-- Keep the health/admin rework on the existing `src/app/health-check.component.ts` surface unless a separate dev-admin shell is planned later.
+- Keep the health/admin rework on a focused admin-dashboard surface under `src/app/dev-admin/` so the dev-admin boundary stays explicit.
 - Prefer deterministic domain helpers for low-soon classification and demo seed data so frontend and API code do not duplicate business decisions.
 - Use placeholder empty/loading data on new UI paths so the page does not blink or collapse during API reloads.
 - Add or update nearby docs whenever a new package area, route group, or data-writing script/route is introduced.
@@ -393,7 +402,7 @@ Sequential dependency rule:
   - `packages/kamra-api-server/src/http/app-handler.ts`
   - `packages/kamra-api-server/src/http/app-handler.test.ts`
 - Proposed route:
-  - `POST /api/admin/demo-household/reseed`
+  - `POST /api/admin/dashboard/reseed-demo-household`
 - Required behavior:
   - route requires the existing admin role check pattern; do not add ad hoc username/email checks
   - route returns counts for recreated users, household, memberships, local products, and stock items
@@ -477,7 +486,7 @@ Sequential dependency rule:
 
 - Goal: Make demo reseeding and validation tools easier to find without mixing them into the user household page.
 - Files likely affected:
-  - `src/app/health-check.component.ts`
+  - `src/app/dev-admin/admin-dashboard.component.ts`
   - admin API service for demo reseed
   - `src/app/i18n/en.json`
   - `src/app/i18n/hu.json`
@@ -576,9 +585,9 @@ Manual:
 - Household-local generic products should later be linkable to shared generic catalog products.
 - Admins should later be able to create shared generic catalog products from useful household-local products.
 - Stock cards should later show estimated value when price and product links make that meaningful.
-- A shopping-list block should later support generating the list from low-stock items and managing actions such as `push to mobile`.
+- A shopping-list block should later support generating the list from low-stock items and managing actions such as `push to mobile`; the current home-pulse scale preview defines the first three intended inclusion levels: `Business as usual` for below/at-limit stock, `Keep it chill` for below/at/low-soon stock, and `Stock 'em up!` for all tracked rows.
 - Post-MVP, plan a mobile app focused on shopping list management, in-store use, and invoice/receipt reading.
 
 ## Approval Checkpoint
 
-No Stage 5 implementation is approved by this draft alone. Review this plan, adjust the scope if needed, then approve Step 1 as the first commit-sized implementation slice.
+Completed. Future work should start from Stage 6 planning rather than reopening this Stage 5 implementation plan unless a regression is found.

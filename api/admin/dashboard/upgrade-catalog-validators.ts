@@ -1,11 +1,10 @@
 import type { IncomingMessage, ServerResponse } from "http";
 
-import { handleNodeRequest } from "../packages/kamra-api-server/src/http/node-adapter.js";
+import { handleNodeRequest } from "../../../packages/kamra-api-server/src/http/node-adapter.js";
 
-// Vercel Function route for /api/health.
+// Vercel Function route for /api/admin/dashboard/upgrade-catalog-validators.
 // Keep this entrypoint thin: it delegates to the shared Kamra API server package.
-// Local development uses scripts/local-api.ts, which calls the same shared handler.
-export default async function health(
+export default async function upgradeCatalogValidators(
   request: IncomingMessage,
   response: ServerResponse
 ): Promise<void> {

@@ -32,6 +32,12 @@ npm run seed
 
 Data-writing script. Check seed docs and environment before running outside local/smoke databases.
 
+Current registered seeds include the admin identity, catalog v1 sample data, and the demo household reset seed.
+
+Demo household seeding uses `SEED_DEMO_HOUSEHOLD_PASSWORD`. If the value is missing, `npm run seed` will prompt before running that optional seed.
+The current demo login identifiers are `usera` and `userb`, matching the auth layer's lowercase login normalization.
+Admins can also reset the same stable dataset from `/admin/dashboard`, which calls `POST /api/admin/dashboard/reseed-demo-household`.
+
 ### `catalog-smoke.ts`
 
 Checks current catalog collection setup against MongoDB.
