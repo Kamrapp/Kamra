@@ -11,28 +11,50 @@ import {
 import { LocalizationService, type TranslationKey } from "./shared/localization.service";
 import { ToastService } from "./shared/toast.service";
 
-interface CreateStockDraft {
-  currentAmount: number;
-  displayName: string;
-  initialAmount: number;
-  minLimit: number;
-  note: string;
-  stockGroupKey: string;
-  stockedAt: string;
-  unit: string;
-}
+type EditorMode = "create" | "edit";
+type ShoppingScale = "usual" | "chill" | "stock_up";
 
-interface EditStockDraft {
+interface StockDraft {
   currentAmount: number;
   displayName: string;
+  gtin: string;
   id: string;
   initialAmount: number;
   minLimit: number;
   note: string;
+  sourceName: string;
+  sourceProductUrl: string;
   stockedAt: string;
   stockGroupKey: string;
   unit: string;
 }
+
+interface ShoppingScaleOption {
+  key: ShoppingScale;
+  labelKey: TranslationKey;
+}
+
+const shoppingScaleOptions: readonly ShoppingScaleOption[] = [
+  {
+    key: "usual",
+    labelKey: "household.shoppingScaleUsual"
+  },
+  {
+    key: "chill",
+    labelKey: "household.shoppingScaleChill"
+  },
+  {
+    key: "stock_up",
+    labelKey: "household.shoppingScaleStockUp"
+  }
+] as const;
+
+const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], number> = {
+  below_limit: 0,
+  at_limit: 1,
+  low_soon: 2,
+  steady: 3
+};
 
 @Component({
   selector: "app-home",
@@ -105,35 +127,51 @@ interface EditStockDraft {
         </article>
       </section>
     } @else {
-      <section class="home-board live-board" aria-labelledby="home-title">
-        <div class="pulse-card" [attr.aria-label]="loc.t('home.activityPreview')">
-          <div class="pulse-orbit pulse-orbit-live">
-            <span></span>
-            <span></span>
-            <span></span>
-            <strong>{{ lowSoonItems().length }}</strong>
-            <small>{{ loc.t("home.lowSoon") }}</small>
+      <section class="stock-workspace" aria-labelledby="home-title">
+        <section class="pulse-card stock-pulse" [attr.aria-label]="loc.t('home.activityPreview')">
+          <div class="pulse-topline">
+            <div>
+              <p class="eyebrow">{{ loc.t("home.today") }}</p>
+              <h1 id="home-title">{{ loc.t("home.liveTitle") }}</h1>
+            </div>
+
+            <button
+              class="cart-button"
+              type="button"
+              [attr.aria-label]="loc.t('household.generateShoppingList')"
+              [attr.title]="loc.t('household.generateShoppingList')"
+              (click)="showShoppingListPlaceholder()"
+            >
+              <span aria-hidden="true">🛒+</span>
+            </button>
           </div>
 
-          <div class="pulse-list">
-            @for (item of pulsePreviewItems(); track item.id) {
-              <div class="pulse-row" [class.strong]="item.stockStatus === 'below_limit' || item.stockStatus === 'at_limit'">
-                <span>{{ item.displayName }}</span>
-                <span>{{ loc.t(stockStatusTranslationKey(item.stockStatus)) }}</span>
+          <div class="pulse-control-row">
+            <div class="shopping-scale" [attr.aria-label]="loc.t('household.shoppingScale')">
+              <input
+                class="scale-slider"
+                type="range"
+                min="0"
+                max="2"
+                step="1"
+                [ngModel]="shoppingScaleIndex()"
+                (ngModelChange)="setShoppingScaleIndex($event)"
+                [attr.aria-label]="loc.t('household.shoppingScale')"
+              />
+              <div class="scale-labels" aria-hidden="true">
+                @for (option of shoppingScaleOptions; track option.key) {
+                  <span [class.active-scale-label]="shoppingScale() === option.key">{{ loc.t(option.labelKey) }}</span>
+                }
               </div>
-            } @empty {
-              <div class="pulse-row">
-                <span>{{ loc.t("home.allSteady") }}</span>
-                <span>{{ loc.t("home.steady") }}</span>
-              </div>
-            }
-          </div>
-        </div>
+            </div>
 
-        <div class="home-copy">
-          <p class="eyebrow">{{ loc.t("home.today") }}</p>
-          <h1 id="home-title">{{ loc.t("home.liveTitle") }}</h1>
-          <p>{{ loc.t("home.liveDescription") }}</p>
+            <div class="pulse-orbit pulse-orbit-live">
+              <span></span>
+              <span></span>
+              <span></span>
+              <strong>{{ shoppingItemCount() }}</strong>
+            </div>
+          </div>
 
           <div class="household-bar">
             <label class="household-select">
@@ -154,216 +192,179 @@ interface EditStockDraft {
             </button>
           </div>
 
-          <dl class="mini-stats">
-            <div>
-              <dt>{{ loc.t("home.lowSoon") }}</dt>
-              <dd>{{ lowSoonItems().length }}</dd>
+          @if (loadState() === "loading" && !householdPage()) {
+            <section class="state-panel">
+              <p>{{ loc.t("household.loading") }}</p>
+            </section>
+          } @else if (errorMessage()) {
+            <section class="state-panel state-panel-error">
+              <h2>{{ loc.t("household.loadFailure") }}</h2>
+              <p>{{ errorMessage() }}</p>
+            </section>
+          } @else if (!households().length) {
+            <section class="state-panel">
+              <h2>{{ loc.t("household.noHouseholdTitle") }}</h2>
+              <p>{{ loc.t("household.noHouseholdDescription") }}</p>
+              <form class="stack-form" (ngSubmit)="createHousehold()">
+                <label>
+                  <span>{{ loc.t("household.householdName") }}</span>
+                  <input
+                    type="text"
+                    name="householdName"
+                    [(ngModel)]="createHouseholdName"
+                    [placeholder]="loc.t('household.householdNamePlaceholder')"
+                  />
+                </label>
+                <button class="ui-button ui-button-primary" type="submit" [disabled]="loadState() === 'loading'">
+                  {{ loc.t("household.createHousehold") }}
+                </button>
+              </form>
+            </section>
+          } @else {
+            <div class="stock-table-shell">
+              <div class="stock-table-header stock-table-grid" aria-hidden="true">
+                <span>{{ loc.t("common.product") }}</span>
+                <span>{{ loc.t("household.currentShort") }}</span>
+                <span>{{ loc.t("household.compare") }}</span>
+                <span>{{ loc.t("household.minShort") }}</span>
+                <span>{{ loc.t("common.state") }}</span>
+              </div>
+
+              <div class="stock-table-body">
+                @for (item of stockItemsByPriority(); track item.id) {
+                  <button
+                    class="stock-table-row stock-table-grid"
+                    type="button"
+                    [class.selected-row]="selectedItem()?.id === item.id"
+                    (click)="openEditor(item)"
+                  >
+                    <span class="stock-name">{{ item.displayName }}</span>
+                    <span>{{ formatAmount(item.currentAmount, item.unit) }}</span>
+                    <span
+                      class="relation-symbol"
+                      [class.relation-below]="item.stockStatus === 'below_limit' || item.stockStatus === 'at_limit'"
+                      [class.relation-watch]="item.stockStatus === 'low_soon'"
+                      [class.relation-steady]="item.stockStatus === 'steady'"
+                    >
+                      {{ relationSymbol(item.stockStatus) }}
+                    </span>
+                    <span>{{ formatAmount(item.minLimit, item.unit) }}</span>
+                    <span
+                      class="status-badge"
+                      [class.status-danger]="item.stockStatus === 'below_limit' || item.stockStatus === 'at_limit'"
+                      [class.status-watch]="item.stockStatus === 'low_soon'"
+                    >
+                      {{ loc.t(stockStatusTranslationKey(item.stockStatus)) }}
+                    </span>
+                  </button>
+                } @empty {
+                  <p class="empty-copy">{{ loc.t("household.noStockItems") }}</p>
+                }
+              </div>
             </div>
-            <div>
-              <dt>{{ loc.t("household.allStock") }}</dt>
-              <dd>{{ stockItems().length }}</dd>
-            </div>
-            <div>
-              <dt>{{ loc.t("household.customProducts") }}</dt>
-              <dd>{{ localProductCount() }}</dd>
-            </div>
-          </dl>
+
+            <button class="ui-button ui-button-primary add-new-button" type="button" (click)="startCreateItem()">
+              {{ loc.t("household.addNewItem") }}
+            </button>
+          }
 
           @if (statusMessage()) {
             <p class="status-note">{{ statusMessage() }}</p>
           }
-        </div>
-      </section>
+        </section>
 
-      @if (loadState() === "loading" && !householdPage()) {
-        <section class="state-panel">
-          <p>{{ loc.t("household.loading") }}</p>
-        </section>
-      } @else if (errorMessage()) {
-        <section class="state-panel state-panel-error">
-          <h2>{{ loc.t("household.loadFailure") }}</h2>
-          <p>{{ errorMessage() }}</p>
-        </section>
-      } @else if (!households().length) {
-        <section class="state-panel">
-          <h2>{{ loc.t("household.noHouseholdTitle") }}</h2>
-          <p>{{ loc.t("household.noHouseholdDescription") }}</p>
-          <form class="stack-form" (ngSubmit)="createHousehold()">
+        <section class="editor-panel" [attr.aria-label]="loc.t('household.selectedItem')">
+          <p class="card-kicker">{{ editorMode() === "create" ? loc.t("household.addNewItem") : loc.t("household.selectedItem") }}</p>
+          <h2>{{ editorTitle() }}</h2>
+
+          <form class="stock-form" (ngSubmit)="saveEditor()">
             <label>
-              <span>{{ loc.t("household.householdName") }}</span>
+              <span>{{ loc.t("common.name") }}</span>
               <input
                 type="text"
-                name="householdName"
-                [(ngModel)]="createHouseholdName"
-                [placeholder]="loc.t('household.householdNamePlaceholder')"
+                name="editorDisplayName"
+                [ngModel]="editorDraft.displayName"
+                (ngModelChange)="setEditorDisplayName($event)"
+                [placeholder]="loc.t('household.stockNamePlaceholder')"
               />
             </label>
-            <button class="ui-button ui-button-primary" type="submit" [disabled]="loadState() === 'loading'">
-              {{ loc.t("household.createHousehold") }}
+
+            <div class="split-fields">
+              <label>
+                <span>{{ loc.t("household.currentAmount") }}</span>
+                <input type="number" step="0.01" name="editorCurrentAmount" [(ngModel)]="editorDraft.currentAmount" />
+              </label>
+              <label>
+                <span>{{ loc.t("household.minLimit") }}</span>
+                <input type="number" step="0.01" name="editorMinLimit" [(ngModel)]="editorDraft.minLimit" />
+              </label>
+            </div>
+
+            <div class="split-fields">
+              <label>
+                <span>{{ loc.t("household.unit") }}</span>
+                <input type="text" name="editorUnit" [(ngModel)]="editorDraft.unit" />
+              </label>
+              <label>
+                <span>{{ loc.t("household.stockedAt") }}</span>
+                <input type="date" name="editorStockedAt" [(ngModel)]="editorDraft.stockedAt" />
+              </label>
+            </div>
+
+            <button class="details-toggle" type="button" (click)="toggleDetails()">
+              <span>{{ detailsOpen() ? loc.t("household.hideAdditionalDetails") : loc.t("household.showAdditionalDetails") }}</span>
+              <strong aria-hidden="true">{{ detailsOpen() ? "−" : "+" }}</strong>
             </button>
-          </form>
-        </section>
-      } @else if (householdPage(); as page) {
-        <section class="manager-grid" [attr.aria-label]="loc.t('household.stockManager')">
-          <article class="manager-card">
-            <p class="card-kicker">{{ loc.t("household.lowSoon") }}</p>
-            <h2>{{ loc.t("household.pulseTitle") }}</h2>
-            <div class="chip-list">
-              @for (item of lowSoonItems(); track item.id) {
-                <button class="stock-chip" type="button" (click)="openEditor(item)">
-                  <span>{{ item.displayName }}</span>
-                  <strong>{{ formatAmount(item.currentAmount, item.unit) }}</strong>
-                </button>
-              } @empty {
-                <p class="empty-copy">{{ loc.t("household.allSteadyDescription") }}</p>
-              }
-            </div>
-          </article>
 
-          <article class="manager-card">
-            <p class="card-kicker">{{ loc.t("household.customStocks") }}</p>
-            <h2>{{ loc.t("household.addStockTitle") }}</h2>
-            <form class="stock-form" (ngSubmit)="createStockItem()">
-              <label>
-                <span>{{ loc.t("common.name") }}</span>
-                <input
-                  type="text"
-                  name="createDisplayName"
-                  [ngModel]="createStockDraft.displayName"
-                  (ngModelChange)="setCreateDisplayName($event)"
-                  [placeholder]="loc.t('household.stockNamePlaceholder')"
-                />
-              </label>
-
-              <div class="split-fields">
-                <label>
-                  <span>{{ loc.t("household.unit") }}</span>
-                  <input type="text" name="createUnit" [(ngModel)]="createStockDraft.unit" />
-                </label>
-                <label>
-                  <span>{{ loc.t("household.stockedAt") }}</span>
-                  <input type="date" name="createStockedAt" [(ngModel)]="createStockDraft.stockedAt" />
-                </label>
-              </div>
-
-              <div class="split-fields">
-                <label>
-                  <span>{{ loc.t("household.currentAmount") }}</span>
-                  <input type="number" step="0.01" name="createCurrentAmount" [(ngModel)]="createStockDraft.currentAmount" />
-                </label>
-                <label>
-                  <span>{{ loc.t("household.minLimit") }}</span>
-                  <input type="number" step="0.01" name="createMinLimit" [(ngModel)]="createStockDraft.minLimit" />
-                </label>
-              </div>
-
-              <label>
-                <span>{{ loc.t("household.stockGroupKey") }}</span>
-                <input type="text" name="createStockGroupKey" [(ngModel)]="createStockDraft.stockGroupKey" />
-              </label>
-
-              <label>
-                <span>{{ loc.t("editor.note") }}</span>
-                <textarea name="createNote" rows="3" [(ngModel)]="createStockDraft.note"></textarea>
-              </label>
-
-              <button class="ui-button ui-button-primary" type="submit" [disabled]="mutationState() === 'saving'">
-                {{ mutationState() === "saving" ? loc.t("common.loading") : loc.t("household.addCustomStock") }}
-              </button>
-            </form>
-          </article>
-        </section>
-
-        <section class="inventory-grid">
-          <article class="manager-card inventory-card">
-            <div class="inventory-header">
-              <div>
-                <p class="card-kicker">{{ loc.t("household.stockManager") }}</p>
-                <h2>{{ loc.t("household.allStock") }}</h2>
-              </div>
-            </div>
-
-            <div class="inventory-list">
-              @for (item of stockItems(); track item.id) {
-                <button class="inventory-row" type="button" (click)="openEditor(item)">
-                  <div>
-                    <p class="row-title">{{ item.displayName }}</p>
-                    <p class="row-subtitle">{{ formatAmount(item.currentAmount, item.unit) }} / {{ formatAmount(item.minLimit, item.unit) }}</p>
-                  </div>
-                  <span class="status-badge" [class.status-danger]="item.stockStatus === 'below_limit' || item.stockStatus === 'at_limit'" [class.status-watch]="item.stockStatus === 'low_soon'">
-                    {{ loc.t(stockStatusTranslationKey(item.stockStatus)) }}
-                  </span>
-                </button>
-              } @empty {
-                <p class="empty-copy">{{ loc.t("household.noStockItems") }}</p>
-              }
-            </div>
-          </article>
-
-          <article class="manager-card">
-            <p class="card-kicker">{{ loc.t("household.selectedItem") }}</p>
-            <h2>{{ selectedItem()?.displayName || loc.t("household.editorTitle") }}</h2>
-
-            @if (selectedItem()) {
-              <form class="stock-form" (ngSubmit)="saveSelectedItem()">
-                <label>
-                  <span>{{ loc.t("common.name") }}</span>
-                  <input type="text" name="editDisplayName" [(ngModel)]="editDraft.displayName" />
-                </label>
-
+            @if (detailsOpen()) {
+              <div class="additional-details">
                 <div class="split-fields">
                   <label>
-                    <span>{{ loc.t("household.currentAmount") }}</span>
-                    <input type="number" step="0.01" name="editCurrentAmount" [(ngModel)]="editDraft.currentAmount" />
+                    <span>{{ loc.t("household.initialAmountOptional") }}</span>
+                    <input type="number" step="0.01" name="editorInitialAmount" [(ngModel)]="editorDraft.initialAmount" />
                   </label>
                   <label>
-                    <span>{{ loc.t("household.minLimit") }}</span>
-                    <input type="number" step="0.01" name="editMinLimit" [(ngModel)]="editDraft.minLimit" />
+                    <span>{{ loc.t("household.stockGroupKeyOptional") }}</span>
+                    <input type="text" name="editorStockGroupKey" [(ngModel)]="editorDraft.stockGroupKey" />
                   </label>
                 </div>
 
-                <div class="split-fields">
-                  <label>
-                    <span>{{ loc.t("household.initialAmount") }}</span>
-                    <input type="number" step="0.01" name="editInitialAmount" [(ngModel)]="editDraft.initialAmount" />
-                  </label>
-                  <label>
-                    <span>{{ loc.t("household.unit") }}</span>
-                    <input type="text" name="editUnit" [(ngModel)]="editDraft.unit" />
-                  </label>
-                </div>
+                <label>
+                  <span>{{ loc.t("household.gtinOptional") }}</span>
+                  <input type="text" name="editorGtin" [(ngModel)]="editorDraft.gtin" inputmode="numeric" />
+                </label>
 
                 <div class="split-fields">
                   <label>
-                    <span>{{ loc.t("household.stockedAt") }}</span>
-                    <input type="date" name="editStockedAt" [(ngModel)]="editDraft.stockedAt" />
+                    <span>{{ loc.t("household.sourceNameOptional") }}</span>
+                    <input type="text" name="editorSourceName" [(ngModel)]="editorDraft.sourceName" />
                   </label>
                   <label>
-                    <span>{{ loc.t("household.stockGroupKey") }}</span>
-                    <input type="text" name="editStockGroupKey" [(ngModel)]="editDraft.stockGroupKey" />
+                    <span>{{ loc.t("household.sourceProductUrlOptional") }}</span>
+                    <input type="url" name="editorSourceProductUrl" [(ngModel)]="editorDraft.sourceProductUrl" />
                   </label>
                 </div>
 
                 <label>
                   <span>{{ loc.t("editor.note") }}</span>
-                  <textarea name="editNote" rows="3" [(ngModel)]="editDraft.note"></textarea>
+                  <textarea name="editorNote" rows="3" [(ngModel)]="editorDraft.note"></textarea>
                 </label>
-
-                <div class="editor-actions">
-                  <button class="ui-button ui-button-primary" type="submit" [disabled]="mutationState() === 'saving'">
-                    {{ mutationState() === "saving" ? loc.t("common.loading") : loc.t("common.save") }}
-                  </button>
-                  <button class="ui-button ui-button-quiet" type="button" (click)="archiveSelectedItem()" [disabled]="mutationState() === 'saving'">
-                    {{ loc.t("common.delete") }}
-                  </button>
-                </div>
-              </form>
-            } @else {
-              <p class="empty-copy">{{ loc.t("household.selectItemDescription") }}</p>
+              </div>
             }
-          </article>
+
+            <div class="editor-actions">
+              <button class="ui-button ui-button-primary" type="submit" [disabled]="mutationState() === 'saving'">
+                {{ mutationState() === "saving" ? loc.t("common.loading") : loc.t("common.save") }}
+              </button>
+              @if (editorMode() === "edit") {
+                <button class="ui-button ui-button-quiet" type="button" (click)="archiveSelectedItem()" [disabled]="mutationState() === 'saving'">
+                  {{ loc.t("common.delete") }}
+                </button>
+              }
+            </div>
+          </form>
         </section>
-      }
+      </section>
     }
   `,
   styles: [
@@ -372,9 +373,19 @@ interface EditStockDraft {
         display: grid;
         gap: var(--space-7);
         min-height: 100%;
+        --scale-usual: #8e979b;
+        --scale-chill: #6d91b3;
+        --scale-stock-up: #e7b85a;
       }
 
-      .home-board {
+      :host-context(:root[data-theme="dark"]) {
+        --scale-usual: #a8afb1;
+        --scale-chill: #86add0;
+        --scale-stock-up: #f2c96c;
+      }
+
+      .home-board,
+      .stock-workspace {
         align-items: stretch;
         display: grid;
         gap: var(--space-5);
@@ -384,20 +395,26 @@ interface EditStockDraft {
       .pulse-card,
       .home-copy,
       article,
-      .state-panel {
+      .state-panel,
+      .editor-panel {
         background: var(--surface-shell-background);
         border: 1px solid var(--line-panel);
         border-radius: var(--radius-ui);
         box-shadow: var(--surface-panel-shadow);
       }
 
+      .pulse-card,
+      .editor-panel {
+        align-content: start;
+        display: grid;
+        gap: var(--space-4);
+        padding: clamp(1rem, 3vw, 1.5rem);
+      }
+
       .pulse-card {
         background: var(--pulse-card-background);
-        display: grid;
-        gap: var(--space-5);
         min-height: 20rem;
         overflow: hidden;
-        padding: clamp(1rem, 3vw, 1.5rem);
         position: relative;
       }
 
@@ -413,9 +430,35 @@ interface EditStockDraft {
         width: 42%;
       }
 
+      .stock-pulse > * {
+        position: relative;
+        z-index: 1;
+      }
+
+      .pulse-topline,
+      .household-bar,
+      .split-fields,
+      .editor-actions {
+        align-items: center;
+        display: flex;
+        gap: var(--space-3);
+      }
+
+      .pulse-topline,
+      .household-bar {
+        justify-content: space-between;
+      }
+
+      .pulse-control-row {
+        align-items: center;
+        display: grid;
+        gap: var(--space-4);
+        grid-template-columns: minmax(9rem, 0.75fr) minmax(8rem, 1fr);
+        min-height: 10rem;
+      }
+
       .pulse-orbit {
         align-items: center;
-        align-self: center;
         display: grid;
         justify-self: center;
         min-height: 10rem;
@@ -450,56 +493,59 @@ interface EditStockDraft {
         width: 10rem;
       }
 
-      .pulse-orbit-live strong,
-      .pulse-orbit-live small {
+      .pulse-orbit-live strong {
+        color: var(--color-text);
+        font-size: 2.65rem;
+        line-height: 1;
         position: relative;
         z-index: 1;
       }
 
-      .pulse-orbit-live strong {
-        color: var(--color-text);
-        font-size: clamp(1.8rem, 6vw, 2.8rem);
-        line-height: 1;
-      }
-
-      .pulse-orbit-live small {
-        color: var(--color-text-muted);
-        font-size: 0.78rem;
-        font-weight: 800;
-        text-transform: uppercase;
-      }
-
-      .pulse-list,
-      .chip-list,
-      .inventory-list,
-      .stock-form,
-      .stack-form {
-        display: grid;
-        gap: var(--space-2);
-      }
-
-      .pulse-row,
-      .stock-chip,
-      .inventory-row {
+      .shopping-scale {
         align-items: center;
-        background: var(--pulse-row-background);
-        border: 1px solid var(--pulse-row-border);
-        border-radius: var(--radius-ui);
-        color: var(--pulse-row-text);
-        display: flex;
-        justify-content: space-between;
-        min-height: 3rem;
-        padding: 0.7rem 0.9rem;
+        display: grid;
+        gap: var(--space-3);
+        grid-template-columns: 2.4rem minmax(0, 1fr);
+        min-height: 9rem;
       }
 
-      .pulse-row.strong {
-        font-weight: 700;
+      .scale-slider {
+        accent-color: var(--scale-chill);
+        appearance: slider-vertical;
+        height: 8.8rem;
+        width: 2.1rem;
+      }
+
+      .scale-labels {
+        color: var(--color-text-muted);
+        display: grid;
+        font-size: 0.76rem;
+        font-weight: 800;
+        gap: var(--space-3);
+      }
+
+      .active-scale-label {
+        color: var(--color-text);
+      }
+
+      .cart-button {
+        align-items: center;
+        background: color-mix(in srgb, var(--color-accent-leaf) 22%, var(--surface-soft-background) 78%);
+        border: 1px solid var(--line-panel);
+        border-radius: var(--radius-ui);
+        color: var(--color-text);
+        cursor: pointer;
+        display: inline-flex;
+        font-size: 1.35rem;
+        font-weight: 900;
+        justify-content: center;
+        min-height: 2.75rem;
+        min-width: 3.4rem;
       }
 
       .home-copy,
-      .manager-card,
       .state-panel {
-        align-content: start;
+        align-content: center;
         display: grid;
         gap: var(--space-4);
         padding: clamp(1.1rem, 3vw, 1.75rem);
@@ -510,6 +556,7 @@ interface EditStockDraft {
         color: var(--color-text-muted);
         font-size: 0.78rem;
         font-weight: 700;
+        letter-spacing: 0;
         margin: 0;
         text-transform: uppercase;
       }
@@ -525,36 +572,22 @@ interface EditStockDraft {
       h1 {
         color: var(--color-text);
         font-family: var(--font-display);
-        font-size: clamp(2rem, 5vw, 3.2rem);
+        font-size: 2.55rem;
         line-height: 1.04;
       }
 
       h2,
+      .stock-name,
       .row-title {
         color: var(--color-text);
       }
 
       .home-copy > p,
       .empty-copy,
-      .row-subtitle,
       .status-note,
       .state-panel p {
         color: var(--color-text-muted);
         line-height: 1.6;
-      }
-
-      .household-bar,
-      .split-fields,
-      .editor-actions,
-      .inventory-header {
-        align-items: center;
-        display: flex;
-        gap: var(--space-3);
-      }
-
-      .household-bar,
-      .inventory-header {
-        justify-content: space-between;
       }
 
       .household-select,
@@ -569,6 +602,159 @@ interface EditStockDraft {
 
       .household-select {
         min-width: min(22rem, 100%);
+      }
+
+      .stock-table-shell {
+        border: 1px solid var(--line-panel);
+        border-radius: var(--radius-ui);
+        overflow: hidden;
+      }
+
+      .stock-table-grid {
+        display: grid;
+        gap: var(--space-2);
+        grid-template-columns: minmax(9rem, 1.5fr) minmax(4.5rem, 0.72fr) 2.4rem minmax(4.5rem, 0.72fr) minmax(6.5rem, 0.9fr);
+      }
+
+      .stock-table-header {
+        background: color-mix(in srgb, var(--pulse-row-background) 72%, transparent);
+        color: var(--color-text-muted);
+        font-size: 0.72rem;
+        font-weight: 900;
+        padding: 0.55rem 0.75rem;
+        text-transform: uppercase;
+      }
+
+      .stock-table-body {
+        max-height: 18rem;
+        overflow: auto;
+      }
+
+      .stock-table-row {
+        align-items: center;
+        background: var(--pulse-row-background);
+        border: 0;
+        border-bottom: 1px solid var(--pulse-row-border);
+        color: var(--pulse-row-text);
+        cursor: pointer;
+        font: inherit;
+        min-height: 3.2rem;
+        padding: 0.65rem 0.75rem;
+        text-align: left;
+        width: 100%;
+      }
+
+      .stock-table-row:hover,
+      .selected-row {
+        background: var(--row-hover-background);
+      }
+
+      .stock-name {
+        font-weight: 900;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .relation-symbol {
+        align-items: center;
+        border-radius: var(--radius-ui);
+        display: inline-flex;
+        font-family: var(--font-mono);
+        font-size: 1.1rem;
+        font-weight: 900;
+        justify-content: center;
+        min-height: 2rem;
+      }
+
+      .relation-below {
+        color: var(--color-status-danger-text);
+      }
+
+      .relation-watch {
+        color: var(--color-status-warning);
+      }
+
+      .relation-steady {
+        color: var(--color-accent-leaf-strong);
+      }
+
+      .status-badge {
+        background: color-mix(in srgb, var(--color-accent-leaf) 12%, var(--surface-soft-background));
+        border-radius: var(--radius-ui);
+        color: var(--color-text);
+        display: inline-flex;
+        font-size: 0.72rem;
+        font-weight: 900;
+        justify-content: center;
+        min-height: 1.9rem;
+        padding: 0.3rem 0.5rem;
+        text-transform: uppercase;
+      }
+
+      .status-danger {
+        background: color-mix(in srgb, var(--color-status-danger) 14%, var(--surface-soft-background));
+      }
+
+      .status-watch {
+        background: color-mix(in srgb, var(--color-status-warning) 22%, var(--surface-soft-background));
+      }
+
+      .add-new-button {
+        justify-self: start;
+      }
+
+      .stock-form,
+      .stack-form,
+      .additional-details {
+        display: grid;
+        gap: var(--space-3);
+      }
+
+      .stock-form input,
+      .stock-form textarea,
+      .stack-form input,
+      .household-select select {
+        background: var(--form-field-background);
+        border: 1px solid var(--line-subtle);
+        border-radius: var(--radius-ui);
+        color: var(--color-text);
+        font: inherit;
+        min-height: 2.2rem;
+        padding: 0.45rem 0.55rem;
+      }
+
+      .stock-form textarea {
+        min-height: 6rem;
+        resize: vertical;
+      }
+
+      .split-fields {
+        align-items: stretch;
+      }
+
+      .split-fields label {
+        flex: 1 1 0;
+      }
+
+      .details-toggle {
+        align-items: center;
+        background: var(--control-quiet-background);
+        border: 1px solid var(--control-quiet-border);
+        border-radius: var(--radius-ui);
+        color: var(--control-quiet-text);
+        cursor: pointer;
+        display: flex;
+        font: inherit;
+        font-weight: 800;
+        justify-content: space-between;
+        min-height: 2.4rem;
+        padding: 0.45rem 0.65rem;
+      }
+
+      .additional-details {
+        border-top: 1px solid var(--line-subtle);
+        padding-top: var(--space-3);
       }
 
       .mini-stats {
@@ -599,84 +785,21 @@ interface EditStockDraft {
         font-weight: 700;
       }
 
-      .placeholder-grid,
-      .manager-grid,
-      .inventory-grid {
+      .placeholder-grid {
         display: grid;
         gap: var(--space-4);
-      }
-
-      .placeholder-grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
-      }
-
-      .manager-grid,
-      .inventory-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
       article {
         display: grid;
         gap: var(--space-2);
         min-height: 10rem;
-      }
-
-      .stock-form input,
-      .stock-form textarea,
-      .stack-form input,
-      .household-select select {
-        background: var(--surface-shell-background);
-        border: 1px solid var(--line-subtle);
-        border-radius: var(--radius-ui);
-        color: var(--color-text);
-        font: inherit;
-        min-height: 2.2rem;
-        padding: 0.45rem 0.55rem;
-      }
-
-      .stock-form textarea {
-        min-height: 6.5rem;
-        resize: vertical;
-      }
-
-      .split-fields {
-        align-items: stretch;
-      }
-
-      .split-fields label {
-        flex: 1 1 0;
-      }
-
-      .stock-chip,
-      .inventory-row {
-        cursor: pointer;
-        text-align: left;
-      }
-
-      .inventory-row {
-        background: var(--surface-soft-background);
-      }
-
-      .status-badge {
-        background: color-mix(in srgb, var(--color-accent-leaf) 12%, white);
-        border-radius: var(--radius-pill);
-        color: var(--color-text);
-        font-size: 0.76rem;
-        font-weight: 800;
-        padding: 0.3rem 0.6rem;
-        text-transform: uppercase;
-      }
-
-      .status-danger {
-        background: color-mix(in srgb, #d86248 16%, white);
-      }
-
-      .status-watch {
-        background: color-mix(in srgb, #e2b84c 24%, white);
+        padding: clamp(1rem, 2vw, 1.25rem);
       }
 
       .state-panel-error {
-        border-color: color-mix(in srgb, #d86248 45%, var(--line-panel));
+        border-color: color-mix(in srgb, var(--color-status-danger) 45%, var(--line-panel));
       }
 
       @keyframes breathe {
@@ -707,11 +830,13 @@ interface EditStockDraft {
         .home-board {
           grid-template-columns: minmax(20rem, 0.85fr) minmax(0, 1.15fr);
         }
+
+        .stock-workspace {
+          grid-template-columns: minmax(26rem, 1.2fr) minmax(20rem, 0.8fr);
+        }
       }
 
       @media (max-width: 900px) {
-        .manager-grid,
-        .inventory-grid,
         .placeholder-grid {
           grid-template-columns: 1fr;
         }
@@ -722,12 +847,24 @@ interface EditStockDraft {
           grid-template-columns: 1fr;
         }
 
+        .pulse-topline,
         .household-bar,
         .split-fields,
-        .editor-actions,
-        .inventory-header {
+        .editor-actions {
           align-items: stretch;
           flex-direction: column;
+        }
+
+        .pulse-control-row {
+          grid-template-columns: 1fr;
+        }
+
+        .stock-table-shell {
+          overflow-x: auto;
+        }
+
+        .stock-table-grid {
+          min-width: 38rem;
         }
       }
     `
@@ -739,27 +876,38 @@ export class HomeComponent {
   readonly loc = inject(LocalizationService);
   private readonly toast = inject(ToastService);
 
-  readonly editorItemId = signal<string | null>(null);
+  readonly detailsOpen = signal(false);
+  readonly editorMode = signal<EditorMode>("create");
   readonly errorMessage = signal("");
   readonly householdPage = signal<HouseholdStockPage | null>(null);
   readonly households = signal<HouseholdListItem[]>([]);
   readonly loadState = signal<"idle" | "loading" | "ready" | "error">("idle");
   readonly mutationState = signal<"idle" | "saving">("idle");
   readonly selectedHouseholdId = signal<string>("");
+  readonly selectedItemId = signal<string | null>(null);
+  readonly shoppingScale = signal<ShoppingScale>("chill");
   readonly statusMessage = signal("");
+  readonly shoppingScaleOptions = shoppingScaleOptions;
   createHouseholdName = "";
-  createStockDraft: CreateStockDraft = createEmptyCreateStockDraft();
-  editDraft: EditStockDraft = createEmptyEditStockDraft();
+  editorDraft: StockDraft = createEmptyStockDraft();
   private loadSerial = 0;
 
   readonly stockItems = computed(() => this.householdPage()?.stockItems ?? []);
-  readonly lowSoonItems = computed(() =>
-    this.stockItems().filter((item) => item.stockStatus !== "steady")
+  readonly stockItemsByPriority = computed(() =>
+    [...this.stockItems()].sort((left, right) =>
+      stockStatusPriority[left.stockStatus] - stockStatusPriority[right.stockStatus]
+      || left.displayName.localeCompare(right.displayName, this.loc.language() === "hu" ? "hu-HU" : "en-US")
+    )
   );
-  readonly pulsePreviewItems = computed(() => this.lowSoonItems().slice(0, 5));
-  readonly localProductCount = computed(() => this.householdPage()?.localProducts.length ?? 0);
+  readonly shoppingItems = computed(() =>
+    this.stockItemsByPriority().filter((item) => shouldBuyForScale(item.stockStatus, this.shoppingScale()))
+  );
+  readonly shoppingItemCount = computed(() => this.shoppingItems().length);
   readonly selectedItem = computed(() =>
-    this.stockItems().find((item) => item.id === this.editorItemId()) ?? null
+    this.stockItems().find((item) => item.id === this.selectedItemId()) ?? null
+  );
+  readonly shoppingScaleIndex = computed(() =>
+    shoppingScaleOptions.findIndex((option) => option.key === this.shoppingScale())
   );
 
   private readonly authWatcher = effect(() => {
@@ -792,40 +940,12 @@ export class HomeComponent {
     await this.loadHouseholdContext(result.household.id);
   }
 
-  async createStockItem(): Promise<void> {
-    const householdId = this.selectedHouseholdId();
-    if (!householdId) {
-      return;
+  editorTitle(): string {
+    if (this.editorMode() === "create") {
+      return this.loc.t("household.addStockTitle");
     }
 
-    const draft = this.createStockDraft;
-    if (!draft.displayName.trim() || !draft.unit.trim()) {
-      this.toast.push(this.loc.t("household.createDraftInvalid"), "warning");
-      return;
-    }
-
-    this.mutationState.set("saving");
-    const result = await this.household.createStockItem({
-      currentAmount: draft.currentAmount,
-      displayName: draft.displayName.trim(),
-      householdId,
-      initialAmount: draft.currentAmount,
-      minLimit: draft.minLimit,
-      note: draft.note.trim() || null,
-      stockedAt: toIsoDateTime(draft.stockedAt),
-      stockGroupKey: normalizeStockGroupKey(draft.stockGroupKey || draft.displayName),
-      unit: draft.unit.trim()
-    });
-    this.mutationState.set("idle");
-
-    if (result.status !== "ok") {
-      this.errorMessage.set(result.message);
-      return;
-    }
-
-    this.applyLoadedPage(result.page);
-    this.createStockDraft = createEmptyCreateStockDraft();
-    this.statusMessage.set(this.loc.t("household.stockSaved"));
+    return this.selectedItem()?.displayName || this.loc.t("household.editorTitle");
   }
 
   formatAmount(amount: number, unit: string): string {
@@ -833,23 +953,26 @@ export class HomeComponent {
   }
 
   openEditor(item: HouseholdStockItemListItem): void {
-    this.editorItemId.set(item.id);
-    this.editDraft = {
-      currentAmount: item.currentAmount,
-      displayName: item.displayName,
-      id: item.id,
-      initialAmount: item.initialAmount,
-      minLimit: item.minLimit,
-      note: item.note ?? "",
-      stockedAt: item.stockedAt.slice(0, 10),
-      stockGroupKey: item.stockGroupKey,
-      unit: item.unit
+    this.editorMode.set("edit");
+    this.selectedItemId.set(item.id);
+    this.detailsOpen.set(false);
+    this.editorDraft = stockItemToDraft(item);
+  }
+
+  relationSymbol(status: HouseholdStockItemListItem["stockStatus"]): string {
+    const symbols: Record<HouseholdStockItemListItem["stockStatus"], string> = {
+      at_limit: "=",
+      below_limit: "<",
+      low_soon: "~",
+      steady: ">"
     };
+
+    return symbols[status];
   }
 
   async archiveSelectedItem(): Promise<void> {
     const item = this.selectedItem();
-    if (!item) {
+    if (!item || this.editorMode() !== "edit") {
       return;
     }
 
@@ -865,9 +988,8 @@ export class HomeComponent {
       return;
     }
 
-    this.editorItemId.set(null);
-    this.editDraft = createEmptyEditStockDraft();
     this.applyLoadedPage(result.page);
+    this.startCreateItem();
     this.statusMessage.set(this.loc.t("household.stockArchived"));
   }
 
@@ -875,31 +997,49 @@ export class HomeComponent {
     await this.loadHouseholdContext(this.selectedHouseholdId() || undefined);
   }
 
-  async saveSelectedItem(): Promise<void> {
-    const item = this.selectedItem();
-    if (!item) {
+  async saveEditor(): Promise<void> {
+    const householdId = this.selectedHouseholdId();
+    if (!householdId) {
       return;
     }
 
-    const draft = this.editDraft;
+    const draft = this.editorDraft;
     if (!draft.displayName.trim() || !draft.unit.trim()) {
-      this.toast.push(this.loc.t("household.editDraftInvalid"), "warning");
+      this.toast.push(this.loc.t("household.createDraftInvalid"), "warning");
       return;
     }
 
     this.mutationState.set("saving");
-    const result = await this.household.updateStockItem({
-      currentAmount: draft.currentAmount,
-      displayName: draft.displayName.trim(),
-      householdId: item.householdId,
-      id: draft.id,
-      initialAmount: draft.initialAmount,
-      minLimit: draft.minLimit,
-      note: draft.note.trim() || null,
-      stockedAt: toIsoDateTime(draft.stockedAt),
-      stockGroupKey: normalizeStockGroupKey(draft.stockGroupKey || draft.displayName),
-      unit: draft.unit.trim()
-    });
+    const result = this.editorMode() === "create"
+      ? await this.household.createStockItem({
+          currentAmount: draft.currentAmount,
+          displayName: draft.displayName.trim(),
+          gtin: nullableTrim(draft.gtin),
+          householdId,
+          initialAmount: initialAmountForCreate(draft),
+          minLimit: draft.minLimit,
+          note: nullableTrim(draft.note),
+          sourceName: nullableTrim(draft.sourceName),
+          sourceProductUrl: nullableTrim(draft.sourceProductUrl),
+          stockedAt: toIsoDateTime(draft.stockedAt),
+          stockGroupKey: normalizeStockGroupKey(draft.stockGroupKey || draft.displayName),
+          unit: draft.unit.trim()
+        })
+      : await this.household.updateStockItem({
+          currentAmount: draft.currentAmount,
+          displayName: draft.displayName.trim(),
+          gtin: nullableTrim(draft.gtin),
+          householdId,
+          id: draft.id,
+          initialAmount: draft.initialAmount,
+          minLimit: draft.minLimit,
+          note: nullableTrim(draft.note),
+          sourceName: nullableTrim(draft.sourceName),
+          sourceProductUrl: nullableTrim(draft.sourceProductUrl),
+          stockedAt: toIsoDateTime(draft.stockedAt),
+          stockGroupKey: normalizeStockGroupKey(draft.stockGroupKey || draft.displayName),
+          unit: draft.unit.trim()
+        });
     this.mutationState.set("idle");
 
     if (result.status !== "ok") {
@@ -908,9 +1048,13 @@ export class HomeComponent {
     }
 
     this.applyLoadedPage(result.page);
-    const refreshedItem = result.page.stockItems.find((stockItem) => stockItem.id === draft.id);
-    if (refreshedItem) {
-      this.openEditor(refreshedItem);
+    if (this.editorMode() === "create") {
+      this.startCreateItem();
+    } else {
+      const refreshedItem = result.page.stockItems.find((stockItem) => stockItem.id === draft.id);
+      if (refreshedItem) {
+        this.openEditor(refreshedItem);
+      }
     }
     this.statusMessage.set(this.loc.t("household.stockSaved"));
   }
@@ -924,17 +1068,36 @@ export class HomeComponent {
     await this.loadHouseholdPage(householdId, this.loadSerial);
   }
 
-  setCreateDisplayName(value: string): void {
-    const previousSlug = normalizeStockGroupKey(this.createStockDraft.displayName);
+  setEditorDisplayName(value: string): void {
+    const previousSlug = normalizeStockGroupKey(this.editorDraft.displayName);
     const nextSlug = normalizeStockGroupKey(value);
 
-    this.createStockDraft = {
-      ...this.createStockDraft,
+    this.editorDraft = {
+      ...this.editorDraft,
       displayName: value,
-      stockGroupKey: !this.createStockDraft.stockGroupKey || this.createStockDraft.stockGroupKey === previousSlug
+      stockGroupKey: !this.editorDraft.stockGroupKey || this.editorDraft.stockGroupKey === previousSlug
         ? nextSlug
-        : this.createStockDraft.stockGroupKey
+        : this.editorDraft.stockGroupKey
     };
+  }
+
+  setShoppingScaleIndex(value: number | string): void {
+    const index = Number(value);
+    const option = shoppingScaleOptions[index];
+    if (option) {
+      this.shoppingScale.set(option.key);
+    }
+  }
+
+  showShoppingListPlaceholder(): void {
+    this.toast.push(this.loc.t("household.shoppingListComingSoon"), "info");
+  }
+
+  startCreateItem(): void {
+    this.editorMode.set("create");
+    this.selectedItemId.set(null);
+    this.detailsOpen.set(false);
+    this.editorDraft = createEmptyStockDraft();
   }
 
   stockStatusTranslationKey(status: HouseholdStockItemListItem["stockStatus"]): TranslationKey {
@@ -948,12 +1111,15 @@ export class HomeComponent {
     return keys[status];
   }
 
+  toggleDetails(): void {
+    this.detailsOpen.update((open) => !open);
+  }
+
   private applyLoadedPage(page: HouseholdStockPage): void {
     this.householdPage.set(page);
     this.selectedHouseholdId.set(page.household.id);
-    if (this.editorItemId() && !page.stockItems.some((item) => item.id === this.editorItemId())) {
-      this.editorItemId.set(null);
-      this.editDraft = createEmptyEditStockDraft();
+    if (this.selectedItemId() && !page.stockItems.some((item) => item.id === this.selectedItemId())) {
+      this.startCreateItem();
     }
   }
 
@@ -1019,44 +1185,43 @@ export class HomeComponent {
 
   private resetState(): void {
     this.createHouseholdName = "";
-    this.createStockDraft = createEmptyCreateStockDraft();
-    this.editDraft = createEmptyEditStockDraft();
-    this.editorItemId.set(null);
+    this.detailsOpen.set(false);
+    this.editorMode.set("create");
+    this.editorDraft = createEmptyStockDraft();
     this.errorMessage.set("");
     this.householdPage.set(null);
     this.households.set([]);
     this.loadState.set("idle");
     this.mutationState.set("idle");
     this.selectedHouseholdId.set("");
+    this.selectedItemId.set(null);
     this.statusMessage.set("");
   }
 }
 
-function createEmptyCreateStockDraft(): CreateStockDraft {
+function createEmptyStockDraft(): StockDraft {
   return {
     currentAmount: 0,
     displayName: "",
+    gtin: "",
+    id: "",
     initialAmount: 0,
     minLimit: 1,
     note: "",
-    stockGroupKey: "",
+    sourceName: "",
+    sourceProductUrl: "",
     stockedAt: todayDateInputValue(),
+    stockGroupKey: "",
     unit: "db"
   };
 }
 
-function createEmptyEditStockDraft(): EditStockDraft {
-  return {
-    currentAmount: 0,
-    displayName: "",
-    id: "",
-    initialAmount: 0,
-    minLimit: 0,
-    note: "",
-    stockedAt: todayDateInputValue(),
-    stockGroupKey: "",
-    unit: ""
-  };
+function initialAmountForCreate(draft: StockDraft): number {
+  return draft.initialAmount > 0 ? draft.initialAmount : draft.currentAmount;
+}
+
+function nullableTrim(value: string): string | null {
+  return value.trim() || null;
 }
 
 function normalizeStockGroupKey(value: string): string {
@@ -1069,6 +1234,38 @@ function normalizeStockGroupKey(value: string): string {
     .slice(0, 80);
 
   return slug || "item";
+}
+
+function shouldBuyForScale(
+  status: HouseholdStockItemListItem["stockStatus"],
+  scale: ShoppingScale
+): boolean {
+  if (scale === "usual") {
+    return status === "below_limit" || status === "at_limit";
+  }
+
+  if (scale === "chill") {
+    return status === "below_limit" || status === "at_limit" || status === "low_soon";
+  }
+
+  return true;
+}
+
+function stockItemToDraft(item: HouseholdStockItemListItem): StockDraft {
+  return {
+    currentAmount: item.currentAmount,
+    displayName: item.displayName,
+    gtin: item.gtin ?? "",
+    id: item.id,
+    initialAmount: item.initialAmount,
+    minLimit: item.minLimit,
+    note: item.note ?? "",
+    sourceName: item.sourceName ?? "",
+    sourceProductUrl: item.sourceProductUrl ?? "",
+    stockedAt: item.stockedAt.slice(0, 10),
+    stockGroupKey: item.stockGroupKey,
+    unit: item.unit
+  };
 }
 
 function todayDateInputValue(): string {

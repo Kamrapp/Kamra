@@ -20,8 +20,11 @@ export interface HouseholdLocalProductListItem {
   catalogProductNameSnapshot?: string | null;
   createdAt: string;
   displayName: string;
+  gtin?: string | null;
   householdId: string;
   id: string;
+  sourceName?: string | null;
+  sourceProductUrl?: string | null;
   status: "active" | "archived";
   stockGroupKey: string;
   updatedAt: string;
@@ -33,12 +36,15 @@ export interface HouseholdStockItemListItem {
   createdAt: string;
   currentAmount: number;
   displayName: string;
+  gtin?: string | null;
   householdId: string;
   householdProductId: string;
   id: string;
   initialAmount: number;
   minLimit: number;
   note?: string | null;
+  sourceName?: string | null;
+  sourceProductUrl?: string | null;
   status: "active" | "archived";
   stockedAt: string;
   stockGroupKey: string;
@@ -56,10 +62,13 @@ export interface HouseholdStockPage {
 export interface CreateHouseholdStockInput {
   currentAmount: number;
   displayName: string;
+  gtin?: string | null;
   householdId: string;
   initialAmount?: number;
   minLimit: number;
   note?: string | null;
+  sourceName?: string | null;
+  sourceProductUrl?: string | null;
   stockedAt: string;
   stockGroupKey: string;
   unit: string;
@@ -68,11 +77,14 @@ export interface CreateHouseholdStockInput {
 export interface UpdateHouseholdStockInput {
   currentAmount?: number;
   displayName?: string;
+  gtin?: string | null;
   householdId: string;
   id: string;
   initialAmount?: number;
   minLimit?: number;
   note?: string | null;
+  sourceName?: string | null;
+  sourceProductUrl?: string | null;
   stockedAt?: string;
   stockGroupKey?: string;
   unit?: string;

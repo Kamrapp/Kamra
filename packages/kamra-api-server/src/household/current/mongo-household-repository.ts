@@ -335,12 +335,15 @@ export class MongoHouseholdRepository {
       createdByUserId: input.createdByUserId,
       currentAmount: input.currentAmount,
       displayName: localProduct.displayName,
+      gtin: localProduct.gtin ?? null,
       householdId: input.householdId,
       householdProductId,
       id: createHouseholdStockItemId(input.householdId, householdProductId, input.stockedAt),
       initialAmount,
       minLimit: input.minLimit,
       note: input.note ?? null,
+      sourceName: localProduct.sourceName ?? null,
+      sourceProductUrl: localProduct.sourceProductUrl ?? null,
       stockedAt: input.stockedAt,
       stockGroupKey: localProduct.stockGroupKey,
       status: "active",
@@ -392,6 +395,11 @@ export class MongoHouseholdRepository {
 
     const nextDisplayName = input.displayName ?? localProduct.displayName;
     const nextStockGroupKey = input.stockGroupKey ?? localProduct.stockGroupKey;
+    const nextGtin = input.gtin !== undefined ? input.gtin ?? null : localProduct.gtin ?? null;
+    const nextSourceName = input.sourceName !== undefined ? input.sourceName ?? null : localProduct.sourceName ?? null;
+    const nextSourceProductUrl = input.sourceProductUrl !== undefined
+      ? input.sourceProductUrl ?? null
+      : localProduct.sourceProductUrl ?? null;
     const nextCatalogProductId = input.catalogProductId !== undefined
       ? input.catalogProductId ?? null
       : localProduct.catalogProductId ?? null;
@@ -416,6 +424,9 @@ export class MongoHouseholdRepository {
           catalogProductId: nextCatalogProductId,
           catalogProductNameSnapshot: nextCatalogProductNameSnapshot,
           displayName: nextDisplayName,
+          gtin: nextGtin,
+          sourceName: nextSourceName,
+          sourceProductUrl: nextSourceProductUrl,
           stockGroupKey: nextStockGroupKey,
           updatedAt: input.updatedAt,
           updatedByUserId: input.updatedByUserId
@@ -435,9 +446,12 @@ export class MongoHouseholdRepository {
           catalogProductNameSnapshot: nextCatalogProductNameSnapshot,
           currentAmount: nextCurrentAmount,
           displayName: nextDisplayName,
+          gtin: nextGtin,
           initialAmount: nextInitialAmount,
           minLimit: nextMinLimit,
           note: nextNote,
+          sourceName: nextSourceName,
+          sourceProductUrl: nextSourceProductUrl,
           stockedAt: nextStockedAt,
           stockGroupKey: nextStockGroupKey,
           unit: nextUnit,
@@ -649,8 +663,11 @@ export class MongoHouseholdRepository {
       createdAt: input.createdAt,
       createdByUserId: input.createdByUserId,
       displayName: input.displayName,
+      gtin: input.gtin ?? null,
       householdId: input.householdId,
       id: householdProductId,
+      sourceName: input.sourceName ?? null,
+      sourceProductUrl: input.sourceProductUrl ?? null,
       stockGroupKey: input.stockGroupKey,
       status: "active",
       updatedAt: input.createdAt,
@@ -702,8 +719,11 @@ function toHouseholdLocalProductListItem(
     catalogProductNameSnapshot: product.catalogProductNameSnapshot ?? null,
     createdAt: product.createdAt,
     displayName: product.displayName,
+    gtin: product.gtin ?? null,
     householdId: product.householdId,
     id: product.id,
+    sourceName: product.sourceName ?? null,
+    sourceProductUrl: product.sourceProductUrl ?? null,
     stockGroupKey: product.stockGroupKey,
     status: product.status,
     updatedAt: product.updatedAt
@@ -719,12 +739,15 @@ function toHouseholdStockItemListItem(
     createdAt: stockItem.createdAt,
     currentAmount: stockItem.currentAmount,
     displayName: stockItem.displayName,
+    gtin: stockItem.gtin ?? null,
     householdId: stockItem.householdId,
     householdProductId: stockItem.householdProductId,
     id: stockItem.id,
     initialAmount: stockItem.initialAmount,
     minLimit: stockItem.minLimit,
     note: stockItem.note ?? null,
+    sourceName: stockItem.sourceName ?? null,
+    sourceProductUrl: stockItem.sourceProductUrl ?? null,
     stockedAt: stockItem.stockedAt,
     stockGroupKey: stockItem.stockGroupKey,
     stockStatus: classifyHouseholdStockStatus({

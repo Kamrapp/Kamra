@@ -19,10 +19,15 @@
 - Item: Added authenticated household API routes for household list/create and household stock list/create/update/archive.
 - Item: Added a frontend household stock service and replaced the signed-in home placeholder with live household pulse and stock-management UI.
 - Item: Validated the Stage 5 route + home slice with targeted route tests, full typecheck, lint, and a production build.
+- Item: Merged the signed-in home stock views into a two-panel pulse/editor layout with a priority-ordered scrollable stock table, shopping-scale preview, and add/edit editor mode.
+- Item: Added optional GTIN/source URL/source name household stock fields through contracts, validation, repository mapping, frontend service types, and the home editor additional-details section.
+- Item: Documented the Stage 5 shopping-list scale preview levels as non-persistent placeholders ahead of Stage 6 generation.
 
 ## Changed Files
 
 - Path: `.agents/sessions/2026-07-09-stage-5-household-stock-foundation.md`
+- Path: `.agents/plans/2026-07-08-stage-5-household-stock-foundation-plan.md`
+- Path: `docs/architecture.md`
 - Path: `packages/kamra-api-server/src/household/README.md`
 - Path: `packages/kamra-api-server/src/household/current/stock-status.ts`
 - Path: `packages/kamra-api-server/src/household/current/stock-status.test.ts`
@@ -64,6 +69,14 @@
 - Result: passed after household route + home slice
 - Ran: `npm run build`
 - Result: passed after household route + home slice; Angular build emitted a bundle-budget warning because the initial bundle reached 507.37 kB against a 500 kB budget
+- Ran: `npm test -- packages/kamra-api-server/src/http/app-handler.test.ts packages/kamra-api-server/src/household`
+- Result: passed after the home pulse/editor merge; 6 test files and 41 tests passed
+- Ran: `npm run typecheck`
+- Result: passed after the home pulse/editor merge
+- Ran: `npm run lint`
+- Result: passed after the home pulse/editor merge
+- Ran: `npm run build`
+- Result: passed after the home pulse/editor merge; Angular reported an initial bundle size of 512.23 kB
 
 ## Decisions
 
@@ -73,6 +86,8 @@
 - Reason: the stage plan explicitly calls for acquisition history and future catalog-linking room.
 - Decision: Store demo household users as lowercased login keys so they remain compatible with the auth layer's email normalization.
 - Reason: the current auth flow normalizes login identifiers to lowercase before lookup.
+- Decision: Keep Stage 5 shopping-list generation as a placeholder toast while allowing the home pulse count to preview three inclusion levels.
+- Reason: this supports the intended shopping-list shape without pretending generation/persistence exists before Stage 6.
 
 ## Open Issues
 
@@ -82,10 +97,12 @@
 - Impact: this keeps auth compatible today; ops/script docs now note the lowercase identifiers, and later UI copy should do the same if it displays demo credentials.
 - Issue: The home page now supports direct custom-stock management, but the plan’s richer dedicated modal flow is not implemented yet.
 - Impact: the core user journey works now, but a later Stage 5 follow-up can still refine this into the planned modal/editor experience if desired.
+- Issue: Shopping-list generation is still a placeholder toast; the scale only changes the displayed candidate item count in the pulse.
+- Impact: Stage 6 still needs real list generation, persistence, and downstream actions.
 - Issue: The admin demo reseed API and the health/admin page rework are still not implemented.
 - Impact: Stage 5 still needs the admin reseed route/button and the four-panel health/admin layout before the full stage is complete.
-- Issue: The Angular production build now exceeds the initial bundle budget by 7.37 kB.
-- Impact: the build still succeeds, but the home/dashboard additions pushed the web bundle past the configured warning threshold and may deserve a later trim pass.
+- Issue: The Angular production build initial bundle is now 512.23 kB.
+- Impact: the build still succeeds, but the home/dashboard additions may deserve a later trim pass if bundle budget pressure becomes distracting.
 
 ## Roadmap Or Plan Updates
 
@@ -98,4 +115,4 @@ Implement the admin demo reseed API next, then rework the health/admin page to e
 
 ## Notes For Future Agent
 
-The household package area now exists under `packages/kamra-api-server/src/household/` with contracts, schemas, validators, stock status helpers, Mongo repository tests, demo reseed support, and user-facing HTTP routes. The home page now consumes the new API through `src/app/household/household-stock.service.ts` and shows a real low-stock pulse plus custom stock editing for signed-in household members.
+The household package area now exists under `packages/kamra-api-server/src/household/` with contracts, schemas, validators, stock status helpers, Mongo repository tests, demo reseed support, and user-facing HTTP routes. The home page now consumes the new API through `src/app/household/household-stock.service.ts` and shows a real priority-ordered household stock pulse plus merged add/edit custom stock editing for signed-in household members. The pulse shopping scale is currently UI-only: `Business as usual` counts below-limit/at-limit rows, `Keep it chill` adds low-soon rows, and `Stock 'em up!` counts every tracked row.

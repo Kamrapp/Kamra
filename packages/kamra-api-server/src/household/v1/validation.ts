@@ -113,8 +113,11 @@ export function assertHouseholdLocalProductRecord(
   assertIsoDateString(value["createdAt"], `${label}.createdAt`);
   assertNonEmptyString(value["createdByUserId"], `${label}.createdByUserId`);
   assertNonEmptyString(value["displayName"], `${label}.displayName`);
+  assertOptionalNonEmptyString(value["gtin"], `${label}.gtin`);
   assertNonEmptyString(value["householdId"], `${label}.householdId`);
   assertNonEmptyString(value["id"], `${label}.id`);
+  assertOptionalNonEmptyString(value["sourceName"], `${label}.sourceName`);
+  assertOptionalNonEmptyString(value["sourceProductUrl"], `${label}.sourceProductUrl`);
   assertNonEmptyString(value["stockGroupKey"], `${label}.stockGroupKey`);
   assertEnum(value["status"], householdLocalProductStatuses, `${label}.status`);
   assertIsoDateString(value["updatedAt"], `${label}.updatedAt`);
@@ -132,12 +135,15 @@ export function assertHouseholdStockItemRecord(
   assertNonEmptyString(value["createdByUserId"], `${label}.createdByUserId`);
   assertNonNegativeNumber(value["currentAmount"], `${label}.currentAmount`);
   assertNonEmptyString(value["displayName"], `${label}.displayName`);
+  assertOptionalNonEmptyString(value["gtin"], `${label}.gtin`);
   assertNonEmptyString(value["householdId"], `${label}.householdId`);
   assertNonEmptyString(value["householdProductId"], `${label}.householdProductId`);
   assertNonEmptyString(value["id"], `${label}.id`);
   assertNonNegativeNumber(value["initialAmount"], `${label}.initialAmount`);
   assertNonNegativeNumber(value["minLimit"], `${label}.minLimit`);
   assertOptionalString(value["note"], `${label}.note`);
+  assertOptionalNonEmptyString(value["sourceName"], `${label}.sourceName`);
+  assertOptionalNonEmptyString(value["sourceProductUrl"], `${label}.sourceProductUrl`);
   assertIsoDateString(value["stockedAt"], `${label}.stockedAt`);
   assertNonEmptyString(value["stockGroupKey"], `${label}.stockGroupKey`);
   assertEnum(value["status"], householdStockItemStatuses, `${label}.status`);
@@ -175,11 +181,14 @@ export function assertCreateHouseholdStockItemRequest(
   assertOptionalNonEmptyString(value["catalogProductNameSnapshot"], `${label}.catalogProductNameSnapshot`);
   assertNonNegativeNumber(value["currentAmount"], `${label}.currentAmount`);
   assertNonEmptyString(value["displayName"], `${label}.displayName`);
+  assertOptionalNonEmptyString(value["gtin"], `${label}.gtin`);
   assertNonEmptyString(value["householdId"], `${label}.householdId`);
   assertOptionalNonEmptyString(value["householdProductId"], `${label}.householdProductId`);
   assertOptionalNonNegativeNumber(value["initialAmount"], `${label}.initialAmount`);
   assertNonNegativeNumber(value["minLimit"], `${label}.minLimit`);
   assertOptionalString(value["note"], `${label}.note`);
+  assertOptionalNonEmptyString(value["sourceName"], `${label}.sourceName`);
+  assertOptionalNonEmptyString(value["sourceProductUrl"], `${label}.sourceProductUrl`);
   assertIsoDateString(value["stockedAt"], `${label}.stockedAt`);
   assertNonEmptyString(value["stockGroupKey"], `${label}.stockGroupKey`);
   assertNonEmptyString(value["unit"], `${label}.unit`);
@@ -198,6 +207,7 @@ export function assertUpdateHouseholdStockItemRequest(
   if (value["displayName"] !== undefined) {
     assertNonEmptyString(value["displayName"], `${label}.displayName`);
   }
+  assertOptionalNonEmptyString(value["gtin"], `${label}.gtin`);
   assertNonEmptyString(value["householdId"], `${label}.householdId`);
   assertNonEmptyString(value["id"], `${label}.id`);
   if (value["initialAmount"] !== undefined) {
@@ -207,6 +217,8 @@ export function assertUpdateHouseholdStockItemRequest(
     assertNonNegativeNumber(value["minLimit"], `${label}.minLimit`);
   }
   assertOptionalString(value["note"], `${label}.note`);
+  assertOptionalNonEmptyString(value["sourceName"], `${label}.sourceName`);
+  assertOptionalNonEmptyString(value["sourceProductUrl"], `${label}.sourceProductUrl`);
   if (value["stockedAt"] !== undefined) {
     assertIsoDateString(value["stockedAt"], `${label}.stockedAt`);
   }
@@ -222,9 +234,12 @@ export function assertUpdateHouseholdStockItemRequest(
     value["catalogProductNameSnapshot"] !== undefined ||
     value["currentAmount"] !== undefined ||
     value["displayName"] !== undefined ||
+    value["gtin"] !== undefined ||
     value["initialAmount"] !== undefined ||
     value["minLimit"] !== undefined ||
     value["note"] !== undefined ||
+    value["sourceName"] !== undefined ||
+    value["sourceProductUrl"] !== undefined ||
     value["stockedAt"] !== undefined ||
     value["stockGroupKey"] !== undefined ||
     value["unit"] !== undefined;

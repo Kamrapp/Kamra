@@ -182,8 +182,11 @@ describe("handleAppRequest auth guards", () => {
         bodyText: JSON.stringify({
           currentAmount: 0,
           displayName: "Flour",
+          gtin: "5991234567890",
           householdId: "household1",
           minLimit: 1.5,
+          sourceName: "manual-demo",
+          sourceProductUrl: "https://example.test/flour",
           stockedAt: "2026-07-09T10:10:00.000Z",
           stockGroupKey: "flour",
           unit: "kg"
@@ -204,12 +207,22 @@ describe("handleAppRequest auth guards", () => {
 
     expect(createResponse.status).toBe(200);
     const createdPage = JSON.parse(createResponse.body) as {
-      stockItems: Array<{ id: string; minLimit: number; displayName: string }>;
+      stockItems: Array<{
+        displayName: string;
+        gtin?: string | null;
+        id: string;
+        minLimit: number;
+        sourceName?: string | null;
+        sourceProductUrl?: string | null;
+      }>;
     };
     expect(createdPage.stockItems).toEqual([
       expect.objectContaining({
         displayName: "Flour",
-        minLimit: 1.5
+        gtin: "5991234567890",
+        minLimit: 1.5,
+        sourceName: "manual-demo",
+        sourceProductUrl: "https://example.test/flour"
       })
     ]);
 
@@ -218,9 +231,11 @@ describe("handleAppRequest auth guards", () => {
       {
         bodyText: JSON.stringify({
           currentAmount: 0.8,
+          gtin: "5991234567891",
           householdId: "household1",
           id: createdItemId,
           minLimit: 2,
+          sourceName: "manual-update",
           unit: "kg"
         }),
         headers: {
@@ -243,7 +258,10 @@ describe("handleAppRequest auth guards", () => {
         {
           currentAmount: 0.8,
           displayName: "Flour",
+          gtin: "5991234567891",
           minLimit: 2,
+          sourceName: "manual-update",
+          sourceProductUrl: "https://example.test/flour",
           stockStatus: "below_limit"
         }
       ]

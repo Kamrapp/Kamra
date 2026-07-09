@@ -50,6 +50,7 @@ Use a short research gate only if a later implementation step introduces externa
 - Home should show a `low soon` category for items around or below stock limits and an all-stock block.
 - Stock entries should open a modal for managing stock, adding new household-local products with zero stock, editing the unit text, and quickly adjusting the minimum level with minus/input/plus controls.
 - Add future notes for showing stock value and a shopping-list block with generation and actions such as `push to mobile`.
+- Add a visible shopping-list generation placeholder on the home pulse with three preview levels: `Business as usual` includes below-limit and at-limit items, `Keep it chill` also includes low-soon items, and `Stock 'em up!` includes all tracked stock rows.
 - Add a post-MVP note for a mobile app focused on shopping list management and invoice reading.
 - Each household stock row should carry the date the stock was created/acquired, separate from audit metadata.
 - Seeded stock rows should include realistic acquisition dates and initial amounts, for example buying 1 kg of bread two days ago and having 0.2 kg left now.
@@ -121,6 +122,7 @@ Included:
 - `Low soon` home block for items at or near their minimum limits.
 - All-stock home block with item click/edit behavior.
 - Household stock modal for adding local products, editing unit text, editing current amount, and changing minimum limits through minus/input/plus controls.
+- A home pulse shopping-scale preview that changes the displayed candidate purchase count without generating or persisting a shopping list yet.
 - Manual current-amount updates treated as authoritative stock truth.
 - Reseedable demo household data for local/demo testing.
 - Admin health view update with seed/reseed actions, database health/validation, future feature toggles, and one reserved empty block.
@@ -130,6 +132,7 @@ Included:
 ## Non-Goals
 
 - No shopping list generation in Stage 5; that is Stage 6.
+- Stage 5 may expose a non-persistent shopping-scale preview only; clicking generate should remain a placeholder until Stage 6 implements list creation.
 - No low-stock notice engine beyond storing `currentAmount` and `minLimit`.
 - No expiry dates or buy-before buffer logic; that is Stage 8.
 - No public registration expansion.
@@ -576,7 +579,7 @@ Manual:
 - Household-local generic products should later be linkable to shared generic catalog products.
 - Admins should later be able to create shared generic catalog products from useful household-local products.
 - Stock cards should later show estimated value when price and product links make that meaningful.
-- A shopping-list block should later support generating the list from low-stock items and managing actions such as `push to mobile`.
+- A shopping-list block should later support generating the list from low-stock items and managing actions such as `push to mobile`; the current home-pulse scale preview defines the first three intended inclusion levels: `Business as usual` for below/at-limit stock, `Keep it chill` for below/at/low-soon stock, and `Stock 'em up!` for all tracked rows.
 - Post-MVP, plan a mobile app focused on shopping list management, in-store use, and invoice/receipt reading.
 
 ## Approval Checkpoint

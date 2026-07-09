@@ -194,6 +194,7 @@ Responsibilities:
 - balance cost, distance, and time once those inputs exist
 
 Early optimization may be intentionally simple.
+The first shopping-list scale should remain understandable before it becomes a full optimizer: `Business as usual` includes below-limit and at-limit household stock, `Keep it chill` also includes low-soon stock, and `Stock 'em up!` includes all tracked stock rows as a broad restock preview.
 
 ## Data Lifecycle
 
