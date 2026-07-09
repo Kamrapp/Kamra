@@ -1,5 +1,6 @@
 import {
   createRouteContext,
+  describeRequest,
   json,
   type AppHandlerDependencies,
   type AppRequest,
@@ -86,7 +87,8 @@ export async function handleAppRequest(
     return withCorsHeaders(request, context.config, await route.handle(request, context));
   } catch (error: unknown) {
     writeServerLog("error", "Unhandled application route failure", {
-      error
+      error,
+      ...describeRequest(request)
     });
 
     return withCorsHeaders(request, context.config, json(500, {

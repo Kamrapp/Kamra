@@ -63,13 +63,19 @@ export class AuthService {
       return;
     }
 
-    const response = await fetch(buildApiUrl("/api/admin/me"), {
-      headers: {
-        accept: "application/json",
-        ...this.getAuthorizationHeaders()
-      },
-      method: "GET"
-    });
+    let response: Response;
+    try {
+      response = await fetch(buildApiUrl("/api/admin/me"), {
+        headers: {
+          accept: "application/json",
+          ...this.getAuthorizationHeaders()
+        },
+        method: "GET"
+      });
+    } catch {
+      this.clearToken();
+      return;
+    }
 
     if (!response.ok) {
       this.clearToken();
@@ -81,14 +87,22 @@ export class AuthService {
   }
 
   async login(email: string, password: string): Promise<LoginResult> {
-    const response = await fetch(buildApiUrl("/api/login"), {
-      body: JSON.stringify({ email, password }),
-      headers: {
-        accept: "application/json",
-        "content-type": "application/json"
-      },
-      method: "POST"
-    });
+    let response: Response;
+    try {
+      response = await fetch(buildApiUrl("/api/login"), {
+        body: JSON.stringify({ email, password }),
+        headers: {
+          accept: "application/json",
+          "content-type": "application/json"
+        },
+        method: "POST"
+      });
+    } catch {
+      return {
+        message: this.loc.t("app.loginRequestFailed"),
+        status: "error"
+      };
+    }
 
     if (!response.ok) {
       return {
@@ -117,15 +131,20 @@ export class AuthService {
   }
 
   async updateUserPreferences(preferences: { language?: LanguagePreference; theme?: ThemePreference }): Promise<void> {
-    const response = await fetch(buildApiUrl("/api/admin/preferences"), {
-      body: JSON.stringify(preferences),
-      headers: {
-        accept: "application/json",
-        "content-type": "application/json",
-        ...this.getAuthorizationHeaders()
-      },
-      method: "PATCH"
-    });
+    let response: Response;
+    try {
+      response = await fetch(buildApiUrl("/api/admin/preferences"), {
+        body: JSON.stringify(preferences),
+        headers: {
+          accept: "application/json",
+          "content-type": "application/json",
+          ...this.getAuthorizationHeaders()
+        },
+        method: "PATCH"
+      });
+    } catch {
+      return;
+    }
 
     if (!response.ok) {
       return;

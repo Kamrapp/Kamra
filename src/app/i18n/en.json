@@ -19,6 +19,7 @@
     "loginFailure": "Login is not available right now.",
     "loginInvalid": "The email or password did not match an active user.",
     "loginNotConfigured": "Login is not configured for this environment yet.",
+    "loginRequestFailed": "The login request could not reach the API. Check the API URL and CORS configuration.",
     "logout": "Logout",
     "password": "Password",
     "primaryNavigation": "Primary",

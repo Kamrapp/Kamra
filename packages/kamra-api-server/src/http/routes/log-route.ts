@@ -1,5 +1,5 @@
 import { writeBrowserLog } from "../../logging/kamra-logger.js";
-import { json, type AppRoute } from "../app-route-context.js";
+import { describeRequest, json, type AppRoute } from "../app-route-context.js";
 
 export const logRoute: AppRoute = {
   match: (request) => request.method === "POST" && request.path === "/api/log",
@@ -15,7 +15,10 @@ export const logRoute: AppRoute = {
         return json(400, { error: "invalid_log_payload" });
       }
 
-      writeBrowserLog(payload.level, payload.message, payload.details);
+      writeBrowserLog(payload.level, payload.message, {
+        ...describeRequest(request),
+        details: payload.details
+      });
 
       return {
         body: "",
