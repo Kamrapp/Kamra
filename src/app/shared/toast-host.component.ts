@@ -34,12 +34,12 @@ import { ToastService } from "./toast.service";
 
       .toast {
         align-items: start;
-        background: color-mix(in srgb, white 86%, var(--color-surface) 14%);
+        background: var(--toast-background);
         border: 1px solid var(--line-panel);
         border-left-width: 0.3rem;
         border-radius: var(--radius-ui);
         box-shadow: var(--toast-shadow);
-        color: var(--color-text);
+        color: var(--toast-text);
         display: grid;
         gap: 0.65rem;
         grid-template-columns: minmax(0, 1fr) auto;
@@ -56,7 +56,7 @@ import { ToastService } from "./toast.service";
       .toast button {
         background: transparent;
         border: 0;
-        color: var(--color-text-muted);
+        color: var(--toast-text-muted);
         cursor: pointer;
         font: inherit;
         font-size: 1.1rem;

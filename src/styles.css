@@ -68,7 +68,10 @@
   --surface-shell-background: rgb(248 244 241 / 76%);
   --surface-shell-shadow: 0 1rem 2.4rem rgb(48 43 50 / 12%);
   --surface-soft-background: color-mix(in srgb, var(--color-background-soft) 72%, var(--color-card-tint) 28%);
+  --toast-background: color-mix(in srgb, white 86%, var(--color-surface) 14%);
   --toast-shadow: 0 1rem 2.4rem rgb(48 43 50 / 16%);
+  --toast-text: var(--color-text);
+  --toast-text-muted: var(--color-text-muted);
   --toast-error-border: color-mix(in srgb, var(--color-status-danger) 72%, var(--color-card-tint) 28%);
   --toast-info-border: color-mix(in srgb, var(--color-accent-sky) 68%, var(--color-card-tint) 32%);
   --toast-success-border: color-mix(in srgb, var(--color-accent-leaf-strong) 72%, var(--color-card-tint) 28%);
@@ -135,7 +138,15 @@
   --surface-shell-background: rgb(37 32 43 / 82%);
   --surface-shell-shadow: 0 1rem 2.4rem rgb(0 0 0 / 30%);
   --surface-soft-background: color-mix(in srgb, var(--color-background-soft) 74%, var(--color-surface) 26%);
+  --toast-background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-background-soft) 84%, var(--color-surface) 16%),
+      color-mix(in srgb, var(--color-background) 88%, black 12%)
+    );
   --toast-shadow: 0 1rem 2.4rem rgb(0 0 0 / 32%);
+  --toast-text: #f2ebdb;
+  --toast-text-muted: #c5b8a1;
   --toast-error-border: color-mix(in srgb, var(--color-status-danger) 64%, var(--color-card-tint) 36%);
   --toast-info-border: color-mix(in srgb, var(--color-accent-sky) 62%, var(--color-card-tint) 38%);
   --toast-success-border: color-mix(in srgb, var(--color-accent-leaf-strong) 64%, var(--color-card-tint) 36%);
