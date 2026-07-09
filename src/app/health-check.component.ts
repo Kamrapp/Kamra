@@ -67,7 +67,7 @@ interface HealthCheckItem {
 
         <div class="button-row">
           <button
-            class="run-button"
+            class="run-button ui-button"
             type="button"
             (click)="runHealthCheck()"
             [disabled]="isMaintenanceBusy()"
@@ -76,7 +76,7 @@ interface HealthCheckItem {
           </button>
 
           <button
-            class="maintenance-button"
+            class="maintenance-button ui-button ui-button-warm"
             type="button"
             [title]="loc.t('health.upgradeTitle')"
             (click)="upgradeCatalogValidators()"
@@ -86,7 +86,7 @@ interface HealthCheckItem {
           </button>
 
           <button
-            class="maintenance-button"
+            class="maintenance-button ui-button ui-button-warm"
             type="button"
             [title]="loc.t('health.backfillTitle')"
             (click)="backfillLegacyProductsAsUnvalidated()"
@@ -192,7 +192,7 @@ interface HealthCheckItem {
       }
 
       .status-panel {
-        background: color-mix(in srgb, var(--color-surface) 90%, white 10%);
+        background: var(--surface-panel-background);
         border: 1px solid var(--line-panel);
         border-radius: var(--radius-ui);
         box-shadow: var(--surface-panel-shadow);
@@ -221,17 +221,8 @@ interface HealthCheckItem {
       }
 
       .run-button {
-        background: var(--control-primary-background);
-        border: 1px solid var(--control-primary-border);
-        border-radius: var(--radius-ui);
-        color: white;
-        cursor: pointer;
-        font: inherit;
-        font-weight: 700;
         justify-self: start;
-        min-height: 2.75rem;
         min-width: 11rem;
-        padding: 0.72rem 1rem;
       }
 
       .button-row {
@@ -241,26 +232,7 @@ interface HealthCheckItem {
       }
 
       .maintenance-button {
-        background: color-mix(in srgb, var(--color-wood) 88%, white 12%);
-        border: 1px solid color-mix(in srgb, var(--color-wood) 72%, black 28%);
-        border-radius: var(--radius-ui);
-        color: white;
-        cursor: pointer;
-        font: inherit;
-        font-weight: 700;
-        min-height: 2.75rem;
         min-width: 13rem;
-        padding: 0.72rem 1rem;
-      }
-
-      .run-button:disabled {
-        cursor: progress;
-        opacity: 0.74;
-      }
-
-      .maintenance-button:disabled {
-        cursor: progress;
-        opacity: 0.74;
       }
 
       .maintenance-message {
@@ -276,8 +248,8 @@ interface HealthCheckItem {
       }
 
       .check-card {
-        background: color-mix(in srgb, var(--color-background-soft) 74%, white 26%);
-        border: 1px solid rgb(255 255 255 / 66%);
+        background: var(--surface-soft-background);
+        border: 1px solid var(--line-subtle);
         border-radius: var(--radius-ui);
         display: grid;
         gap: var(--space-3);
@@ -285,11 +257,11 @@ interface HealthCheckItem {
       }
 
       .check-card-ok {
-        border-color: color-mix(in srgb, var(--color-accent-leaf) 36%, white 64%);
+        border-color: color-mix(in srgb, var(--color-accent-leaf) 36%, var(--color-card-tint) 64%);
       }
 
       .check-card-problem {
-        border-color: color-mix(in srgb, var(--color-wood) 38%, white 62%);
+        border-color: color-mix(in srgb, var(--color-wood) 38%, var(--color-card-tint) 62%);
       }
 
       .check-heading {
@@ -307,9 +279,9 @@ interface HealthCheckItem {
       }
 
       .check-heading span {
-        background: rgb(255 255 255 / 60%);
+        background: color-mix(in srgb, var(--color-card-tint) 54%, var(--color-surface) 46%);
         border-radius: var(--radius-ui);
-        color: var(--color-text-muted);
+        color: var(--color-on-soft-accent);
         font-size: 0.78rem;
         font-weight: 700;
         padding: 0.35rem 0.55rem;
@@ -341,7 +313,7 @@ interface HealthCheckItem {
       }
 
       .error-block {
-        background: rgb(255 255 255 / 58%);
+        background: var(--surface-soft-background);
         border-radius: var(--radius-ui);
         display: grid;
         gap: 0.35rem;

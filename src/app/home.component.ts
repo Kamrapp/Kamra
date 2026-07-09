@@ -98,9 +98,7 @@ import { LocalizationService } from "./shared/localization.service";
       }
 
       .pulse-card {
-        background:
-          linear-gradient(145deg, rgb(248 244 241 / 90%), rgb(255 255 255 / 62%)),
-          color-mix(in srgb, var(--color-accent-sky) 18%, var(--color-surface));
+        background: var(--pulse-card-background);
         display: grid;
         gap: var(--space-5);
         min-height: 20rem;
@@ -114,7 +112,7 @@ import { LocalizationService } from "./shared/localization.service";
         background: linear-gradient(
           90deg,
           transparent,
-          rgb(255 255 255 / 46%),
+          var(--pulse-sheen-background),
           transparent
         );
         content: "";
@@ -146,7 +144,7 @@ import { LocalizationService } from "./shared/localization.service";
 
       .pulse-orbit span:nth-child(1) {
         animation: breathe 2200ms ease-in-out infinite;
-        background: color-mix(in srgb, var(--color-accent-leaf) 30%, white 70%);
+        background: var(--pulse-core-background);
         height: 4.8rem;
         width: 4.8rem;
       }
@@ -170,10 +168,10 @@ import { LocalizationService } from "./shared/localization.service";
 
       .pulse-row {
         align-items: center;
-        background: rgb(255 255 255 / 56%);
-        border: 1px solid rgb(255 255 255 / 72%);
+        background: var(--pulse-row-background);
+        border: 1px solid var(--pulse-row-border);
         border-radius: var(--radius-ui);
-        color: var(--color-text-muted);
+        color: var(--pulse-row-text);
         display: flex;
         justify-content: space-between;
         min-height: 3rem;
@@ -181,7 +179,7 @@ import { LocalizationService } from "./shared/localization.service";
       }
 
       .pulse-row.strong {
-        color: var(--color-text);
+        color: var(--pulse-row-text);
         font-weight: 700;
       }
 

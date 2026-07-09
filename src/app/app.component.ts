@@ -132,6 +132,7 @@ import { ToastService } from "./shared/toast.service";
               [routerLinkActiveOptions]="item.exact ? { exact: true } : { exact: false }"
               [style.--item-angle]="item.angle + 'deg'"
               [attr.aria-label]="loc.t(item.labelKey)"
+              [attr.data-label]="loc.t(item.labelKey)"
               (click)="closeMenu()"
             >
               <svg aria-hidden="true" viewBox="0 0 24 24">
@@ -239,10 +240,11 @@ import { ToastService } from "./shared/toast.service";
 
       .brand-title {
         color: var(--color-text-muted);
+        display: block;
         font-size: 0.76rem;
         font-weight: 700;
         line-height: 1.15;
-        max-width: 13rem;
+        min-width: min(13rem, 100%);
       }
 
       .auth-card {
@@ -448,7 +450,7 @@ import { ToastService } from "./shared/toast.service";
         min-height: 2.35rem;
         min-width: 2.35rem;
         opacity: 0.96;
-        overflow: hidden;
+        overflow: visible;
         padding: 0;
         pointer-events: auto;
         position: absolute;
@@ -489,7 +491,8 @@ import { ToastService } from "./shared/toast.service";
 
       .radial-nav-item:hover,
       .radial-nav-item.active {
-        background: color-mix(in srgb, var(--color-accent-sky) 28%, white 72%);
+        background: color-mix(in srgb, var(--color-accent-sky) 34%, var(--color-card-tint) 66%);
+        border-color: color-mix(in srgb, var(--color-accent-sky) 48%, var(--color-wood-deep) 52%);
       }
 
       .radial-nav-item svg {
@@ -498,6 +501,10 @@ import { ToastService } from "./shared/toast.service";
         height: 1rem;
         transition: height 220ms ease, width 220ms ease;
         width: 1rem;
+      }
+
+      .radial-nav-item.active svg {
+        color: var(--color-on-soft-accent);
       }
 
       .radial-menu-open .radial-nav-item svg {
