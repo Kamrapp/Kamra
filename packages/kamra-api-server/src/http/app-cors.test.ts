@@ -20,6 +20,19 @@ describe("handleAppRequest CORS", () => {
     });
   });
 
+  it("responds to bare health probes without authentication", async () => {
+    const response = await handleAppRequest({
+      headers: {},
+      method: "GET",
+      path: "/healthz"
+    });
+
+    expect(response.status).toBe(200);
+    expect(JSON.parse(response.body)).toEqual({
+      status: "ok"
+    });
+  });
+
   it("adds CORS headers for allowed exact origins", async () => {
     vi.stubEnv("CORS_ALLOWED_ORIGINS", "https://kamra.example");
 
