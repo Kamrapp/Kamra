@@ -1,5 +1,6 @@
 import { computed, inject, Injectable, signal } from "@angular/core";
 
+import { buildApiUrl } from "./api-url";
 import { readApiErrorMessage } from "./shared/api-errors";
 import { isLanguagePreference, LocalizationService, type LanguagePreference } from "./shared/localization.service";
 import { isThemePreference, type ThemePreference } from "./shared/theme-preference.service";
@@ -62,7 +63,7 @@ export class AuthService {
       return;
     }
 
-    const response = await fetch("/api/admin/me", {
+    const response = await fetch(buildApiUrl("/api/admin/me"), {
       headers: {
         accept: "application/json",
         ...this.getAuthorizationHeaders()
@@ -80,7 +81,7 @@ export class AuthService {
   }
 
   async login(email: string, password: string): Promise<LoginResult> {
-    const response = await fetch("/api/login", {
+    const response = await fetch(buildApiUrl("/api/login"), {
       body: JSON.stringify({ email, password }),
       headers: {
         accept: "application/json",
@@ -93,6 +94,8 @@ export class AuthService {
       return {
         message: response.status === 401
           ? this.loc.t("app.loginInvalid")
+          : response.status === 503
+            ? this.loc.t("app.loginNotConfigured")
           : await readApiErrorMessage(response, this.loc.t("app.loginFailure")),
         status: "error"
       };
@@ -106,7 +109,7 @@ export class AuthService {
   }
 
   async logout(): Promise<void> {
-    await fetch("/api/logout", {
+    await fetch(buildApiUrl("/api/logout"), {
       headers: this.getAuthorizationHeaders(),
       method: "POST"
     }).catch(() => undefined);
@@ -114,7 +117,7 @@ export class AuthService {
   }
 
   async updateUserPreferences(preferences: { language?: LanguagePreference; theme?: ThemePreference }): Promise<void> {
-    const response = await fetch("/api/admin/preferences", {
+    const response = await fetch(buildApiUrl("/api/admin/preferences"), {
       body: JSON.stringify(preferences),
       headers: {
         accept: "application/json",

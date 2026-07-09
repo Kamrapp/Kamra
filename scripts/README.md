@@ -10,7 +10,7 @@ Scripts should stay thin. Reusable logic belongs in `packages/`, and workflow YA
 
 ### `local-api.ts`
 
-Starts the local Node API runner and delegates to the shared server handler.
+Starts the shared Node API server and delegates to the shared server handler.
 
 Command:
 
@@ -19,6 +19,36 @@ npm run dev:api
 ```
 
 Writes data only when API routes do so.
+
+Production-style command:
+
+```powershell
+npm run start:api
+```
+
+`npm run start:api` is the local compiled-server command and reads `.env.local` when present.
+
+Render should use:
+
+```powershell
+npm run start:api:render
+```
+
+The same server entrypoint supports both local development and the Render-hosted API service. It listens on `PORT` and `HOST` when set, and defaults to `3000` on `0.0.0.0`.
+
+### `generate-public-config.ts`
+
+Generates the browser-safe frontend config module from environment variables.
+
+Commands:
+
+```powershell
+npm run generate:public-config
+npm run build:web
+npm run dev:web
+```
+
+Repository-write script. It updates `src/app/generated-public-config.ts` with the current `API_BASE_URL` value. Leave `API_BASE_URL` empty for same-origin local development and Vercel preview fallback.
 
 ### `seed.ts`
 
@@ -189,5 +219,8 @@ Mongo-backed scripts require:
 Optional:
 
 - `MONGODB_DNS_SERVERS`
+- `API_BASE_URL`
+- `CORS_ALLOWED_ORIGINS`
+- `CORS_ALLOWED_ORIGIN_PATTERNS`
 
 Local development usually reads these from `.env.local` through `--env-file-if-exists=.env.local`.

@@ -3,10 +3,12 @@ import { createServer } from "node:http";
 import { handleNodeRequest } from "../packages/kamra-api-server/src/http/node-adapter.js";
 import { writeServerLog } from "../packages/kamra-api-server/src/logging/kamra-logger.js";
 
+const host = process.env["HOST"]?.trim() || "0.0.0.0";
 const port = Number(process.env["PORT"] ?? 3000);
 const nodeEnv = process.env["NODE_ENV"] ?? "development";
 
-writeServerLog("info", "Local API starting", {
+writeServerLog("info", "API server starting", {
+  host,
   nodeEnv,
   port
 });
@@ -35,8 +37,9 @@ const server = createServer((request, response) => {
   });
 });
 
-server.listen(port, () => {
-  writeServerLog("info", "Local API listening", {
+server.listen(port, host, () => {
+  writeServerLog("info", "API server listening", {
+    host,
     url: `http://localhost:${port}`
   });
 });
