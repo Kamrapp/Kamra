@@ -690,19 +690,23 @@ export class AppComponent implements OnInit {
 
   async login(): Promise<void> {
     this.loginState.set("loading");
+    try {
+      const result = await this.auth.login(this.loginEmail, this.loginPassword);
 
-    const result = await this.auth.login(this.loginEmail, this.loginPassword);
-    this.loginState.set("idle");
+      if (result.status === "error") {
+        this.toast.push(result.message, "error");
+        return;
+      }
 
-    if (result.status === "error") {
-      this.toast.push(result.message, "error");
-      return;
+      this.loginPassword = "";
+      this.theme.applyUserTheme(this.auth.user()?.profile.theme);
+      this.loc.applyUserLanguage(this.auth.user()?.profile.language);
+      this.toast.push(this.loc.t("app.signedIn", { email: this.auth.user()?.email ?? this.loginEmail }), "success");
+    } catch {
+      this.toast.push(this.loc.t("app.loginFailure"), "error");
+    } finally {
+      this.loginState.set("idle");
     }
-
-    this.loginPassword = "";
-    this.theme.applyUserTheme(this.auth.user()?.profile.theme);
-    this.loc.applyUserLanguage(this.auth.user()?.profile.language);
-    this.toast.push(this.loc.t("app.signedIn", { email: this.auth.user()?.email ?? this.loginEmail }), "success");
   }
 
   async logout(): Promise<void> {

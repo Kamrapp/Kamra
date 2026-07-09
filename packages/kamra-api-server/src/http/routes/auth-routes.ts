@@ -9,7 +9,7 @@ import {
 import { MongoUserRepository } from "../../auth/mongo-user-repository.js";
 import { createUserToken } from "../../auth/user-token.js";
 import { writeServerLog } from "../../logging/kamra-logger.js";
-import { empty, json, type AppRequest, type AppRoute } from "../app-route-context.js";
+import { describeRequest, empty, json, type AppRequest, type AppRoute } from "../app-route-context.js";
 
 function readLoginPayload(bodyText: string | undefined):
   | { email: string; password: string }
@@ -126,6 +126,7 @@ export const loginRoute: AppRoute = {
 
     writeServerLog("info", "User login completed", {
       role: result.user.role,
+      ...describeRequest(request),
       username: result.user.email
     });
 
@@ -196,6 +197,7 @@ export const userPreferencesRoute: AppRoute = {
 
     writeServerLog("info", "User preferences updated", {
       language: profile.language,
+      ...describeRequest(request),
       theme: profile.theme,
       username: user.email
     });

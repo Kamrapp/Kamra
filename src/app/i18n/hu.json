@@ -19,6 +19,7 @@
     "loginFailure": "A bejelentkezés most nem elérhető.",
     "loginInvalid": "Az e-mail vagy jelszó nem egyezik aktív felhasználóval.",
     "loginNotConfigured": "A bejelentkezés ebben a környezetben még nincs beállítva.",
+    "loginRequestFailed": "A bejelentkezési kérés nem érte el az API-t. Ellenőrizd az API URL-t és a CORS beállítást.",
     "logout": "Kilépés",
     "password": "Jelszó",
     "primaryNavigation": "Elsődleges",

@@ -41,6 +41,14 @@ export interface AppResponse {
   status: number;
 }
 
+export interface RequestLogDetails {
+  requestMethod: string;
+  requestOrigin?: string;
+  requestPath: string;
+  requestReferer?: string;
+  requestUrl: string;
+}
+
 export interface AppHandlerDependencies {
   createCatalogRepository?: (database: Db) => {
     findProcessingState?(input: {
@@ -219,6 +227,20 @@ export function unauthorized(message = "Sign in to view this resource."): AppRes
   });
 }
 
+export function describeRequest(request: AppRequest): RequestLogDetails {
+  const requestOrigin = getHeader(request.headers, "origin");
+  const requestReferer = getHeader(request.headers, "referer");
+  const requestUrl = inferRequestUrl(request, requestOrigin ?? requestReferer);
+
+  return {
+    requestMethod: request.method,
+    requestOrigin: requestOrigin ?? undefined,
+    requestPath: request.path,
+    requestReferer: requestReferer ?? undefined,
+    requestUrl
+  };
+}
+
 function getHeader(headers: AppRequest["headers"], name: string): string | null {
   const expectedName = name.toLowerCase();
 
@@ -233,6 +255,58 @@ function getHeader(headers: AppRequest["headers"], name: string): string | null 
   }
 
   return null;
+}
+
+function inferRequestUrl(request: AppRequest, fallbackUrl: string | null): string {
+  const forwardedProto = getHeader(request.headers, "x-forwarded-proto");
+  const forwardedHost = getHeader(request.headers, "x-forwarded-host");
+  const host = forwardedHost ?? getHeader(request.headers, "host");
+  const queryString = toQueryString(request.query);
+
+  if (host) {
+    const protocol = forwardedProto && forwardedProto.length > 0
+      ? forwardedProto.split(",")[0]!.trim()
+      : "https";
+
+    return `${protocol}://${host}${request.path}${queryString}`;
+  }
+
+  if (fallbackUrl) {
+    try {
+      const fallback = new URL(fallbackUrl);
+      return `${fallback.protocol}//${fallback.host}${request.path}${queryString}`;
+    } catch {
+      return `${request.path}${queryString}`;
+    }
+  }
+
+  return `${request.path}${queryString}`;
+}
+
+function toQueryString(query: AppRequest["query"]): string {
+  if (!query) {
+    return "";
+  }
+
+  const searchParams = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(query)) {
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        searchParams.append(key, item);
+      }
+      continue;
+    }
+
+    if (typeof value === "string") {
+      searchParams.append(key, value);
+    }
+  }
+
+  const serialized = searchParams.toString();
+  return serialized.length > 0
+    ? `?${serialized}`
+    : "";
 }
 
 function getBearerToken(request: AppRequest): string | null {
