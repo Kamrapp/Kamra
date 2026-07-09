@@ -22,6 +22,10 @@
 - Item: Merged the signed-in home stock views into a two-panel pulse/editor layout with a priority-ordered scrollable stock table, shopping-scale preview, and add/edit editor mode.
 - Item: Added optional GTIN/source URL/source name household stock fields through contracts, validation, repository mapping, frontend service types, and the home editor additional-details section.
 - Item: Documented the Stage 5 shopping-list scale preview levels as non-persistent placeholders ahead of Stage 6 generation.
+- Item: Revalidated and modernized Hungarian UI copy, including the household scale labels, route/admin wording, and awkward literal translations.
+- Item: Refined the pulse header into three columns with a shorter custom vertical shopping-scale slider, level tick marks, playful level hints, and a full-size shopping-list action.
+- Item: Moved the shopping-list coming-soon notification into the household stock service so the home component uses the shared household toast path instead of owning a one-off placeholder method.
+- Item: Removed the app shell's separate login/logout message lane so auth, household, and page actions now all use the same global toast host.
 
 ## Changed Files
 
@@ -77,6 +81,24 @@
 - Result: passed after the home pulse/editor merge
 - Ran: `npm run build`
 - Result: passed after the home pulse/editor merge; Angular reported an initial bundle size of 512.23 kB
+- Ran: locale parity check for `src/app/i18n/en.json` and `src/app/i18n/hu.json`
+- Result: passed after Hungarian copy and shopping-scale hint updates; both locales contain 331 leaf keys
+- Ran: `npm run typecheck`
+- Result: passed after the slider/header and translation updates
+- Ran: `npm run lint`
+- Result: passed after the slider/header and translation updates
+- Ran: `npm run build`
+- Result: passed after the slider/header and translation updates; Angular reported an initial bundle size of 516.25 kB and a component CSS budget warning for `home.component.ts` at 10.20 kB against an 8.00 kB budget
+- Ran: `npm run typecheck`
+- Result: passed after moving the shopping-list placeholder toast into the household stock service
+- Ran: `npm run lint`
+- Result: passed after moving the shopping-list placeholder toast into the household stock service
+- Ran: `npm run typecheck`
+- Result: passed after unifying auth and page notifications onto the global toast host
+- Ran: `npm run lint`
+- Result: passed after unifying auth and page notifications onto the global toast host
+- Ran: `npm run build`
+- Result: passed after unifying auth and page notifications onto the global toast host; Angular reported an initial bundle size of 514.49 kB
 
 ## Decisions
 
@@ -103,6 +125,8 @@
 - Impact: Stage 5 still needs the admin reseed route/button and the four-panel health/admin layout before the full stage is complete.
 - Issue: The Angular production build initial bundle is now 512.23 kB.
 - Impact: the build still succeeds, but the home/dashboard additions may deserve a later trim pass if bundle budget pressure becomes distracting.
+- Issue: `src/app/home.component.ts` component styles now exceed the Angular component CSS budget at 10.20 kB against an 8.00 kB budget.
+- Impact: the build still succeeds, but the home page should be a candidate for CSS extraction or simplification if the warning becomes noisy.
 
 ## Roadmap Or Plan Updates
 
@@ -115,4 +139,4 @@ Implement the admin demo reseed API next, then rework the health/admin page to e
 
 ## Notes For Future Agent
 
-The household package area now exists under `packages/kamra-api-server/src/household/` with contracts, schemas, validators, stock status helpers, Mongo repository tests, demo reseed support, and user-facing HTTP routes. The home page now consumes the new API through `src/app/household/household-stock.service.ts` and shows a real priority-ordered household stock pulse plus merged add/edit custom stock editing for signed-in household members. The pulse shopping scale is currently UI-only: `Business as usual` counts below-limit/at-limit rows, `Keep it chill` adds low-soon rows, and `Stock 'em up!` counts every tracked row.
+The household package area now exists under `packages/kamra-api-server/src/household/` with contracts, schemas, validators, stock status helpers, Mongo repository tests, demo reseed support, and user-facing HTTP routes. The home page now consumes the new API through `src/app/household/household-stock.service.ts` and shows a real priority-ordered household stock pulse plus merged add/edit custom stock editing for signed-in household members. The pulse shopping scale is currently UI-only: `Business as usual` counts below-limit/at-limit rows, `Keep it chill` adds low-soon rows, and `Stock 'em up!` counts every tracked row. The pulse header now has three visual columns: custom shopping-scale slider, pulse count, and placeholder shopping-list action. Shell auth feedback no longer uses a separate fixed message; all notifications now flow through the shared global toast host.

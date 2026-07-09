@@ -30,24 +30,30 @@ interface StockDraft {
 }
 
 interface ShoppingScaleOption {
+  hintKey: TranslationKey;
   key: ShoppingScale;
   labelKey: TranslationKey;
 }
 
 const shoppingScaleOptions: readonly ShoppingScaleOption[] = [
   {
+    hintKey: "household.shoppingScaleUsualHint",
     key: "usual",
     labelKey: "household.shoppingScaleUsual"
   },
   {
+    hintKey: "household.shoppingScaleChillHint",
     key: "chill",
     labelKey: "household.shoppingScaleChill"
   },
   {
+    hintKey: "household.shoppingScaleStockUpHint",
     key: "stock_up",
     labelKey: "household.shoppingScaleStockUp"
   }
 ] as const;
+
+const shoppingScaleDisplayOptions: readonly ShoppingScaleOption[] = [...shoppingScaleOptions].reverse();
 
 const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], number> = {
   below_limit: 0,
@@ -134,33 +140,40 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
               <p class="eyebrow">{{ loc.t("home.today") }}</p>
               <h1 id="home-title">{{ loc.t("home.liveTitle") }}</h1>
             </div>
-
-            <button
-              class="cart-button"
-              type="button"
-              [attr.aria-label]="loc.t('household.generateShoppingList')"
-              [attr.title]="loc.t('household.generateShoppingList')"
-              (click)="showShoppingListPlaceholder()"
-            >
-              <span aria-hidden="true">🛒+</span>
-            </button>
           </div>
 
           <div class="pulse-control-row">
-            <div class="shopping-scale" [attr.aria-label]="loc.t('household.shoppingScale')">
-              <input
-                class="scale-slider"
-                type="range"
-                min="0"
-                max="2"
-                step="1"
-                [ngModel]="shoppingScaleIndex()"
-                (ngModelChange)="setShoppingScaleIndex($event)"
-                [attr.aria-label]="loc.t('household.shoppingScale')"
-              />
+            <div
+              class="shopping-scale"
+              [class.scale-usual]="shoppingScale() === 'usual'"
+              [class.scale-chill]="shoppingScale() === 'chill'"
+              [class.scale-stock-up]="shoppingScale() === 'stock_up'"
+              [attr.aria-label]="loc.t('household.shoppingScale')"
+            >
+              <div class="scale-rail">
+                <input
+                  class="scale-slider"
+                  type="range"
+                  min="0"
+                  max="2"
+                  step="1"
+                  [ngModel]="shoppingScaleIndex()"
+                  (ngModelChange)="setShoppingScaleIndex($event)"
+                  [attr.aria-label]="loc.t('household.shoppingScale')"
+                />
+                <div class="scale-ticks" aria-hidden="true">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
+              </div>
+
               <div class="scale-labels" aria-hidden="true">
-                @for (option of shoppingScaleOptions; track option.key) {
-                  <span [class.active-scale-label]="shoppingScale() === option.key">{{ loc.t(option.labelKey) }}</span>
+                @for (option of shoppingScaleDisplayOptions; track option.key) {
+                  <span [class.active-scale-label]="shoppingScale() === option.key">
+                    <strong>{{ loc.t(option.labelKey) }}</strong>
+                    <small>{{ loc.t(option.hintKey) }}</small>
+                  </span>
                 }
               </div>
             </div>
@@ -171,6 +184,16 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
               <span></span>
               <strong>{{ shoppingItemCount() }}</strong>
             </div>
+
+            <button
+              class="cart-button"
+              type="button"
+              [attr.aria-label]="loc.t('household.generateShoppingList')"
+              [attr.title]="loc.t('household.generateShoppingList')"
+              (click)="household.showShoppingListComingSoon()"
+            >
+              <span aria-hidden="true">🛒+</span>
+            </button>
           </div>
 
           <div class="household-bar">
@@ -225,7 +248,7 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
               <div class="stock-table-header stock-table-grid" aria-hidden="true">
                 <span>{{ loc.t("common.product") }}</span>
                 <span>{{ loc.t("household.currentShort") }}</span>
-                <span>{{ loc.t("household.compare") }}</span>
+                <span aria-hidden="true"></span>
                 <span>{{ loc.t("household.minShort") }}</span>
                 <span>{{ loc.t("common.state") }}</span>
               </div>
@@ -373,15 +396,15 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
         display: grid;
         gap: var(--space-7);
         min-height: 100%;
-        --scale-usual: #8e979b;
-        --scale-chill: #6d91b3;
-        --scale-stock-up: #e7b85a;
+        --scale-usual: #e5bd55;
+        --scale-chill: #e98f39;
+        --scale-stock-up: #d94c3c;
       }
 
       :host-context(:root[data-theme="dark"]) {
-        --scale-usual: #a8afb1;
-        --scale-chill: #86add0;
-        --scale-stock-up: #f2c96c;
+        --scale-usual: #f2d47a;
+        --scale-chill: #f2a855;
+        --scale-stock-up: #ec6758;
       }
 
       .home-board,
@@ -452,8 +475,8 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
       .pulse-control-row {
         align-items: center;
         display: grid;
-        gap: var(--space-4);
-        grid-template-columns: minmax(9rem, 0.75fr) minmax(8rem, 1fr);
+        gap: clamp(0.85rem, 2vw, var(--space-4));
+        grid-template-columns: minmax(12rem, 1.05fr) minmax(8rem, 0.9fr) minmax(8rem, 0.85fr);
         min-height: 10rem;
       }
 
@@ -504,43 +527,157 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
       .shopping-scale {
         align-items: center;
         display: grid;
-        gap: var(--space-3);
-        grid-template-columns: 2.4rem minmax(0, 1fr);
+        gap: var(--space-2);
+        grid-template-columns: 2.7rem minmax(0, 1fr);
         min-height: 9rem;
       }
 
+      .scale-rail {
+        display: grid;
+        height: 6.25rem;
+        place-items: center;
+        position: relative;
+        width: 2.7rem;
+      }
+
       .scale-slider {
-        accent-color: var(--scale-chill);
-        appearance: slider-vertical;
-        height: 8.8rem;
-        width: 2.1rem;
+        appearance: none;
+        background: transparent;
+        cursor: pointer;
+        direction: rtl;
+        height: 6.25rem;
+        margin: 0;
+        position: relative;
+        width: 2.35rem;
+        writing-mode: vertical-lr;
+        z-index: 1;
+      }
+
+      .scale-slider::-webkit-slider-runnable-track {
+        background:
+          var(--scale-fill-background),
+          linear-gradient(to top, rgb(255 229 151 / 24%), rgb(246 155 68 / 24%) 55%, rgb(213 70 54 / 24%));
+        border: 1px solid color-mix(in srgb, var(--line-panel) 70%, transparent);
+        border-radius: var(--radius-pill);
+        box-shadow: inset 0 0.08rem 0.18rem rgb(40 31 21 / 18%);
+        height: 6.25rem;
+        width: 0.72rem;
+      }
+
+      .scale-slider::-moz-range-track {
+        background:
+          var(--scale-fill-background),
+          linear-gradient(to top, rgb(255 229 151 / 24%), rgb(246 155 68 / 24%) 55%, rgb(213 70 54 / 24%));
+        border: 1px solid color-mix(in srgb, var(--line-panel) 70%, transparent);
+        border-radius: var(--radius-pill);
+        box-shadow: inset 0 0.08rem 0.18rem rgb(40 31 21 / 18%);
+        height: 6.25rem;
+        width: 0.72rem;
+      }
+
+      .scale-slider::-webkit-slider-thumb {
+        appearance: none;
+        background: linear-gradient(180deg, #ffffff, color-mix(in srgb, var(--scale-thumb-color) 32%, #ffffff));
+        border: 2px solid var(--scale-thumb-color);
+        border-radius: 0.32rem;
+        box-shadow: 0 0.35rem 0.8rem rgb(40 31 21 / 22%);
+        height: 0.9rem;
+        margin-left: -0.78rem;
+        width: 2.25rem;
+      }
+
+      .scale-slider::-moz-range-thumb {
+        background: linear-gradient(180deg, #ffffff, color-mix(in srgb, var(--scale-thumb-color) 32%, #ffffff));
+        border: 2px solid var(--scale-thumb-color);
+        border-radius: 0.32rem;
+        box-shadow: 0 0.35rem 0.8rem rgb(40 31 21 / 22%);
+        height: 0.9rem;
+        width: 2.25rem;
+      }
+
+      .scale-usual {
+        --scale-fill-background: linear-gradient(to top, #ffe6a3 0%, #ffe6a3 22%, transparent 22%, transparent 100%);
+        --scale-thumb-color: var(--scale-usual);
+      }
+
+      .scale-chill {
+        --scale-fill-background: linear-gradient(to top, #ffe6a3 0%, #f3ad54 56%, transparent 56%, transparent 100%);
+        --scale-thumb-color: var(--scale-chill);
+      }
+
+      .scale-stock-up {
+        --scale-fill-background: linear-gradient(to top, #ffe6a3 0%, #f3ad54 52%, #d94c3c 100%);
+        --scale-thumb-color: var(--scale-stock-up);
+      }
+
+      .scale-ticks {
+        display: flex;
+        flex-direction: column;
+        height: 6.05rem;
+        justify-content: space-between;
+        left: 0.28rem;
+        pointer-events: none;
+        position: absolute;
+        top: 0.1rem;
+        width: 2.15rem;
+      }
+
+      .scale-ticks span {
+        background: color-mix(in srgb, var(--color-text) 55%, transparent);
+        border-radius: var(--radius-pill);
+        height: 0.12rem;
+        width: 0.52rem;
       }
 
       .scale-labels {
         color: var(--color-text-muted);
         display: grid;
         font-size: 0.76rem;
-        font-weight: 800;
-        gap: var(--space-3);
+        gap: 0.7rem;
+        grid-template-rows: repeat(3, minmax(0, 1fr));
+        line-height: 1.2;
+      }
+
+      .scale-labels span {
+        display: grid;
+        gap: 0.12rem;
+      }
+
+      .scale-labels strong {
+        color: inherit;
+        font-size: 0.78rem;
+        font-weight: 900;
+      }
+
+      .scale-labels small {
+        color: var(--color-text-muted);
+        font-size: 0.68rem;
+        font-weight: 700;
       }
 
       .active-scale-label {
         color: var(--color-text);
       }
 
+      .active-scale-label small {
+        color: color-mix(in srgb, var(--color-text) 72%, var(--color-text-muted));
+      }
+
       .cart-button {
         align-items: center;
-        background: color-mix(in srgb, var(--color-accent-leaf) 22%, var(--surface-soft-background) 78%);
+        align-self: center;
+        background: radial-gradient(circle at 35% 25%, color-mix(in srgb, var(--color-accent-leaf) 32%, #ffffff) 0%, var(--surface-soft-background) 68%);
         border: 1px solid var(--line-panel);
         border-radius: var(--radius-ui);
         color: var(--color-text);
         cursor: pointer;
         display: inline-flex;
-        font-size: 1.35rem;
+        font-size: 2.35rem;
         font-weight: 900;
+        justify-self: center;
         justify-content: center;
-        min-height: 2.75rem;
-        min-width: 3.4rem;
+        min-height: 10rem;
+        min-width: 10rem;
       }
 
       .home-copy,
@@ -859,6 +996,11 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
           grid-template-columns: 1fr;
         }
 
+        .cart-button {
+          min-height: 7.5rem;
+          min-width: 7.5rem;
+        }
+
         .stock-table-shell {
           overflow-x: auto;
         }
@@ -887,6 +1029,7 @@ export class HomeComponent {
   readonly selectedItemId = signal<string | null>(null);
   readonly shoppingScale = signal<ShoppingScale>("chill");
   readonly statusMessage = signal("");
+  readonly shoppingScaleDisplayOptions = shoppingScaleDisplayOptions;
   readonly shoppingScaleOptions = shoppingScaleOptions;
   createHouseholdName = "";
   editorDraft: StockDraft = createEmptyStockDraft();
@@ -1087,10 +1230,6 @@ export class HomeComponent {
     if (option) {
       this.shoppingScale.set(option.key);
     }
-  }
-
-  showShoppingListPlaceholder(): void {
-    this.toast.push(this.loc.t("household.shoppingListComingSoon"), "info");
   }
 
   startCreateItem(): void {

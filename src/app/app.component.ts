@@ -111,17 +111,6 @@ import { ToastService } from "./shared/toast.service";
 
       <app-toast-host />
 
-      @if (loginMessage(); as message) {
-        <p
-          class="login-message"
-          [class.login-message-error]="loginMessageTone() === 'error'"
-          [class.login-message-success]="loginMessageTone() === 'success'"
-          aria-live="polite"
-        >
-          {{ message }}
-        </p>
-      }
-
       <div class="radial-menu" [class.radial-menu-open]="isMenuOpen">
         <nav id="primary-menu" class="radial-nav" [attr.aria-label]="loc.t('app.primaryNavigation')">
           @for (item of menuItems; track item.path) {
@@ -358,29 +347,6 @@ import { ToastService } from "./shared/toast.service";
         scrollbar-gutter: stable both-edges;
       }
 
-      .login-message {
-        backdrop-filter: blur(12px);
-        border-radius: var(--radius-ui);
-        bottom: max(var(--space-5), env(safe-area-inset-bottom));
-        box-shadow: var(--surface-floating-shadow);
-        color: var(--color-text);
-        max-width: min(24rem, calc(100vw - 2rem));
-        padding: 0.8rem 0.95rem;
-        position: fixed;
-        right: max(var(--space-5), env(safe-area-inset-right));
-        z-index: 45;
-      }
-
-      .login-message-success {
-        background: color-mix(in srgb, var(--color-accent-leaf) 18%, white 82%);
-        border: 1px solid color-mix(in srgb, var(--color-accent-leaf-strong) 32%, transparent);
-      }
-
-      .login-message-error {
-        background: color-mix(in srgb, var(--color-wood) 18%, white 82%);
-        border: 1px solid color-mix(in srgb, var(--color-wood-deep) 34%, transparent);
-      }
-
       .radial-menu {
         --item-radius: clamp(5.2rem, 8vw, 6.8rem);
         --mini-item-radius: clamp(3.65rem, 5vw, 4.2rem);
@@ -613,12 +579,6 @@ import { ToastService } from "./shared/toast.service";
           justify-content: stretch;
         }
 
-        .login-message {
-          left: var(--space-4);
-          max-width: none;
-          right: var(--space-4);
-        }
-
         .radial-menu {
           --item-radius: 5.2rem;
           right: 0.9rem;
@@ -638,8 +598,6 @@ export class AppComponent implements OnInit {
   readonly theme = inject(ThemePreferenceService);
   readonly toast = inject(ToastService);
   readonly currentPageTitle = signal("");
-  readonly loginMessage = signal("");
-  readonly loginMessageTone = signal<"error" | "success">("success");
   readonly loginState = signal<"idle" | "loading">("idle");
   readonly railResetToken = signal(0);
   readonly menuItems = [
@@ -676,7 +634,6 @@ export class AppComponent implements OnInit {
   loginEmail = "";
   loginPassword = "";
   private readonly router = inject(Router);
-  private loginMessageTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     this.router.events.subscribe((event) => {
@@ -713,13 +670,11 @@ export class AppComponent implements OnInit {
 
   async login(): Promise<void> {
     this.loginState.set("loading");
-    this.clearLoginToast();
 
     const result = await this.auth.login(this.loginEmail, this.loginPassword);
     this.loginState.set("idle");
 
     if (result.status === "error") {
-      this.showLoginToast(result.message, "error");
       this.toast.push(result.message, "error");
       return;
     }
@@ -727,7 +682,7 @@ export class AppComponent implements OnInit {
     this.loginPassword = "";
     this.theme.applyUserTheme(this.auth.user()?.profile.theme);
     this.loc.applyUserLanguage(this.auth.user()?.profile.language);
-    this.showLoginToast(this.loc.t("app.signedIn", { email: this.auth.user()?.email ?? this.loginEmail }), "success");
+    this.toast.push(this.loc.t("app.signedIn", { email: this.auth.user()?.email ?? this.loginEmail }), "success");
   }
 
   async logout(): Promise<void> {
@@ -735,7 +690,7 @@ export class AppComponent implements OnInit {
     this.loginPassword = "";
     this.theme.applyUserTheme(undefined);
     this.loc.applyUserLanguage(undefined);
-    this.showLoginToast(this.loc.t("app.signedOut"), "success");
+    this.toast.push(this.loc.t("app.signedOut"), "success");
   }
 
   async setTheme(theme: ThemePreference): Promise<void> {
@@ -765,29 +720,6 @@ export class AppComponent implements OnInit {
       this.theme.applyUserTheme(userTheme);
     }
     this.loc.applyUserLanguage(this.auth.user()?.profile.language);
-  }
-
-  private clearLoginToast(): void {
-    this.loginMessage.set("");
-
-    if (this.loginMessageTimer !== null) {
-      clearTimeout(this.loginMessageTimer);
-      this.loginMessageTimer = null;
-    }
-  }
-
-  private showLoginToast(message: string, tone: "error" | "success"): void {
-    this.loginMessageTone.set(tone);
-    this.loginMessage.set(message);
-
-    if (this.loginMessageTimer !== null) {
-      clearTimeout(this.loginMessageTimer);
-    }
-
-    this.loginMessageTimer = setTimeout(() => {
-      this.loginMessage.set("");
-      this.loginMessageTimer = null;
-    }, 3200);
   }
 
   private updateCurrentPageTitle(url: string): void {

@@ -251,6 +251,10 @@ export class HouseholdStockService {
     };
   }
 
+  showShoppingListComingSoon(): void {
+    this.toast.push(this.loc.t("household.shoppingListComingSoon"), "info");
+  }
+
   private async writeHouseholdStock(
     url: string,
     method: "PATCH" | "POST",
