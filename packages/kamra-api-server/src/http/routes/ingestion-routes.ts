@@ -1,6 +1,7 @@
 import {
   createDefaultCatalogRepository,
   createDefaultIngestionRepository,
+  describeRequest,
   json,
   unauthorized,
   type AppResponse,
@@ -541,6 +542,7 @@ async function markProductReviewItemDecision(
       acceptedCatalogProductId = createdProduct.productId;
       writeServerLog("info", "Accepted crawl review item created catalog product", {
         acceptedCatalogProductId,
+        ...describeRequest(request),
         reviewItem,
         reviewItemJson: JSON.stringify(reviewItem),
         reviewerId: user.email
@@ -569,6 +571,7 @@ async function markProductReviewItemDecision(
     declineReason: payload.declineReason ?? null,
     id: payload.id,
     note: payload.note ?? null,
+    ...describeRequest(request),
     reviewItem: reviewItemForDecision,
     reviewerId: user.email,
     status

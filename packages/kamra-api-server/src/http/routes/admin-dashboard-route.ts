@@ -6,7 +6,7 @@ import {
   seedDemoHouseholdPasswordEnvName
 } from "../../household/current/demo-household-seed.js";
 import { writeServerLog } from "../../logging/kamra-logger.js";
-import { json, unauthorized, type AppRoute } from "../app-route-context.js";
+import { describeRequest, json, unauthorized, type AppRoute } from "../app-route-context.js";
 
 export const adminDashboardHealthRoute: AppRoute = {
   match: (request) => request.method === "GET" && request.path === "/api/admin/dashboard/health",
@@ -19,7 +19,10 @@ export const adminDashboardHealthRoute: AppRoute = {
     const config = context.config;
     const result = await getHealthResult(config, {
       onHealthCheckFailed: (error) => {
-        writeServerLog("error", "Health check failed", error);
+        writeServerLog("error", "Health check failed", {
+          error,
+          ...describeRequest(request)
+        });
       },
       pingMongo: async () => {
         if (!config.mongodb.uri || !config.mongodb.databaseName) {
@@ -37,7 +40,7 @@ export const adminDashboardHealthRoute: AppRoute = {
     writeServerLog("info", "Health check completed", {
       databaseName: result.report.checks.database.databaseName,
       databaseStatus: result.report.checks.database.status,
-      requestPath: request.path,
+      ...describeRequest(request),
       status: result.report.status,
       statusCode: result.statusCode
     });
@@ -79,6 +82,7 @@ export const adminDashboardUpgradeCatalogValidatorsRoute: AppRoute = {
       writeServerLog("info", "Catalog validators upgraded", {
         createdCollections: result.createdCollections,
         databaseName: result.databaseName,
+        ...describeRequest(request),
         upgradedBy: user.email,
         upgradedCollections: result.upgradedCollections
       });
@@ -90,7 +94,10 @@ export const adminDashboardUpgradeCatalogValidatorsRoute: AppRoute = {
         upgradedCollections: result.upgradedCollections
       });
     } catch (error: unknown) {
-      writeServerLog("error", "Catalog validator upgrade failed", error);
+      writeServerLog("error", "Catalog validator upgrade failed", {
+        error,
+        ...describeRequest(request)
+      });
 
       return json(500, {
         error: "catalog_validator_upgrade_failed",
@@ -131,7 +138,10 @@ export const adminDashboardMarkLegacyProductsUnvalidatedRoute: AppRoute = {
     try {
       result = await repository.markLegacyProductsUnvalidated();
     } catch (error: unknown) {
-      writeServerLog("error", "Legacy product validation backfill failed", error);
+      writeServerLog("error", "Legacy product validation backfill failed", {
+        error,
+        ...describeRequest(request)
+      });
 
       return json(500, {
         error: "catalog_backfill_failed",
@@ -141,6 +151,7 @@ export const adminDashboardMarkLegacyProductsUnvalidatedRoute: AppRoute = {
 
     writeServerLog("info", "Legacy product validation backfill completed", {
       markedBy: user.email,
+      ...describeRequest(request),
       skippedCount: result.skippedCount,
       status: result.status,
       updatedCount: result.updatedCount
@@ -202,7 +213,7 @@ export const adminDashboardReseedDemoHouseholdRoute: AppRoute = {
       writeServerLog("info", "Admin demo household reseed completed", {
         counts,
         databaseName: setup.databaseName,
-        requestPath: request.path,
+        ...describeRequest(request),
         reseededBy: user.email
       });
 
@@ -213,7 +224,10 @@ export const adminDashboardReseedDemoHouseholdRoute: AppRoute = {
         message: "Demo household data was reseeded."
       });
     } catch (error: unknown) {
-      writeServerLog("error", "Admin demo household reseed failed", error);
+      writeServerLog("error", "Admin demo household reseed failed", {
+        error,
+        ...describeRequest(request)
+      });
 
       return json(500, {
         error: "demo_household_reseed_failed",
