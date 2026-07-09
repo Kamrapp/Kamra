@@ -47,7 +47,7 @@ const noOfferSourceKey = "__none__";
           </label>
 
           @if (activeProductFilterCount()) {
-            <button class="filter-clear-button" type="button" (click)="clearProductFilters()">{{ loc.t("common.clear") }}</button>
+            <button class="filter-clear-button ui-button ui-button-quiet ui-button-sm" type="button" (click)="clearProductFilters()">{{ loc.t("common.clear") }}</button>
           }
         </section>
 
@@ -89,9 +89,9 @@ const noOfferSourceKey = "__none__";
 
                   <div class="price-cell" role="cell">
                     @for (price of priceChips(row.product); track price) {
-                      <span class="price-chip">{{ price }}</span>
+                      <span class="price-chip ui-token ui-token-tag">{{ price }}</span>
                     } @empty {
-                      <span class="quiet-chip">{{ loc.t("product.noPrice") }}</span>
+                      <span class="quiet-chip ui-token ui-token-muted">{{ loc.t("product.noPrice") }}</span>
                     }
                   </div>
 
@@ -208,16 +208,7 @@ const noOfferSourceKey = "__none__";
       }
 
       .filter-clear-button {
-        background: var(--control-quiet-background);
-        border: 1px solid var(--line-subtle);
-        border-radius: var(--radius-ui);
-        color: var(--color-text);
-        cursor: pointer;
-        font: inherit;
         font-size: 0.84rem;
-        font-weight: 800;
-        min-height: 2.15rem;
-        padding: 0.35rem 0.7rem;
       }
 
       .product-row {
@@ -306,22 +297,9 @@ const noOfferSourceKey = "__none__";
 
       .price-chip,
       .quiet-chip {
-        border-radius: var(--radius-ui);
-        display: inline-flex;
         font-size: 0.8rem;
-        font-weight: 800;
         min-height: 1.75rem;
         padding: 0.3rem 0.5rem;
-      }
-
-      .price-chip {
-        background: color-mix(in srgb, var(--color-accent-leaf) 24%, white 76%);
-        color: var(--color-text);
-      }
-
-      .quiet-chip {
-        background: color-mix(in srgb, var(--color-background-soft) 68%, white 32%);
-        color: var(--color-text-muted);
       }
 
       @media (max-width: 820px) {

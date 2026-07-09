@@ -205,6 +205,7 @@ interface VisibleSnapshotRow {
       }
 
       .detail-panel {
+        display: grid;
         min-width: 0;
         overflow: hidden;
         padding: 0;
@@ -212,6 +213,7 @@ interface VisibleSnapshotRow {
 
       .snapshot-list,
       .row-table {
+        min-height: 0;
         min-width: 0;
       }
 
@@ -230,6 +232,7 @@ interface VisibleSnapshotRow {
       .row-body {
         overflow-x: hidden;
         overflow-y: auto;
+        scrollbar-gutter: stable;
       }
 
       .snapshot-body {
@@ -321,7 +324,9 @@ interface VisibleSnapshotRow {
       }
 
       .row-body {
+        height: 36rem;
         min-width: var(--table-width);
+        position: relative;
       }
 
       .parsed-row {
@@ -441,17 +446,21 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
     }
 
     const snapshot = this.selectedSnapshot();
-    if (this.crawlSourceOptions().length || this.crawlSourceFilterTouched()) {
+    if (this.loadState() === "loading" || this.crawlSourceOptions().length || this.crawlSourceFilterTouched()) {
       const allSourcesSelected = this.selectedCrawlSources().size === this.crawlSourceOptions().length;
       sections.push({
         key: "crawl-sources",
         kind: "filters",
         kicker: this.loc.t("crawl.crawlSources"),
+        loading: this.loadState() === "loading" && !this.crawlSourceOptions().length,
+        placeholderRows: 4,
         title: this.loc.t("common.sources"),
         selectedCount: this.selectedCrawlSources().size,
-        optionCount: this.crawlSourceOptions().length,
-        secondaryActionLabel: allSourcesSelected ? this.loc.t("common.deselectAll") : this.loc.t("common.selectAll"),
-        onSecondaryAction: () => this.toggleAllCrawlSources(),
+        optionCount: this.crawlSourceOptions().length || 4,
+        secondaryActionLabel: this.crawlSourceOptions().length
+          ? allSourcesSelected ? this.loc.t("common.deselectAll") : this.loc.t("common.selectAll")
+          : undefined,
+        onSecondaryAction: this.crawlSourceOptions().length ? () => this.toggleAllCrawlSources() : undefined,
         note: this.loc.t("crawl.loadedNote", { count: this.snapshots().length }),
         options: this.crawlSourceOptions().map((source) => ({
           key: source.key,

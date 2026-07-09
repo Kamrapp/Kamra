@@ -93,7 +93,7 @@ import type { PageRailSection } from "./page-rail.service";
 
                     @if (section.secondaryActionLabel && section.onSecondaryAction) {
                       <button
-                        class="rail-filter-secondary"
+                        class="rail-filter-secondary ui-button ui-button-quiet ui-button-sm"
                         type="button"
                         [disabled]="section.secondaryActionDisabled"
                         (click)="section.onSecondaryAction()"
@@ -117,6 +117,12 @@ import type { PageRailSection } from "./page-rail.service";
                     <input type="checkbox" [checked]="option.checked" (change)="option.onToggle()" />
                     <span>{{ option.label }}</span>
                   </label>
+                }
+              </div>
+            } @else if (section.loading) {
+              <div class="rail-filter-placeholders" aria-hidden="true">
+                @for (index of placeholderRows(section.placeholderRows); track index) {
+                  <span></span>
                 }
               </div>
             }
@@ -286,14 +292,7 @@ import type { PageRailSection } from "./page-rail.service";
       }
 
       .rail-filter-secondary {
-        background: var(--control-quiet-background);
-        border: 1px solid var(--line-subtle);
-        border-radius: var(--radius-ui);
-        color: var(--color-text);
-        cursor: pointer;
-        font: inherit;
         font-size: 0.72rem;
-        font-weight: 800;
         min-height: 1.65rem;
         padding: 0.18rem 0.5rem;
         white-space: nowrap;
@@ -314,9 +313,10 @@ import type { PageRailSection } from "./page-rail.service";
 
       .rail-filter-option {
         align-items: center;
-        background: color-mix(in srgb, var(--color-accent-sky) 14%, white 86%);
+        background: color-mix(in srgb, var(--color-accent-sky) 16%, var(--color-card-tint) 84%);
         border: 1px solid var(--line-subtle);
         border-radius: var(--radius-ui);
+        color: var(--color-on-soft-accent);
         display: flex;
         font-size: 0.8rem;
         font-weight: 800;
@@ -329,6 +329,36 @@ import type { PageRailSection } from "./page-rail.service";
         accent-color: var(--color-accent-leaf-strong);
         height: 0.95rem;
         width: 0.95rem;
+      }
+
+      .rail-filter-placeholders {
+        display: grid;
+        gap: 0.35rem;
+        margin-top: 0.35rem;
+      }
+
+      .rail-filter-placeholders span {
+        animation: rail-placeholder-pulse 1300ms ease-in-out infinite;
+        background: linear-gradient(
+          90deg,
+          color-mix(in srgb, var(--surface-soft-background) 82%, transparent),
+          color-mix(in srgb, var(--color-accent-sky) 18%, var(--surface-soft-background) 82%),
+          color-mix(in srgb, var(--surface-soft-background) 82%, transparent)
+        );
+        border: 1px solid var(--line-subtle);
+        border-radius: var(--radius-ui);
+        min-height: 2rem;
+      }
+
+      @keyframes rail-placeholder-pulse {
+        0%,
+        100% {
+          opacity: 0.56;
+        }
+
+        50% {
+          opacity: 0.92;
+        }
       }
     `
   ]
@@ -344,5 +374,9 @@ export class PageRailOutletComponent {
 
   toggleRailFilter(key: string): void {
     this.openFilterKey.set(this.openFilterKey() === key ? null : key);
+  }
+
+  placeholderRows(count = 3): number[] {
+    return Array.from({ length: count }, (_, index) => index);
   }
 }

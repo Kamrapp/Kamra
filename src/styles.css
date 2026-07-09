@@ -13,19 +13,21 @@
   --space-7: clamp(1.5rem, 4vw, 2.25rem);
   --space-page-x: clamp(0.75rem, 2.25vw, 1.75rem);
   --space-page-y: clamp(1.25rem, 4vw, 3rem);
-  --color-accent-leaf: #9fc83b;
-  --color-accent-leaf-strong: #6f9f21;
-  --color-accent-sky: #aad5e8;
-  --color-background: #e7dff1;
-  --color-background-soft: #f4eff8;
-  --color-scrollbar-thumb: #746287;
-  --color-scrollbar-thumb-hover: #655476;
+  --color-accent-leaf: #a8be5f;
+  --color-accent-leaf-strong: #6f8f3a;
+  --color-accent-sky: #96aec2;
+  --color-background: #d8d0bd;
+  --color-background-soft: #ebe5d6;
+  --color-card-tint: #e4dccb;
+  --color-on-soft-accent: #2d353b;
+  --color-scrollbar-thumb: #7b7469;
+  --color-scrollbar-thumb-hover: #625b52;
   --color-status-danger: #b42318;
   --color-status-danger-text: #842018;
   --color-status-warning: #c97b1d;
-  --color-surface: #f8f4f1;
-  --color-text: #302b32;
-  --color-text-muted: #6e6470;
+  --color-surface: #f1eadc;
+  --color-text: #2d353b;
+  --color-text-muted: #66706e;
   --color-wood: #9a765d;
   --color-wood-deep: #69584f;
   --app-background:
@@ -34,26 +36,43 @@
     linear-gradient(180deg, var(--color-background-soft) 0%, var(--color-background) 100%);
   --control-primary-background: var(--color-accent-leaf-strong);
   --control-primary-border: color-mix(in srgb, var(--color-accent-leaf-strong) 72%, black 28%);
-  --control-quiet-background: color-mix(in srgb, var(--color-accent-sky) 20%, white 80%);
+  --control-primary-text: #f4f0e4;
+  --control-quiet-background: color-mix(in srgb, var(--color-accent-sky) 20%, var(--color-card-tint) 80%);
   --control-quiet-border: color-mix(in srgb, var(--color-wood) 18%, transparent);
-  --danger-soft-background: color-mix(in srgb, var(--color-status-danger) 16%, white 84%);
-  --form-field-background: color-mix(in srgb, var(--color-surface) 88%, white 12%);
+  --control-quiet-text: var(--color-text);
+  --control-warm-background: color-mix(in srgb, var(--color-wood) 76%, var(--color-card-tint) 24%);
+  --control-warm-border: color-mix(in srgb, var(--color-wood) 68%, var(--color-wood-deep) 32%);
+  --control-warm-text: var(--color-on-soft-accent);
+  --danger-soft-background: color-mix(in srgb, var(--color-status-danger) 16%, var(--color-card-tint) 84%);
+  --form-field-background: color-mix(in srgb, var(--color-surface) 88%, var(--color-card-tint) 12%);
   --line-subtle: color-mix(in srgb, var(--color-wood) 12%, transparent);
   --line-panel: color-mix(in srgb, var(--color-wood) 18%, transparent);
   --line-strong: color-mix(in srgb, var(--color-wood) 22%, transparent);
-  --row-hover-background: color-mix(in srgb, var(--color-accent-sky) 22%, white 78%);
+  --row-hover-background: color-mix(in srgb, var(--color-accent-sky) 22%, var(--color-card-tint) 78%);
   --row-stripe-background: color-mix(in srgb, var(--color-background-soft) 42%, transparent);
+  --pulse-card-background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--color-card-tint) 72%, var(--color-surface) 28%),
+      color-mix(in srgb, var(--color-accent-sky) 20%, var(--color-surface) 80%)
+    ),
+    color-mix(in srgb, var(--color-accent-sky) 18%, var(--color-surface));
+  --pulse-row-background: color-mix(in srgb, var(--color-card-tint) 78%, var(--color-accent-sky) 22%);
+  --pulse-row-border: color-mix(in srgb, var(--color-card-tint) 74%, var(--color-wood) 26%);
+  --pulse-row-text: var(--color-on-soft-accent);
+  --pulse-sheen-background: color-mix(in srgb, var(--color-card-tint) 42%, transparent);
+  --pulse-core-background: color-mix(in srgb, var(--color-accent-leaf) 30%, var(--color-card-tint) 70%);
   --surface-panel-background: rgb(248 244 241 / 78%);
   --surface-panel-shadow: 0 1rem 2.6rem rgb(48 43 50 / 10%);
   --surface-floating-shadow: 0 1rem 2.6rem rgb(48 43 50 / 14%);
   --surface-shell-background: rgb(248 244 241 / 76%);
   --surface-shell-shadow: 0 1rem 2.4rem rgb(48 43 50 / 12%);
-  --surface-soft-background: color-mix(in srgb, var(--color-background-soft) 72%, white 28%);
+  --surface-soft-background: color-mix(in srgb, var(--color-background-soft) 72%, var(--color-card-tint) 28%);
   --toast-shadow: 0 1rem 2.4rem rgb(48 43 50 / 16%);
-  --toast-error-border: color-mix(in srgb, var(--color-status-danger) 72%, white 28%);
-  --toast-info-border: color-mix(in srgb, var(--color-accent-sky) 68%, white 32%);
-  --toast-success-border: color-mix(in srgb, var(--color-accent-leaf-strong) 72%, white 28%);
-  --toast-warning-border: color-mix(in srgb, var(--color-status-warning) 72%, white 28%);
+  --toast-error-border: color-mix(in srgb, var(--color-status-danger) 72%, var(--color-card-tint) 28%);
+  --toast-info-border: color-mix(in srgb, var(--color-accent-sky) 68%, var(--color-card-tint) 32%);
+  --toast-success-border: color-mix(in srgb, var(--color-accent-leaf-strong) 72%, var(--color-card-tint) 28%);
+  --toast-warning-border: color-mix(in srgb, var(--color-status-warning) 72%, var(--color-card-tint) 28%);
   font-family: var(--font-sans);
   font-size: 92.5%;
   line-height: 1.5;
@@ -61,29 +80,36 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --color-accent-leaf: #b5d85f;
-  --color-accent-leaf-strong: #94bf3f;
-  --color-accent-sky: #78bdd8;
-  --color-background: #15111b;
-  --color-background-soft: #211a2a;
-  --color-scrollbar-thumb: #9b8eaa;
-  --color-scrollbar-thumb-hover: #b4a7c4;
+  --color-accent-leaf: #aebf76;
+  --color-accent-leaf-strong: #8fa65a;
+  --color-accent-sky: #96aec2;
+  --color-background: #262c31;
+  --color-background-soft: #2d353b;
+  --color-card-tint: #cdc2a7;
+  --color-on-soft-accent: #262c31;
+  --color-scrollbar-thumb: #8f8878;
+  --color-scrollbar-thumb-hover: #aaa18d;
   --color-status-danger: #ff8c7f;
   --color-status-danger-text: #ffd6d1;
   --color-status-warning: #f3b35e;
-  --color-surface: #25202b;
-  --color-text: #f5eef8;
-  --color-text-muted: #c7bacd;
-  --color-wood: #c2a28d;
-  --color-wood-deep: #e1c8b8;
+  --color-surface: #3f4547;
+  --color-text: #e5dcc8;
+  --color-text-muted: #bfb49e;
+  --color-wood: #cdc2a7;
+  --color-wood-deep: #b8a887;
   --app-background:
     radial-gradient(circle at 18% 12%, color-mix(in srgb, var(--color-accent-sky) 24%, transparent), transparent 34%),
     radial-gradient(circle at 82% 20%, color-mix(in srgb, var(--color-accent-leaf) 18%, transparent), transparent 30%),
     linear-gradient(180deg, var(--color-background-soft) 0%, var(--color-background) 100%);
   --control-primary-background: color-mix(in srgb, var(--color-accent-leaf-strong) 86%, black 14%);
   --control-primary-border: color-mix(in srgb, var(--color-accent-leaf-strong) 60%, white 40%);
+  --control-primary-text: #f1eadc;
   --control-quiet-background: color-mix(in srgb, var(--color-accent-sky) 22%, var(--color-surface) 78%);
   --control-quiet-border: color-mix(in srgb, var(--color-wood) 28%, transparent);
+  --control-quiet-text: var(--color-text);
+  --control-warm-background: color-mix(in srgb, var(--color-wood) 72%, var(--color-surface) 28%);
+  --control-warm-border: color-mix(in srgb, var(--color-wood) 62%, var(--color-background) 38%);
+  --control-warm-text: var(--color-on-soft-accent);
   --danger-soft-background: color-mix(in srgb, var(--color-status-danger) 18%, var(--color-surface) 82%);
   --form-field-background: color-mix(in srgb, var(--color-surface) 84%, black 16%);
   --line-subtle: color-mix(in srgb, var(--color-wood) 18%, transparent);
@@ -91,6 +117,18 @@
   --line-strong: color-mix(in srgb, var(--color-wood) 34%, transparent);
   --row-hover-background: color-mix(in srgb, var(--color-accent-sky) 20%, var(--color-surface) 80%);
   --row-stripe-background: color-mix(in srgb, var(--color-background-soft) 60%, transparent);
+  --pulse-card-background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--color-background-soft) 82%, var(--color-surface) 18%),
+      color-mix(in srgb, var(--color-accent-sky) 12%, var(--color-background) 88%)
+    ),
+    var(--color-background-soft);
+  --pulse-row-background: color-mix(in srgb, var(--color-surface) 84%, var(--color-accent-sky) 16%);
+  --pulse-row-border: color-mix(in srgb, var(--color-wood) 28%, var(--color-background) 72%);
+  --pulse-row-text: var(--color-text);
+  --pulse-sheen-background: color-mix(in srgb, var(--color-accent-sky) 16%, transparent);
+  --pulse-core-background: color-mix(in srgb, var(--color-accent-leaf) 22%, var(--color-surface) 78%);
   --surface-panel-background: rgb(37 32 43 / 86%);
   --surface-panel-shadow: 0 1rem 2.6rem rgb(0 0 0 / 28%);
   --surface-floating-shadow: 0 1rem 2.6rem rgb(0 0 0 / 34%);
@@ -98,10 +136,10 @@
   --surface-shell-shadow: 0 1rem 2.4rem rgb(0 0 0 / 30%);
   --surface-soft-background: color-mix(in srgb, var(--color-background-soft) 74%, var(--color-surface) 26%);
   --toast-shadow: 0 1rem 2.4rem rgb(0 0 0 / 32%);
-  --toast-error-border: color-mix(in srgb, var(--color-status-danger) 64%, white 36%);
-  --toast-info-border: color-mix(in srgb, var(--color-accent-sky) 62%, white 38%);
-  --toast-success-border: color-mix(in srgb, var(--color-accent-leaf-strong) 64%, white 36%);
-  --toast-warning-border: color-mix(in srgb, var(--color-status-warning) 66%, white 34%);
+  --toast-error-border: color-mix(in srgb, var(--color-status-danger) 64%, var(--color-card-tint) 36%);
+  --toast-info-border: color-mix(in srgb, var(--color-accent-sky) 62%, var(--color-card-tint) 38%);
+  --toast-success-border: color-mix(in srgb, var(--color-accent-leaf-strong) 64%, var(--color-card-tint) 36%);
+  --toast-warning-border: color-mix(in srgb, var(--color-status-warning) 66%, var(--color-card-tint) 34%);
 }
 
 * {
@@ -122,7 +160,7 @@ body {
 }
 
 * {
-  scrollbar-color: color-mix(in srgb, var(--color-scrollbar-thumb) 88%, white 12%) transparent;
+  scrollbar-color: color-mix(in srgb, var(--color-scrollbar-thumb) 88%, var(--color-card-tint) 12%) transparent;
   scrollbar-width: thin;
 }
 
@@ -144,7 +182,7 @@ body {
 *::-webkit-scrollbar-thumb {
   background:
     linear-gradient(180deg,
-      color-mix(in srgb, var(--color-scrollbar-thumb) 82%, white 18%),
+      color-mix(in srgb, var(--color-scrollbar-thumb) 82%, var(--color-card-tint) 18%),
       color-mix(in srgb, var(--color-scrollbar-thumb) 96%, black 4%));
   background-clip: padding-box;
   border: 0.18rem solid transparent;
@@ -157,7 +195,7 @@ body {
 *::-webkit-scrollbar-thumb:hover {
   background:
     linear-gradient(180deg,
-      color-mix(in srgb, var(--color-scrollbar-thumb-hover) 80%, white 20%),
+      color-mix(in srgb, var(--color-scrollbar-thumb-hover) 80%, var(--color-card-tint) 20%),
       color-mix(in srgb, var(--color-scrollbar-thumb-hover) 94%, black 6%));
 }
 
@@ -172,11 +210,18 @@ samp {
   font-family: var(--font-mono);
 }
 
-.surface-panel {
+.surface-panel,
+.ui-surface-panel {
   background: var(--surface-panel-background);
   border: 1px solid var(--line-panel);
   border-radius: var(--radius-ui);
   box-shadow: var(--surface-panel-shadow);
+}
+
+.ui-surface-soft {
+  background: var(--surface-soft-background);
+  border: 1px solid var(--line-subtle);
+  border-radius: var(--radius-ui);
 }
 
 .surface-copy {
@@ -194,11 +239,12 @@ samp {
   text-transform: uppercase;
 }
 
+.ui-button,
 .ui-action-button {
   background: var(--control-primary-background);
   border: 1px solid var(--control-primary-border);
   border-radius: var(--radius-ui);
-  color: white;
+  color: var(--control-primary-text);
   cursor: pointer;
   font: inherit;
   font-weight: 700;
@@ -207,24 +253,81 @@ samp {
   padding: 0.7rem 1rem;
 }
 
+.ui-button-quiet {
+  background: var(--control-quiet-background);
+  border-color: var(--control-quiet-border);
+  color: var(--control-quiet-text);
+}
+
+.ui-button-warm {
+  background: var(--control-warm-background);
+  border-color: var(--control-warm-border);
+  color: var(--control-warm-text);
+}
+
+.ui-button-sm {
+  min-height: 2.15rem;
+  min-width: 0;
+  padding: 0.35rem 0.7rem;
+}
+
+.ui-button:disabled,
 .ui-action-button:disabled {
   cursor: progress;
   opacity: 0.72;
 }
 
 .ui-token {
+  align-items: center;
   border-radius: var(--radius-ui);
+  display: inline-flex;
   font-size: 0.84rem;
+  font-weight: 800;
   min-height: 2rem;
   padding: 0.4rem 0.65rem;
 }
 
 .ui-token-source {
-  background: color-mix(in srgb, var(--color-accent-sky) 26%, white 74%);
-  color: var(--color-text);
+  background: color-mix(in srgb, var(--color-accent-sky) 26%, var(--color-card-tint) 74%);
+  color: var(--color-on-soft-accent);
 }
 
 .ui-token-tag {
-  background: color-mix(in srgb, var(--color-accent-leaf) 18%, white 82%);
+  background: color-mix(in srgb, var(--color-accent-leaf) 18%, var(--color-card-tint) 82%);
+  color: var(--color-on-soft-accent);
+}
+
+.ui-token-muted {
+  background: var(--surface-soft-background);
+  color: var(--color-text-muted);
+}
+
+.radial-nav-item::after {
+  background: color-mix(in srgb, var(--color-surface) 92%, var(--color-card-tint) 8%);
+  border: 1px solid var(--line-panel);
+  border-radius: var(--radius-ui);
+  box-shadow: var(--surface-floating-shadow);
   color: var(--color-text);
+  content: attr(data-label);
+  font-size: 0.78rem;
+  font-weight: 800;
+  opacity: 0;
+  padding: 0.28rem 0.48rem;
+  pointer-events: none;
+  position: absolute;
+  right: calc(100% + 0.45rem);
+  top: 50%;
+  transform: translate(0.2rem, -50%);
+  transition: opacity 140ms ease, transform 140ms ease;
+  white-space: nowrap;
+}
+
+.radial-nav-item:hover::after,
+.radial-nav-item:focus-visible::after {
+  opacity: 1;
+  transform: translate(0, -50%);
+}
+
+.radial-menu-open .radial-nav-item::after {
+  display: none;
 }

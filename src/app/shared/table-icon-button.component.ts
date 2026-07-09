@@ -21,7 +21,7 @@ import { Component, input, output } from "@angular/core";
         background: var(--control-quiet-background);
         border: 1px solid var(--control-quiet-border);
         border-radius: var(--radius-ui);
-        color: var(--color-text);
+        color: var(--control-quiet-text);
         cursor: pointer;
         display: inline-flex;
         font: inherit;
