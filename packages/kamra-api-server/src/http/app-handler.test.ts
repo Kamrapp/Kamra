@@ -16,7 +16,7 @@ describe("handleAppRequest auth guards", () => {
     const response = await handleAppRequest({
       headers: {},
       method: "GET",
-      path: "/api/health"
+      path: "/api/admin/dashboard/health"
     });
 
     expect(response.status).toBe(401);
@@ -42,7 +42,7 @@ describe("handleAppRequest auth guards", () => {
         authorization: `Bearer ${token}`
       },
       method: "GET",
-      path: "/api/health"
+      path: "/api/admin/dashboard/health"
     });
 
     expect(response.status).toBe(503);
@@ -391,7 +391,7 @@ describe("handleAppRequest auth guards", () => {
         authorization: `Bearer ${token}`
       },
       method: "POST",
-      path: "/api/health/backfill-unvalidated-products"
+      path: "/api/admin/dashboard/backfill-unvalidated-products"
     });
 
     expect(response.status).toBe(401);
@@ -420,7 +420,7 @@ describe("handleAppRequest auth guards", () => {
           authorization: `Bearer ${token}`
         },
         method: "POST",
-        path: "/api/health/backfill-unvalidated-products"
+        path: "/api/admin/dashboard/backfill-unvalidated-products"
       },
       {
         createCatalogRepository: () => ({
@@ -469,7 +469,7 @@ describe("handleAppRequest auth guards", () => {
           authorization: `Bearer ${token}`
         },
         method: "POST",
-        path: "/api/health/upgrade-catalog-validators"
+        path: "/api/admin/dashboard/upgrade-catalog-validators"
       },
       {
         createCatalogRepository: () => ({
@@ -516,7 +516,7 @@ describe("handleAppRequest auth guards", () => {
           authorization: `Bearer ${token}`
         },
         method: "POST",
-        path: "/api/health/upgrade-catalog-validators"
+        path: "/api/admin/dashboard/upgrade-catalog-validators"
       },
       {
         createCatalogRepository: () => ({
@@ -560,7 +560,7 @@ describe("handleAppRequest auth guards", () => {
           authorization: `Bearer ${token}`
         },
         method: "POST",
-        path: "/api/health/backfill-unvalidated-products"
+        path: "/api/admin/dashboard/backfill-unvalidated-products"
       },
       {
         createCatalogRepository: () => ({
@@ -607,7 +607,7 @@ describe("handleAppRequest auth guards", () => {
           authorization: `Bearer ${token}`
         },
         method: "POST",
-        path: "/api/health/backfill-unvalidated-products"
+        path: "/api/admin/dashboard/backfill-unvalidated-products"
       },
       {
         createCatalogRepository: () => ({
@@ -648,7 +648,7 @@ describe("handleAppRequest auth guards", () => {
         authorization: `Bearer ${token}`
       },
       method: "GET",
-      path: "/api/health"
+      path: "/api/admin/dashboard/health"
     });
 
     expect(response.status).toBe(401);
@@ -656,6 +656,135 @@ describe("handleAppRequest auth guards", () => {
       error: "unauthorized",
       message: "Sign in as an admin to view this resource."
     });
+  });
+
+  it("rejects demo household reseed without an admin token", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+
+    const response = await handleAppRequest({
+      headers: {},
+      method: "POST",
+      path: "/api/admin/dashboard/reseed-demo-household"
+    });
+
+    expect(response.status).toBe(401);
+    expect(JSON.parse(response.body)).toEqual({
+      error: "unauthorized",
+      message: "Sign in as an admin to view this resource."
+    });
+  });
+
+  it("rejects demo household reseed for a valid non-admin token", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+
+    const token = createUserToken({
+      email: "user@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "user",
+      secret: "test-secret"
+    });
+
+    const response = await handleAppRequest({
+      headers: {
+        authorization: `Bearer ${token}`
+      },
+      method: "POST",
+      path: "/api/admin/dashboard/reseed-demo-household"
+    });
+
+    expect(response.status).toBe(401);
+    expect(JSON.parse(response.body)).toEqual({
+      error: "unauthorized",
+      message: "Sign in as an admin to view this resource."
+    });
+  });
+
+  it("reseeds the demo household for an admin without touching unrelated users", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+    vi.stubEnv("SEED_DEMO_HOUSEHOLD_PASSWORD", "demo-password");
+
+    const token = createUserToken({
+      email: "admin@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "admin",
+      secret: "test-secret"
+    });
+    const db = createFakeDb();
+    await db.collection("users").insertOne({
+      authProvider: "bootstrap_credentials",
+      createdAt: new Date("2026-07-09T08:00:00.000Z"),
+      email: "outside_user",
+      passwordHash: "hash",
+      role: "user",
+      status: "active",
+      updatedAt: new Date("2026-07-09T08:00:00.000Z")
+    });
+
+    const firstResponse = await handleAppRequest(
+      {
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "POST",
+        path: "/api/admin/dashboard/reseed-demo-household"
+      },
+      {
+        getMongoClient: async () => ({
+          db: () => db
+        }) as never
+      }
+    );
+
+    expect(firstResponse.status).toBe(200);
+    expect(JSON.parse(firstResponse.body)).toMatchObject({
+      counts: {
+        households: 1,
+        localProducts: 12,
+        memberships: 2,
+        stockItems: 12,
+        users: 2
+      },
+      databaseName: "fake_db",
+      message: "Demo household data was reseeded."
+    });
+
+    const secondResponse = await handleAppRequest(
+      {
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "POST",
+        path: "/api/admin/dashboard/reseed-demo-household"
+      },
+      {
+        getMongoClient: async () => ({
+          db: () => db
+        }) as never
+      }
+    );
+
+    expect(secondResponse.status).toBe(200);
+    expect(JSON.parse(secondResponse.body)).toMatchObject({
+      counts: {
+        deletedHouseholds: 1,
+        deletedLocalProducts: 12,
+        deletedMemberships: 2,
+        deletedStockItems: 12,
+        deletedUsers: 2,
+        households: 1,
+        localProducts: 12,
+        memberships: 2,
+        stockItems: 12,
+        users: 2
+      }
+    });
+
+    const userEmails = db.__collections["users"]?.docs.map((user) => user.email).sort();
+    expect(userEmails).toEqual(["outside_user", "usera", "userb"]);
   });
 
   it("rejects admin product list requests for a valid non-admin token", async () => {

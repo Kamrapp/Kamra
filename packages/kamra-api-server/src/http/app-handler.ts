@@ -15,10 +15,11 @@ import {
 } from "./routes/catalog-routes.js";
 import { currentUserRoute, loginRoute, logoutRoute, userPreferencesRoute } from "./routes/auth-routes.js";
 import {
-  healthRoute,
-  markLegacyProductsUnvalidatedRoute,
-  upgradeCatalogValidatorsRoute
-} from "./routes/health-route.js";
+  adminDashboardHealthRoute,
+  adminDashboardMarkLegacyProductsUnvalidatedRoute,
+  adminDashboardReseedDemoHouseholdRoute,
+  adminDashboardUpgradeCatalogValidatorsRoute
+} from "./routes/admin-dashboard-route.js";
 import { householdStockRoute, householdsRoute } from "./routes/household-routes.js";
 import {
   acceptProductReviewItemRoute,
@@ -42,9 +43,10 @@ const appRoutes: AppRoute[] = [
   userPreferencesRoute,
   householdsRoute,
   householdStockRoute,
-  healthRoute,
-  upgradeCatalogValidatorsRoute,
-  markLegacyProductsUnvalidatedRoute,
+  adminDashboardHealthRoute,
+  adminDashboardUpgradeCatalogValidatorsRoute,
+  adminDashboardMarkLegacyProductsUnvalidatedRoute,
+  adminDashboardReseedDemoHouseholdRoute,
   catalogProductRoute,
   catalogProductValidationRoute,
   catalogProductsRoute,

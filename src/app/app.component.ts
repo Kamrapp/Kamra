@@ -1,4 +1,4 @@
-import { Component, effect, inject, signal, type OnInit } from "@angular/core";
+import { Component, computed, effect, inject, signal, type OnInit } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import {
   NavigationEnd,
@@ -12,10 +12,23 @@ import { logBrowserEvent } from "./browser-logger";
 import { AuthService } from "./auth.service";
 import { PageRailService } from "./shared/page-rail.service";
 import { PageRailOutletComponent } from "./shared/page-rail-outlet.component";
-import { LocalizationService, type LanguagePreference } from "./shared/localization.service";
+import {
+  LocalizationService,
+  type LanguagePreference,
+  type TranslationKey
+} from "./shared/localization.service";
 import { ThemePreferenceService, type ThemePreference } from "./shared/theme-preference.service";
 import { ToastHostComponent } from "./shared/toast-host.component";
 import { ToastService } from "./shared/toast.service";
+
+interface ShellMenuItem {
+  angle: number;
+  exact: boolean;
+  iconPath: string;
+  labelKey: TranslationKey;
+  path: string;
+  requiresAdmin?: boolean;
+}
 
 @Component({
   imports: [FormsModule, PageRailOutletComponent, RouterLink, RouterLinkActive, RouterOutlet, ToastHostComponent],
@@ -113,7 +126,7 @@ import { ToastService } from "./shared/toast.service";
 
       <div class="radial-menu" [class.radial-menu-open]="isMenuOpen">
         <nav id="primary-menu" class="radial-nav" [attr.aria-label]="loc.t('app.primaryNavigation')">
-          @for (item of menuItems; track item.path) {
+          @for (item of menuItems(); track item.path) {
             <a
               class="radial-nav-item"
               [routerLink]="item.path"
@@ -600,7 +613,12 @@ export class AppComponent implements OnInit {
   readonly currentPageTitle = signal("");
   readonly loginState = signal<"idle" | "loading">("idle");
   readonly railResetToken = signal(0);
-  readonly menuItems = [
+  readonly menuItems = computed(() => {
+    const isAdmin = this.auth.user()?.role === "admin";
+
+    return this.baseMenuItems.filter((item) => !item.requiresAdmin || isAdmin);
+  });
+  private readonly baseMenuItems: readonly ShellMenuItem[] = [
     {
       angle: 225,
       exact: true,
@@ -611,9 +629,10 @@ export class AppComponent implements OnInit {
     {
       angle: 195,
       exact: false,
-      iconPath: "M12 3C8.1 3 5 6.1 5 10C5 15.2 12 21 12 21S19 15.2 19 10C19 6.1 15.9 3 12 3ZM12 12.5C10.6 12.5 9.5 11.4 9.5 10S10.6 7.5 12 7.5 14.5 8.6 14.5 10 13.4 12.5 12 12.5Z",
-      labelKey: "common.health" as const,
-      path: "/health"
+      iconPath: "M12 2 4 5v6c0 5 3.4 9.7 8 11 4.6-1.3 8-6 8-11V5l-8-3Zm0 2.1 6 2.25v4.53c0 3.9-2.44 7.54-6 8.88-3.56-1.34-6-4.98-6-8.88V6.35L12 4.1Zm-1 3.4h2v4h-2v-4Zm0 5h2v2h-2v-2Z",
+      labelKey: "common.adminDashboard",
+      path: "/admin/dashboard",
+      requiresAdmin: true
     },
     {
       angle: 165,
@@ -627,7 +646,8 @@ export class AppComponent implements OnInit {
       exact: false,
       iconPath: "M4 5H20V9H4V5ZM6 11H18V14H6V11ZM8 16H16V19H8V16Z",
       labelKey: "common.crawls" as const,
-      path: "/admin/ingestion"
+      path: "/admin/ingestion",
+      requiresAdmin: true
     }
   ];
   isMenuOpen = false;
@@ -735,8 +755,8 @@ export class AppComponent implements OnInit {
       return this.loc.t("app.productOffers");
     }
 
-    if (url.startsWith("/health")) {
-      return this.loc.t("common.healthCheck");
+    if (url.startsWith("/admin/dashboard") || url.startsWith("/health")) {
+      return this.loc.t("common.adminDashboard");
     }
 
     return this.loc.t("app.home");

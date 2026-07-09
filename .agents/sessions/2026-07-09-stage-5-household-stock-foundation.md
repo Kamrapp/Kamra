@@ -26,6 +26,12 @@
 - Item: Refined the pulse header into three columns with a shorter custom vertical shopping-scale slider, level tick marks, playful level hints, and a full-size shopping-list action.
 - Item: Moved the shopping-list coming-soon notification into the household stock service so the home component uses the shared household toast path instead of owning a one-off placeholder method.
 - Item: Removed the app shell's separate login/logout message lane so auth, household, and page actions now all use the same global toast host.
+- Item: Added an admin-only demo household reseed API that uses the existing stable demo seed service and leaves unrelated users intact.
+- Item: Reworked the health/admin page into a four-card utility layout with demo reseed, database maintenance, future feature-flag placeholders, and a reserved block.
+- Item: Renamed the health/dev-admin surface to an admin dashboard, moved catalog modifier actions into their own maintenance card, and hid admin-only navigation/content from non-admin users without logging them out on unauthorized dashboard requests.
+- Item: Hardened admin dashboard route-response handling so non-JSON or malformed health responses now surface as route errors instead of false browser-reachability failures, and updated the global toast host to use dedicated dark-theme text colors with readable contrast.
+- Item: Switched dark-theme toasts from the temporary light card treatment to a proper dark panel surface with light text so the shared toast host now matches the overall dark theme.
+- Item: Simplified the home pulse shopping-list action button so it now uses the shared quiet surface styling instead of a glossy gradient highlight, especially in dark mode.
 
 ## Changed Files
 
@@ -48,8 +54,19 @@
 - Path: `packages/kamra-api-server/src/http/app-route-context.ts`
 - Path: `packages/kamra-api-server/src/http/app-handler.ts`
 - Path: `packages/kamra-api-server/src/http/app-handler.test.ts`
+- Path: `packages/kamra-api-server/src/http/routes/admin-dashboard-route.ts`
+- Path: `api/admin/dashboard/health.ts`
+- Path: `api/admin/dashboard/upgrade-catalog-validators.ts`
+- Path: `api/admin/dashboard/backfill-unvalidated-products.ts`
+- Path: `api/admin/dashboard/reseed-demo-household.ts`
 - Path: `src/app/household/household-stock.service.ts`
 - Path: `src/app/home.component.ts`
+- Path: `src/app/dev-admin/admin-dashboard.component.ts`
+- Path: `src/app/app.component.ts`
+- Path: `src/app/app.routes.ts`
+- Path: `src/app/shared/toast-host.component.ts`
+- Path: `src/app/home.component.ts`
+- Path: `src/styles.css`
 - Path: `src/app/i18n/en.json`
 - Path: `src/app/i18n/hu.json`
 - Path: `scripts/README.md`
@@ -99,6 +116,38 @@
 - Result: passed after unifying auth and page notifications onto the global toast host
 - Ran: `npm run build`
 - Result: passed after unifying auth and page notifications onto the global toast host; Angular reported an initial bundle size of 514.49 kB
+- Ran: `npm test -- packages/kamra-api-server/src/http/app-handler.test.ts`
+- Result: passed after adding the admin demo-household reseed route; 1 test file and 36 tests passed
+- Ran: `npm run typecheck`
+- Result: passed after the admin demo-household route and four-card health page rework
+- Ran: `npm run lint`
+- Result: passed after the admin demo-household route and four-card health page rework
+- Ran: `npm run build`
+- Result: passed after the admin demo-household route and four-card health page rework; Angular reported an initial bundle size of 521.32 kB
+- Ran: `npm test -- packages/kamra-api-server/src/http/app-handler.test.ts`
+- Result: passed after the admin dashboard route rename and access-guard fix; 1 test file and 36 tests passed
+- Ran: `npm run typecheck`
+- Result: passed after the admin dashboard route rename and access-guard fix
+- Ran: `npm run lint`
+- Result: passed after the admin dashboard route rename and access-guard fix
+- Ran: `npm run build`
+- Result: passed after the admin dashboard route rename and access-guard fix; Angular reported an initial bundle size of 522.92 kB
+- Ran: locale parity check for `src/app/i18n/en.json` and `src/app/i18n/hu.json`
+- Result: passed after the admin dashboard translation updates; both locales contain 354 leaf keys
+- Ran: `npm run typecheck`
+- Result: passed after the admin dashboard route-response handling and toast contrast updates
+- Ran: `npm run lint`
+- Result: passed after the admin dashboard route-response handling and toast contrast updates
+- Ran: `npm run build`
+- Result: passed after the admin dashboard route-response handling and toast contrast updates; Angular reported an initial bundle size of 524.30 kB
+- Ran: `npm run lint`
+- Result: passed after the dark-theme toast surface correction
+- Ran: `npm run build`
+- Result: passed after the dark-theme toast surface correction; Angular reported an initial bundle size of 524.41 kB
+- Ran: `npm run lint`
+- Result: passed after simplifying the shopping-list action button styling
+- Ran: `npm run build`
+- Result: passed after simplifying the shopping-list action button styling; Angular reported an initial bundle size of 524.83 kB
 
 ## Decisions
 
@@ -110,6 +159,10 @@
 - Reason: the current auth flow normalizes login identifiers to lowercase before lookup.
 - Decision: Keep Stage 5 shopping-list generation as a placeholder toast while allowing the home pulse count to preview three inclusion levels.
 - Reason: this supports the intended shopping-list shape without pretending generation/persistence exists before Stage 6.
+- Decision: Group the dev-admin runtime checks and modifier actions under `/admin/dashboard` and `/api/admin/dashboard/*`, while keeping `/health` as a frontend redirect only.
+- Reason: this makes the admin surface read more intentionally, keeps the Vercel/API routing explicit, and avoids leaving the old health naming mixed with broader admin tooling.
+- Decision: Keep unauthorized admin dashboard requests in place and show admin-access errors instead of logging the current user out.
+- Reason: admin-only access failures are not the same thing as an invalid end-user session, and logging out `usera` was both confusing and incorrect.
 
 ## Open Issues
 
@@ -121,12 +174,14 @@
 - Impact: the core user journey works now, but a later Stage 5 follow-up can still refine this into the planned modal/editor experience if desired.
 - Issue: Shopping-list generation is still a placeholder toast; the scale only changes the displayed candidate item count in the pulse.
 - Impact: Stage 6 still needs real list generation, persistence, and downstream actions.
-- Issue: The admin demo reseed API and the health/admin page rework are still not implemented.
-- Impact: Stage 5 still needs the admin reseed route/button and the four-panel health/admin layout before the full stage is complete.
 - Issue: The Angular production build initial bundle is now 512.23 kB.
 - Impact: the build still succeeds, but the home/dashboard additions may deserve a later trim pass if bundle budget pressure becomes distracting.
 - Issue: `src/app/home.component.ts` component styles now exceed the Angular component CSS budget at 10.20 kB against an 8.00 kB budget.
 - Impact: the build still succeeds, but the home page should be a candidate for CSS extraction or simplification if the warning becomes noisy.
+- Issue: Stage 5 still lacks a durable household-specific doc page or closeout roadmap/doc refresh for the finished household/admin utility behavior.
+- Impact: the product behavior now exists, but the final documentation/closeout step should still capture the household model, demo reseed boundary, and remaining Stage 6 handoff.
+- Issue: The dashboard health check still depends on the local/shared API actually being reachable at `/api/admin/dashboard/health`; if the local API server is not running, the browser-reachability toast is still the expected result.
+- Impact: the UI now distinguishes malformed route responses from network failures correctly, but local run instructions still matter for successful checks.
 
 ## Roadmap Or Plan Updates
 
@@ -135,8 +190,8 @@
 
 ## Next Step
 
-Implement the admin demo reseed API next, then rework the health/admin page to expose the reseed action and remaining validation tools.
+Document the finished Stage 5 household/admin behavior next, then decide whether to start Stage 6 shopping-list generation or do a focused bundle/CSS cleanup pass first.
 
 ## Notes For Future Agent
 
-The household package area now exists under `packages/kamra-api-server/src/household/` with contracts, schemas, validators, stock status helpers, Mongo repository tests, demo reseed support, and user-facing HTTP routes. The home page now consumes the new API through `src/app/household/household-stock.service.ts` and shows a real priority-ordered household stock pulse plus merged add/edit custom stock editing for signed-in household members. The pulse shopping scale is currently UI-only: `Business as usual` counts below-limit/at-limit rows, `Keep it chill` adds low-soon rows, and `Stock 'em up!` counts every tracked row. The pulse header now has three visual columns: custom shopping-scale slider, pulse count, and placeholder shopping-list action. Shell auth feedback no longer uses a separate fixed message; all notifications now flow through the shared global toast host.
+The household package area now exists under `packages/kamra-api-server/src/household/` with contracts, schemas, validators, stock status helpers, Mongo repository tests, demo reseed support, and user-facing HTTP routes. The home page now consumes the new API through `src/app/household/household-stock.service.ts` and shows a real priority-ordered household stock pulse plus merged add/edit custom stock editing for signed-in household members. The pulse shopping scale is currently UI-only: `Business as usual` counts below-limit/at-limit rows, `Keep it chill` adds low-soon rows, and `Stock 'em up!` counts every tracked row. The pulse header now has three visual columns: custom shopping-scale slider, pulse count, and placeholder shopping-list action. That shopping-list action now uses the same quiet surface language as the rest of the app instead of a glossy highlight treatment. Shell auth feedback no longer uses a separate fixed message; all notifications now flow through the shared global toast host. The old health screen is now an admin dashboard under `/admin/dashboard`, backed by `/api/admin/dashboard/*`, with a dedicated read-only health-check card, a separate maintenance card for modifier actions, and role-based menu/page guarding so non-admin users do not see the dashboard content or get logged out by unauthorized admin requests. The admin dashboard now also reads route responses more defensively, so malformed or unexpected payloads surface as route-level errors instead of being mislabeled as browser connectivity failures. In dark theme, the shared toast host now uses an actual dark panel surface with light text instead of reusing a light toast card.

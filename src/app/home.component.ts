@@ -319,7 +319,11 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
               </label>
               <label>
                 <span>{{ loc.t("household.minLimit") }}</span>
-                <input type="number" step="0.01" name="editorMinLimit" [(ngModel)]="editorDraft.minLimit" />
+                <span class="amount-stepper">
+                  <button type="button" [attr.aria-label]="loc.t('household.decreaseMinLimit')" (click)="adjustEditorMinLimit(-1)">−</button>
+                  <input type="number" step="0.01" name="editorMinLimit" [(ngModel)]="editorDraft.minLimit" />
+                  <button type="button" [attr.aria-label]="loc.t('household.increaseMinLimit')" (click)="adjustEditorMinLimit(1)">+</button>
+                </span>
               </label>
             </div>
 
@@ -666,10 +670,11 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
       .cart-button {
         align-items: center;
         align-self: center;
-        background: radial-gradient(circle at 35% 25%, color-mix(in srgb, var(--color-accent-leaf) 32%, #ffffff) 0%, var(--surface-soft-background) 68%);
-        border: 1px solid var(--line-panel);
+        background: var(--surface-soft-background);
+        border: 1px solid var(--line-subtle);
         border-radius: var(--radius-ui);
         color: var(--color-text);
+        box-shadow: var(--surface-floating-shadow);
         cursor: pointer;
         display: inline-flex;
         font-size: 2.35rem;
@@ -678,6 +683,24 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
         justify-content: center;
         min-height: 10rem;
         min-width: 10rem;
+        transition:
+          background 160ms ease,
+          border-color 160ms ease,
+          box-shadow 180ms ease,
+          transform 180ms ease;
+      }
+
+      .cart-button:hover,
+      .cart-button:focus-visible {
+        background: var(--control-quiet-background);
+        border-color: var(--control-quiet-border);
+        box-shadow: 0 1rem 2.2rem rgb(48 43 50 / 14%);
+        transform: translateY(-0.08rem);
+      }
+
+      .cart-button:focus-visible {
+        outline: 2px solid color-mix(in srgb, var(--color-accent-sky) 48%, transparent);
+        outline-offset: 0.16rem;
       }
 
       .home-copy,
@@ -859,6 +882,30 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
         font: inherit;
         min-height: 2.2rem;
         padding: 0.45rem 0.55rem;
+      }
+
+      .amount-stepper {
+        display: grid;
+        gap: 0.35rem;
+        grid-template-columns: 2.35rem minmax(0, 1fr) 2.35rem;
+      }
+
+      .amount-stepper button {
+        background: var(--control-quiet-background);
+        border: 1px solid var(--control-quiet-border);
+        border-radius: var(--radius-ui);
+        color: var(--control-quiet-text);
+        cursor: pointer;
+        font: inherit;
+        font-size: 1rem;
+        font-weight: 900;
+        min-height: 2.2rem;
+        padding: 0;
+      }
+
+      .amount-stepper button:hover,
+      .amount-stepper button:focus-visible {
+        border-color: var(--line-strong);
       }
 
       .stock-form textarea {
@@ -1211,6 +1258,13 @@ export class HomeComponent {
     await this.loadHouseholdPage(householdId, this.loadSerial);
   }
 
+  adjustEditorMinLimit(delta: number): void {
+    this.editorDraft = {
+      ...this.editorDraft,
+      minLimit: clampAmount(this.editorDraft.minLimit + delta)
+    };
+  }
+
   setEditorDisplayName(value: string): void {
     const previousSlug = normalizeStockGroupKey(this.editorDraft.displayName);
     const nextSlug = normalizeStockGroupKey(value);
@@ -1357,6 +1411,12 @@ function createEmptyStockDraft(): StockDraft {
 
 function initialAmountForCreate(draft: StockDraft): number {
   return draft.initialAmount > 0 ? draft.initialAmount : draft.currentAmount;
+}
+
+function clampAmount(value: number): number {
+  const finiteValue = Number.isFinite(value) ? value : 0;
+
+  return Math.max(0, Number(finiteValue.toFixed(2)));
 }
 
 function nullableTrim(value: string): string | null {

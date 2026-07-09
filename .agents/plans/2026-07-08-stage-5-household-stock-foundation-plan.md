@@ -23,7 +23,7 @@ This stage should turn the Stage 4 product pipeline into household value without
 - `packages/kamra-api-server/src/http/routes/auth-routes.ts`
 - `src/app/product-lookup/product-catalog.component.ts` through current-session context
 - `src/app/home.component.ts`
-- `src/app/health-check.component.ts`
+- `src/app/dev-admin/admin-dashboard.component.ts`
 - `src/app/app.routes.ts`
 - `src/app/household/` current filesystem state
 
@@ -273,7 +273,7 @@ The plan is executable sequentially if implementation follows these constraints:
 - Do not start the next step while the current step has failing validation.
 - Keep household-local products as the required product path; catalog linking fields are structural future-proofing only.
 - Keep demo reseed scoped to stable demo ids only: `userA`, `userB`, `household1`, and the seeded household-local products/items.
-- Keep the health/admin rework on the existing `src/app/health-check.component.ts` surface unless a separate dev-admin shell is planned later.
+- Keep the health/admin rework on a focused admin-dashboard surface under `src/app/dev-admin/` so the dev-admin boundary stays explicit.
 - Prefer deterministic domain helpers for low-soon classification and demo seed data so frontend and API code do not duplicate business decisions.
 - Use placeholder empty/loading data on new UI paths so the page does not blink or collapse during API reloads.
 - Add or update nearby docs whenever a new package area, route group, or data-writing script/route is introduced.
@@ -396,7 +396,7 @@ Sequential dependency rule:
   - `packages/kamra-api-server/src/http/app-handler.ts`
   - `packages/kamra-api-server/src/http/app-handler.test.ts`
 - Proposed route:
-  - `POST /api/admin/demo-household/reseed`
+  - `POST /api/admin/dashboard/reseed-demo-household`
 - Required behavior:
   - route requires the existing admin role check pattern; do not add ad hoc username/email checks
   - route returns counts for recreated users, household, memberships, local products, and stock items
@@ -480,7 +480,7 @@ Sequential dependency rule:
 
 - Goal: Make demo reseeding and validation tools easier to find without mixing them into the user household page.
 - Files likely affected:
-  - `src/app/health-check.component.ts`
+  - `src/app/dev-admin/admin-dashboard.component.ts`
   - admin API service for demo reseed
   - `src/app/i18n/en.json`
   - `src/app/i18n/hu.json`

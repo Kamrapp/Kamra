@@ -1,10 +1,15 @@
 import { createDefaultCatalogRepository } from "../app-route-context.js";
 import { getHealthResult } from "../../health/get-health-report.js";
+import {
+  demoHouseholdSeedName,
+  MongoHouseholdDemoSeedRepository,
+  seedDemoHouseholdPasswordEnvName
+} from "../../household/current/demo-household-seed.js";
 import { writeServerLog } from "../../logging/kamra-logger.js";
 import { json, unauthorized, type AppRoute } from "../app-route-context.js";
 
-export const healthRoute: AppRoute = {
-  match: (request) => request.method === "GET" && request.path === "/api/health",
+export const adminDashboardHealthRoute: AppRoute = {
+  match: (request) => request.method === "GET" && request.path === "/api/admin/dashboard/health",
   handle: async (request, context) => {
     const user = context.authenticateRequestUser(request);
     if (!user || user.role !== "admin") {
@@ -41,8 +46,8 @@ export const healthRoute: AppRoute = {
   }
 };
 
-export const upgradeCatalogValidatorsRoute: AppRoute = {
-  match: (request) => request.method === "POST" && request.path === "/api/health/upgrade-catalog-validators",
+export const adminDashboardUpgradeCatalogValidatorsRoute: AppRoute = {
+  match: (request) => request.method === "POST" && request.path === "/api/admin/dashboard/upgrade-catalog-validators",
   handle: async (request, context) => {
     const user = context.authenticateRequestUser(request);
     if (!user || user.role !== "admin") {
@@ -95,8 +100,8 @@ export const upgradeCatalogValidatorsRoute: AppRoute = {
   }
 };
 
-export const markLegacyProductsUnvalidatedRoute: AppRoute = {
-  match: (request) => request.method === "POST" && request.path === "/api/health/backfill-unvalidated-products",
+export const adminDashboardMarkLegacyProductsUnvalidatedRoute: AppRoute = {
+  match: (request) => request.method === "POST" && request.path === "/api/admin/dashboard/backfill-unvalidated-products",
   handle: async (request, context) => {
     const user = context.authenticateRequestUser(request);
     if (!user || user.role !== "admin") {
@@ -149,5 +154,73 @@ export const markLegacyProductsUnvalidatedRoute: AppRoute = {
       status: result.status,
       updatedCount: result.updatedCount
     });
+  }
+};
+
+export const adminDashboardReseedDemoHouseholdRoute: AppRoute = {
+  match: (request) => request.method === "POST" && request.path === "/api/admin/dashboard/reseed-demo-household",
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request);
+    if (!user || user.role !== "admin") {
+      return unauthorized("Sign in as an admin to view this resource.");
+    }
+
+    const config = context.config;
+    if (!config.mongodb.uri || !config.mongodb.databaseName) {
+      return json(503, { error: "household_not_configured" });
+    }
+
+    const password = process.env[seedDemoHouseholdPasswordEnvName]?.trim();
+    if (!password) {
+      return json(503, {
+        error: "demo_household_seed_not_configured",
+        message: `${seedDemoHouseholdPasswordEnvName} is required for demo household reseeding.`
+      });
+    }
+
+    const client = await context.getMongoClient(
+      config.mongodb.uri,
+      config.mongodb.dnsServers
+    );
+    const repository = new MongoHouseholdDemoSeedRepository(client.db(config.mongodb.databaseName));
+
+    try {
+      const setup = await repository.setup();
+      const counts = await repository.reseedDemoHousehold({ userPassword: password });
+      await repository.recordSeed({
+        completedAt: new Date(),
+        details: {
+          counts,
+          databaseName: setup.databaseName,
+          triggeredBy: user.email,
+          triggerPath: request.path
+        },
+        seedName: demoHouseholdSeedName,
+        status: "ok"
+      });
+
+      writeServerLog("info", "Admin demo household reseed completed", {
+        counts,
+        databaseName: setup.databaseName,
+        requestPath: request.path,
+        reseededBy: user.email
+      });
+
+      return json(200, {
+        counts,
+        databaseName: setup.databaseName,
+        ensuredCollections: setup.ensuredCollections,
+        message: "Demo household data was reseeded."
+      });
+    } catch (error: unknown) {
+      writeServerLog("error", "Admin demo household reseed failed", error);
+
+      return json(500, {
+        error: "demo_household_reseed_failed",
+        message: error instanceof Error && error.message
+          ? error.message
+          : "Demo household data could not be reseeded."
+      });
+    }
   }
 };
