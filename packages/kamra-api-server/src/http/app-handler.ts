@@ -19,6 +19,7 @@ import {
   markLegacyProductsUnvalidatedRoute,
   upgradeCatalogValidatorsRoute
 } from "./routes/health-route.js";
+import { householdStockRoute, householdsRoute } from "./routes/household-routes.js";
 import {
   acceptProductReviewItemRoute,
   declineProductReviewItemRoute,
@@ -39,6 +40,8 @@ const appRoutes: AppRoute[] = [
   logoutRoute,
   currentUserRoute,
   userPreferencesRoute,
+  householdsRoute,
+  householdStockRoute,
   healthRoute,
   upgradeCatalogValidatorsRoute,
   markLegacyProductsUnvalidatedRoute,

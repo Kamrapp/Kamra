@@ -5,7 +5,7 @@
 - Date: 2026-07-09
 - Plan: `.agents/plans/2026-07-08-stage-5-household-stock-foundation-plan.md`
 - Branch: unknown
-- Current objective: Implement Stage 5 household stock foundation, starting with contracts and deterministic helpers.
+- Current objective: Implement the first end-to-end Stage 5 household flow so a seeded user can sign in, see low-stock pulse data, and manage custom household stock with minimum limits.
 
 ## Completed
 
@@ -16,6 +16,9 @@
 - Item: Validated the household slice with `npm test -- packages/kamra-api-server/src/household` and `npm run typecheck`.
 - Item: Added `SEED_DEMO_HOUSEHOLD_PASSWORD` to `.env.example` and documented the demo household seed in ops/script docs.
 - Item: Reviewed pending Stage 5 changes for maintainability; removed unsafe stock product-id updates, aligned household setup with the catalog validator setup boundary, and reduced demo seed magic strings.
+- Item: Added authenticated household API routes for household list/create and household stock list/create/update/archive.
+- Item: Added a frontend household stock service and replaced the signed-in home placeholder with live household pulse and stock-management UI.
+- Item: Validated the Stage 5 route + home slice with targeted route tests, full typecheck, lint, and a production build.
 
 ## Changed Files
 
@@ -32,6 +35,14 @@
 - Path: `packages/kamra-api-server/src/household/current/demo-household-seed.test.ts`
 - Path: `packages/kamra-api-server/src/household/current/mongo-household-repository.ts`
 - Path: `packages/kamra-api-server/src/household/current/mongo-household-repository.test.ts`
+- Path: `packages/kamra-api-server/src/http/routes/household-routes.ts`
+- Path: `packages/kamra-api-server/src/http/app-route-context.ts`
+- Path: `packages/kamra-api-server/src/http/app-handler.ts`
+- Path: `packages/kamra-api-server/src/http/app-handler.test.ts`
+- Path: `src/app/household/household-stock.service.ts`
+- Path: `src/app/home.component.ts`
+- Path: `src/app/i18n/en.json`
+- Path: `src/app/i18n/hu.json`
 - Path: `scripts/README.md`
 - Path: `scripts/seed.ts`
 - Path: `.env.example`
@@ -45,8 +56,14 @@
 - Result: passed after pending review cleanup
 - Ran: `npm run lint`
 - Result: passed after pending review cleanup
-- Not run: `npm run build`
-- Reason: targeted tests, full typecheck, and lint passed for this backend/docs cleanup; no frontend build-impacting changes were made
+- Ran: `npm test -- packages/kamra-api-server/src/http/app-handler.test.ts packages/kamra-api-server/src/household`
+- Result: passed after household route + home slice
+- Ran: `npm run typecheck`
+- Result: passed after household route + home slice
+- Ran: `npm run lint`
+- Result: passed after household route + home slice
+- Ran: `npm run build`
+- Result: passed after household route + home slice; Angular build emitted a bundle-budget warning because the initial bundle reached 507.37 kB against a 500 kB budget
 
 ## Decisions
 
@@ -63,8 +80,12 @@
 - Impact: if that happens, the plan will need an explicit follow-up before route work starts.
 - Issue: Demo users are stored as lowercase login keys (`usera`, `userb`) even though the plan names them `userA` and `userB`.
 - Impact: this keeps auth compatible today; ops/script docs now note the lowercase identifiers, and later UI copy should do the same if it displays demo credentials.
-- Issue: The user-facing household API routes and frontend household screens are not implemented yet.
-- Impact: Stage 5 still needs the route, home page, modal, health/admin, and docs slices before it is fully complete.
+- Issue: The home page now supports direct custom-stock management, but the plan’s richer dedicated modal flow is not implemented yet.
+- Impact: the core user journey works now, but a later Stage 5 follow-up can still refine this into the planned modal/editor experience if desired.
+- Issue: The admin demo reseed API and the health/admin page rework are still not implemented.
+- Impact: Stage 5 still needs the admin reseed route/button and the four-panel health/admin layout before the full stage is complete.
+- Issue: The Angular production build now exceeds the initial bundle budget by 7.37 kB.
+- Impact: the build still succeeds, but the home/dashboard additions pushed the web bundle past the configured warning threshold and may deserve a later trim pass.
 
 ## Roadmap Or Plan Updates
 
@@ -73,8 +94,8 @@
 
 ## Next Step
 
-Implement the household API routes next, starting with user-facing household list/stock endpoints and then the admin demo reseed route.
+Implement the admin demo reseed API next, then rework the health/admin page to expose the reseed action and remaining validation tools.
 
 ## Notes For Future Agent
 
-The household package area now exists under `packages/kamra-api-server/src/household/` with contracts, schemas, validators, stock status helpers, Mongo repository tests, and demo reseed support. The next Stage 5 slice should build API routes on top of this package surface.
+The household package area now exists under `packages/kamra-api-server/src/household/` with contracts, schemas, validators, stock status helpers, Mongo repository tests, demo reseed support, and user-facing HTTP routes. The home page now consumes the new API through `src/app/household/household-stock.service.ts` and shows a real low-stock pulse plus custom stock editing for signed-in household members.
