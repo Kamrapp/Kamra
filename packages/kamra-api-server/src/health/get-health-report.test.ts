@@ -10,6 +10,12 @@ function createConfig(mongodb: AppConfig["mongodb"]): AppConfig {
       tokenSecret: "test-secret",
       tokenSecretConfigured: true
     },
+    cors: {
+      allowedHeaders: ["Accept", "Authorization", "Content-Type"],
+      allowedMethods: ["DELETE", "GET", "OPTIONS", "PATCH", "POST"],
+      allowedOriginPatterns: [],
+      allowedOrigins: []
+    },
     mongodb,
     nodeEnv: "test"
   };

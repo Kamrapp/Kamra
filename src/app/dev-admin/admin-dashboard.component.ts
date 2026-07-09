@@ -1,5 +1,6 @@
 import { Component, computed, inject, signal, type OnInit, type WritableSignal } from "@angular/core";
 
+import { buildApiUrl } from "../api-url";
 import { logBrowserEvent } from "../browser-logger";
 import { AuthService } from "../auth.service";
 import { readApiErrorMessage } from "../shared/api-errors";
@@ -818,7 +819,7 @@ export class AdminDashboardComponent implements OnInit {
 
   private async fetchAdminDashboardRoute(input: string, init: RequestInit): Promise<Response> {
     try {
-      return await fetch(input, init);
+      return await fetch(buildApiUrl(input), init);
     } catch {
       throw new Error(this.loc.t("health.browserHealthFailure"));
     }

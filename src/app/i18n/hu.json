@@ -18,6 +18,7 @@
     "login": "Belépés",
     "loginFailure": "A bejelentkezés most nem elérhető.",
     "loginInvalid": "Az e-mail vagy jelszó nem egyezik aktív felhasználóval.",
+    "loginNotConfigured": "A bejelentkezés ebben a környezetben még nincs beállítva.",
     "logout": "Kilépés",
     "password": "Jelszó",
     "primaryNavigation": "Elsődleges",

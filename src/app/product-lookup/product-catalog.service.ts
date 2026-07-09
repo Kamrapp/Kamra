@@ -1,5 +1,6 @@
 import { Injectable, inject } from "@angular/core";
 
+import { buildApiUrl } from "../api-url";
 import { AuthService } from "../auth.service";
 import { readApiErrorMessage } from "../shared/api-errors";
 import { LocalizationService } from "../shared/localization.service";
@@ -127,7 +128,7 @@ export class ProductCatalogService {
       };
     }
 
-    const response = await fetch("/api/catalog/sources", {
+    const response = await fetch(buildApiUrl("/api/catalog/sources"), {
       headers: {
         accept: "application/json",
         ...this.auth.getAuthorizationHeaders()
@@ -188,7 +189,7 @@ export class ProductCatalogService {
     if (nameIncludes?.trim()) {
       searchParams.set("nameIncludes", nameIncludes.trim());
     }
-    const response = await fetch(`/api/catalog/products?${searchParams.toString()}`, {
+    const response = await fetch(buildApiUrl(`/api/catalog/products?${searchParams.toString()}`), {
       headers: {
         accept: "application/json",
         ...this.auth.getAuthorizationHeaders()
@@ -228,7 +229,7 @@ export class ProductCatalogService {
   }
 
   async updateProduct(product: CatalogProductListItem): Promise<ProductCatalogWriteResult> {
-    return await this.writeProduct("/api/catalog/product", "PATCH", {
+    return await this.writeProduct(buildApiUrl("/api/catalog/product"), "PATCH", {
       brandName: product.brandName ?? null,
       id: product.id,
       measurements: product.measurements,
@@ -238,11 +239,11 @@ export class ProductCatalogService {
   }
 
   async validateProduct(id: string, note: string | null): Promise<ProductCatalogWriteResult> {
-    return await this.writeProduct("/api/catalog/product/validate", "POST", { id, note });
+    return await this.writeProduct(buildApiUrl("/api/catalog/product/validate"), "POST", { id, note });
   }
 
   async invalidateProduct(id: string, note: string | null): Promise<ProductCatalogWriteResult> {
-    return await this.writeProduct("/api/catalog/product/invalidate", "POST", { id, note });
+    return await this.writeProduct(buildApiUrl("/api/catalog/product/invalidate"), "POST", { id, note });
   }
 
   async deleteProduct(id: string): Promise<ProductCatalogDeleteResult> {
@@ -253,7 +254,7 @@ export class ProductCatalogService {
       };
     }
 
-    const response = await fetch(`/api/catalog/product?id=${encodeURIComponent(id)}`, {
+    const response = await fetch(buildApiUrl(`/api/catalog/product?id=${encodeURIComponent(id)}`), {
       headers: {
         accept: "application/json",
         ...this.auth.getAuthorizationHeaders()
