@@ -5,7 +5,7 @@ services:
     region: frankfurt
     branch: master
     autoDeploy: true
-    buildCommand: npm ci && npm run build:api
+    buildCommand: npm install --include=dev && npm run build:api
     startCommand: npm run start:api:render
     healthCheckPath: /api/healthz
     envVars:
@@ -29,7 +29,7 @@ services:
     region: frankfurt
     branch: master_dev
     autoDeploy: true
-    buildCommand: npm ci && npm run build:api
+    buildCommand: npm install --include=dev && npm run build:api
     startCommand: npm run start:api:render
     healthCheckPath: /api/healthz
     envVars:
