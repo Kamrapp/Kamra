@@ -209,6 +209,9 @@ Current seed particles:
 - `admin_identity` reads `SEED_ADMINUSER_USERNAME` and `SEED_ADMINUSER_PASSWORD`
 - `catalog_v1_foundation` creates the first versioned catalog collections and synthetic grocery sample records
 - `catalog_v1_foundation` runs when `SEED_CATALOG_V1=1`, or interactively when accepted through `npm run seed`
+- `demo_household` recreates the stable demo household, demo users, and household stock rows for Stage 5
+- `demo_household` reads `SEED_DEMO_HOUSEHOLD_PASSWORD`
+- `demo_household` stores the demo login identifiers as `usera` and `userb` to match the current auth layer's lowercase login normalization
 
 Catalog seed direction:
 
@@ -253,6 +256,8 @@ How to add future seeds:
 - expose it as a `SeedDefinition`
 - register it in `scripts/seed.ts`
 - keep seed ledger details free of raw secrets and private data
+
+When a new optional seed is added, also update `.env.example` so the required environment names are discoverable without reading source code.
 
 ## CI And Validation
 
