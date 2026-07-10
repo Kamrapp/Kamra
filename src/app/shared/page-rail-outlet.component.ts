@@ -203,7 +203,7 @@ import type { PageRailSection } from "./page-rail.service";
 
             @if (section.actionLabel && section.onAction) {
               <button class="rail-cart-action" type="button" [disabled]="section.actionDisabled" (click)="section.onAction()">
-                <span class="rail-cart-icon" aria-hidden="true">🛒+</span>
+                <span class="rail-cart-icon" aria-hidden="true">🛒</span>
                 <span class="rail-cart-label">{{ section.actionLabel }}</span>
               </button>
             }
