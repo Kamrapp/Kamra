@@ -1,6 +1,5 @@
 import { FormsModule } from "@angular/forms";
 import { Component, ViewChild, computed, effect, inject, signal, type OnDestroy } from "@angular/core";
-import { RouterLink } from "@angular/router";
 
 import { AuthService } from "./auth.service";
 import {
@@ -10,44 +9,27 @@ import {
   type HouseholdStockItemListItem,
   type HouseholdStockPage
 } from "./household/household-stock.service";
+import {
+  HouseholdPreviewWorkspaceComponent,
+  type HouseholdPreviewStockItem
+} from "./household/household-preview-workspace.component";
+import {
+  HouseholdStockEditorComponent,
+  type HouseholdStockDraft,
+  type HouseholdStockEditorMode
+} from "./household/household-stock-editor.component";
+import { HouseholdStockPanelComponent } from "./household/household-stock-panel.component";
 import { HouseholdShoppingListComponent } from "./household/household-shopping-list.component";
 import { LocalizationService, type TranslationKey } from "./shared/localization.service";
 import { PageRailService, type PageRailSection } from "./shared/page-rail.service";
 import { ToastService } from "./shared/toast.service";
 
-type EditorMode = "create" | "edit";
 type ShoppingScale = "start_fresh" | "usual" | "chill" | "stock_up";
-
-interface StockDraft {
-  currentAmount: number;
-  displayName: string;
-  gtin: string;
-  id: string;
-  idealMaxLimit: number | null;
-  initialAmount: number;
-  minLimit: number;
-  note: string;
-  productSourceId: string;
-  sourceName: string;
-  sourceProductUrl: string;
-  stockedAt: string;
-  stockGroupKey: string;
-  unit: string;
-}
 
 interface ShoppingScaleOption {
   hintKey: TranslationKey;
   key: ShoppingScale;
   labelKey: TranslationKey;
-}
-
-interface PreviewStockItem {
-  currentAmount: number;
-  displayName: string;
-  id: string;
-  minLimit: number;
-  stockStatus: HouseholdStockItemListItem["stockStatus"];
-  unit: string;
 }
 
 const shoppingScaleOptions: readonly ShoppingScaleOption[] = [
@@ -85,405 +67,51 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
 @Component({
   selector: "app-home",
   standalone: true,
-  imports: [FormsModule, RouterLink, HouseholdShoppingListComponent],
+  imports: [
+    FormsModule,
+    HouseholdPreviewWorkspaceComponent,
+    HouseholdShoppingListComponent,
+    HouseholdStockEditorComponent,
+    HouseholdStockPanelComponent
+  ],
   template: `
     @if (!auth.isAuthenticated()) {
-      <section class="stock-workspace" aria-labelledby="home-title">
-        <section class="stock-panel preview-surface" [attr.aria-label]="loc.t('household.stockPanelLabel')">
-          <div class="panel-topline">
-            <p class="panel-title" id="home-title">{{ loc.t("household.stockPanelTitle") }}</p>
-          </div>
-
-          <div class="household-bar">
-            <div class="household-picker-group">
-              <label class="household-select">
-                <span>{{ loc.t("household.activeHousehold") }}</span>
-                <select disabled>
-                  <option>{{ loc.t("home.pantryPulse") }}</option>
-                </select>
-              </label>
-
-              <button class="ui-button ui-button-quiet ui-button-sm manage-household-button" type="button" disabled>
-                {{ loc.t("household.manageHousehold") }}
-              </button>
-            </div>
-
-            <button
-              class="ui-button ui-button-quiet ui-button-sm icon-button"
-              type="button"
-              disabled
-              [attr.aria-label]="loc.t('common.refresh')"
-              [attr.title]="loc.t('common.refresh')"
-            >
-              <span aria-hidden="true">↻</span>
-            </button>
-          </div>
-
-          <div class="stock-table-shell">
-            <div class="stock-table-header" aria-hidden="true">
-              <div class="stock-header-main">
-                <span>{{ loc.t("common.product") }}</span>
-                <span>{{ loc.t("household.currentShort") }}</span>
-                <span aria-hidden="true"></span>
-                <span>{{ loc.t("household.minShort") }}</span>
-                <span>{{ loc.t("common.state") }}</span>
-              </div>
-            </div>
-
-            <div class="stock-table-body">
-              @for (item of previewStockItems(); track item.id) {
-                <div class="stock-table-row stock-table-grid preview-stock-row">
-                  <button class="stock-row-main" type="button" disabled>
-                    <span class="stock-name">{{ item.displayName }}</span>
-                    <span>{{ formatAmount(item.currentAmount, item.unit) }}</span>
-                    <span
-                      class="relation-symbol"
-                      [class.relation-below]="item.stockStatus === 'below_limit' || item.stockStatus === 'at_limit'"
-                      [class.relation-watch]="item.stockStatus === 'low_soon'"
-                      [class.relation-steady]="item.stockStatus === 'steady'"
-                    >
-                      {{ relationSymbol(item.stockStatus) }}
-                    </span>
-                    <span>{{ formatAmount(item.minLimit, item.unit) }}</span>
-                    <span
-                      class="status-badge"
-                      [class.status-danger]="item.stockStatus === 'below_limit' || item.stockStatus === 'at_limit'"
-                      [class.status-watch]="item.stockStatus === 'low_soon'"
-                    >
-                      {{ loc.t(stockStatusTranslationKey(item.stockStatus)) }}
-                    </span>
-                  </button>
-
-                  <button
-                    class="stock-list-add"
-                    type="button"
-                    disabled
-                    [attr.title]="loc.t('household.shoppingListAddRequiresExisting')"
-                  >
-                    <span aria-hidden="true">🛒+</span>
-                  </button>
-                </div>
-              }
-            </div>
-          </div>
-
-          <button class="ui-button ui-button-primary add-new-button" type="button" disabled>
-            {{ loc.t("household.addNewItem") }}
-          </button>
-        </section>
-
-        <section class="editor-panel preview-surface" [attr.aria-label]="loc.t('household.selectedItem')">
-          <p class="card-kicker">{{ loc.t("household.selectedItem") }}</p>
-          <h2>{{ previewEditorItem().displayName }}</h2>
-
-          <form class="stock-form">
-            <label>
-              <span>{{ loc.t("common.name") }}</span>
-              <input type="text" [value]="previewEditorItem().displayName" disabled />
-            </label>
-
-            <div class="split-fields">
-              <label>
-                <span>{{ loc.t("household.currentAmount") }}</span>
-                <input type="number" step="0.01" [value]="previewEditorItem().currentAmount" disabled />
-              </label>
-              <label>
-                <span>{{ loc.t("household.minLimit") }}</span>
-                <input type="number" step="0.01" [value]="previewEditorItem().minLimit" disabled />
-              </label>
-            </div>
-
-            <div class="split-fields">
-              <label>
-                <span>{{ loc.t("household.unit") }}</span>
-                <input type="text" [value]="previewEditorItem().unit" disabled />
-              </label>
-              <label>
-                <span>{{ loc.t("household.stockedAt") }}</span>
-                <input type="date" value="2026-07-10" disabled />
-              </label>
-            </div>
-
-            <button
-              class="details-toggle icon-button"
-              type="button"
-              disabled
-              [attr.aria-label]="loc.t('household.showAdditionalDetails')"
-              [attr.title]="loc.t('household.showAdditionalDetails')"
-            >
-              <span>{{ loc.t("household.showAdditionalDetails") }}</span>
-            </button>
-
-            <div class="editor-actions">
-              <button class="ui-button ui-button-primary" type="button" disabled>
-                {{ loc.t("common.save") }}
-              </button>
-              <button class="ui-button ui-button-quiet" type="button" disabled>
-                {{ loc.t("common.delete") }}
-              </button>
-            </div>
-          </form>
-        </section>
-
-        <app-household-shopping-list
-          class="shopping-bottom-row"
-          householdId="preview_household"
-          [demoShoppingList]="demoShoppingList()"
-          [shoppingScale]="apiShoppingScale()"
-        />
-      </section>
+      <app-household-preview-workspace
+        [previewStockItems]="previewStockItems()"
+        [previewEditorItem]="previewEditorItem()"
+        [demoShoppingList]="demoShoppingList()"
+        [shoppingScale]="apiShoppingScale()"
+      />
     } @else {
       <section class="stock-workspace" aria-labelledby="home-title">
-        <section class="stock-panel" [attr.aria-label]="loc.t('household.stockPanelLabel')">
-          <div class="panel-topline">
-            <p class="panel-title" id="home-title">{{ loc.t("household.stockPanelTitle") }}</p>
-          </div>
+        <app-household-stock-panel
+          [errorMessage]="errorMessage()"
+          [existingShoppingLineItemIds]="existingShoppingLineItemIds()"
+          [hasExistingShoppingList]="!!shoppingListPanel?.shoppingList()"
+          [hasHouseholdPage]="!!householdPage()"
+          [highlightedItemIds]="highlightedStockItemIds()"
+          [households]="households()"
+          [loadState]="loadState()"
+          [selectedHouseholdId]="selectedHouseholdId()"
+          [selectedItemId]="selectedItem()?.id ?? null"
+          [statusMessage]="statusMessage()"
+          [stockItems]="stockItemsByPriority()"
+          (createHouseholdRequested)="createHousehold($event)"
+          (householdSelected)="selectHousehold($event)"
+          (itemSelected)="openEditor($event)"
+          (refreshRequested)="refreshHome()"
+          (shoppingListAddRequested)="addStockItemToShoppingList($event, shoppingListPanel)"
+        />
 
-          <div class="household-bar">
-            <div class="household-picker-group">
-              <label class="household-select">
-                <span>{{ loc.t("household.activeHousehold") }}</span>
-                <select
-                  [ngModel]="selectedHouseholdId()"
-                  (ngModelChange)="selectHousehold($event)"
-                  [disabled]="loadState() === 'loading' || households().length === 0"
-                >
-                  @for (household of households(); track household.id) {
-                    <option [value]="household.id">{{ household.name }}</option>
-                  }
-                </select>
-              </label>
-
-              <button
-                class="ui-button ui-button-quiet ui-button-sm manage-household-button"
-                type="button"
-                [routerLink]="selectedHouseholdId() ? ['/household', selectedHouseholdId()] : ['/']"
-                [disabled]="!selectedHouseholdId()"
-              >
-                {{ loc.t("household.manageHousehold") }}
-              </button>
-            </div>
-
-            <button
-              class="ui-button ui-button-quiet ui-button-sm icon-button"
-              type="button"
-              (click)="refreshHome()"
-              [disabled]="loadState() === 'loading'"
-              [attr.aria-label]="loc.t('common.refresh')"
-              [attr.title]="loc.t('common.refresh')"
-            >
-              <span aria-hidden="true">↻</span>
-            </button>
-          </div>
-
-          @if (loadState() === "loading" && !householdPage()) {
-            <section class="state-panel">
-              <p>{{ loc.t("household.loading") }}</p>
-            </section>
-          } @else if (errorMessage()) {
-            <section class="state-panel state-panel-error">
-              <h2>{{ loc.t("household.loadFailure") }}</h2>
-              <p>{{ errorMessage() }}</p>
-            </section>
-          } @else if (!households().length) {
-            <section class="state-panel">
-              <h2>{{ loc.t("household.noHouseholdTitle") }}</h2>
-              <p>{{ loc.t("household.noHouseholdDescription") }}</p>
-              <form class="stack-form" (ngSubmit)="createHousehold()">
-                <label>
-                  <span>{{ loc.t("household.householdName") }}</span>
-                  <input
-                    type="text"
-                    name="householdName"
-                    [(ngModel)]="createHouseholdName"
-                    [placeholder]="loc.t('household.householdNamePlaceholder')"
-                  />
-                </label>
-                <button class="ui-button ui-button-primary" type="submit" [disabled]="loadState() === 'loading'">
-                  {{ loc.t("household.createHousehold") }}
-                </button>
-              </form>
-            </section>
-          } @else {
-            <div class="stock-table-shell">
-              <div class="stock-table-header" aria-hidden="true">
-                <div class="stock-header-main">
-                  <span>{{ loc.t("common.product") }}</span>
-                  <span>{{ loc.t("household.currentShort") }}</span>
-                  <span aria-hidden="true"></span>
-                  <span>{{ loc.t("household.minShort") }}</span>
-                  <span>{{ loc.t("common.state") }}</span>
-                </div>
-              </div>
-
-              <div class="stock-table-body">
-                @for (item of stockItemsByPriority(); track item.id) {
-                  <div
-                    class="stock-table-row stock-table-grid"
-                    [class.selected-row]="selectedItem()?.id === item.id"
-                    [class.shopping-candidate-row]="shouldHighlightStockItem(item)"
-                  >
-                    <button class="stock-row-main" type="button" (click)="openEditor(item)">
-                      <span class="stock-name">{{ item.displayName }}</span>
-                      <span>{{ formatAmount(item.currentAmount, item.unit) }}</span>
-                      <span
-                        class="relation-symbol"
-                        [class.relation-below]="item.stockStatus === 'below_limit' || item.stockStatus === 'at_limit'"
-                        [class.relation-watch]="item.stockStatus === 'low_soon'"
-                        [class.relation-steady]="item.stockStatus === 'steady'"
-                      >
-                        {{ relationSymbol(item.stockStatus) }}
-                      </span>
-                      <span>{{ formatAmount(item.minLimit, item.unit) }}</span>
-                      <span
-                        class="status-badge"
-                        [class.status-danger]="item.stockStatus === 'below_limit' || item.stockStatus === 'at_limit'"
-                        [class.status-watch]="item.stockStatus === 'low_soon'"
-                      >
-                        {{ loc.t(stockStatusTranslationKey(item.stockStatus)) }}
-                      </span>
-                    </button>
-
-                    <button
-                      class="stock-list-add"
-                      type="button"
-                      [disabled]="!shoppingListPanel?.shoppingList() || shoppingListPanel.hasShoppingLineForStockItem(item.id)"
-                      [attr.title]="shoppingListPanel?.shoppingList()
-                        ? (shoppingListPanel.hasShoppingLineForStockItem(item.id)
-                          ? loc.t('household.shoppingListAlreadyAdded')
-                          : loc.t('household.shoppingListAddItemAction'))
-                        : loc.t('household.shoppingListAddRequiresExisting')"
-                      (click)="addStockItemToShoppingList(item, shoppingListPanel)"
-                    >
-                      <span aria-hidden="true">🛒+</span>
-                    </button>
-                  </div>
-                } @empty {
-                  <p class="empty-copy">{{ loc.t("household.noStockItems") }}</p>
-                }
-              </div>
-            </div>
-          }
-
-          @if (statusMessage()) {
-            <small class="status-note">{{ statusMessage() }}</small>
-          }
-        </section>
-
-        <section class="editor-panel" [attr.aria-label]="loc.t('household.selectedItem')">
-          <p class="card-kicker">{{ editorMode() === "create" ? loc.t("household.addNewItem") : loc.t("household.selectedItem") }}</p>
-          <h2>{{ editorTitle() }}</h2>
-
-          <form class="stock-form" (ngSubmit)="saveEditor()">
-            <label>
-              <span>{{ loc.t("common.name") }}</span>
-              <input
-                type="text"
-                name="editorDisplayName"
-                [ngModel]="editorDraft.displayName"
-                (ngModelChange)="setEditorDisplayName($event)"
-                [placeholder]="loc.t('household.stockNamePlaceholder')"
-              />
-            </label>
-
-            <div class="split-fields">
-              <label>
-                <span>{{ loc.t("household.currentAmount") }}</span>
-                <input type="number" step="0.01" name="editorCurrentAmount" [(ngModel)]="editorDraft.currentAmount" />
-              </label>
-              <label>
-                <span>{{ loc.t("household.minLimit") }}</span>
-                <span class="amount-stepper">
-                  <button type="button" [attr.aria-label]="loc.t('household.decreaseMinLimit')" (click)="adjustEditorMinLimit(-1)">−</button>
-                  <input type="number" step="0.01" name="editorMinLimit" [(ngModel)]="editorDraft.minLimit" />
-                  <button type="button" [attr.aria-label]="loc.t('household.increaseMinLimit')" (click)="adjustEditorMinLimit(1)">+</button>
-                </span>
-              </label>
-            </div>
-
-            <div class="split-fields">
-              <label>
-                <span>{{ loc.t("household.unit") }}</span>
-                <input type="text" name="editorUnit" [(ngModel)]="editorDraft.unit" />
-              </label>
-              <label>
-                <span>{{ loc.t("household.stockedAt") }}</span>
-                <input type="date" name="editorStockedAt" [(ngModel)]="editorDraft.stockedAt" />
-              </label>
-            </div>
-
-            <button
-              class="details-toggle icon-button"
-              type="button"
-              (click)="toggleDetails()"
-              [attr.aria-label]="detailsOpen() ? loc.t('household.hideAdditionalDetails') : loc.t('household.showAdditionalDetails')"
-              [attr.title]="detailsOpen() ? loc.t('household.hideAdditionalDetails') : loc.t('household.showAdditionalDetails')"
-            >
-              <span aria-hidden="true">{{ detailsOpen() ? loc.t('household.hideAdditionalDetails') : loc.t('household.showAdditionalDetails') }}</span>
-            </button>
-
-            @if (detailsOpen()) {
-              <div class="additional-details">
-                <div class="split-fields">
-                  <label>
-                    <span>{{ loc.t("household.idealMaxLimitOptional") }}</span>
-                    <input type="number" step="0.01" name="editorIdealMaxLimit" [(ngModel)]="editorDraft.idealMaxLimit" />
-                  </label>
-                  <label>
-                    <span>{{ loc.t("household.initialAmountOptional") }}</span>
-                    <input type="number" step="0.01" name="editorInitialAmount" [(ngModel)]="editorDraft.initialAmount" />
-                  </label>
-                </div>
-
-                <div class="split-fields">
-                  <label>
-                    <span>{{ loc.t("household.stockGroupKeyOptional") }}</span>
-                    <input type="text" name="editorStockGroupKey" [(ngModel)]="editorDraft.stockGroupKey" />
-                  </label>
-                  <label>
-                    <span>{{ loc.t("household.productSourceIdOptional") }}</span>
-                    <input type="text" name="editorProductSourceId" [(ngModel)]="editorDraft.productSourceId" />
-                  </label>
-                </div>
-
-                <label>
-                  <span>{{ loc.t("household.gtinOptional") }}</span>
-                  <input type="text" name="editorGtin" [(ngModel)]="editorDraft.gtin" inputmode="numeric" />
-                </label>
-
-                <div class="split-fields">
-                  <label>
-                    <span>{{ loc.t("household.sourceNameOptional") }}</span>
-                    <input type="text" name="editorSourceName" [(ngModel)]="editorDraft.sourceName" />
-                  </label>
-                  <label>
-                    <span>{{ loc.t("household.sourceProductUrlOptional") }}</span>
-                    <input type="url" name="editorSourceProductUrl" [(ngModel)]="editorDraft.sourceProductUrl" />
-                  </label>
-                </div>
-
-                <label>
-                  <span>{{ loc.t("editor.note") }}</span>
-                  <textarea name="editorNote" rows="3" [(ngModel)]="editorDraft.note"></textarea>
-                </label>
-              </div>
-            }
-
-            <div class="editor-actions">
-              <button class="ui-button ui-button-warm add-new-button" type="button" (click)="startCreateItem()" [disabled]="mutationState() === 'saving'">
-                {{ loc.t("household.addNewItem") }}
-              </button>
-              <button class="ui-button ui-button-primary" type="submit" [disabled]="mutationState() === 'saving'">
-                {{ mutationState() === "saving" ? loc.t("common.loading") : loc.t("common.save") }}
-              </button>
-              @if (editorMode() === "edit") {
-                <button class="ui-button ui-button-quiet" type="button" (click)="archiveSelectedItem()" [disabled]="mutationState() === 'saving'">
-                  {{ loc.t("common.delete") }}
-                </button>
-              }
-            </div>
-          </form>
-        </section>
+        <app-household-stock-editor
+          [draftInput]="editorDraftSeed"
+          [mode]="editorMode()"
+          [revision]="editorRevision()"
+          [saving]="mutationState() === 'saving'"
+          (archiveRequested)="archiveSelectedItem()"
+          (saveRequested)="saveEditor($event)"
+          (startCreateRequested)="startCreateItem()"
+        />
 
         <app-household-shopping-list
           #shoppingListPanel
@@ -568,10 +196,6 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
         font-weight: 900;
         justify-content: center;
         width: 100%;
-      }
-
-      .preview-surface :is(button, input, select, textarea) {
-        cursor: not-allowed;
       }
 
       .state-panel {
@@ -792,22 +416,6 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
         background: color-mix(in srgb, var(--color-status-warning) 22%, var(--surface-soft-background));
       }
 
-      .add-new-button {
-        justify-self: start;
-      }
-
-      .preview-stock-row {
-        cursor: default;
-      }
-
-      .preview-stock-row:hover {
-        background: var(--pulse-row-background);
-      }
-
-      .preview-stock-row .stock-row-main {
-        cursor: not-allowed;
-      }
-
       .stock-form,
       .stack-form,
       .additional-details {
@@ -943,7 +551,6 @@ export class HomeComponent implements OnDestroy {
   readonly shoppingScaleDisplayOptions = shoppingScaleDisplayOptions;
   readonly shoppingScaleOptions = shoppingScaleOptions;
   readonly shoppingListPanel = signal<HouseholdShoppingListComponent | null>(null);
-  createHouseholdName = "";
   editorDraft: StockDraft = createEmptyStockDraft();
   private loadSerial = 0;
 
@@ -959,7 +566,7 @@ export class HomeComponent implements OnDestroy {
       || left.displayName.localeCompare(right.displayName, this.loc.language() === "hu" ? "hu-HU" : "en-US")
     )
   );
-  readonly previewStockItems = computed<PreviewStockItem[]>(() => [
+  readonly previewStockItems = computed<HouseholdPreviewStockItem[]>(() => [
     {
       currentAmount: 0.6,
       displayName: this.loc.t("home.milk"),
@@ -1026,7 +633,7 @@ export class HomeComponent implements OnDestroy {
     updatedAt: "2026-07-10T12:00:00.000Z",
     updatedByUserId: "preview_user"
   }));
-  readonly previewEditorItem = computed<PreviewStockItem>(() =>
+  readonly previewEditorItem = computed<HouseholdPreviewStockItem>(() =>
     this.previewStockItems()[0] ?? {
       currentAmount: 0,
       displayName: this.loc.t("home.milk"),
@@ -1039,6 +646,13 @@ export class HomeComponent implements OnDestroy {
   readonly shoppingItems = computed(() =>
     this.stockItemsByPriority().filter((item) => shouldBuyForScale(item.stockStatus, this.shoppingScale()))
   );
+  readonly highlightedStockItemIds = computed(() =>
+    new Set(this.shoppingItems().map((item) => item.id))
+  );
+  readonly existingShoppingLineItemIds = computed(() => {
+    const shoppingList = this.shoppingListPanel()?.shoppingList();
+    return new Set(shoppingList?.items.map((item) => item.householdStockItemId).filter((id): id is string => !!id) ?? []);
+  });
   readonly shoppingItemCount = computed(() => this.shoppingItems().length);
   readonly railShoppingItemCount = computed(() =>
     this.auth.isAuthenticated() ? this.shoppingItemCount() : this.previewShoppingItems().length
@@ -1121,8 +735,8 @@ export class HomeComponent implements OnDestroy {
     this.pageRail.clearSections();
   }
 
-  async createHousehold(): Promise<void> {
-    const name = this.createHouseholdName.trim();
+  async createHousehold(requestedName: string): Promise<void> {
+    const name = requestedName.trim();
     if (!name) {
       this.toast.push(this.loc.t("household.householdNameRequired"), "warning");
       return;
@@ -1137,7 +751,6 @@ export class HomeComponent implements OnDestroy {
       return;
     }
 
-    this.createHouseholdName = "";
     this.statusMessage.set(this.loc.t("household.createdHousehold", { name: result.household.name }));
     await this.loadHouseholdContext(result.household.id);
   }
@@ -1148,10 +761,6 @@ export class HomeComponent implements OnDestroy {
     }
 
     return this.selectedItem()?.displayName || this.loc.t("household.editorTitle");
-  }
-
-  formatAmount(amount: number, unit: string): string {
-    return `${amount.toLocaleString(this.loc.language() === "hu" ? "hu-HU" : "en-US")} ${unit}`;
   }
 
   async addStockItemToShoppingList(
@@ -1166,21 +775,6 @@ export class HomeComponent implements OnDestroy {
     this.selectedItemId.set(item.id);
     this.detailsOpen.set(false);
     this.editorDraft = stockItemToDraft(item);
-  }
-
-  relationSymbol(status: HouseholdStockItemListItem["stockStatus"]): string {
-    const symbols: Record<HouseholdStockItemListItem["stockStatus"], string> = {
-      at_limit: "=",
-      below_limit: "<",
-      low_soon: "~",
-      steady: ">"
-    };
-
-    return symbols[status];
-  }
-
-  shouldHighlightStockItem(item: HouseholdStockItemListItem): boolean {
-    return shouldBuyForScale(item.stockStatus, this.shoppingScale());
   }
 
   async archiveSelectedItem(): Promise<void> {
@@ -1325,17 +919,6 @@ export class HomeComponent implements OnDestroy {
     this.editorDraft = createEmptyStockDraft();
   }
 
-  stockStatusTranslationKey(status: HouseholdStockItemListItem["stockStatus"]): TranslationKey {
-    const keys = {
-      at_limit: "household.atLimit",
-      below_limit: "household.belowLimit",
-      low_soon: "household.lowSoonShort",
-      steady: "household.steady"
-    } as const;
-
-    return keys[status];
-  }
-
   toggleDetails(): void {
     this.detailsOpen.update((open) => !open);
   }
@@ -1408,7 +991,6 @@ export class HomeComponent implements OnDestroy {
   }
 
   private resetState(): void {
-    this.createHouseholdName = "";
     this.detailsOpen.set(false);
     this.editorMode.set("create");
     this.editorDraft = createEmptyStockDraft();
@@ -1514,7 +1096,7 @@ function createShoppingLinePlanning(item: HouseholdStockItemListItem): {
   };
 }
 
-function previewStockItemToHouseholdStockItem(item: PreviewStockItem): HouseholdStockItemListItem {
+function previewStockItemToHouseholdStockItem(item: HouseholdPreviewStockItem): HouseholdStockItemListItem {
   return {
     createdAt: "2026-07-10T12:00:00.000Z",
     currentAmount: item.currentAmount,

@@ -16,6 +16,7 @@
 - Item: Corrected the file-boundary rule: extracted components keep inline template/styles in their single `.component.ts`; no companion HTML/CSS files are part of this cleanup.
 - Item: Created the shell account/preferences and radial-navigation standalone components with local logic and styles.
 - Item: Completed Step 1 shell extraction and validated it with tests, typecheck, lint, and production build.
+- Item: Started Step 2 by extracting the anonymous household preview workspace into a single-file standalone component and wiring `HomeComponent` to compose it.
 
 ## Changed Files
 
@@ -31,6 +32,10 @@
   - New single-file standalone radial navigation component.
 - Path: `src/app/app.component.ts`
   - Composes the two shell components and retains auth, routing, toasts, role filtering, and preference persistence.
+- Path: `src/app/household/household-preview-workspace.component.ts`
+  - New single-file standalone anonymous household preview component with its own template, styles, and display helpers.
+- Path: `src/app/home.component.ts`
+  - Replaced the inline anonymous preview block with the standalone preview workspace component; authenticated household logic remains in the page container.
 
 ## Validation
 
@@ -38,8 +43,8 @@
 - Result: Existing Angular standalone patterns and content-projected table boundary confirmed.
 - Ran: `git diff --check` for the changed source files.
 - Result: No whitespace errors.
-- Not run: frontend refactor validation after the restart.
-- Reason: None for Step 1; tests, typecheck, lint, and build now pass.
+- Not run: Step 2 household validation after preview extraction.
+- Reason: Implementation is in progress; run typecheck, lint, build, and likely tests after this slice settles.
 
 ## Decisions
 
@@ -66,6 +71,10 @@
   - Impact: Verify that the inline child styles preserve the previous shell appearance before considering the shell boundary closed.
 - Issue: Final manual shell verification remains pending.
   - Impact: Verify login/logout, theme/language persistence, admin-only menu visibility, keyboard focus, route-change reset, and narrow-layout menu geometry at cleanup closeout.
+- Issue: The preview workspace now owns duplicated stock/editor layout styles that still exist in `HomeComponent` for the authenticated path.
+  - Impact: Later household extractions should either reuse the same child-level structure or promote verified primitives carefully so the preview and authenticated paths do not drift visually.
+- Issue: Anonymous preview rendering has moved behind a component host.
+  - Impact: Final manual checks should include preview grid placement, mobile overflow behavior, disabled control styling, shopping-list placement, and translation/theme consistency.
 - Issue: Existing working-tree/index state may include user-owned plan or backend changes.
   - Impact: Do not revert, stage, or mix unrelated files into cleanup changes.
 
@@ -76,7 +85,7 @@
 
 ## Next Step
 
-Proceed to Step 2: extract the anonymous household preview as a single-file standalone component, preserving the parent-owned preview data and shopping-list child interaction.
+Proceed within Step 2: validate the preview extraction, then extract the authenticated household stock panel and stock editor only if their contracts stay compact and page-owned mutations remain clear.
 
 ## Notes For Future Agent
 
