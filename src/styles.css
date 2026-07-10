@@ -241,13 +241,80 @@ samp {
   padding: clamp(1rem, 2.4vw, 1.4rem);
 }
 
-.ui-kicker {
+.ui-kicker,
+.eyebrow,
+.card-kicker,
+.status-kicker {
   color: var(--color-text-muted);
   font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0;
   margin: 0;
   text-transform: uppercase;
+}
+
+.page-shell {
+  display: grid;
+  gap: var(--space-6);
+  min-height: 100%;
+}
+
+.page-intro {
+  display: grid;
+  gap: var(--space-3);
+  max-width: 43rem;
+}
+
+.page-title {
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 5vw, 3.4rem);
+  line-height: 1.05;
+  margin: 0;
+}
+
+.page-lead {
+  color: var(--color-text-muted);
+  font-size: 1rem;
+  line-height: 1.65;
+  margin: 0;
+}
+
+.ui-panel-card {
+  background: var(--surface-panel-background);
+  border: 1px solid var(--line-panel);
+  border-radius: var(--radius-ui);
+  box-shadow: var(--surface-panel-shadow);
+  display: grid;
+  gap: var(--space-4);
+  padding: clamp(1rem, 2.5vw, 1.5rem);
+}
+
+.ui-shell-card {
+  backdrop-filter: blur(14px);
+  background: var(--surface-shell-background);
+  border: 1px solid var(--line-panel);
+  border-radius: var(--radius-ui);
+  box-shadow: var(--surface-panel-shadow);
+}
+
+.ui-card-grid {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.ui-card-title {
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: clamp(1.2rem, 3vw, 1.6rem);
+  line-height: 1.08;
+  margin: 0;
+}
+
+.ui-copy-muted {
+  color: var(--color-text-muted);
+  line-height: 1.6;
+  margin: 0;
 }
 
 .ui-button,

@@ -10,17 +10,17 @@ import { LocalizationService } from "../shared/localization.service";
   standalone: true,
   imports: [CommonModule, RouterLink],
   template: `
-    <section class="management-shell">
-      <div class="management-card">
-        <p class="card-kicker">{{ loc.t("household.managementKicker") }}</p>
-        <h1>{{ loc.t("household.managementTitle") }}</h1>
+    <section class="page-shell management-shell">
+      <div class="ui-panel-card management-card">
+        <p class="ui-kicker">{{ loc.t("household.managementKicker") }}</p>
+        <h1 class="page-title">{{ loc.t("household.managementTitle") }}</h1>
 
         @if (household(); as currentHousehold) {
-          <p class="management-summary">
+          <p class="ui-copy-muted management-summary">
             {{ loc.t("household.managementSummary", { name: currentHousehold.name }) }}
           </p>
         } @else {
-          <p class="management-summary">{{ loc.t("household.managementMissing") }}</p>
+          <p class="ui-copy-muted management-summary">{{ loc.t("household.managementMissing") }}</p>
         }
 
         <div class="management-actions">
@@ -30,22 +30,22 @@ import { LocalizationService } from "../shared/localization.service";
         </div>
       </div>
 
-      <div class="management-grid">
-        <article class="management-panel">
-          <p class="card-kicker">{{ loc.t("household.managementIdentityKicker") }}</p>
-          <h2>{{ loc.t("household.managementIdentityTitle") }}</h2>
+      <div class="ui-card-grid management-grid">
+        <article class="ui-panel-card management-panel">
+          <p class="ui-kicker">{{ loc.t("household.managementIdentityKicker") }}</p>
+          <h2 class="ui-card-title">{{ loc.t("household.managementIdentityTitle") }}</h2>
           <p>{{ loc.t("household.managementIdentityDescription") }}</p>
         </article>
 
-        <article class="management-panel">
-          <p class="card-kicker">{{ loc.t("household.managementInviteKicker") }}</p>
-          <h2>{{ loc.t("household.managementInviteTitle") }}</h2>
+        <article class="ui-panel-card management-panel">
+          <p class="ui-kicker">{{ loc.t("household.managementInviteKicker") }}</p>
+          <h2 class="ui-card-title">{{ loc.t("household.managementInviteTitle") }}</h2>
           <p>{{ loc.t("household.managementInviteDescription") }}</p>
         </article>
 
-        <article class="management-panel">
-          <p class="card-kicker">{{ loc.t("household.managementLimitsKicker") }}</p>
-          <h2>{{ loc.t("household.managementLimitsTitle") }}</h2>
+        <article class="ui-panel-card management-panel">
+          <p class="ui-kicker">{{ loc.t("household.managementLimitsKicker") }}</p>
+          <h2 class="ui-card-title">{{ loc.t("household.managementLimitsTitle") }}</h2>
           <p>{{ loc.t("household.managementLimitsDescription") }}</p>
         </article>
       </div>
@@ -65,16 +65,10 @@ import { LocalizationService } from "../shared/localization.service";
 
       .management-card,
       .management-panel {
-        background: var(--surface-shell-background);
-        border: 1px solid var(--line-panel);
-        border-radius: var(--radius-ui);
-        box-shadow: var(--surface-panel-shadow);
-        display: grid;
         gap: var(--space-3);
-        padding: clamp(1rem, 3vw, 1.4rem);
       }
 
-      .management-summary {
+      .management-panel p {
         margin: 0;
       }
 

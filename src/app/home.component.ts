@@ -751,16 +751,6 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
         padding: clamp(1.1rem, 3vw, 1.75rem);
       }
 
-      .eyebrow,
-      .card-kicker {
-        color: var(--color-text-muted);
-        font-size: 0.78rem;
-        font-weight: 700;
-        letter-spacing: 0;
-        margin: 0;
-        text-transform: uppercase;
-      }
-
       h1,
       h2,
       p,

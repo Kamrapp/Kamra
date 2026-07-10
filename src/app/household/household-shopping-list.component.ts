@@ -26,11 +26,11 @@ interface PendingConfirmation {
   standalone: true,
   imports: [FormsModule],
   template: `
-    <section class="shopping-card" [attr.aria-label]="loc.t('household.shoppingListPanelTitle')">
+    <section class="ui-panel-card shopping-card" [attr.aria-label]="loc.t('household.shoppingListPanelTitle')">
       <div class="shopping-card-topline">
         <div>
-          <p class="card-kicker">{{ loc.t("household.shoppingListKicker") }}</p>
-          <h2>{{ loc.t("household.shoppingListPanelTitle") }}</h2>
+          <p class="ui-kicker">{{ loc.t("household.shoppingListKicker") }}</p>
+          <h2 class="ui-card-title">{{ loc.t("household.shoppingListPanelTitle") }}</h2>
         </div>
 
         <div class="shopping-card-actions">
@@ -258,13 +258,7 @@ interface PendingConfirmation {
       }
 
       .shopping-card {
-        background: var(--surface-shell-background);
-        border: 1px solid var(--line-panel);
-        border-radius: var(--radius-ui);
-        box-shadow: var(--surface-panel-shadow);
-        display: grid;
         gap: var(--space-4);
-        padding: clamp(1rem, 3vw, 1.5rem);
       }
 
       .shopping-card-topline,

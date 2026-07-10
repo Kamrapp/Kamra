@@ -5,7 +5,7 @@
 - Date: 2026-07-09
 - Plan: `.agents/plans/2026-07-09-stage-6-shopping-list-low-stock-notices-plan.md`
 - Branch: current workspace branch
-- Current objective: implement the Stage 6 continuation refinements commit-by-commit, starting with the About page shell entry and route
+- Current objective: implement the Stage 6 continuation refinements commit-by-commit, with auth-message localization cleanup and shared page-style extraction now folded into the active frontend refinement pass
 
 ## Completed
 
@@ -38,6 +38,8 @@
 - Item: updated logout behavior so signing out now routes the shell back to `/`, preventing users from staying on disabled admin-only screens.
 - Item: relaxed catalog read access so any signed-in user can load product rows and offer-source filters, while keeping all product mutations admin-only.
 - Item: blocked non-admin product edit attempts in the frontend with a warning toast instead of opening the editor dialog.
+- Item: finished the auth/unauthorized server-message localization path by adding frontend dictionary entries for the new `apiErrors.*` response keys.
+- Item: extracted shared page-shell, intro, kicker, title, muted-copy, and panel-card styling into `src/styles.css` and switched the About page, admin dashboard, household management page, shopping-list panel, and home kickers over to those shared primitives.
 
 ## Changed Files
 
@@ -68,6 +70,7 @@
 - Path: `src/app/home.component.ts`
 - Path: `src/app/product-lookup/product-catalog.component.ts`
 - Path: `src/app/dev-admin/admin-dashboard.component.ts`
+- Path: `src/styles.css`
 - Path: `src/app/i18n/en.json`
 - Path: `src/app/i18n/hu.json`
 - Path: `.agents/plans/2026-07-09-stage-6-shopping-list-low-stock-notices-plan.md`
@@ -97,6 +100,16 @@
 - Ran: `npm run build`
 - Result: passed
 - Ran: `npm test -- packages/kamra-api-server/src/http/app-handler.test.ts`
+- Result: passed
+- Ran: `npm run typecheck`
+- Result: passed
+- Ran: `npm run lint`
+- Result: passed
+- Ran: `npm run build`
+- Result: passed
+- Ran: `npm test -- packages/kamra-api-server/src/http/app-handler.test.ts`
+- Result: passed
+- Ran: `npm run typecheck`
 - Result: passed
 - Ran: `npm run typecheck`
 - Result: passed
@@ -143,6 +156,10 @@
 - Reason: the user explicitly wants every logged-in user to browse products, but editing to remain restricted to admins.
 - Decision: block non-admin product edit attempts in the frontend with a warning toast before the editor opens.
 - Reason: this keeps the view discoverable for basic users and makes the permission boundary explicit without pretending the action succeeded.
+- Decision: keep unauthorized/auth-guard server responses on stable translation keys (`apiErrors.*`) instead of route-local English strings.
+- Reason: this removes hardcoded auth copy from the server layer while letting the Angular app render the right localized message.
+- Decision: extract only clearly repeated page-shell and card primitives into global styles instead of centralizing every local visual detail.
+- Reason: it reduces CSS clutter and cross-page drift without flattening intentional page-specific layout or atmosphere.
 
 ## Open Issues
 
@@ -154,6 +171,8 @@
 - Impact: layout, spacing, or small interaction issues could still exist despite passing compile checks.
 - Issue: browser-level validation for logout redirect and the signed-in basic-user product browsing flow still has not been run.
 - Impact: the intended UX is implemented, but a route-state or view-state mismatch could still exist until manually exercised.
+- Issue: browser-level validation for the new shared page primitives across About, admin, management, and shopping-list surfaces still has not been run.
+- Impact: the compile checks pass, but spacing or responsive regressions could still exist until manually exercised.
 - Issue: the remaining 2026-07-10 continuation refinements are still pending after the About page slice.
 - Impact: the next implementation session should continue with Refinement Commit 3 instead of jumping to the large household layout refactor.
 
@@ -168,4 +187,4 @@ Implement Refinement Commit 3 from the Stage 6 plan: tackle the smaller home/hou
 
 ## Notes For Future Agent
 
-Stage 6 now has the pure generator, persistence foundations, shopping-list completion logic, shopping-list HTTP routes, DB-backed admin-editable `allowAutoTickingAllShoppingListEntries` toggle, a real Angular shopping-list panel on the home screen, a minimal household-management route shell, the new About page plus right-rail entry, logout redirection to home, and signed-in non-admin product browsing with admin-only mutations. Targeted catalog-route tests plus typecheck, lint, and build passed again after this second refinement slice. The next commit should be Refinement Commit 3: the smaller home, pulse, and shopping-list behavior fixes before the larger household workspace refactor.
+Stage 6 now has the pure generator, persistence foundations, shopping-list completion logic, shopping-list HTTP routes, DB-backed admin-editable `allowAutoTickingAllShoppingListEntries` toggle, a real Angular shopping-list panel on the home screen, a minimal household-management route shell, the new About page plus right-rail entry, logout redirection to home, signed-in non-admin product browsing with admin-only mutations, localized auth-guard server message keys, and shared page/card style primitives in global CSS. The latest checks covered the auth-message route test plus typecheck, lint, and build after the shared-style extraction. The next commit should still be Refinement Commit 3: the smaller home, pulse, and shopping-list behavior fixes before the larger household workspace refactor.
