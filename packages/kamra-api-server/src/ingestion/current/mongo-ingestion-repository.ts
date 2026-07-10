@@ -117,6 +117,14 @@ export class MongoIngestionRepository {
         { crawlRunId: 1 },
         { name: "ingestion_snapshots_crawl_run_id" }
       ),
+      this.rawSnapshotsCollection.createIndex(
+        { capturedAt: -1, _id: -1 },
+        { name: "ingestion_snapshots_captured_at_desc" }
+      ),
+      this.rawSnapshotsCollection.createIndex(
+        { sourceName: 1, capturedAt: -1, _id: -1 },
+        { name: "ingestion_snapshots_source_captured_at_desc" }
+      ),
       this.productReviewItemsCollection.createIndex(
         { snapshotId: 1, rowFingerprint: 1 },
         { name: "ingestion_product_review_items_snapshot_row_unique", unique: true }

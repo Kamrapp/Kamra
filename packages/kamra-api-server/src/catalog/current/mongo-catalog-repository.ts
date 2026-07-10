@@ -147,6 +147,10 @@ const collectionPlans: CollectionIndexPlan[] = [
         options: { name: "price_observations_product_observed_at" }
       },
       {
+        key: { productSourceId: 1, observedAt: -1 },
+        options: { name: "price_observations_product_source_observed_at" }
+      },
+      {
         key: { productSourceId: 1, priceKind: 1, observedAt: -1 },
         options: { name: "price_observations_source_kind_observed_at" }
       },
@@ -184,6 +188,10 @@ const collectionPlans: CollectionIndexPlan[] = [
       {
         key: { productId: 1, sourceName: 1 },
         options: { name: "product_sources_product_source_name" }
+      },
+      {
+        key: { sourceName: 1, productId: 1 },
+        options: { name: "product_sources_source_name_product" }
       },
       {
         key: { sourceName: 1, sourceProductKey: 1 },
@@ -231,6 +239,10 @@ const collectionPlans: CollectionIndexPlan[] = [
       {
         key: { primaryCategoryKey: 1, status: 1 },
         options: { name: "products_primary_category_status" }
+      },
+      {
+        key: { status: 1, name: 1, _id: 1 },
+        options: { name: "products_status_name" }
       }
     ],
     name: "products"
@@ -427,17 +439,17 @@ export class MongoCurrentCatalogRepository {
   async setCatalogProductValidationStatus(input: SetCatalogProductValidationInput): Promise<CatalogProductListItem | null> {
     const validationFields: Partial<ProductRecord> = input.status === "validated"
       ? {
-          invalidatedAt: null,
-          invalidatedBy: null,
-          validatedAt: input.reviewedAt,
-          validatedBy: input.reviewerId
-        }
+        invalidatedAt: null,
+        invalidatedBy: null,
+        validatedAt: input.reviewedAt,
+        validatedBy: input.reviewerId
+      }
       : {
-          invalidatedAt: input.reviewedAt,
-          invalidatedBy: input.reviewerId,
-          validatedAt: null,
-          validatedBy: null
-        };
+        invalidatedAt: input.reviewedAt,
+        invalidatedBy: input.reviewerId,
+        validatedAt: null,
+        validatedBy: null
+      };
 
     try {
       const result = await this.productsCollection.updateOne(
@@ -776,17 +788,17 @@ export class MongoCurrentCatalogRepository {
     }
 
     return products.map((product) => ({
-        brandName: product.brandName,
-        householdStockCount: householdStockCountByProductId.get(product.id) ?? 0,
-        id: product.id,
-        measurements: product.measurements,
-        name: product.name,
-        offers: (offerRowsByProductId.get(product.id) ?? []).sort(compareOffers),
-        primaryCategoryKey: product.primaryCategoryKey,
-        validationStatus: product.validationStatus ?? "unvalidated",
-        sourceNames: [...new Set(sourcesByProductId.get(product.id) ?? [])].sort(),
-        tagKeys: [...new Set(tagsByProductId.get(product.id) ?? [])].sort()
-      }));
+      brandName: product.brandName,
+      householdStockCount: householdStockCountByProductId.get(product.id) ?? 0,
+      id: product.id,
+      measurements: product.measurements,
+      name: product.name,
+      offers: (offerRowsByProductId.get(product.id) ?? []).sort(compareOffers),
+      primaryCategoryKey: product.primaryCategoryKey,
+      validationStatus: product.validationStatus ?? "unvalidated",
+      sourceNames: [...new Set(sourcesByProductId.get(product.id) ?? [])].sort(),
+      tagKeys: [...new Set(tagsByProductId.get(product.id) ?? [])].sort()
+    }));
   }
 
   async listCatalogOfferSourceNames(): Promise<string[]> {
@@ -1097,7 +1109,7 @@ function describeReviewCandidateProductIdentity(candidate: {
     kind: ProductSourceIdentifierRecord["kind"];
     value: string;
   }>;
-}): 
+}):
   | {
     identifierKind: ProductSourceIdentifierRecord["kind"];
     identifierValue: string;
