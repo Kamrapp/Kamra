@@ -5,7 +5,7 @@
 - Date: 2026-07-09
 - Plan: `.agents/plans/2026-07-09-stage-6-shopping-list-low-stock-notices-plan.md`
 - Branch: current workspace branch
-- Current objective: incorporate the 2026-07-10 Stage 6 continuation refinements into the approved plan before implementing them
+- Current objective: implement the Stage 6 continuation refinements commit-by-commit, starting with the About page shell entry and route
 
 ## Completed
 
@@ -33,6 +33,8 @@
 - Item: added the translation copy needed for the shopping-list panel, confirmation flow, and household-management shell in both English and Hungarian.
 - Item: expanded the Stage 6 plan with the 2026-07-10 continuation refinements requested by the user, including the About page, logout redirect, read-only product browsing, household/shopping fixes, larger household shopping layout refactor, and documentation closeout.
 - Item: split the continuation work into five separate planned commits: About page, session/product access fixes, small household shopping fixes, major household shopping layout refactor, and final docs/verification.
+- Item: added the Stage 6 About page at `/about` with customer-facing project context, primary app URL guidance, project history, stack notes, and GitHub repository link.
+- Item: added a bottom-right shell card that navigates to the About page and updates the shell page-context title when `/about` is active.
 
 ## Changed Files
 
@@ -55,8 +57,10 @@
 - Path: `api/admin/dashboard/feature-flags.ts`
 - Path: `src/app/household/household-shopping-list.component.ts`
 - Path: `src/app/household/household-management.component.ts`
+- Path: `src/app/about/about-page.component.ts`
 - Path: `src/app/household/household-stock.service.ts`
 - Path: `src/app/app.routes.ts`
+- Path: `src/app/app.component.ts`
 - Path: `src/app/home.component.ts`
 - Path: `src/app/dev-admin/admin-dashboard.component.ts`
 - Path: `src/app/i18n/en.json`
@@ -81,10 +85,16 @@
 - Result: passed
 - Ran: `npm run lint`
 - Result: passed
-- Not run: validation for the new 2026-07-10 continuation refinements
-- Reason: this turn only incorporated the requested implementation plan; implementation starts after plan approval
+- Ran: `npm run typecheck`
+- Result: passed
+- Ran: `npm run lint`
+- Result: passed
+- Ran: `npm run build`
+- Result: passed
 - Not run: browser-level manual verification for the new shopping-list and management UI flows
 - Reason: this session completed the compile/lint/build validation set, but did not open the app to exercise the full UI flow interactively
+- Not run: browser/manual verification for the new About page and bottom-right shell card
+- Reason: this refinement commit was validated through typecheck, lint, and build only in the current turn
 
 ## Decisions
 
@@ -112,6 +122,8 @@
 - Reason: the user explicitly asked to plan all actions, keep separate implementations in separate commits, and implement afterward once incorporated into the Stage 6 plan.
 - Decision: start the continuation implementation with the About page and bottom-right shell button.
 - Reason: the user requested this as the first separate commit before logout/product access fixes and the larger household shopping refactor.
+- Decision: place the About entry as a persistent bottom-right rail card instead of only adding it to the radial menu.
+- Reason: the user explicitly asked for a nice floating button in the right-side shell area similar to the top account card.
 
 ## Open Issues
 
@@ -119,8 +131,10 @@
 - Impact: the TypeScript/lint/build surface is covered, but a UI integration or layout issue could still exist.
 - Issue: Stage 6 docs have not yet been refreshed to describe the implemented shopping-list panel, management shell, and remaining UI limits.
 - Impact: the code is ahead of the durable documentation until the closeout doc pass happens.
-- Issue: the 2026-07-10 continuation refinements are now planned but not implemented.
-- Impact: the next implementation session should start with Refinement Commit 1 from the Stage 6 plan instead of attempting the household layout refactor first.
+- Issue: browser-level validation for the new About route and right-rail CTA still has not been run.
+- Impact: layout, spacing, or small interaction issues could still exist despite passing compile checks.
+- Issue: the remaining 2026-07-10 continuation refinements are still pending after the About page slice.
+- Impact: the next implementation session should continue with Refinement Commit 2 instead of jumping to the large household layout refactor.
 
 ## Roadmap Or Plan Updates
 
@@ -129,8 +143,8 @@
 
 ## Next Step
 
-Implement Refinement Commit 1 from the Stage 6 plan: add the About page and bottom-right shell navigation button, then validate and commit that slice separately.
+Implement Refinement Commit 2 from the Stage 6 plan: add logout-to-home navigation and allow signed-in basic users to browse products while keeping product mutations admin-only.
 
 ## Notes For Future Agent
 
-Stage 6 now has the pure generator, persistence foundations, shopping-list completion logic, shopping-list HTTP routes, DB-backed admin-editable `allowAutoTickingAllShoppingListEntries` toggle, a real Angular shopping-list panel on the home screen, and a minimal household-management route shell. Typecheck, lint, build, and targeted backend tests pass for the already-implemented work. The 2026-07-10 continuation request is captured in the Stage 6 plan as five separate commits; start with the About page commit and keep each subsequent slice separate.
+Stage 6 now has the pure generator, persistence foundations, shopping-list completion logic, shopping-list HTTP routes, DB-backed admin-editable `allowAutoTickingAllShoppingListEntries` toggle, a real Angular shopping-list panel on the home screen, a minimal household-management route shell, and the new About page plus right-rail entry. Typecheck, lint, and build passed again after the About-page slice. The next commit should be Refinement Commit 2: logout redirect plus read-only product browsing for non-admin signed-in users.

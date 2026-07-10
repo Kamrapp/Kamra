@@ -1,5 +1,6 @@
 import type { Routes } from "@angular/router";
 
+import { AboutPageComponent } from "./about/about-page.component";
 import { ProductCatalogComponent } from "./product-lookup/product-catalog.component";
 import { AdminDashboardComponent } from "./dev-admin/admin-dashboard.component";
 import { HouseholdManagementComponent } from "./household/household-management.component";
@@ -10,6 +11,10 @@ export const routes: Routes = [
   {
     path: "",
     component: HomeComponent
+  },
+  {
+    path: "about",
+    component: AboutPageComponent
   },
   {
     path: "admin/dashboard",
