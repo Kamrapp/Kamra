@@ -50,6 +50,24 @@ describe("generateHouseholdShoppingListPreview", () => {
     expect(stockEmUp.items.at(-1)?.reasonCode).toBe("broad_restock");
   });
 
+  it("creates an empty preview for start fresh", () => {
+    const result = generateHouseholdShoppingListPreview({
+      household: { id: "household1" },
+      scale: "start_fresh",
+      stockItems: [
+        createStockItem({ displayName: "Below", id: "below", minLimit: 2, currentAmount: 1, stockStatus: "below_limit" }),
+        createStockItem({ displayName: "Soon", id: "soon", minLimit: 2, currentAmount: 2.3, stockStatus: "low_soon" })
+      ]
+    });
+
+    expect(result).toMatchObject({
+      householdId: "household1",
+      itemCount: 0,
+      items: [],
+      scale: "start_fresh"
+    });
+  });
+
   it("orders rows by stock priority and then display name", () => {
     const result = generateHouseholdShoppingListPreview({
       household: { id: "household1" },

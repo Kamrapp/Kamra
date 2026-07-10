@@ -22,6 +22,7 @@ import {
   householdMembershipRoles,
   householdMembershipStatuses,
   householdShoppingListLineSourceKinds,
+  householdShoppingListStatuses,
   householdShoppingListReasonCodes,
   householdShoppingListStockApplicationStatuses,
   householdShoppingListUpdateScopes,
@@ -400,6 +401,9 @@ export function assertUpdateHouseholdShoppingListRequest(
   assertNonEmptyString(value["householdId"], `${label}.householdId`);
   assertNonEmptyString(value["id"], `${label}.id`);
   assertOptionalNonEmptyString(value["shopId"], `${label}.shopId`);
+  if (value["status"] !== undefined) {
+    assertEnum(value["status"], householdShoppingListStatuses, `${label}.status`);
+  }
 
   if (value["items"] !== undefined) {
     assertArray(value["items"], `${label}.items`);
@@ -408,8 +412,8 @@ export function assertUpdateHouseholdShoppingListRequest(
     }
   }
 
-  if (value["items"] === undefined && value["shopId"] === undefined) {
-    throw new Error(`${label} must include items or shopId.`);
+  if (value["items"] === undefined && value["shopId"] === undefined && value["status"] === undefined) {
+    throw new Error(`${label} must include items, shopId, or status.`);
   }
 }
 

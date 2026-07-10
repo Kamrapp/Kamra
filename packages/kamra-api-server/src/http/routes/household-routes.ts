@@ -326,6 +326,7 @@ export const householdShoppingListsRoute: AppRoute = {
       id: body.id,
       items: body.items,
       shopId: body.shopId,
+      status: body.status,
       updatedAt: new Date().toISOString(),
       updatedByUserId: repositoryResult.user.email,
       userId: repositoryResult.user.email

@@ -29,7 +29,7 @@ export type HouseholdStockItemStatus = (typeof householdStockItemStatuses)[numbe
 export const householdStockStatuses = ["below_limit", "at_limit", "low_soon", "steady"] as const;
 export type HouseholdStockStatus = (typeof householdStockStatuses)[number];
 
-export const householdShoppingScales = ["business_as_usual", "keep_it_chill", "stock_em_up"] as const;
+export const householdShoppingScales = ["business_as_usual", "keep_it_chill", "stock_em_up", "start_fresh"] as const;
 export type HouseholdShoppingScale = (typeof householdShoppingScales)[number];
 
 export const householdShoppingListReasonCodes = [
@@ -350,6 +350,7 @@ export interface UpdateHouseholdShoppingListRequest {
   id: string;
   items?: HouseholdShoppingListLineRecord[];
   shopId?: string | null;
+  status?: HouseholdShoppingListStatus;
 }
 
 export interface UpdateHouseholdShoppingListStocksRequest {

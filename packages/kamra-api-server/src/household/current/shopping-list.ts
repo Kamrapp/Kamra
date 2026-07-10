@@ -13,6 +13,7 @@ const defaultCalculatedMaxLimitMultiplier = 2;
 const shoppingScaleStatusAllowlist: Record<HouseholdShoppingScale, HouseholdStockStatus[]> = {
   business_as_usual: ["below_limit", "at_limit"],
   keep_it_chill: ["below_limit", "at_limit", "low_soon"],
+  start_fresh: [],
   stock_em_up: ["below_limit", "at_limit", "low_soon", "steady"]
 };
 

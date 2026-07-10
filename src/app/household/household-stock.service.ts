@@ -149,10 +149,10 @@ export interface HouseholdShoppingList {
   householdId: string;
   id: string;
   items: HouseholdShoppingListLine[];
-  scale: "business_as_usual" | "keep_it_chill" | "stock_em_up";
+  scale: "business_as_usual" | "keep_it_chill" | "start_fresh" | "stock_em_up";
   schemaVersion: string;
   shopId?: string | null;
-  status: "active" | "completed";
+  status: "active" | "archived" | "completed";
   stockAppliedAt?: string | null;
   updatedAt: string;
   updatedByUserId: string;
@@ -183,12 +183,12 @@ export interface HouseholdShoppingListPreview {
   householdId: string;
   itemCount: number;
   items: HouseholdShoppingListPreviewItem[];
-  scale: "business_as_usual" | "keep_it_chill" | "stock_em_up";
+  scale: "business_as_usual" | "keep_it_chill" | "start_fresh" | "stock_em_up";
 }
 
 export interface CreateHouseholdShoppingListInput {
   householdId: string;
-  scale: "business_as_usual" | "keep_it_chill" | "stock_em_up";
+  scale: "business_as_usual" | "keep_it_chill" | "start_fresh" | "stock_em_up";
   shopId?: string | null;
 }
 
@@ -197,6 +197,7 @@ export interface UpdateHouseholdShoppingListInput {
   id: string;
   items?: HouseholdShoppingListLine[];
   shopId?: string | null;
+  status?: "active" | "archived" | "completed";
 }
 
 export interface UpdateHouseholdShoppingListStocksInput {

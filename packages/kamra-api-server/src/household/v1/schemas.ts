@@ -74,7 +74,7 @@ const householdShoppingListStatusSchema = {
 };
 
 const householdShoppingScaleSchema = {
-  enum: ["business_as_usual", "keep_it_chill", "stock_em_up"]
+  enum: ["business_as_usual", "keep_it_chill", "stock_em_up", "start_fresh"]
 };
 
 const householdShoppingListLineSourceKindSchema = {

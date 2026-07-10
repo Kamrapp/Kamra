@@ -629,6 +629,135 @@ describe("handleAppRequest auth guards", () => {
         shopId: "shop_hu_lidl"
       }
     });
+
+    const archiveResponse = await handleAppRequest(
+      {
+        bodyText: JSON.stringify({
+          householdId: "household1",
+          id: createdList.id,
+          status: "archived"
+        }),
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "PATCH",
+        path: "/api/household/shopping-lists"
+      },
+      {
+        createHouseholdRepository: () => new MongoHouseholdRepository(db),
+        getMongoClient: async () => ({
+          db: () => db
+        }) as never
+      }
+    );
+
+    expect(archiveResponse.status).toBe(200);
+    expect(JSON.parse(archiveResponse.body)).toMatchObject({
+      shoppingList: {
+        id: createdList.id,
+        status: "archived"
+      }
+    });
+
+    const latestAfterArchiveResponse = await handleAppRequest(
+      {
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "GET",
+        path: "/api/household/shopping-lists/latest",
+        query: {
+          householdId: "household1"
+        }
+      },
+      {
+        createHouseholdRepository: () => new MongoHouseholdRepository(db),
+        getMongoClient: async () => ({
+          db: () => db
+        }) as never
+      }
+    );
+
+    expect(latestAfterArchiveResponse.status).toBe(404);
+  });
+
+  it("creates an empty shopping list for start fresh", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "usera",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "user",
+      secret: "test-secret"
+    });
+    const db = createFakeDb();
+    const repository = new MongoHouseholdRepository(db);
+    await repository.setupCollections();
+    await repository.createHousehold({
+      createdAt: "2026-07-09T10:00:00.000Z",
+      createdByUserId: "usera",
+      id: "household1",
+      name: "Demo household"
+    });
+    await repository.upsertSeedDataset({
+      householdLocalProducts: [],
+      householdMemberships: [],
+      householdPurchasePriceObservations: [],
+      households: [],
+      householdShops: [],
+      householdShoppingLists: [],
+      householdStockItems: [
+        {
+          createdAt: "2026-07-09T10:00:00.000Z",
+          createdByUserId: "usera",
+          currentAmount: 0,
+          displayName: "Milk",
+          householdId: "household1",
+          householdProductId: "product_milk",
+          id: "stock_milk",
+          initialAmount: 1,
+          minLimit: 1,
+          note: null,
+          stockedAt: "2026-07-09T10:00:00.000Z",
+          stockGroupKey: "milk",
+          status: "active",
+          unit: "l",
+          updatedAt: "2026-07-09T10:00:00.000Z",
+          updatedByUserId: "usera"
+        }
+      ]
+    });
+
+    const createResponse = await handleAppRequest(
+      {
+        bodyText: JSON.stringify({
+          householdId: "household1",
+          scale: "start_fresh"
+        }),
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "POST",
+        path: "/api/household/shopping-lists"
+      },
+      {
+        createHouseholdRepository: () => new MongoHouseholdRepository(db),
+        getMongoClient: async () => ({
+          db: () => db
+        }) as never
+      }
+    );
+
+    expect(createResponse.status).toBe(201);
+    expect(JSON.parse(createResponse.body)).toMatchObject({
+      shoppingList: {
+        items: [],
+        scale: "start_fresh"
+      }
+    });
   });
 
   it("requires confirmation before applying partially unticked shopping-list stocks and then updates stock idempotently", async () => {
