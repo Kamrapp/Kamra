@@ -42,6 +42,11 @@ export interface AppResponse {
   status: number;
 }
 
+export type UnauthorizedMessageKey =
+  | "apiErrors.adminRequired"
+  | "apiErrors.preferencesSignInRequired"
+  | "apiErrors.signInRequired";
+
 export interface RequestLogDetails {
   requestMethod: string;
   requestOrigin?: string;
@@ -222,10 +227,10 @@ export function empty(status: number): AppResponse {
   };
 }
 
-export function unauthorized(message = "Sign in to view this resource."): AppResponse {
+export function unauthorized(messageKey: UnauthorizedMessageKey = "apiErrors.signInRequired"): AppResponse {
   return json(401, {
     error: "unauthorized",
-    message
+    messageKey
   });
 }
 

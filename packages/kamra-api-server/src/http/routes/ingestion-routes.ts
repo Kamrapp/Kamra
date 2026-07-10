@@ -4,6 +4,7 @@ import {
   describeRequest,
   json,
   unauthorized,
+  type UnauthorizedMessageKey,
   type AppResponse,
   type AppRoute,
   type AppRouteContext
@@ -37,7 +38,7 @@ type IngestionRouteRepository = ReturnType<NonNullable<AppRouteContext["dependen
 export const ingestionSnapshotsRoute: AppRoute = {
   match: (request) => request.method === "GET" && request.path === "/api/admin/ingestion/snapshots",
   handle: async (request, context) => {
-    const user = requireUserRole("admin", request, context, "Sign in as an admin to view ingestion snapshots.");
+    const user = requireUserRole("admin", request, context, "apiErrors.adminRequired");
     if ("status" in user) {
       return user;
     }
@@ -106,7 +107,7 @@ export const ingestionSnapshotsRoute: AppRoute = {
 export const processIngestionSnapshotRoute: AppRoute = {
   match: (request) => request.method === "POST" && request.path === "/api/admin/ingestion/process-snapshot",
   handle: async (request, context) => {
-    const user = requireUserRole("admin", request, context, "Sign in as an admin to process ingestion snapshots.");
+    const user = requireUserRole("admin", request, context, "apiErrors.adminRequired");
     if ("status" in user) {
       return user;
     }
@@ -152,7 +153,7 @@ export const processIngestionSnapshotRoute: AppRoute = {
 export const prepareProductReviewItemsRoute: AppRoute = {
   match: (request) => request.method === "POST" && request.path === "/api/admin/ingestion/prepare-review-items",
   handle: async (request, context) => {
-    const user = requireUserRole("admin", request, context, "Sign in as an admin to prepare review items.");
+    const user = requireUserRole("admin", request, context, "apiErrors.adminRequired");
     if ("status" in user) {
       return user;
     }
@@ -198,7 +199,7 @@ export const prepareProductReviewItemsRoute: AppRoute = {
 export const productReviewItemsRoute: AppRoute = {
   match: (request) => request.method === "GET" && request.path === "/api/admin/ingestion/review-items",
   handle: async (request, context) => {
-    const user = requireUserRole("admin", request, context, "Sign in as an admin to view review items.");
+    const user = requireUserRole("admin", request, context, "apiErrors.adminRequired");
     if ("status" in user) {
       return user;
     }
@@ -236,7 +237,7 @@ export const productReviewItemRoute: AppRoute = {
     (request.method === "GET" || request.method === "PATCH")
       && request.path === "/api/admin/ingestion/review-item",
   handle: async (request, context) => {
-    const user = requireUserRole("admin", request, context, "Sign in as an admin to manage review items.");
+    const user = requireUserRole("admin", request, context, "apiErrors.adminRequired");
     if ("status" in user) {
       return user;
     }
@@ -315,7 +316,7 @@ export const acceptProductReviewItemRoute: AppRoute = {
 export const previewProductReviewItemAcceptanceRoute: AppRoute = {
   match: (request) => request.method === "GET" && request.path === "/api/admin/ingestion/review-item/acceptance-preview",
   handle: async (request, context) => {
-    const user = requireUserRole("admin", request, context, "Sign in as an admin to preview review item acceptance.");
+    const user = requireUserRole("admin", request, context, "apiErrors.adminRequired");
     if ("status" in user) {
       return user;
     }
@@ -475,11 +476,11 @@ function requireUserRole(
   role: UserRole,
   request: Parameters<AppRoute["handle"]>[0],
   context: AppRouteContext,
-  message: string
+  messageKey: UnauthorizedMessageKey
 ): NonNullable<ReturnType<AppRouteContext["authenticateRequestUser"]>> | AppResponse {
   const user = context.authenticateRequestUser(request);
   if (!user || user.role !== role) {
-    return unauthorized(message);
+    return unauthorized(messageKey);
   }
 
   return user;
@@ -490,7 +491,7 @@ async function markProductReviewItemDecision(
   context: AppRouteContext,
   status: "accepted" | "declined"
 ): Promise<AppResponse> {
-  const user = requireUserRole("admin", request, context, "Sign in as an admin to decide review items.");
+  const user = requireUserRole("admin", request, context, "apiErrors.adminRequired");
   if ("status" in user) {
     return user;
   }

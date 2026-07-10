@@ -15,7 +15,7 @@ export const adminDashboardHealthRoute: AppRoute = {
   handle: async (request, context) => {
     const user = context.authenticateRequestUser(request);
     if (!user || user.role !== "admin") {
-      return unauthorized("Sign in as an admin to view this resource.");
+      return unauthorized("apiErrors.adminRequired");
     }
 
     const config = context.config;
@@ -56,7 +56,7 @@ export const adminDashboardUpgradeCatalogValidatorsRoute: AppRoute = {
   handle: async (request, context) => {
     const user = context.authenticateRequestUser(request);
     if (!user || user.role !== "admin") {
-      return unauthorized("Sign in as an admin to view this resource.");
+      return unauthorized("apiErrors.adminRequired");
     }
 
     const config = context.config;
@@ -114,7 +114,7 @@ export const adminDashboardMarkLegacyProductsUnvalidatedRoute: AppRoute = {
   handle: async (request, context) => {
     const user = context.authenticateRequestUser(request);
     if (!user || user.role !== "admin") {
-      return unauthorized("Sign in as an admin to view this resource.");
+      return unauthorized("apiErrors.adminRequired");
     }
 
     const config = context.config;
@@ -175,7 +175,7 @@ export const adminDashboardReseedDemoHouseholdRoute: AppRoute = {
   handle: async (request, context) => {
     const user = context.authenticateRequestUser(request);
     if (!user || user.role !== "admin") {
-      return unauthorized("Sign in as an admin to view this resource.");
+      return unauthorized("apiErrors.adminRequired");
     }
 
     const config = context.config;
@@ -248,7 +248,7 @@ export const adminDashboardFeatureFlagsRoute: AppRoute = {
   handle: async (request, context) => {
     const user = context.authenticateRequestUser(request);
     if (!user || user.role !== "admin") {
-      return unauthorized("Sign in as an admin to view this resource.");
+      return unauthorized("apiErrors.adminRequired");
     }
 
     const config = context.config;

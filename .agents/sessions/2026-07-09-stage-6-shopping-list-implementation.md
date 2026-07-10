@@ -35,6 +35,9 @@
 - Item: split the continuation work into five separate planned commits: About page, session/product access fixes, small household shopping fixes, major household shopping layout refactor, and final docs/verification.
 - Item: added the Stage 6 About page at `/about` with customer-facing project context, primary app URL guidance, project history, stack notes, and GitHub repository link.
 - Item: added a bottom-right shell card that navigates to the About page and updates the shell page-context title when `/about` is active.
+- Item: updated logout behavior so signing out now routes the shell back to `/`, preventing users from staying on disabled admin-only screens.
+- Item: relaxed catalog read access so any signed-in user can load product rows and offer-source filters, while keeping all product mutations admin-only.
+- Item: blocked non-admin product edit attempts in the frontend with a warning toast instead of opening the editor dialog.
 
 ## Changed Files
 
@@ -52,6 +55,7 @@
 - Path: `packages/kamra-api-server/src/household/current/shopping-list-completion.test.ts`
 - Path: `packages/kamra-api-server/src/http/routes/household-routes.ts`
 - Path: `packages/kamra-api-server/src/http/routes/admin-dashboard-route.ts`
+- Path: `packages/kamra-api-server/src/http/routes/catalog-routes.ts`
 - Path: `packages/kamra-api-server/src/http/app-handler.ts`
 - Path: `packages/kamra-api-server/src/http/app-handler.test.ts`
 - Path: `api/admin/dashboard/feature-flags.ts`
@@ -62,6 +66,7 @@
 - Path: `src/app/app.routes.ts`
 - Path: `src/app/app.component.ts`
 - Path: `src/app/home.component.ts`
+- Path: `src/app/product-lookup/product-catalog.component.ts`
 - Path: `src/app/dev-admin/admin-dashboard.component.ts`
 - Path: `src/app/i18n/en.json`
 - Path: `src/app/i18n/hu.json`
@@ -91,10 +96,20 @@
 - Result: passed
 - Ran: `npm run build`
 - Result: passed
+- Ran: `npm test -- packages/kamra-api-server/src/http/app-handler.test.ts`
+- Result: passed
+- Ran: `npm run typecheck`
+- Result: passed
+- Ran: `npm run lint`
+- Result: passed
+- Ran: `npm run build`
+- Result: passed
 - Not run: browser-level manual verification for the new shopping-list and management UI flows
 - Reason: this session completed the compile/lint/build validation set, but did not open the app to exercise the full UI flow interactively
 - Not run: browser/manual verification for the new About page and bottom-right shell card
 - Reason: this refinement commit was validated through typecheck, lint, and build only in the current turn
+- Not run: browser/manual verification for logout redirect and basic-user product browsing
+- Reason: this refinement commit was validated through targeted backend tests plus typecheck, lint, and build only in the current turn
 
 ## Decisions
 
@@ -124,6 +139,10 @@
 - Reason: the user requested this as the first separate commit before logout/product access fixes and the larger household shopping refactor.
 - Decision: place the About entry as a persistent bottom-right rail card instead of only adding it to the radial menu.
 - Reason: the user explicitly asked for a nice floating button in the right-side shell area similar to the top account card.
+- Decision: allow catalog read endpoints for any authenticated user while keeping all catalog mutation endpoints admin-only.
+- Reason: the user explicitly wants every logged-in user to browse products, but editing to remain restricted to admins.
+- Decision: block non-admin product edit attempts in the frontend with a warning toast before the editor opens.
+- Reason: this keeps the view discoverable for basic users and makes the permission boundary explicit without pretending the action succeeded.
 
 ## Open Issues
 
@@ -133,8 +152,10 @@
 - Impact: the code is ahead of the durable documentation until the closeout doc pass happens.
 - Issue: browser-level validation for the new About route and right-rail CTA still has not been run.
 - Impact: layout, spacing, or small interaction issues could still exist despite passing compile checks.
+- Issue: browser-level validation for logout redirect and the signed-in basic-user product browsing flow still has not been run.
+- Impact: the intended UX is implemented, but a route-state or view-state mismatch could still exist until manually exercised.
 - Issue: the remaining 2026-07-10 continuation refinements are still pending after the About page slice.
-- Impact: the next implementation session should continue with Refinement Commit 2 instead of jumping to the large household layout refactor.
+- Impact: the next implementation session should continue with Refinement Commit 3 instead of jumping to the large household layout refactor.
 
 ## Roadmap Or Plan Updates
 
@@ -143,8 +164,8 @@
 
 ## Next Step
 
-Implement Refinement Commit 2 from the Stage 6 plan: add logout-to-home navigation and allow signed-in basic users to browse products while keeping product mutations admin-only.
+Implement Refinement Commit 3 from the Stage 6 plan: tackle the smaller home/household/shopping fixes before the major layout refactor.
 
 ## Notes For Future Agent
 
-Stage 6 now has the pure generator, persistence foundations, shopping-list completion logic, shopping-list HTTP routes, DB-backed admin-editable `allowAutoTickingAllShoppingListEntries` toggle, a real Angular shopping-list panel on the home screen, a minimal household-management route shell, and the new About page plus right-rail entry. Typecheck, lint, and build passed again after the About-page slice. The next commit should be Refinement Commit 2: logout redirect plus read-only product browsing for non-admin signed-in users.
+Stage 6 now has the pure generator, persistence foundations, shopping-list completion logic, shopping-list HTTP routes, DB-backed admin-editable `allowAutoTickingAllShoppingListEntries` toggle, a real Angular shopping-list panel on the home screen, a minimal household-management route shell, the new About page plus right-rail entry, logout redirection to home, and signed-in non-admin product browsing with admin-only mutations. Targeted catalog-route tests plus typecheck, lint, and build passed again after this second refinement slice. The next commit should be Refinement Commit 3: the smaller home, pulse, and shopping-list behavior fixes before the larger household workspace refactor.

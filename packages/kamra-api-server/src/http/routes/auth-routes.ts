@@ -9,7 +9,7 @@ import {
 import { MongoUserRepository } from "../../auth/mongo-user-repository.js";
 import { createUserToken } from "../../auth/user-token.js";
 import { writeServerLog } from "../../logging/kamra-logger.js";
-import { describeRequest, empty, json, type AppRequest, type AppRoute } from "../app-route-context.js";
+import { describeRequest, empty, json, unauthorized, type AppRequest, type AppRoute } from "../app-route-context.js";
 
 function readLoginPayload(bodyText: string | undefined):
   | { email: string; password: string }
@@ -148,10 +148,7 @@ export const currentUserRoute: AppRoute = {
   handle: async (request, context) => {
     const user = context.authenticateRequestUser(request);
     if (!user) {
-      return json(401, {
-        error: "unauthorized",
-        message: "Sign in to view this resource."
-      });
+      return unauthorized("apiErrors.signInRequired");
     }
 
     const repository = await createUserRepository(context);
@@ -174,10 +171,7 @@ export const userPreferencesRoute: AppRoute = {
   handle: async (request, context) => {
     const user = context.authenticateRequestUser(request);
     if (!user) {
-      return json(401, {
-        error: "unauthorized",
-        message: "Sign in to update your preferences."
-      });
+      return unauthorized("apiErrors.preferencesSignInRequired");
     }
 
     const profile = readProfilePayload(request.bodyText);

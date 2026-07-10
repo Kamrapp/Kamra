@@ -3,7 +3,7 @@ import { Injectable, inject } from "@angular/core";
 import { buildApiUrl } from "../api-url";
 import { AuthService } from "../auth.service";
 import { readApiErrorMessage } from "../shared/api-errors";
-import { LocalizationService } from "../shared/localization.service";
+import { LocalizationService, type TranslationKey } from "../shared/localization.service";
 import { ToastService } from "../shared/toast.service";
 
 export interface HouseholdListItem {
@@ -643,7 +643,9 @@ export class HouseholdStockService {
 
     if (!response.ok) {
       return {
-        message: await readApiErrorMessage(response, fallback),
+        message: await readApiErrorMessage(response, fallback, (messageKey) =>
+          this.loc.t(messageKey as TranslationKey)
+        ),
         status: "unavailable"
       };
     }

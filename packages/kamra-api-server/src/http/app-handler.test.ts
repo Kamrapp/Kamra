@@ -22,7 +22,7 @@ describe("handleAppRequest auth guards", () => {
     expect(response.status).toBe(401);
     expect(JSON.parse(response.body)).toEqual({
       error: "unauthorized",
-      message: "Sign in as an admin to view this resource."
+      messageKey: "apiErrors.adminRequired"
     });
   });
 
@@ -1048,7 +1048,7 @@ describe("handleAppRequest auth guards", () => {
     expect(response.status).toBe(401);
     expect(JSON.parse(response.body)).toEqual({
       error: "unauthorized",
-      message: "Sign in as an admin to view this resource."
+      messageKey: "apiErrors.adminRequired"
     });
   });
 
@@ -1305,7 +1305,7 @@ describe("handleAppRequest auth guards", () => {
     expect(response.status).toBe(401);
     expect(JSON.parse(response.body)).toEqual({
       error: "unauthorized",
-      message: "Sign in as an admin to view this resource."
+      messageKey: "apiErrors.adminRequired"
     });
   });
 
@@ -1321,7 +1321,7 @@ describe("handleAppRequest auth guards", () => {
     expect(response.status).toBe(401);
     expect(JSON.parse(response.body)).toEqual({
       error: "unauthorized",
-      message: "Sign in as an admin to view this resource."
+      messageKey: "apiErrors.adminRequired"
     });
   });
 
@@ -1347,7 +1347,7 @@ describe("handleAppRequest auth guards", () => {
     expect(response.status).toBe(401);
     expect(JSON.parse(response.body)).toEqual({
       error: "unauthorized",
-      message: "Sign in as an admin to view this resource."
+      messageKey: "apiErrors.adminRequired"
     });
   });
 
@@ -1438,8 +1438,10 @@ describe("handleAppRequest auth guards", () => {
     expect(userEmails).toEqual(["outside_user", "usera", "userb"]);
   });
 
-  it("rejects admin product list requests for a valid non-admin token", async () => {
+  it("returns catalog products for a valid signed-in non-admin token", async () => {
     vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
 
     const token = createUserToken({
       email: "user@kamra.test",
@@ -1449,18 +1451,36 @@ describe("handleAppRequest auth guards", () => {
       secret: "test-secret"
     });
 
-    const response = await handleAppRequest({
-      headers: {
-        authorization: `Bearer ${token}`
+    const response = await handleAppRequest(
+      {
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "GET",
+        path: "/api/catalog/products"
       },
-      method: "GET",
-      path: "/api/catalog/products"
-    });
+      {
+        createCatalogRepository: () => ({
+          listCatalogProductsForReview: async () => ({
+            products: [],
+            totalCount: 0
+          })
+        }),
+        getMongoClient: async () => ({
+          db: () => ({})
+        } as never)
+      }
+    );
 
-    expect(response.status).toBe(401);
+    expect(response.status).toBe(200);
     expect(JSON.parse(response.body)).toEqual({
-      error: "unauthorized",
-      message: "Sign in as an admin to view this resource."
+      pagination: {
+        page: 1,
+        pageSize: 100,
+        totalCount: 0,
+        totalPages: 0
+      },
+      products: []
     });
   });
 
@@ -1552,40 +1572,40 @@ describe("handleAppRequest auth guards", () => {
         totalPages: 4
       },
       products: [
-          {
-            householdStockCount: 1,
-            id: "product_uht_milk_2_8_1l",
-            measurements: [],
-            name: "UHT tej 2,8%",
-            offers: [
-              {
-                identifiers: [
-                  {
-                    kind: "retailer_product_id",
-                    value: "lidl-pilos-uht-tej-28-1l"
-                  }
-                ],
-                latestObservedAt: "2026-06-23T12:00:00.000Z",
-                locationKey: "availability:lidl-hu",
-                locationLabel: "Lidl Hungary",
-                prices: {
-                  base: {
-                    amount: 469,
-                    currencyCode: "HUF",
-                    observedAt: "2026-06-23T12:00:00.000Z",
-                    unitPriceLabel: "469 Ft/l"
-                  }
-                },
-                productSourceId: "product_source_lidl_hu_pilos_uht_28_1l",
-                sourceName: "lidl-hu",
-                sourceProductKey: "lidl-pilos-uht-tej-28-1l",
-                sourceProductName: "Pilos UHT tej 2,8% 1 l",
-                storeBrandKey: "lidl"
-              }
-            ],
-            sourceNames: ["lidl-hu"],
-            tagKeys: ["category.kitchen.dairy"]
-          }
+        {
+          householdStockCount: 1,
+          id: "product_uht_milk_2_8_1l",
+          measurements: [],
+          name: "UHT tej 2,8%",
+          offers: [
+            {
+              identifiers: [
+                {
+                  kind: "retailer_product_id",
+                  value: "lidl-pilos-uht-tej-28-1l"
+                }
+              ],
+              latestObservedAt: "2026-06-23T12:00:00.000Z",
+              locationKey: "availability:lidl-hu",
+              locationLabel: "Lidl Hungary",
+              prices: {
+                base: {
+                  amount: 469,
+                  currencyCode: "HUF",
+                  observedAt: "2026-06-23T12:00:00.000Z",
+                  unitPriceLabel: "469 Ft/l"
+                }
+              },
+              productSourceId: "product_source_lidl_hu_pilos_uht_28_1l",
+              sourceName: "lidl-hu",
+              sourceProductKey: "lidl-pilos-uht-tej-28-1l",
+              sourceProductName: "Pilos UHT tej 2,8% 1 l",
+              storeBrandKey: "lidl"
+            }
+          ],
+          sourceNames: ["lidl-hu"],
+          tagKeys: ["category.kitchen.dairy"]
+        }
       ]
     });
   });
@@ -1612,7 +1632,7 @@ describe("handleAppRequest auth guards", () => {
     expect(response.status).toBe(401);
     expect(JSON.parse(response.body)).toEqual({
       error: "unauthorized",
-      message: "Sign in as an admin to view ingestion snapshots."
+      messageKey: "apiErrors.adminRequired"
     });
   });
 
@@ -1974,16 +1994,16 @@ describe("handleAppRequest auth guards", () => {
     });
   });
 
-  it("returns catalog offer source names independently from product pages", async () => {
+  it("returns catalog offer source names for a signed-in non-admin user", async () => {
     vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
     vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
     vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
 
     const token = createUserToken({
-      email: "admin@kamra.test",
+      email: "user@kamra.test",
       maxAgeSeconds: 60,
       now: new Date(),
-      role: "admin",
+      role: "user",
       secret: "test-secret"
     });
 

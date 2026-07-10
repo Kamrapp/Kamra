@@ -15,6 +15,7 @@ import { ProductEditorDialogComponent } from "../shared/product-editor-dialog.co
 import { TableIconButtonComponent } from "../shared/table-icon-button.component";
 import { DebouncedFilterAction } from "../shared/filter-debounce";
 import { LocalizationService } from "../shared/localization.service";
+import { ToastService } from "../shared/toast.service";
 
 interface VisibleProductRow {
   index: number;
@@ -315,6 +316,8 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
   readonly catalog = inject(ProductCatalogService);
   readonly loc = inject(LocalizationService);
   readonly pageRail = inject(PageRailService);
+  readonly toast = inject(ToastService);
+  readonly canEditProducts = computed(() => this.auth.user()?.role === "admin");
   readonly errorMessage = signal("");
   readonly loadState = signal<"idle" | "loading" | "success" | "error">("idle");
   readonly products = signal<CatalogProductListItem[]>([]);
@@ -587,6 +590,12 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
   }
 
   openProductEditor(product: CatalogProductListItem): void {
+    if (!this.canEditProducts()) {
+      this.statusMessage.set(this.loc.t("product.catalogEditRequiresAdmin"));
+      this.toast.push(this.loc.t("product.catalogEditRequiresAdmin"), "warning");
+      return;
+    }
+
     this.editingProduct.set(product);
     this.editorOpen.set(true);
   }

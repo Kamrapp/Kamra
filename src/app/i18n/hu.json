@@ -56,6 +56,11 @@
     "techTitle": "Hogyan áll össze",
     "title": "A Kamráról"
   },
+  "apiErrors": {
+    "adminRequired": "Az eroforras megtekintesehez admin jogosultsaggal kell bejelentkezni.",
+    "preferencesSignInRequired": "A beallitasok frissitesehez be kell jelentkezni.",
+    "signInRequired": "Az eroforras megtekintesehez be kell jelentkezni."
+  },
   "common": {
     "accept": "Elfogadás",
     "adminOnly": "Csak admin",
@@ -406,6 +411,7 @@
     "catalogAccess": "A jelenlegi munkamenet nem fér hozzá a termékkatalógushoz.",
     "catalogDatabaseMissing": "A katalógus adatbázisa nincs beállítva ebben a környezetben.",
     "catalogEditAccess": "A jelenlegi munkamenet nem szerkesztheti a termékkatalógust.",
+    "catalogEditRequiresAdmin": "Termékeket csak admin felhasználó szerkeszthet.",
     "catalogEditRouteError": "A termékkatalógus szerkesztési útvonala hibát adott vissza.",
     "catalogReviewAccess": "Ehhez a nézethez katalógus-ellenőrzési hozzáférés kell.",
     "catalogRouteError": "A termékkatalógus útvonala hibát adott vissza.",

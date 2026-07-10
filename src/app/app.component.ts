@@ -766,6 +766,7 @@ export class AppComponent implements OnInit {
     this.loginPassword = "";
     this.theme.applyUserTheme(undefined);
     this.loc.applyUserLanguage(undefined);
+    await this.router.navigateByUrl("/");
     this.toast.push(this.loc.t("app.signedOut"), "success");
   }
 

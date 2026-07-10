@@ -56,6 +56,11 @@
     "techTitle": "How it is put together",
     "title": "About Kamra"
   },
+  "apiErrors": {
+    "adminRequired": "Sign in as an admin to view this resource.",
+    "preferencesSignInRequired": "Sign in to update your preferences.",
+    "signInRequired": "Sign in to view this resource."
+  },
   "common": {
     "accept": "Accept",
     "adminOnly": "Admin only",
@@ -406,6 +411,7 @@
     "catalogAccess": "The current session does not have access to the product catalog.",
     "catalogDatabaseMissing": "The catalog database is not configured for this environment.",
     "catalogEditAccess": "The current session does not have access to edit the product catalog.",
+    "catalogEditRequiresAdmin": "Only admin users can edit products.",
     "catalogEditRouteError": "The product catalog edit route returned an error.",
     "catalogReviewAccess": "This view needs catalog review access.",
     "catalogRouteError": "The product catalog route returned an error.",

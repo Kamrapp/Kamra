@@ -955,7 +955,9 @@ export class AdminDashboardComponent implements OnInit {
     response: Response,
     fallbackMessage: string
   ): Promise<{ message: string; payload: T | null }> {
-    const message = await readApiErrorMessage(response.clone(), fallbackMessage);
+    const message = await readApiErrorMessage(response.clone(), fallbackMessage, (messageKey) =>
+      this.loc.t(messageKey as TranslationKey)
+    );
 
     try {
       return {
