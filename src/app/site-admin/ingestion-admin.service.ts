@@ -3,7 +3,7 @@ import { Injectable, inject } from "@angular/core";
 import { buildApiUrl } from "../api-url";
 import { AuthService } from "../auth.service";
 import { readApiErrorMessage } from "../shared/api-errors";
-import { LocalizationService } from "../shared/localization.service";
+import { LocalizationService, type TranslationKey } from "../shared/localization.service";
 import { ToastService } from "../shared/toast.service";
 
 export interface IngestionRowPreview {
@@ -273,7 +273,9 @@ export class IngestionAdminService {
     }
 
     if (!response.ok) {
-      const message = await readApiErrorMessage(response, this.loc.t("crawl.snapshotRouteError"));
+      const message = await readApiErrorMessage(response, this.loc.t("crawl.snapshotRouteError"), (messageKey) =>
+        this.loc.t(messageKey as TranslationKey)
+      );
       return {
         message: this.toastMessage(message),
         status: "unavailable"
@@ -336,7 +338,9 @@ export class IngestionAdminService {
     }
 
     if (!response.ok) {
-      const message = await readApiErrorMessage(response, this.loc.t("crawl.processRouteError"));
+      const message = await readApiErrorMessage(response, this.loc.t("crawl.processRouteError"), (messageKey) =>
+        this.loc.t(messageKey as TranslationKey)
+      );
       return {
         message: this.toastMessage(message),
         status: "unavailable"
@@ -524,7 +528,9 @@ export class IngestionAdminService {
     }
 
     if (!response.ok) {
-      const message = await readApiErrorMessage(response, this.loc.t("crawl.reviewRouteError"));
+      const message = await readApiErrorMessage(response, this.loc.t("crawl.reviewRouteError"), (messageKey) =>
+        this.loc.t(messageKey as TranslationKey)
+      );
       return {
         message,
         status: "unavailable"

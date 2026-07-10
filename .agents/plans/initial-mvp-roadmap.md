@@ -22,8 +22,8 @@ Roadmap priorities:
 | Stage 3 | Product model foundation and seeded data | Completed | Finalized versioned product contracts, seed data, smoke validation, and admin-only product inspection before crawler work. |
 | Stage 4 | Crawler intake and processing pipeline | Completed | Current in-scope ingestion, processing, operator review, product acceptance, source filtering, accepted-item hiding, strict new-ingestion collection validators, and explicit accept create/merge confirmation are in place. SPAR and Tesco are moved out of Stage 4 and should be revisited near the end of the MVP. |
 | Stage 5 | Household stock foundation | Completed | User-owned household collections, membership-checked routes, demo household reseed, signed-in home pulse/editor, shopping-scale preview, admin dashboard controls, and durable `docs/household.md` are in place. |
-| Stage 6 | Shopping list and low-stock notices | Planned | Build on the Stage 5 household stock rows and shopping-scale preview; favor deterministic core logic over premature optimization. |
-| Stage 7 | Controlled alpha access and app module shell | Planned | Move external demo access later, after household and list value exist; keep public/product, household, site-admin, and dev-admin concerns visibly separate. |
+| Stage 6 | Shopping list and low-stock notices | Completed | Deterministic shopping-list generation, DB-backed auto-tick feature toggle, household workspace refactor, start-fresh flow, read-only product browsing for signed-in users, About page, and logout redirect are implemented; browser/manual verification remains the main closeout task. |
+| Stage 7 | Controlled alpha access and app module shell | Implemented | Admin-created alpha users with database-backed creation/login gating, empty household allocation, and direct product-lookup, household, site-admin, and dev-admin route grouping are implemented. |
 | Stage 8 | Expiry and buffer logic | Planned | This completes the first strong product MVP loop with buy-before style usefulness. |
 
 Non-MVP and post-MVP ideas are tracked in `mvp-followups.md` so this roadmap stays focused on the shortest useful household grocery-planning MVP.
@@ -315,20 +315,19 @@ Goal:
 
 - Generate a shopping list and visible low-stock notices from household items below their minimum limit.
 
-Scope slice:
+Current status:
 
-- compare `currentAmount` with `minLimit`
-- produce needed items
-- show household users what they are likely to run out of, initially through in-app notices
-- connect needed items to available products where possible
-- keep unmatched needs visible
-- list generation should live in deterministic core logic that is easy to test outside UI or server adapters
+- deterministic shopping-list generation and persistence are implemented
+- home workspace now separates stock overview/editor, shopping controls, and shopping finalization
+- `Start fresh` creates an empty list for manual building
+- stock rows can be highlighted and added one-by-one into an active shopping list
+- partial completion honors the DB-backed `allowAutoTickingAllShoppingListEntries` feature toggle
+- signed-in non-admin users can browse products read-only while edits remain admin-only
+- About page and logout redirect refinements shipped as part of the Stage 6 continuation pass
 
-Validation:
+Remaining closeout expectation:
 
-- deterministic output from household fixture data
-- common list-generation logic has focused tests
-- missing products and unknown units are explicit
+- compact manual browser verification for household flow, product browsing, admin feature toggle, About page, and logout redirect
 
 ## Stage 7: Controlled Alpha Access And App Module Shell
 
@@ -354,11 +353,12 @@ Scope slice:
 
 Validation:
 
-- alpha/demo access fails for identities the admin has not allowed or created
-- alpha/demo access succeeds for the controlled identity path
-- feature flag disabled means no onboarding path is available
+- unauthenticated and non-admin alpha creation fails
+- alpha creation succeeds only when the database-backed flag is enabled
+- each created alpha identity receives an empty household with initial owner membership
+- disabling the flag blocks alpha-marked login while leaving demo and bootstrap identities unaffected
 - external users cannot access admin, dev-admin, or other household data
-- navigation grouping keeps module boundaries visible even if the UI remains simple
+- direct navigation paths keep product lookup, household, site-admin, and dev-admin boundaries visible
 
 ## Stage 8: Expiry And Buffer Logic
 

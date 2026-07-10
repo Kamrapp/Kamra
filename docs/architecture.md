@@ -54,7 +54,7 @@ The frontend should not own business-critical product matching or ingestion logi
 
 User-facing screens should focus on household workflows. Admin screens should focus on ingestion visibility, crawled/fetched product review, and data maintenance.
 
-The current household stock foundation is documented in [docs/household.md](./household.md). Treat that document as the durable Stage 5 reference for household-owned stock, household-local products, demo household behavior, and future shopping-list direction.
+The current household stock and shopping-loop foundation is documented in [docs/household.md](./household.md). Treat that document as the durable Stage 6 reference for household-owned stock, household-local products, persisted shopping lists, demo household behavior, and near-term follow-up limits.
 
 Frontend localization should be treated as an early MVP concern, not a later polish item.
 Default application resources currently come from nested JSON files under `src/app/i18n/` for English and Hungarian. Keep those files in a standard library-friendly shape so a later i18next-style adapter can consume them without reshaping content. Site-admin-managed database overrides can gradually fill in runtime translations and missing values later.
@@ -152,19 +152,23 @@ Expected access boundaries:
 - admins manually accept, decline, edit, or merge crawled product candidates before they become trusted catalog data
 - ingestion jobs write raw and transformed data through controlled credentials
 
-Google account sign-in is an expected later authentication direction, but the household/product MVP can operate with admin-controlled and whitelisted access.
+Google account sign-in is an expected later authentication direction. For the current MVP, the existing admin can explicitly create controlled alpha users; public self-registration remains closed.
+
+Controlled alpha users are marked explicitly in the user document and receive one new empty household with an owner membership. Existing bootstrap and demo users are not inferred to be alpha users.
 
 ## Feature Flags
 
-The whitelist registration feature must be behind a feature flag.
+The controlled alpha registration path is behind the database-backed `allowControlledAlphaAccess` feature flag.
 
 When disabled:
 
+- admins cannot create new alpha users
+- users marked as alpha users cannot log in
 - admins may not trigger automatic invitation emails
 - whitelist cleanup cron must not run
 - registration remains closed except for the currently approved admin-only path
 
-When enabled:
+When a future whitelist flow is enabled:
 
 - admins can add email addresses to the whitelist
 - invitation email is sent with a registration link
@@ -196,7 +200,7 @@ Responsibilities:
 - balance cost, distance, and time once those inputs exist
 
 Early optimization may be intentionally simple.
-The first shopping-list scale should remain understandable before it becomes a full optimizer: `Business as usual` includes below-limit and at-limit household stock, `Keep it chill` also includes low-soon stock, and `Stock 'em up!` includes all tracked stock rows as a broad restock preview.
+The current household shopping loop should remain understandable before it becomes a full optimizer: `Start fresh` creates an empty list, `Business as usual` includes below-limit and at-limit stock, `Keep it chill` also includes low-soon stock, and `Stock 'em up!` includes all tracked stock rows as a broad restock view.
 
 ## Data Lifecycle
 

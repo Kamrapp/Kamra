@@ -5,6 +5,8 @@ import {
   MongoHouseholdDemoSeedRepository,
   seedDemoHouseholdPasswordEnvName
 } from "../../household/current/demo-household-seed.js";
+import { createDefaultHouseholdRepository } from "../app-route-context.js";
+import { assertUpdateHouseholdFeatureFlagRequest } from "../../household/v1/validation.js";
 import { writeServerLog } from "../../logging/kamra-logger.js";
 import { describeRequest, json, unauthorized, type AppRoute } from "../app-route-context.js";
 
@@ -13,7 +15,7 @@ export const adminDashboardHealthRoute: AppRoute = {
   handle: async (request, context) => {
     const user = context.authenticateRequestUser(request);
     if (!user || user.role !== "admin") {
-      return unauthorized("Sign in as an admin to view this resource.");
+      return unauthorized("apiErrors.adminRequired");
     }
 
     const config = context.config;
@@ -54,7 +56,7 @@ export const adminDashboardUpgradeCatalogValidatorsRoute: AppRoute = {
   handle: async (request, context) => {
     const user = context.authenticateRequestUser(request);
     if (!user || user.role !== "admin") {
-      return unauthorized("Sign in as an admin to view this resource.");
+      return unauthorized("apiErrors.adminRequired");
     }
 
     const config = context.config;
@@ -112,7 +114,7 @@ export const adminDashboardMarkLegacyProductsUnvalidatedRoute: AppRoute = {
   handle: async (request, context) => {
     const user = context.authenticateRequestUser(request);
     if (!user || user.role !== "admin") {
-      return unauthorized("Sign in as an admin to view this resource.");
+      return unauthorized("apiErrors.adminRequired");
     }
 
     const config = context.config;
@@ -173,7 +175,7 @@ export const adminDashboardReseedDemoHouseholdRoute: AppRoute = {
   handle: async (request, context) => {
     const user = context.authenticateRequestUser(request);
     if (!user || user.role !== "admin") {
-      return unauthorized("Sign in as an admin to view this resource.");
+      return unauthorized("apiErrors.adminRequired");
     }
 
     const config = context.config;
@@ -238,3 +240,90 @@ export const adminDashboardReseedDemoHouseholdRoute: AppRoute = {
     }
   }
 };
+
+export const adminDashboardFeatureFlagsRoute: AppRoute = {
+  match: (request) =>
+    (request.method === "GET" || request.method === "PATCH")
+    && request.path === "/api/admin/dashboard/feature-flags",
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request);
+    if (!user || user.role !== "admin") {
+      return unauthorized("apiErrors.adminRequired");
+    }
+
+    const config = context.config;
+    if (!config.mongodb.uri || !config.mongodb.databaseName) {
+      return json(503, { error: "household_not_configured" });
+    }
+
+    const client = await context.getMongoClient(
+      config.mongodb.uri,
+      config.mongodb.dnsServers
+    );
+    const database = client.db(config.mongodb.databaseName);
+    const repository = context.dependencies.createHouseholdRepository
+      ? context.dependencies.createHouseholdRepository(database)
+      : createDefaultHouseholdRepository(database);
+
+    if (request.method === "GET") {
+      return json(200, {
+        featureFlags: [
+          await repository.readFeatureFlag("allowAutoTickingAllShoppingListEntries", true),
+          await repository.readFeatureFlag("allowControlledAlphaAccess", false)
+        ]
+      });
+    }
+
+    const body = parseJsonObject(request.bodyText);
+    if (!body) {
+      return json(400, { error: "invalid_json_body" });
+    }
+
+    try {
+      assertUpdateHouseholdFeatureFlagRequest(body);
+    } catch (error: unknown) {
+      return json(400, {
+        error: "invalid_household_feature_flag_update_request",
+        message: error instanceof Error ? error.message : "Feature flag update request is invalid."
+      });
+    }
+
+    const updatedFlag = await repository.updateFeatureFlag({
+      enabled: body.enabled,
+      key: body.key,
+      updatedAt: new Date().toISOString(),
+      updatedByUserId: user.email
+    });
+
+    writeServerLog("info", "Admin dashboard feature flag updated", {
+      enabled: updatedFlag.enabled,
+      key: updatedFlag.key,
+      ...describeRequest(request),
+      updatedBy: user.email
+    });
+
+    return json(200, {
+      featureFlags: [
+        {
+          enabled: updatedFlag.enabled,
+          key: updatedFlag.key
+        }
+      ]
+    });
+  }
+};
+
+function parseJsonObject(bodyText: string | undefined): Record<string, unknown> | null {
+  if (!bodyText) {
+    return null;
+  }
+
+  try {
+    const parsed: unknown = JSON.parse(bodyText);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? parsed as Record<string, unknown>
+      : null;
+  } catch {
+    return null;
+  }
+}

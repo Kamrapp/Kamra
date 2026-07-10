@@ -120,6 +120,18 @@ interface ShellMenuItem {
             </select>
           </label>
         </section>
+
+        <a
+          class="about-rail-card"
+          routerLink="/about"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: true }"
+          [attr.aria-label]="loc.t('about.railTitle')"
+        >
+          <p class="rail-kicker">{{ loc.t("about.railKicker") }}</p>
+          <p class="about-rail-title">{{ loc.t("about.railTitle") }}</p>
+          <p class="about-rail-copy">{{ loc.t("about.railBody") }}</p>
+        </a>
       </aside>
 
       <app-toast-host />
@@ -202,7 +214,8 @@ interface ShellMenuItem {
 
       .brand-card,
       .auth-card,
-      .page-context-card {
+      .page-context-card,
+      .about-rail-card {
         backdrop-filter: blur(14px);
         background: var(--surface-shell-background);
         border: 1px solid var(--line-panel);
@@ -251,6 +264,45 @@ interface ShellMenuItem {
 
       .auth-card {
         padding: 0.45rem;
+      }
+
+      .about-rail-card {
+        background:
+          linear-gradient(180deg, color-mix(in srgb, var(--color-accent-sky) 15%, var(--surface-shell-background)) 0%, var(--surface-shell-background) 100%);
+        color: inherit;
+        display: grid;
+        gap: 0.35rem;
+        margin-top: auto;
+        padding: 0.85rem 0.95rem;
+        position: sticky;
+        text-decoration: none;
+        top: calc(100dvh - 9.5rem);
+        transition: border-color 160ms ease, transform 180ms ease;
+      }
+
+      .about-rail-card:hover,
+      .about-rail-card.active {
+        border-color: var(--line-strong);
+        transform: translateY(-0.15rem);
+      }
+
+      .about-rail-title,
+      .about-rail-copy {
+        margin: 0;
+      }
+
+      .about-rail-title {
+        color: var(--color-text);
+        font-family: var(--font-display);
+        font-size: 1rem;
+        font-weight: 800;
+        line-height: 1.08;
+      }
+
+      .about-rail-copy {
+        color: var(--color-text-muted);
+        font-size: 0.82rem;
+        line-height: 1.35;
       }
 
       .page-context-card {
@@ -630,23 +682,23 @@ export class AppComponent implements OnInit {
       angle: 195,
       exact: false,
       iconPath: "M12 2 4 5v6c0 5 3.4 9.7 8 11 4.6-1.3 8-6 8-11V5l-8-3Zm0 2.1 6 2.25v4.53c0 3.9-2.44 7.54-6 8.88-3.56-1.34-6-4.98-6-8.88V6.35L12 4.1Zm-1 3.4h2v4h-2v-4Zm0 5h2v2h-2v-2Z",
-      labelKey: "common.adminDashboard",
-      path: "/admin/dashboard",
+      labelKey: "common.devAdmin",
+      path: "/dev-admin",
       requiresAdmin: true
     },
     {
       angle: 165,
       exact: false,
       iconPath: "M5 5H19V8H5V5ZM5 10.5H19V13.5H5V10.5ZM5 16H19V19H5V16Z",
-      labelKey: "common.products" as const,
-      path: "/products"
+      labelKey: "common.productLookup",
+      path: "/product-lookup"
     },
     {
       angle: 135,
       exact: false,
       iconPath: "M4 5H20V9H4V5ZM6 11H18V14H6V11ZM8 16H16V19H8V16Z",
-      labelKey: "common.crawls" as const,
-      path: "/admin/ingestion",
+      labelKey: "common.siteAdmin",
+      path: "/site-admin/ingestion",
       requiresAdmin: true
     }
   ];
@@ -714,6 +766,7 @@ export class AppComponent implements OnInit {
     this.loginPassword = "";
     this.theme.applyUserTheme(undefined);
     this.loc.applyUserLanguage(undefined);
+    await this.router.navigateByUrl("/");
     this.toast.push(this.loc.t("app.signedOut"), "success");
   }
 
@@ -751,16 +804,20 @@ export class AppComponent implements OnInit {
   }
 
   private pageTitleForUrl(url: string): string {
-    if (url.startsWith("/admin/ingestion")) {
-      return this.loc.t("common.crawls");
+    if (url.startsWith("/site-admin/ingestion")) {
+      return this.loc.t("common.siteAdmin");
     }
 
-    if (url.startsWith("/products")) {
+    if (url.startsWith("/product-lookup")) {
       return this.loc.t("app.productOffers");
     }
 
-    if (url.startsWith("/admin/dashboard") || url.startsWith("/health")) {
-      return this.loc.t("common.adminDashboard");
+    if (url.startsWith("/about")) {
+      return this.loc.t("about.pageTitle");
+    }
+
+    if (url.startsWith("/dev-admin") || url.startsWith("/health")) {
+      return this.loc.t("common.devAdmin");
     }
 
     return this.loc.t("app.home");

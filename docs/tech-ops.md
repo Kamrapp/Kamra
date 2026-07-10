@@ -213,12 +213,16 @@ Current seed particles:
 - `demo_household` reads `SEED_DEMO_HOUSEHOLD_PASSWORD`
 - `demo_household` stores the demo login identifiers as `usera` and `userb` to match the current auth layer's lowercase login normalization
 
-The same reset is available to signed-in admins through the admin dashboard:
+The same reset is available to signed-in admins through the developer-admin dashboard:
 
-- frontend route: `/admin/dashboard`
+- frontend route: `/dev-admin`
 - API route: `POST /api/admin/dashboard/reseed-demo-household`
 
-The admin dashboard also keeps read-only runtime health checks separate from modifying maintenance actions. The health route is `GET /api/admin/dashboard/health`; catalog validator upgrade and legacy validation backfill remain explicit modifier actions in the maintenance block.
+The developer-admin dashboard also keeps read-only runtime health checks separate from modifying maintenance actions. The health route is `GET /api/admin/dashboard/health`; catalog validator upgrade and legacy validation backfill remain explicit modifier actions in the maintenance block.
+
+Stage 7 controlled alpha access is documented in [docs/access.md](./access.md). It is admin-created, public registration remains closed, and the database-backed `allowControlledAlphaAccess` flag blocks both alpha-user creation and alpha-marked login when disabled.
+
+Database structural changes are operated through the developer-admin database maintenance table at `/dev-admin`. Each registry entry has separate `Update validators` and `Migrate data` actions, plus `Mark as complete` for work verified outside Kamra. `Run all` executes incomplete actions sequentially and stops at the first failure. Successful action state is stored in `database_maintenance_runs`; entries with both actions complete are shown under `Finished entries`. Future changes that alter a MongoDB validator or existing document shape must add a stable entry to the registry and provide an idempotent migration before the change is considered complete.
 
 For the full household stock model, current Stage 5 behavior, seeded rows, and Stage 6 handoff, see [docs/household.md](./household.md).
 

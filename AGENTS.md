@@ -52,6 +52,20 @@ When working inside a subdirectory, check for a nested `AGENTS.md` in that area 
 - Favor low-cognitive-load code guardrails: guard clauses, feature flags, explicit boundaries, and simple failure paths when they make behavior easier to reason about.
 - Prefer Result-style handling for expected failures instead of exceptions, and use dependency-injected strategies for genuinely swappable behavior.
 
+## Database Change Registry Rule
+
+When a database structural change affects an existing MongoDB collection, add or update an entry in the database maintenance registry before implementation:
+
+- define the stable registry id, short title, and operator-facing details
+- provide a validator-update action when the collection validator changes
+- provide an idempotent existing-data migration when stored documents need new or changed fields
+- keep validator completion and migration completion tracked independently in `database_maintenance_runs`
+- never treat a validator update as a data migration; future work must leave the two admin actions explicit
+- use `Mark as complete` only when an operator has verified the work happened outside the app; it records acknowledgement and does not execute or validate the action
+- keep `Run all` sequential and stop on the first failure so later migrations do not run against an unknown database state
+
+The developer-admin database maintenance table is the operator surface for these entries. Registry ids are durable identifiers and must not be renamed casually after an action has been run.
+
 ## Context Efficiency
 
 Coding sessions should stay token-efficient:

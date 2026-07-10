@@ -1,7 +1,9 @@
 import type { Routes } from "@angular/router";
 
+import { AboutPageComponent } from "./about/about-page.component";
 import { ProductCatalogComponent } from "./product-lookup/product-catalog.component";
 import { AdminDashboardComponent } from "./dev-admin/admin-dashboard.component";
+import { HouseholdManagementComponent } from "./household/household-management.component";
 import { HomeComponent } from "./home.component";
 import { IngestionAdminComponent } from "./site-admin/ingestion-admin.component";
 
@@ -11,19 +13,27 @@ export const routes: Routes = [
     component: HomeComponent
   },
   {
-    path: "admin/dashboard",
+    path: "about",
+    component: AboutPageComponent
+  },
+  {
+    path: "dev-admin",
     component: AdminDashboardComponent
   },
   {
     path: "health",
-    redirectTo: "admin/dashboard"
+    redirectTo: "dev-admin"
   },
   {
-    path: "products",
+    path: "product-lookup",
     component: ProductCatalogComponent
   },
   {
-    path: "admin/ingestion",
+    path: "household/:householdId",
+    component: HouseholdManagementComponent
+  },
+  {
+    path: "site-admin/ingestion",
     component: IngestionAdminComponent
   },
   {

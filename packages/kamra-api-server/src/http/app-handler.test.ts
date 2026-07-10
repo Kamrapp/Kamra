@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import type { UserDocument, UserRepository } from "../auth/user-auth.js";
 import { createUserToken } from "../auth/user-token.js";
 import { MongoHouseholdRepository } from "../household/current/mongo-household-repository.js";
 import { createFakeDb } from "../test-support/fake-mongo.js";
@@ -22,7 +23,7 @@ describe("handleAppRequest auth guards", () => {
     expect(response.status).toBe(401);
     expect(JSON.parse(response.body)).toEqual({
       error: "unauthorized",
-      message: "Sign in as an admin to view this resource."
+      messageKey: "apiErrors.adminRequired"
     });
   });
 
@@ -86,6 +87,187 @@ describe("handleAppRequest auth guards", () => {
         role: "user"
       }
     });
+  });
+
+  it("lets admins read and update household feature flags from the dashboard route", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "admin@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "admin",
+      secret: "test-secret"
+    });
+    const db = createFakeDb();
+    const repositoryFactory = () => new MongoHouseholdRepository(db);
+    await repositoryFactory().setupCollections();
+
+    const initialResponse = await handleAppRequest(
+      {
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "GET",
+        path: "/api/admin/dashboard/feature-flags"
+      },
+      {
+        createHouseholdRepository: repositoryFactory,
+        getMongoClient: async () => ({
+          db: () => db
+        }) as never
+      }
+    );
+
+    expect(initialResponse.status).toBe(200);
+    expect(JSON.parse(initialResponse.body)).toEqual({
+      featureFlags: [
+        {
+          enabled: true,
+          key: "allowAutoTickingAllShoppingListEntries"
+        },
+        {
+          enabled: false,
+          key: "allowControlledAlphaAccess"
+        }
+      ]
+    });
+
+    const updateResponse = await handleAppRequest(
+      {
+        bodyText: JSON.stringify({
+          enabled: false,
+          key: "allowAutoTickingAllShoppingListEntries"
+        }),
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "PATCH",
+        path: "/api/admin/dashboard/feature-flags"
+      },
+      {
+        createHouseholdRepository: repositoryFactory,
+        getMongoClient: async () => ({
+          db: () => db
+        }) as never
+      }
+    );
+
+    expect(updateResponse.status).toBe(200);
+    expect(JSON.parse(updateResponse.body)).toEqual({
+      featureFlags: [
+        {
+          enabled: false,
+          key: "allowAutoTickingAllShoppingListEntries"
+        }
+      ]
+    });
+  });
+
+  it("creates alpha users with an empty household and blocks their login when disabled", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "admin@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "admin",
+      secret: "test-secret"
+    });
+    const db = createFakeDb();
+    const householdRepository = new MongoHouseholdRepository(db);
+    await householdRepository.setupCollections();
+    const alphaUsers = new Map<string, UserDocument>();
+    const userRepository: UserRepository = {
+      createAlphaUser: async (input) => {
+        const user: UserDocument = {
+          alphaAccess: input.alphaAccess,
+          authProvider: "bootstrap_credentials",
+          email: input.email,
+          passwordHash: input.passwordHash,
+          role: input.role,
+          status: input.status
+        };
+        alphaUsers.set(user.email, user);
+        return user;
+      },
+      findActiveUserByEmail: async (email) => {
+        const user = alphaUsers.get(email);
+        return user?.status === "active" ? user : null;
+      },
+      findUserByEmail: async (email) => alphaUsers.get(email) ?? null,
+      updateUserProfile: async () => null
+    };
+    const dependencies = {
+      createHouseholdRepository: () => householdRepository,
+      createUserRepository: () => userRepository,
+      getMongoClient: async () => ({
+        db: () => db
+      }) as never
+    };
+
+    await householdRepository.updateFeatureFlag({
+      enabled: true,
+      key: "allowControlledAlphaAccess",
+      updatedAt: "2026-07-10T10:00:00.000Z",
+      updatedByUserId: "admin@kamra.test"
+    });
+
+    const createResponse = await handleAppRequest(
+      {
+        bodyText: JSON.stringify({
+          email: "alpha@kamra.test",
+          password: "correct-password"
+        }),
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "POST",
+        path: "/api/admin/alpha-users"
+      },
+      dependencies
+    );
+
+    expect(createResponse.status).toBe(201);
+    expect(JSON.parse(createResponse.body)).toMatchObject({
+      household: {
+        memberCount: 1,
+        name: "alpha@kamra.test household"
+      },
+      user: {
+        email: "alpha@kamra.test",
+        role: "user"
+      }
+    });
+    expect(JSON.parse(createResponse.body)).not.toHaveProperty("password");
+    expect((await householdRepository.listHouseholdsForUser("alpha@kamra.test"))).toHaveLength(1);
+
+    await householdRepository.updateFeatureFlag({
+      enabled: false,
+      key: "allowControlledAlphaAccess",
+      updatedAt: "2026-07-10T10:01:00.000Z",
+      updatedByUserId: "admin@kamra.test"
+    });
+
+    const loginResponse = await handleAppRequest(
+      {
+        bodyText: JSON.stringify({
+          email: "alpha@kamra.test",
+          password: "correct-password"
+        }),
+        headers: {},
+        method: "POST",
+        path: "/api/login"
+      },
+      dependencies
+    );
+
+    expect(loginResponse.status).toBe(401);
+    expect(JSON.parse(loginResponse.body)).toEqual({ error: "invalid_credentials" });
   });
 
   it("lists household stock for a signed-in household member", async () => {
@@ -315,6 +497,721 @@ describe("handleAppRequest auth guards", () => {
     });
   });
 
+  it("previews a generated shopping list for a signed-in household member", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "usera",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "user",
+      secret: "test-secret"
+    });
+    const db = createFakeDb();
+    const repository = new MongoHouseholdRepository(db);
+    await repository.setupCollections();
+    await repository.createHousehold({
+      createdAt: "2026-07-09T10:00:00.000Z",
+      createdByUserId: "usera",
+      id: "household1",
+      name: "Demo household"
+    });
+    await repository.createHouseholdStockItem({
+      createdAt: "2026-07-09T10:05:00.000Z",
+      createdByUserId: "usera",
+      currentAmount: 0,
+      displayName: "Rice",
+      householdId: "household1",
+      minLimit: 1,
+      stockedAt: "2026-07-07T10:05:00.000Z",
+      stockGroupKey: "rice",
+      unit: "kg",
+      userId: "usera"
+    });
+
+    const response = await handleAppRequest(
+      {
+        bodyText: JSON.stringify({
+          householdId: "household1",
+          scale: "business_as_usual"
+        }),
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "POST",
+        path: "/api/household/shopping-list/preview"
+      },
+      {
+        createHouseholdRepository: () => new MongoHouseholdRepository(db),
+        getMongoClient: async () => ({
+          db: () => db
+        }) as never
+      }
+    );
+
+    expect(response.status).toBe(200);
+    expect(JSON.parse(response.body)).toMatchObject({
+      householdId: "household1",
+      items: [
+        {
+          displayName: "Rice",
+          reasonCode: "below_minimum"
+        }
+      ],
+      scale: "business_as_usual"
+    });
+  });
+
+  it("creates, reads, and updates the latest shopping list", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "usera",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "user",
+      secret: "test-secret"
+    });
+    const db = createFakeDb();
+    const repository = new MongoHouseholdRepository(db);
+    await repository.setupCollections();
+    await repository.createHousehold({
+      createdAt: "2026-07-09T10:00:00.000Z",
+      createdByUserId: "usera",
+      id: "household1",
+      name: "Demo household"
+    });
+    await repository.upsertSeedDataset({
+      householdLocalProducts: [
+        {
+          createdAt: "2026-07-09T10:00:00.000Z",
+          createdByUserId: "usera",
+          displayName: "Milk",
+          householdId: "household1",
+          id: "product_milk",
+          stockGroupKey: "milk",
+          status: "active",
+          updatedAt: "2026-07-09T10:00:00.000Z",
+          updatedByUserId: "usera"
+        }
+      ],
+      householdMemberships: [],
+      householdPurchasePriceObservations: [],
+      households: [],
+      householdShops: [
+        {
+          countryCode: "HU",
+          createdAt: "2026-07-09T10:00:00.000Z",
+          id: "shop_hu_lidl",
+          label: "Lidl Hungary",
+          sourceNames: ["lidl-hu-brochure"],
+          status: "active",
+          storeBrandKeys: ["lidl-hu"],
+          updatedAt: "2026-07-09T10:00:00.000Z"
+        }
+      ],
+      householdShoppingLists: [],
+      householdStockItems: [
+        {
+          createdAt: "2026-07-09T10:00:00.000Z",
+          createdByUserId: "usera",
+          currentAmount: 0,
+          displayName: "Milk",
+          householdId: "household1",
+          householdProductId: "product_milk",
+          id: "stock_milk",
+          initialAmount: 1,
+          minLimit: 1,
+          note: null,
+          stockedAt: "2026-07-09T10:00:00.000Z",
+          stockGroupKey: "milk",
+          status: "active",
+          unit: "l",
+          updatedAt: "2026-07-09T10:00:00.000Z",
+          updatedByUserId: "usera"
+        }
+      ]
+    });
+
+    const createResponse = await handleAppRequest(
+      {
+        bodyText: JSON.stringify({
+          householdId: "household1",
+          scale: "business_as_usual",
+          shopId: "shop_hu_lidl"
+        }),
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "POST",
+        path: "/api/household/shopping-lists"
+      },
+      {
+        createHouseholdRepository: () => new MongoHouseholdRepository(db),
+        getMongoClient: async () => ({
+          db: () => db
+        }) as never
+      }
+    );
+
+    expect(createResponse.status).toBe(201);
+    const createdList = JSON.parse(createResponse.body).shoppingList;
+    expect(createdList).toMatchObject({
+      householdId: "household1",
+      shopId: "shop_hu_lidl"
+    });
+    expect(createdList.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          purchasedAmount: 0,
+          ticked: false
+        })
+      ])
+    );
+
+    const updateResponse = await handleAppRequest(
+      {
+        bodyText: JSON.stringify({
+          householdId: "household1",
+          id: createdList.id,
+          items: createdList.items.map((item: Record<string, unknown>) => ({
+            ...item,
+            plannedAmount: 2.5,
+            purchasedAmount: 2.5,
+            ticked: true
+          }))
+        }),
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "PATCH",
+        path: "/api/household/shopping-lists"
+      },
+      {
+        createHouseholdRepository: () => new MongoHouseholdRepository(db),
+        getMongoClient: async () => ({
+          db: () => db
+        }) as never
+      }
+    );
+
+    expect(updateResponse.status).toBe(200);
+    expect(JSON.parse(updateResponse.body)).toMatchObject({
+      shoppingList: {
+        items: [
+          {
+            plannedAmount: 2.5,
+            purchasedAmount: 2.5,
+            ticked: true
+          }
+        ]
+      }
+    });
+
+    const latestResponse = await handleAppRequest(
+      {
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "GET",
+        path: "/api/household/shopping-lists/latest",
+        query: {
+          householdId: "household1"
+        }
+      },
+      {
+        createHouseholdRepository: () => new MongoHouseholdRepository(db),
+        getMongoClient: async () => ({
+          db: () => db
+        }) as never
+      }
+    );
+
+    expect(latestResponse.status).toBe(200);
+    expect(JSON.parse(latestResponse.body)).toMatchObject({
+      shoppingList: {
+        id: createdList.id,
+        shopId: "shop_hu_lidl"
+      }
+    });
+
+    const archiveResponse = await handleAppRequest(
+      {
+        bodyText: JSON.stringify({
+          householdId: "household1",
+          id: createdList.id,
+          status: "archived"
+        }),
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "PATCH",
+        path: "/api/household/shopping-lists"
+      },
+      {
+        createHouseholdRepository: () => new MongoHouseholdRepository(db),
+        getMongoClient: async () => ({
+          db: () => db
+        }) as never
+      }
+    );
+
+    expect(archiveResponse.status).toBe(200);
+    expect(JSON.parse(archiveResponse.body)).toMatchObject({
+      shoppingList: {
+        id: createdList.id,
+        status: "archived"
+      }
+    });
+
+    const latestAfterArchiveResponse = await handleAppRequest(
+      {
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "GET",
+        path: "/api/household/shopping-lists/latest",
+        query: {
+          householdId: "household1"
+        }
+      },
+      {
+        createHouseholdRepository: () => new MongoHouseholdRepository(db),
+        getMongoClient: async () => ({
+          db: () => db
+        }) as never
+      }
+    );
+
+    expect(latestAfterArchiveResponse.status).toBe(404);
+  });
+
+  it("creates an empty shopping list for start fresh", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "usera",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "user",
+      secret: "test-secret"
+    });
+    const db = createFakeDb();
+    const repository = new MongoHouseholdRepository(db);
+    await repository.setupCollections();
+    await repository.createHousehold({
+      createdAt: "2026-07-09T10:00:00.000Z",
+      createdByUserId: "usera",
+      id: "household1",
+      name: "Demo household"
+    });
+    await repository.upsertSeedDataset({
+      householdLocalProducts: [],
+      householdMemberships: [],
+      householdPurchasePriceObservations: [],
+      households: [],
+      householdShops: [],
+      householdShoppingLists: [],
+      householdStockItems: [
+        {
+          createdAt: "2026-07-09T10:00:00.000Z",
+          createdByUserId: "usera",
+          currentAmount: 0,
+          displayName: "Milk",
+          householdId: "household1",
+          householdProductId: "product_milk",
+          id: "stock_milk",
+          initialAmount: 1,
+          minLimit: 1,
+          note: null,
+          stockedAt: "2026-07-09T10:00:00.000Z",
+          stockGroupKey: "milk",
+          status: "active",
+          unit: "l",
+          updatedAt: "2026-07-09T10:00:00.000Z",
+          updatedByUserId: "usera"
+        }
+      ]
+    });
+
+    const createResponse = await handleAppRequest(
+      {
+        bodyText: JSON.stringify({
+          householdId: "household1",
+          scale: "start_fresh"
+        }),
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "POST",
+        path: "/api/household/shopping-lists"
+      },
+      {
+        createHouseholdRepository: () => new MongoHouseholdRepository(db),
+        getMongoClient: async () => ({
+          db: () => db
+        }) as never
+      }
+    );
+
+    expect(createResponse.status).toBe(201);
+    expect(JSON.parse(createResponse.body)).toMatchObject({
+      shoppingList: {
+        items: [],
+        scale: "start_fresh"
+      }
+    });
+  });
+
+  it("requires confirmation before applying partially unticked shopping-list stocks and then updates stock idempotently", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "usera",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "user",
+      secret: "test-secret"
+    });
+    const db = createFakeDb();
+    const repository = new MongoHouseholdRepository(db);
+    await repository.setupCollections();
+    await repository.createHousehold({
+      createdAt: "2026-07-09T10:00:00.000Z",
+      createdByUserId: "usera",
+      id: "household1",
+      name: "Demo household"
+    });
+    await repository.upsertSeedDataset({
+      householdLocalProducts: [
+        {
+          createdAt: "2026-07-09T10:00:00.000Z",
+          createdByUserId: "usera",
+          displayName: "Milk",
+          householdId: "household1",
+          id: "product_milk",
+          stockGroupKey: "milk",
+          status: "active",
+          updatedAt: "2026-07-09T10:00:00.000Z",
+          updatedByUserId: "usera"
+        }
+      ],
+      householdMemberships: [],
+      householdPurchasePriceObservations: [],
+      households: [],
+      householdShops: [
+        {
+          countryCode: "HU",
+          createdAt: "2026-07-09T10:00:00.000Z",
+          id: "shop_hu_lidl",
+          label: "Lidl Hungary",
+          sourceNames: ["lidl-hu-brochure"],
+          status: "active",
+          storeBrandKeys: ["lidl-hu"],
+          updatedAt: "2026-07-09T10:00:00.000Z"
+        }
+      ],
+      householdShoppingLists: [
+        {
+          createdAt: "2026-07-09T10:00:00.000Z",
+          createdByUserId: "usera",
+          householdId: "household1",
+          id: "shopping_list_1",
+          items: [
+            {
+              catalogProductId: "catalog_milk",
+              displayName: "Milk",
+              householdProductId: "product_milk",
+              householdStockItemId: "stock_milk",
+              id: "line_1",
+              observedPrice: {
+                amount: 599,
+                currencyCode: "HUF",
+                observedAt: "2026-07-09T10:10:00.000Z"
+              },
+              plannedAmount: 2,
+              productSourceId: "product_source_milk",
+              purchasedAmount: 2,
+              sourceKind: "generated",
+              sourceName: "lidl-hu-brochure",
+              status: "not_applied",
+              suggestedBuyAmount: 2,
+              targetAmount: 2,
+              ticked: true,
+              uncertaintyFlags: [],
+              unit: "l"
+            },
+            {
+              displayName: "Paprika cream",
+              id: "line_2",
+              observedPrice: {
+                amount: 899,
+                currencyCode: "HUF",
+                observedAt: "2026-07-09T10:15:00.000Z"
+              },
+              plannedAmount: 1,
+              purchasedAmount: 1,
+              sourceKind: "manual",
+              status: "not_applied",
+              stockGroupKey: "paprika_cream",
+              suggestedBuyAmount: 1,
+              targetAmount: 1,
+              ticked: false,
+              uncertaintyFlags: ["missing_catalog_product", "missing_product_source"],
+              unit: "db"
+            }
+          ],
+          scale: "keep_it_chill",
+          schemaVersion: "shopping_list_v1",
+          shopId: "shop_hu_lidl",
+          status: "active",
+          updatedAt: "2026-07-09T10:00:00.000Z",
+          updatedByUserId: "usera"
+        }
+      ],
+      householdStockItems: [
+        {
+          createdAt: "2026-07-09T10:00:00.000Z",
+          createdByUserId: "usera",
+          currentAmount: 1,
+          displayName: "Milk",
+          householdId: "household1",
+          householdProductId: "product_milk",
+          id: "stock_milk",
+          initialAmount: 1,
+          minLimit: 1,
+          note: null,
+          stockedAt: "2026-07-09T10:00:00.000Z",
+          stockGroupKey: "milk",
+          status: "active",
+          unit: "l",
+          updatedAt: "2026-07-09T10:00:00.000Z",
+          updatedByUserId: "usera"
+        }
+      ]
+    });
+
+    const confirmationResponse = await handleAppRequest(
+      {
+        bodyText: JSON.stringify({
+          householdId: "household1",
+          id: "shopping_list_1",
+          stockAppliedAt: "2026-07-09"
+        }),
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "POST",
+        path: "/api/household/shopping-lists/update-stocks"
+      },
+      {
+        createCatalogRepository: () => ({
+          listCatalogProductsForReview: async () => ({
+            products: [],
+            totalCount: 0
+          }),
+          upsertPriceObservations: async () => undefined
+        }),
+        createHouseholdRepository: () => new MongoHouseholdRepository(db),
+        getMongoClient: async () => ({
+          db: () => db
+        }) as never
+      }
+    );
+
+    expect(confirmationResponse.status).toBe(409);
+    expect(JSON.parse(confirmationResponse.body)).toMatchObject({
+      allowedConfirmationModes: ["tick_all_and_update", "update_ticked_only"],
+      confirmationRequired: true
+    });
+
+    const appliedCatalogObservations: unknown[][] = [];
+    const applyResponse = await handleAppRequest(
+      {
+        bodyText: JSON.stringify({
+          confirmationMode: "tick_all_and_update",
+          householdId: "household1",
+          id: "shopping_list_1",
+          stockAppliedAt: "2026-07-09"
+        }),
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "POST",
+        path: "/api/household/shopping-lists/update-stocks"
+      },
+      {
+        createCatalogRepository: () => ({
+          listCatalogProductsForReview: async () => ({
+            products: [],
+            totalCount: 0
+          }),
+          upsertPriceObservations: async (records) => {
+            appliedCatalogObservations.push([...records]);
+          }
+        }),
+        createHouseholdRepository: () => new MongoHouseholdRepository(db),
+        getMongoClient: async () => ({
+          db: () => db
+        }) as never
+      }
+    );
+
+    expect(applyResponse.status).toBe(200);
+    expect(appliedCatalogObservations).toHaveLength(1);
+    expect(JSON.parse(applyResponse.body)).toMatchObject({
+      confirmationRequired: false,
+      householdStockPage: {
+        stockItems: [
+          {
+            currentAmount: 3,
+            displayName: "Milk"
+          },
+          {
+            currentAmount: 1,
+            displayName: "Paprika cream"
+          }
+        ]
+      },
+      shoppingList: {
+        items: [
+          {
+            id: "line_1",
+            status: "applied",
+            ticked: true
+          },
+          {
+            id: "line_2",
+            status: "applied",
+            ticked: true
+          }
+        ]
+      }
+    });
+
+    const secondApplyResponse = await handleAppRequest(
+      {
+        bodyText: JSON.stringify({
+          confirmationMode: "tick_all_and_update",
+          householdId: "household1",
+          id: "shopping_list_1",
+          stockAppliedAt: "2026-07-09"
+        }),
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "POST",
+        path: "/api/household/shopping-lists/update-stocks"
+      },
+      {
+        createCatalogRepository: () => ({
+          listCatalogProductsForReview: async () => ({
+            products: [],
+            totalCount: 0
+          }),
+          upsertPriceObservations: async () => undefined
+        }),
+        createHouseholdRepository: () => new MongoHouseholdRepository(db),
+        getMongoClient: async () => ({
+          db: () => db
+        }) as never
+      }
+    );
+
+    expect(secondApplyResponse.status).toBe(200);
+    expect(JSON.parse(secondApplyResponse.body)).toMatchObject({
+      householdStockPage: {
+        stockItems: [
+          {
+            currentAmount: 3,
+            displayName: "Milk"
+          },
+          {
+            currentAmount: 1,
+            displayName: "Paprika cream"
+          }
+        ]
+      }
+    });
+  });
+
+  it("lists seeded shops for signed-in users", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "usera",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "user",
+      secret: "test-secret"
+    });
+    const db = createFakeDb();
+    const repository = new MongoHouseholdRepository(db);
+    await repository.setupCollections();
+    await repository.createHousehold({
+      createdAt: "2026-07-09T10:00:00.000Z",
+      createdByUserId: "usera",
+      id: "household1",
+      name: "Demo household"
+    });
+    await repository.upsertSeedDataset({
+      householdLocalProducts: [],
+      householdMemberships: [],
+      householdPurchasePriceObservations: [],
+      households: [],
+      householdShops: [
+        {
+          countryCode: "HU",
+          createdAt: "2026-07-09T10:00:00.000Z",
+          id: "shop_hu_aldi",
+          label: "ALDI Hungary",
+          sourceNames: ["aldi-hu-offers"],
+          status: "active",
+          storeBrandKeys: ["aldi-hu"],
+          updatedAt: "2026-07-09T10:00:00.000Z"
+        }
+      ],
+      householdShoppingLists: [],
+      householdStockItems: []
+    });
+
+    const response = await handleAppRequest(
+      {
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "GET",
+        path: "/api/shops"
+      },
+      {
+        createHouseholdRepository: () => new MongoHouseholdRepository(db),
+        getMongoClient: async () => ({
+          db: () => db
+        }) as never
+      }
+    );
+
+    expect(response.status).toBe(200);
+    expect(JSON.parse(response.body)).toEqual({
+      shops: [
+        expect.objectContaining({
+          id: "shop_hu_aldi",
+          label: "ALDI Hungary"
+        })
+      ]
+    });
+  });
+
   it("updates profile preferences for the current user", async () => {
     vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
     vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
@@ -339,7 +1236,16 @@ describe("handleAppRequest auth guards", () => {
       },
       {
         createUserRepository: () => ({
+          createAlphaUser: async (input) => ({
+            alphaAccess: input.alphaAccess,
+            authProvider: "bootstrap_credentials" as const,
+            email: input.email,
+            passwordHash: input.passwordHash,
+            role: input.role,
+            status: input.status
+          }),
           findActiveUserByEmail: async () => null,
+          findUserByEmail: async () => null,
           updateUserProfile: async (email, profile) => ({
             authProvider: "bootstrap_credentials" as const,
             email,
@@ -397,7 +1303,7 @@ describe("handleAppRequest auth guards", () => {
     expect(response.status).toBe(401);
     expect(JSON.parse(response.body)).toEqual({
       error: "unauthorized",
-      message: "Sign in as an admin to view this resource."
+      messageKey: "apiErrors.adminRequired"
     });
   });
 
@@ -447,6 +1353,166 @@ describe("handleAppRequest auth guards", () => {
       skippedCount: 0,
       status: "updated",
       updatedCount: 42
+    });
+  });
+
+  it("lists and tracks database validator and migration actions", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "admin@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "admin",
+      secret: "test-secret"
+    });
+    const db = createFakeDb();
+    const repository = new MongoHouseholdRepository(db);
+    await repository.setupCollections();
+    await repository.createHousehold({
+      createdAt: "2026-07-10T10:00:00.000Z",
+      createdByUserId: "user@kamra.test",
+      id: "household-maintenance-test",
+      name: "Maintenance test household"
+    });
+    const dependencies = {
+      createHouseholdRepository: () => repository,
+      getMongoClient: async () => ({
+        db: () => db
+      }) as never
+    };
+    const requestHeaders = {
+      authorization: `Bearer ${token}`
+    };
+
+    const initialResponse = await handleAppRequest({
+      headers: requestHeaders,
+      method: "GET",
+      path: "/api/admin/database-maintenance"
+    }, dependencies);
+    expect(initialResponse.status).toBe(200);
+    expect(JSON.parse(initialResponse.body)).toMatchObject({
+      entries: [
+        {
+          id: "catalog-product-validation",
+          migrationCompleted: false,
+          validatorUpdated: false
+        },
+        {
+          id: "household-fields",
+          migrationCompleted: false,
+          validatorUpdated: false
+        }
+      ]
+    });
+
+    const manualCompletionResponse = await handleAppRequest({
+      bodyText: JSON.stringify({ entryId: "catalog-product-validation" }),
+      headers: requestHeaders,
+      method: "POST",
+      path: "/api/admin/database-maintenance/complete"
+    }, dependencies);
+    expect(manualCompletionResponse.status).toBe(200);
+    expect(JSON.parse(manualCompletionResponse.body)).toMatchObject({
+      manuallyMarkedComplete: true,
+      state: {
+        completionMarkedByUserId: "admin@kamra.test",
+        migrationCompletedByUserId: "admin@kamra.test",
+        validatorUpdatedByUserId: "admin@kamra.test"
+      }
+    });
+
+    const validatorResponse = await handleAppRequest({
+      bodyText: JSON.stringify({ entryId: "household-fields" }),
+      headers: requestHeaders,
+      method: "POST",
+      path: "/api/admin/database-maintenance/validators"
+    }, dependencies);
+    expect(validatorResponse.status).toBe(200);
+
+    const migrationResponse = await handleAppRequest({
+      bodyText: JSON.stringify({ entryId: "household-fields" }),
+      headers: requestHeaders,
+      method: "POST",
+      path: "/api/admin/database-maintenance/migrations"
+    }, dependencies);
+    expect(migrationResponse.status).toBe(200);
+    expect(JSON.parse(migrationResponse.body)).toMatchObject({
+      result: {
+        updatedCount: 1
+      }
+    });
+
+    const finishedResponse = await handleAppRequest({
+      headers: requestHeaders,
+      method: "GET",
+      path: "/api/admin/database-maintenance"
+    }, dependencies);
+    const finishedPayload = JSON.parse(finishedResponse.body) as {
+      entries: Array<Record<string, unknown>>;
+    };
+    expect(finishedPayload.entries.find((entry) => entry["id"] === "household-fields")).toMatchObject({
+      migrationCompleted: true,
+      validatorUpdated: true
+    });
+  });
+
+  it("runs all incomplete database maintenance actions sequentially", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "admin@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "admin",
+      secret: "test-secret"
+    });
+    const db = createFakeDb();
+    const householdRepository = new MongoHouseholdRepository(db);
+    await householdRepository.setupCollections();
+    const actionOrder: string[] = [];
+    const dependencies = {
+      createCatalogRepository: () => ({
+        listCatalogProductsForReview: async () => ({ products: [], totalCount: 0 }),
+        markLegacyProductsUnvalidated: async () => {
+          actionOrder.push("catalog:migration");
+          return { skippedCount: 0, status: "updated" as const, updatedCount: 0 };
+        },
+        upgradeCatalogValidators: async () => {
+          actionOrder.push("catalog:validator");
+          return { createdCollections: [], databaseName: "kamra_test", upgradedCollections: [] };
+        }
+      }),
+      createHouseholdRepository: () => householdRepository,
+      getMongoClient: async () => ({
+        db: () => db
+      }) as never
+    };
+
+    const response = await handleAppRequest({
+      headers: {
+        authorization: `Bearer ${token}`
+      },
+      method: "POST",
+      path: "/api/admin/database-maintenance/run-all"
+    }, dependencies);
+
+    expect(response.status).toBe(200);
+    expect(actionOrder).toEqual([
+      "catalog:validator",
+      "catalog:migration"
+    ]);
+    expect(JSON.parse(response.body)).toMatchObject({
+      completedActions: [
+        "catalog-product-validation:validator",
+        "catalog-product-validation:migration",
+        "household-fields:validator",
+        "household-fields:migration"
+      ]
     });
   });
 
@@ -654,7 +1720,7 @@ describe("handleAppRequest auth guards", () => {
     expect(response.status).toBe(401);
     expect(JSON.parse(response.body)).toEqual({
       error: "unauthorized",
-      message: "Sign in as an admin to view this resource."
+      messageKey: "apiErrors.adminRequired"
     });
   });
 
@@ -670,7 +1736,7 @@ describe("handleAppRequest auth guards", () => {
     expect(response.status).toBe(401);
     expect(JSON.parse(response.body)).toEqual({
       error: "unauthorized",
-      message: "Sign in as an admin to view this resource."
+      messageKey: "apiErrors.adminRequired"
     });
   });
 
@@ -696,7 +1762,7 @@ describe("handleAppRequest auth guards", () => {
     expect(response.status).toBe(401);
     expect(JSON.parse(response.body)).toEqual({
       error: "unauthorized",
-      message: "Sign in as an admin to view this resource."
+      messageKey: "apiErrors.adminRequired"
     });
   });
 
@@ -787,8 +1853,10 @@ describe("handleAppRequest auth guards", () => {
     expect(userEmails).toEqual(["outside_user", "usera", "userb"]);
   });
 
-  it("rejects admin product list requests for a valid non-admin token", async () => {
+  it("returns catalog products for a valid signed-in non-admin token", async () => {
     vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
 
     const token = createUserToken({
       email: "user@kamra.test",
@@ -798,18 +1866,36 @@ describe("handleAppRequest auth guards", () => {
       secret: "test-secret"
     });
 
-    const response = await handleAppRequest({
-      headers: {
-        authorization: `Bearer ${token}`
+    const response = await handleAppRequest(
+      {
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "GET",
+        path: "/api/catalog/products"
       },
-      method: "GET",
-      path: "/api/catalog/products"
-    });
+      {
+        createCatalogRepository: () => ({
+          listCatalogProductsForReview: async () => ({
+            products: [],
+            totalCount: 0
+          })
+        }),
+        getMongoClient: async () => ({
+          db: () => ({})
+        } as never)
+      }
+    );
 
-    expect(response.status).toBe(401);
+    expect(response.status).toBe(200);
     expect(JSON.parse(response.body)).toEqual({
-      error: "unauthorized",
-      message: "Sign in as an admin to view this resource."
+      pagination: {
+        page: 1,
+        pageSize: 100,
+        totalCount: 0,
+        totalPages: 0
+      },
+      products: []
     });
   });
 
@@ -901,40 +1987,40 @@ describe("handleAppRequest auth guards", () => {
         totalPages: 4
       },
       products: [
-          {
-            householdStockCount: 1,
-            id: "product_uht_milk_2_8_1l",
-            measurements: [],
-            name: "UHT tej 2,8%",
-            offers: [
-              {
-                identifiers: [
-                  {
-                    kind: "retailer_product_id",
-                    value: "lidl-pilos-uht-tej-28-1l"
-                  }
-                ],
-                latestObservedAt: "2026-06-23T12:00:00.000Z",
-                locationKey: "availability:lidl-hu",
-                locationLabel: "Lidl Hungary",
-                prices: {
-                  base: {
-                    amount: 469,
-                    currencyCode: "HUF",
-                    observedAt: "2026-06-23T12:00:00.000Z",
-                    unitPriceLabel: "469 Ft/l"
-                  }
-                },
-                productSourceId: "product_source_lidl_hu_pilos_uht_28_1l",
-                sourceName: "lidl-hu",
-                sourceProductKey: "lidl-pilos-uht-tej-28-1l",
-                sourceProductName: "Pilos UHT tej 2,8% 1 l",
-                storeBrandKey: "lidl"
-              }
-            ],
-            sourceNames: ["lidl-hu"],
-            tagKeys: ["category.kitchen.dairy"]
-          }
+        {
+          householdStockCount: 1,
+          id: "product_uht_milk_2_8_1l",
+          measurements: [],
+          name: "UHT tej 2,8%",
+          offers: [
+            {
+              identifiers: [
+                {
+                  kind: "retailer_product_id",
+                  value: "lidl-pilos-uht-tej-28-1l"
+                }
+              ],
+              latestObservedAt: "2026-06-23T12:00:00.000Z",
+              locationKey: "availability:lidl-hu",
+              locationLabel: "Lidl Hungary",
+              prices: {
+                base: {
+                  amount: 469,
+                  currencyCode: "HUF",
+                  observedAt: "2026-06-23T12:00:00.000Z",
+                  unitPriceLabel: "469 Ft/l"
+                }
+              },
+              productSourceId: "product_source_lidl_hu_pilos_uht_28_1l",
+              sourceName: "lidl-hu",
+              sourceProductKey: "lidl-pilos-uht-tej-28-1l",
+              sourceProductName: "Pilos UHT tej 2,8% 1 l",
+              storeBrandKey: "lidl"
+            }
+          ],
+          sourceNames: ["lidl-hu"],
+          tagKeys: ["category.kitchen.dairy"]
+        }
       ]
     });
   });
@@ -961,7 +2047,7 @@ describe("handleAppRequest auth guards", () => {
     expect(response.status).toBe(401);
     expect(JSON.parse(response.body)).toEqual({
       error: "unauthorized",
-      message: "Sign in as an admin to view ingestion snapshots."
+      messageKey: "apiErrors.adminRequired"
     });
   });
 
@@ -1323,16 +2409,16 @@ describe("handleAppRequest auth guards", () => {
     });
   });
 
-  it("returns catalog offer source names independently from product pages", async () => {
+  it("returns catalog offer source names for a signed-in non-admin user", async () => {
     vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
     vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
     vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
 
     const token = createUserToken({
-      email: "admin@kamra.test",
+      email: "user@kamra.test",
       maxAgeSeconds: 60,
       now: new Date(),
-      role: "admin",
+      role: "user",
       secret: "test-secret"
     });
 

@@ -1,6 +1,6 @@
 # Stage 6 Shopping List And Low-Stock Notices Plan
 
-Status: Draft
+Status: Implemented, browser verification pending
 
 ## Objective
 
@@ -262,6 +262,152 @@ Included:
 - Catalog matching remains optional enrichment only. A household-local item with no catalog link should still be generated, displayed, and persisted.
 - Price observations from shopping-list use must be future-proofed for later catalog merging. Do not hide them inside UI-only state or household notes.
 
+## Continuation Refinement Plan
+
+The 2026-07-10 refinement request expands Stage 6 with UX polish, product access changes, an About page, and a larger household/shopping layout refactor. Implement these as separate commits in this order so review can stay clean and rollback stays cheap.
+
+### Refinement Commit 1: About Page And Shell Button
+
+- Goal: Add the About page first, plus the bottom-right navigation button in the app shell/right panel.
+- Files likely affected:
+  - `src/app/app.routes.ts`
+  - `src/app/about/` or another appropriate app-level page location
+  - app shell/navigation component files
+  - `src/app/i18n/en.json`
+  - `src/app/i18n/hu.json`
+  - `ftpcontent/index.html` if the public root-domain copy or app URL appears there
+- Requirements:
+  - Add a customer-facing, visually polished, single-view About page.
+  - Use a strong Kamra visual/image treatment similar in spirit to the existing logo card, with supporting content instead of a marketing-only landing page.
+  - Explain the main promise for real users: assisted household management, consumption tracking, generated shopping plans, and eventually optimized pricing/shop choice.
+  - Add a short humble history note: the idea was born in Hungary from two friends wanting price checking and household planning to be less tedious around weekends, newsletters, and shopping planning.
+  - Keep the history note human and modest: this is a random hobby project, not a grand startup claim.
+  - Add a separate concise technical section for curious collaborators or recruiters.
+  - Mention the stack and infra at a high level: Angular frontend, Node/shared server logic, serverless/Vercel function entrypoints, Render or equivalent hosted runtime pieces where applicable, MongoDB/NoSQL persistence, GitHub workflows, and cron-style ingestion workflows.
+  - Explain that crawler/product-management and household/shopping modules are deliberately detached for rapid learning and development, while careful planning keeps them converging into one coherent service.
+  - Link `https://github.com/Kamrapp/Kamra` without directly asking for random public contributions.
+  - Update primary app URL references to `https://kamrapp.hu`; mention `https://api-kamrapp.vercel.com` and `https://project-qn32z.vercel.app/` only as minor fallback/direct-access details.
+  - Add a bottom-right shell button such as "About the Kamra project"; keep it visually related to the existing floating user card, but anchored low on the right side.
+- Validation:
+  - `npm run typecheck`
+  - `npm run lint`
+  - `npm run build`
+- Commit message idea:
+  - `Add Kamra about page`
+
+### Refinement Commit 2: Session Navigation And Read-Only Product Access
+
+- Goal: Fix cross-page access behavior before touching the household layout.
+- Files likely affected:
+  - `src/app/auth.service.ts`
+  - app shell/navigation component files
+  - `src/app/product-lookup/product-catalog.service.ts`
+  - `src/app/product-lookup/product-catalog.component.ts`
+  - `packages/kamra-api-server/src/http/routes/catalog-routes.ts`
+  - `packages/kamra-api-server/src/http/app-handler.test.ts`
+  - `src/app/i18n/en.json`
+  - `src/app/i18n/hu.json`
+- Requirements:
+  - After logout, navigate back to `/` so users are not stranded on admin, ingestion, or other disabled pages.
+  - Allow every signed-in user to view products and offer/source data needed for read-only product browsing.
+  - Keep product editing, validation, invalidation, deletion, and review/admin operations admin-only.
+  - If a basic user tries an edit-only action, show a clear toast that editing requires admin access.
+  - Avoid weakening admin-only ingestion/review routes while opening product browsing.
+- Validation:
+  - focused catalog route tests for signed-in basic browsing and admin-only mutation
+  - `npm run typecheck`
+  - `npm run lint`
+  - `npm run build`
+- Commit message idea:
+  - `Allow read-only product browsing`
+
+### Refinement Commit 3: Small Household And Shopping Fixes
+
+- Goal: Fix isolated household/shopping UI defects before the larger layout refactor.
+- Files likely affected:
+  - `src/app/home.component.ts`
+  - `src/app/household/household-shopping-list.component.ts`
+  - `src/app/household/household-stock.service.ts`
+  - `src/app/i18n/en.json`
+  - `src/app/i18n/hu.json`
+- Requirements:
+  - Fix the logged-out fake pulse content collision; the logged-out home view should look like the signed-in household pulse, using disabled interactions and minimal hardcoded data.
+  - Make the "Manage household" navigation a proper button-style control that grows to fit text, with no underlined link treatment.
+  - Keep "Current scale: ..." synchronized with the selected top-level shopping scale.
+  - Ensure `Bought` starts at zero for generated shopping-list lines.
+  - When a line is ticked and bought amount is zero, automatically set bought amount to the current planned amount.
+  - When `allowAutoTickingAllShoppingListEntries` is disabled, make `Update only ticked items` the primary confirmation action.
+  - Keep `Tick everything and update stock` as the primary confirmation action when the feature toggle is enabled.
+  - Add a light/dark compatible faded red destructive button style family.
+  - Use that reddish style for the confirmation close/cancel button and other destructive actions introduced later.
+- Validation:
+  - `npm run typecheck`
+  - `npm run lint`
+  - `npm run build`
+- Commit message idea:
+  - `Polish household shopping controls`
+
+### Refinement Commit 4: Household Shopping Layout Refactor
+
+- Goal: Rework the main household page into the requested two-row workspace with a compact middle control band and separated shopping finalization actions.
+- Files likely affected:
+  - `src/app/home.component.ts`
+  - `src/app/household/household-shopping-list.component.ts`
+  - potentially new focused household components if the split improves maintainability
+  - `src/app/household/household-stock.service.ts`
+  - `packages/kamra-api-server/src/http/routes/household-routes.ts` if cancel/delete requires a new endpoint
+  - `packages/kamra-api-server/src/household/current/mongo-household-repository.ts` if active-list cancellation needs repository support
+  - `packages/kamra-api-server/src/http/app-handler.test.ts`
+  - `src/app/i18n/en.json`
+  - `src/app/i18n/hu.json`
+- Requirements:
+  - Main household page layout:
+    - Top row: household stock overview/table on the left and stock editing on the right.
+    - Middle compact band: shopping level selector, covered-item pulse/count, big generate-list icon button, and a vertical button stack for regenerate, refresh, and cancel shopping list.
+    - Bottom row: shopping-list overview on the left and list-to-stock/finalization actions on the right.
+  - Move the current top-row generation controls into the new middle band.
+  - Extend the level selector with a fourth green bottom-most `Start fresh` entry and explanatory subtitle. This creates an empty shopping list meant to be built manually.
+  - Highlight stock rows that would be included by the selected shopping level.
+  - Add a final stock-table column with an add icon for adding that stock item to the current shopping list.
+  - Disable row-level add-to-list when no shopping list exists and expose a hover/title note that a list must be generated first.
+  - Keep generate/regenerate/refresh/cancel controls compact and same-width within their section.
+  - Add cancel shopping-list behavior from the middle band and top/right area as a reddish action.
+  - In the shopping-list overview, automatically order unticked rows first.
+  - Move ticked rows to the end and group them into one collapsible purchased section.
+  - Keep the active unticked list visually shrinking as items are ticked.
+  - Move "Apply to stock on", "Update stocks per purchased items", and the confirmation choices into the right-side shopping finalization block.
+  - Add a large upload-receipt button in that right-side block. Keep it inactive for Stage 6 and show a toast that receipt upload is coming soon.
+  - Preserve compact expandable shopping-list rows and manual quick add.
+  - Preserve optional shop selection, observed price editing, exact quantities, and membership rules.
+- Validation:
+  - focused backend tests if cancel/list mutation endpoints change
+  - `npm run typecheck`
+  - `npm run lint`
+  - `npm run build`
+  - browser/manual check of desktop and mobile layout
+- Commit message idea:
+  - `Refine household shopping workspace`
+
+### Refinement Commit 5: Stage 6 Documentation And Final Verification
+
+- Goal: Close Stage 6 with documentation that matches the implemented behavior and the added About/product-access refinements.
+- Files likely affected:
+  - `docs/household.md`
+  - `docs/architecture.md`
+  - `.agents/plans/initial-mvp-roadmap.md`
+  - `.agents/plans/2026-07-09-stage-6-shopping-list-low-stock-notices-plan.md`
+  - `.agents/sessions/<current-session>.md`
+- Requirements:
+  - Document the implemented household shopping workflow, `Start fresh`, cancel-list behavior, ticked-row grouping, finalization block, receipt-upload placeholder, and read-only product access.
+  - Document the About page content intent and URL changes.
+  - Keep the stage boundary clear: receipt upload/import, full optimization, and rich household management remain future work.
+  - Update the session handoff with validation results and any manual browser findings.
+- Validation:
+  - final Stage 6 validation set from this plan
+  - browser/manual verification of logged-out home, logged-in household flow, product browsing as a basic user, logout redirect, About page, and admin feature toggler
+- Commit message idea:
+  - `Document Stage 6 refinements`
+
 ## Implementation Steps
 
 ### Step 1: Contracts, Shops, And Pure Generator
@@ -470,6 +616,24 @@ Additional required checks:
   - shopping-list rows are compact by default and expose price/details by expansion
   - quantities remain exact in UI and stored data
   - low-stock/shopping-list area remains a full scrollable list, not a top-three urgent-only summary
+  - logged-out home uses the same household pulse shape with disabled controls and readable sample rows
+  - manage-household navigation looks like a button, fits its text, and navigates to the household page
+  - product browsing works for a basic signed-in user
+  - product edit/mutation actions remain blocked for basic users with a clear toast
+  - changing the shopping scale updates all related labels and inclusion highlights
+  - `Start fresh` creates an empty list suitable for manual building
+  - stock rows included by the current scale are highlighted
+  - row-level add-to-list is disabled with a helpful note until a list exists
+  - row-level add-to-list adds one stock item to an existing shopping list
+  - generated shopping-list rows start with `Bought = 0`
+  - ticking a row with zero bought amount sets bought amount to the planned amount
+  - ticked rows move into the collapsed/expandable purchased group at the end
+  - cancel shopping-list removes or archives the active list from the current shopping view
+  - disabled auto-tick feature flag makes `Update only ticked items` the primary confirmation action
+  - enabled auto-tick feature flag makes `Tick everything and update stock` the primary confirmation action
+  - receipt upload button is visible but inactive and shows a coming-soon toast
+  - logout redirects to the home route
+  - About page renders well on desktop and mobile and uses `https://kamrapp.hu` as the primary app URL
 
 ## Risks
 

@@ -15,14 +15,23 @@ import {
   catalogProductValidationRoute,
   catalogSourcesRoute
 } from "./routes/catalog-routes.js";
-import { currentUserRoute, loginRoute, logoutRoute, userPreferencesRoute } from "./routes/auth-routes.js";
+import { createAlphaUserRoute, currentUserRoute, loginRoute, logoutRoute, userPreferencesRoute } from "./routes/auth-routes.js";
 import {
   adminDashboardHealthRoute,
+  adminDashboardFeatureFlagsRoute,
   adminDashboardMarkLegacyProductsUnvalidatedRoute,
   adminDashboardReseedDemoHouseholdRoute,
   adminDashboardUpgradeCatalogValidatorsRoute
 } from "./routes/admin-dashboard-route.js";
-import { householdStockRoute, householdsRoute } from "./routes/household-routes.js";
+import {
+  householdShoppingListPreviewRoute,
+  householdShoppingListsRoute,
+  householdShoppingListUpdateStocksRoute,
+  householdStockRoute,
+  householdsRoute,
+  latestHouseholdShoppingListRoute,
+  shopsRoute
+} from "./routes/household-routes.js";
 import {
   acceptProductReviewItemRoute,
   declineProductReviewItemRoute,
@@ -35,6 +44,13 @@ import {
 } from "./routes/ingestion-routes.js";
 import { logRoute } from "./routes/log-route.js";
 import { healthzRoute } from "./routes/health-route.js";
+import {
+  databaseMaintenanceListRoute,
+  databaseMaintenanceCompleteRoute,
+  databaseMaintenanceMigrationRoute,
+  databaseMaintenanceRunAllRoute,
+  databaseMaintenanceValidatorRoute
+} from "./routes/database-maintenance-route.js";
 
 export type { AppRequest, AppResponse } from "./app-route-context.js";
 
@@ -42,15 +58,27 @@ const appRoutes: AppRoute[] = [
   healthzRoute,
   logRoute,
   loginRoute,
+  createAlphaUserRoute,
   logoutRoute,
   currentUserRoute,
   userPreferencesRoute,
   householdsRoute,
   householdStockRoute,
+  householdShoppingListPreviewRoute,
+  householdShoppingListsRoute,
+  latestHouseholdShoppingListRoute,
+  householdShoppingListUpdateStocksRoute,
+  shopsRoute,
+  adminDashboardFeatureFlagsRoute,
   adminDashboardHealthRoute,
   adminDashboardUpgradeCatalogValidatorsRoute,
   adminDashboardMarkLegacyProductsUnvalidatedRoute,
   adminDashboardReseedDemoHouseholdRoute,
+  databaseMaintenanceListRoute,
+  databaseMaintenanceValidatorRoute,
+  databaseMaintenanceMigrationRoute,
+  databaseMaintenanceCompleteRoute,
+  databaseMaintenanceRunAllRoute,
   catalogProductRoute,
   catalogProductValidationRoute,
   catalogProductsRoute,

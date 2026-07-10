@@ -420,7 +420,7 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
         key: "crawl-summary",
         kind: "summary",
         kicker: this.loc.t("common.siteAdmin"),
-        title: this.loc.t("common.crawls"),
+        title: this.loc.t("common.siteAdmin"),
         items: [
           { label: this.loc.t("crawl.snapshots"), value: `${this.snapshots().length}` },
           { label: this.loc.t("common.rows"), value: `${this.totalRows()}` },

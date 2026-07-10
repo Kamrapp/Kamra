@@ -985,6 +985,10 @@ export class MongoCurrentCatalogRepository {
     await this.upsertMany(this.stocksCollection, dataset.stocks);
   }
 
+  async upsertPriceObservations(records: readonly PriceObservationRecord[]): Promise<void> {
+    await this.upsertMany(this.priceObservationsCollection, records);
+  }
+
   async findProcessingState(input: {
     processorName: string;
     processorVersion: string;
