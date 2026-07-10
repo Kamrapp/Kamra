@@ -1,0 +1,105 @@
+name: Keep Render Awake
+
+on:
+  schedule:
+    - cron: "*/12 * * * *"
+  workflow_dispatch:
+
+env:
+  HEALTH_ENDPOINT_URL: ${{ vars.HEALTH_ENDPOINT_URL }}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    environment: Health
+
+    steps:
+      - name: Curl health endpoint
+        shell: bash
+        run: |
+          MAX_ATTEMPTS=2
+          MAX_TIME_SECONDS=120
+          attempt=1
+
+          if [ -z "$HEALTH_ENDPOINT_URL" ]; then
+            echo "HEALTH_ENDPOINT_URL is empty"
+            exit 1
+          fi
+
+          while [ "$attempt" -le "$MAX_ATTEMPTS" ]; do
+            echo "::group::Health check attempt $attempt/$MAX_ATTEMPTS"
+
+            timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+            response_file="$(mktemp)"
+            metrics_file="$(mktemp)"
+
+            curl \
+              --silent \
+              --show-error \
+              --fail-with-body \
+              --max-time "$MAX_TIME_SECONDS" \
+              --output "$response_file" \
+              --write-out "HTTP_STATUS=%{http_code}
+          TOTAL_TIME=%{time_total}
+          DNS_TIME=%{time_namelookup}
+          CONNECT_TIME=%{time_connect}
+          TLS_TIME=%{time_appconnect}
+          START_TRANSFER_TIME=%{time_starttransfer}
+          REMOTE_IP=%{remote_ip}
+          EFFECTIVE_URL=%{url_effective}
+          " \
+              "$HEALTH_ENDPOINT_URL" > "$metrics_file"
+
+            status=$?
+
+            http_status="$(grep '^HTTP_STATUS=' "$metrics_file" | cut -d= -f2)"
+            total_time="$(grep '^TOTAL_TIME=' "$metrics_file" | cut -d= -f2)"
+            start_transfer_time="$(grep '^START_TRANSFER_TIME=' "$metrics_file" | cut -d= -f2)"
+            remote_ip="$(grep '^REMOTE_IP=' "$metrics_file" | cut -d= -f2)"
+            effective_url="$(grep '^EFFECTIVE_URL=' "$metrics_file" | cut -d= -f2-)"
+
+            echo "Timestamp: $timestamp"
+            echo "HTTP status: $http_status"
+            echo "Total time: ${total_time}s"
+            echo "Start transfer: ${start_transfer_time}s"
+            echo "Remote IP: $remote_ip"
+            echo "URL: $effective_url"
+            echo
+            echo "Response:"
+            cat "$response_file"
+            echo
+            echo "::endgroup::"
+
+            {
+              echo "## Health check"
+              echo
+              echo "| Field | Value |"
+              echo "|---|---:|"
+              echo "| URL | \`$effective_url\` |"
+              echo "| Status | $([ "$status" -eq 0 ] && echo "✅ Success" || echo "❌ Failed") |"
+              echo "| Attempt | $attempt/$MAX_ATTEMPTS |"
+              echo "| HTTP status | $http_status |"
+              echo "| Total time | ${total_time}s |"
+              echo "| App response start | ${start_transfer_time}s |"
+              echo "| Remote IP | $remote_ip |"
+              echo "| Time | $timestamp |"
+              echo
+              echo "### Response body"
+              echo
+              echo '```json'
+              cat "$response_file"
+              echo
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+
+            if [ "$status" -eq 0 ]; then
+              echo "✅ Health check succeeded in ${total_time}s with HTTP $http_status."
+              exit 0
+            fi
+
+            echo "❌ Attempt $attempt failed with curl exit code $status after ${total_time}s."
+            attempt=$((attempt + 1))
+          done
+
+          echo "❌ Health check failed after $MAX_ATTEMPTS attempts."
+          exit "$status"
