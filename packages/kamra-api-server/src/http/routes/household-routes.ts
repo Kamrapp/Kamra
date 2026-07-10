@@ -286,7 +286,7 @@ export const householdShoppingListsRoute: AppRoute = {
           id: createShoppingListLineId(shoppingListId, index, item.displayName),
           observedPrice: null,
           plannedAmount: item.suggestedBuyAmount,
-          purchasedAmount: item.suggestedBuyAmount,
+          purchasedAmount: 0,
           sourceKind: "generated",
           status: "not_applied",
           ticked: false

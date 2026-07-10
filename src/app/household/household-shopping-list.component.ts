@@ -111,16 +111,28 @@ interface PendingConfirmation {
             <p>{{ loc.t("household.shoppingListConfirmationPrompt") }}</p>
             <div class="confirmation-actions">
               @if (confirmation.allowedModes.includes("tick_all_and_update")) {
-                <button class="ui-button ui-button-primary ui-button-sm" type="button" (click)="applyPurchasedItems('tick_all_and_update')">
+                <button
+                  class="ui-button ui-button-sm"
+                  [class.ui-button-primary]="isPrimaryConfirmationMode(confirmation, 'tick_all_and_update')"
+                  [class.ui-button-quiet]="!isPrimaryConfirmationMode(confirmation, 'tick_all_and_update')"
+                  type="button"
+                  (click)="applyPurchasedItems('tick_all_and_update')"
+                >
                   {{ loc.t("household.tickAllAndApply") }}
                 </button>
               }
               @if (confirmation.allowedModes.includes("update_ticked_only")) {
-                <button class="ui-button ui-button-quiet ui-button-sm" type="button" (click)="applyPurchasedItems('update_ticked_only')">
+                <button
+                  class="ui-button ui-button-sm"
+                  [class.ui-button-primary]="isPrimaryConfirmationMode(confirmation, 'update_ticked_only')"
+                  [class.ui-button-quiet]="!isPrimaryConfirmationMode(confirmation, 'update_ticked_only')"
+                  type="button"
+                  (click)="applyPurchasedItems('update_ticked_only')"
+                >
                   {{ loc.t("household.applyTickedOnly") }}
                 </button>
               }
-              <button class="ui-button ui-button-quiet ui-button-sm" type="button" (click)="pendingConfirmation.set(null)">
+              <button class="ui-button ui-button-danger ui-button-sm" type="button" (click)="pendingConfirmation.set(null)">
                 {{ loc.t("common.close") }}
               </button>
             </div>
@@ -450,13 +462,14 @@ export class HouseholdShoppingListComponent implements OnChanges {
     purchasedAmount: 1,
     unit: "db"
   });
+  readonly shoppingScaleValue = signal<HouseholdShoppingList["scale"]>("keep_it_chill");
   readonly shoppingList = signal<HouseholdShoppingList | null>(null);
   readonly shops = signal<HouseholdShop[]>([]);
   readonly statusMessage = signal("");
   readonly shoppingScaleLabel = computed(() => {
-    const key = this.shoppingScale === "business_as_usual"
+    const key = this.shoppingScaleValue() === "business_as_usual"
       ? "household.shoppingScaleUsual"
-      : this.shoppingScale === "keep_it_chill"
+      : this.shoppingScaleValue() === "keep_it_chill"
         ? "household.shoppingScaleChill"
         : "household.shoppingScaleStockUp";
 
@@ -466,6 +479,10 @@ export class HouseholdShoppingListComponent implements OnChanges {
   private loadSerial = 0;
 
   ngOnChanges(changes: SimpleChanges): void {
+    if (changes["shoppingScale"]) {
+      this.shoppingScaleValue.set(changes["shoppingScale"].currentValue ?? "keep_it_chill");
+    }
+
     if (changes["householdId"]?.currentValue) {
       void this.loadPanelState();
     }
@@ -575,7 +592,7 @@ export class HouseholdShoppingListComponent implements OnChanges {
     this.errorMessage.set("");
     const result = await this.household.createShoppingList({
       householdId: this.householdId,
-      scale: this.shoppingScale,
+      scale: this.shoppingScaleValue(),
       shopId: this.shoppingList()?.shopId ?? null
     });
     this.mutationState.set("idle");
@@ -614,6 +631,13 @@ export class HouseholdShoppingListComponent implements OnChanges {
     return keys[reasonCode];
   }
 
+  isPrimaryConfirmationMode(
+    confirmation: PendingConfirmation,
+    mode: "tick_all_and_update" | "update_ticked_only"
+  ): boolean {
+    return confirmation.allowedModes[0] === mode;
+  }
+
   toggleExpanded(id: string): void {
     this.expandedLineIds.update((ids) =>
       ids.includes(id)
@@ -625,6 +649,7 @@ export class HouseholdShoppingListComponent implements OnChanges {
   async toggleTicked(id: string, ticked: boolean): Promise<void> {
     await this.updateLine(id, (item) => ({
       ...item,
+      purchasedAmount: ticked && item.purchasedAmount === 0 ? item.plannedAmount : item.purchasedAmount,
       ticked
     }));
   }

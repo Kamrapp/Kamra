@@ -555,6 +555,14 @@ describe("handleAppRequest auth guards", () => {
       householdId: "household1",
       shopId: "shop_hu_lidl"
     });
+    expect(createdList.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          purchasedAmount: 0,
+          ticked: false
+        })
+      ])
+    );
 
     const updateResponse = await handleAppRequest(
       {

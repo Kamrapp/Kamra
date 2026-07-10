@@ -40,6 +40,10 @@
 - Item: blocked non-admin product edit attempts in the frontend with a warning toast instead of opening the editor dialog.
 - Item: finished the auth/unauthorized server-message localization path by adding frontend dictionary entries for the new `apiErrors.*` response keys.
 - Item: extracted shared page-shell, intro, kicker, title, muted-copy, and panel-card styling into `src/styles.css` and switched the About page, admin dashboard, household management page, shopping-list panel, and home kickers over to those shared primitives.
+- Item: completed the Stage 6 small household/shopping refinement slice by making generated shopping-list rows start with `Bought = 0`, auto-filling bought from planned amount on first tick, swapping the primary confirmation action based on the DB-backed auto-tick feature flag, and adding a shared faded-red destructive button style.
+- Item: refreshed the logged-out home view so it mirrors the signed-in household workspace with disabled controls, minimal preview data, and a preview shopping-list/editor layout instead of the old collided pulse text.
+- Item: changed the signed-in `Manage household` navigation to a real button-style control so longer localized copy stays inside the control without link underlining.
+- Item: fixed the shopping-list scale caption to stay synchronized with the selected top-level shopping scale by tracking the input value reactively inside the shopping-list component.
 
 ## Changed Files
 
@@ -74,6 +78,11 @@
 - Path: `src/app/i18n/en.json`
 - Path: `src/app/i18n/hu.json`
 - Path: `.agents/plans/2026-07-09-stage-6-shopping-list-low-stock-notices-plan.md`
+- Path: `packages/kamra-api-server/src/http/routes/household-routes.ts`
+- Path: `packages/kamra-api-server/src/http/app-handler.test.ts`
+- Path: `src/app/home.component.ts`
+- Path: `src/app/household/household-shopping-list.component.ts`
+- Path: `src/styles.css`
 
 ## Validation
 
@@ -92,6 +101,14 @@
 - Ran: `npm run build`
 - Result: passed
 - Ran: `npm run lint`
+- Result: passed
+- Ran: `npm run typecheck`
+- Result: passed
+- Ran: `npm run lint`
+- Result: passed
+- Ran: `npm run build`
+- Result: passed
+- Ran: `npm test -- packages/kamra-api-server/src/http/app-handler.test.ts`
 - Result: passed
 - Ran: `npm run typecheck`
 - Result: passed
@@ -173,8 +190,10 @@
 - Impact: the intended UX is implemented, but a route-state or view-state mismatch could still exist until manually exercised.
 - Issue: browser-level validation for the new shared page primitives across About, admin, management, and shopping-list surfaces still has not been run.
 - Impact: the compile checks pass, but spacing or responsive regressions could still exist until manually exercised.
-- Issue: the remaining 2026-07-10 continuation refinements are still pending after the About page slice.
-- Impact: the next implementation session should continue with Refinement Commit 3 instead of jumping to the large household layout refactor.
+- Issue: browser-level validation for the refreshed logged-out home preview, the new confirmation-button priority states, and the `Manage household` button sizing still has not been run.
+- Impact: compile/build coverage is good, but small responsive or interaction issues could still exist until manually exercised.
+- Issue: the larger Stage 6 household workspace refactor remains pending after the small refinement slice.
+- Impact: the next implementation session should continue with Refinement Commit 4 rather than re-opening these smaller fixes unless review finds regressions.
 
 ## Roadmap Or Plan Updates
 
@@ -183,8 +202,8 @@
 
 ## Next Step
 
-Implement Refinement Commit 3 from the Stage 6 plan: tackle the smaller home/household/shopping fixes before the major layout refactor.
+Implement Refinement Commit 4 from the Stage 6 plan: the larger household workspace and shopping-list layout refactor.
 
 ## Notes For Future Agent
 
-Stage 6 now has the pure generator, persistence foundations, shopping-list completion logic, shopping-list HTTP routes, DB-backed admin-editable `allowAutoTickingAllShoppingListEntries` toggle, a real Angular shopping-list panel on the home screen, a minimal household-management route shell, the new About page plus right-rail entry, logout redirection to home, signed-in non-admin product browsing with admin-only mutations, localized auth-guard server message keys, and shared page/card style primitives in global CSS. The latest checks covered the auth-message route test plus typecheck, lint, and build after the shared-style extraction. The next commit should still be Refinement Commit 3: the smaller home, pulse, and shopping-list behavior fixes before the larger household workspace refactor.
+Stage 6 now has the pure generator, persistence foundations, shopping-list completion logic, shopping-list HTTP routes, DB-backed admin-editable `allowAutoTickingAllShoppingListEntries` toggle, a real Angular shopping-list panel on the home screen, a minimal household-management route shell, the new About page plus right-rail entry, logout redirection to home, signed-in non-admin product browsing with admin-only mutations, localized auth-guard server message keys, shared page/card style primitives in global CSS, and the smaller household/shopping refinement fixes from Commit 3. The latest checks covered the household route test plus typecheck, lint, and build after the logged-out home refresh and shopping-list behavior tweaks. The next commit should be Refinement Commit 4: the larger household workspace and shopping-list layout refactor.

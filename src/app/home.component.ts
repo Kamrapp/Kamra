@@ -39,6 +39,15 @@ interface ShoppingScaleOption {
   labelKey: TranslationKey;
 }
 
+interface PreviewStockItem {
+  currentAmount: number;
+  displayName: string;
+  id: string;
+  minLimit: number;
+  stockStatus: HouseholdStockItemListItem["stockStatus"];
+  unit: string;
+}
+
 const shoppingScaleOptions: readonly ShoppingScaleOption[] = [
   {
     hintKey: "household.shoppingScaleUsualHint",
@@ -72,69 +81,231 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
   imports: [FormsModule, RouterLink, HouseholdShoppingListComponent],
   template: `
     @if (!auth.isAuthenticated()) {
-      <section class="home-board" aria-labelledby="home-title">
-        <div class="pulse-card" [attr.aria-label]="loc.t('home.activityPreview')">
-          <div class="pulse-orbit">
-            <span></span>
-            <span></span>
-            <span></span>
-          </div>
-          <div class="pulse-list">
-            <div class="pulse-row strong">
-              <span>{{ loc.t("home.milk") }}</span>
-              <span>{{ loc.t("home.lowSoon") }}</span>
+      <section class="stock-workspace preview-workspace" aria-labelledby="home-title">
+        <div class="workspace-main">
+          <section class="pulse-card stock-pulse preview-surface" [attr.aria-label]="loc.t('home.activityPreview')">
+            <div class="pulse-topline">
+              <div>
+                <p class="eyebrow">{{ loc.t("home.today") }}</p>
+                <h1 id="home-title">{{ loc.t("home.liveTitle") }}</h1>
+              </div>
             </div>
-            <div class="pulse-row">
-              <span>{{ loc.t("home.rice") }}</span>
-              <span>{{ loc.t("home.steady") }}</span>
+
+            <div class="pulse-control-row">
+              <div
+                class="shopping-scale"
+                [class.scale-usual]="shoppingScale() === 'usual'"
+                [class.scale-chill]="shoppingScale() === 'chill'"
+                [class.scale-stock-up]="shoppingScale() === 'stock_up'"
+                [attr.aria-label]="loc.t('household.shoppingScale')"
+              >
+                <div class="scale-rail">
+                  <input
+                    class="scale-slider"
+                    type="range"
+                    min="0"
+                    max="2"
+                    step="1"
+                    [ngModel]="shoppingScaleIndex()"
+                    disabled
+                    [attr.aria-label]="loc.t('household.shoppingScale')"
+                  />
+                  <div class="scale-ticks" aria-hidden="true">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                  </div>
+                </div>
+
+                <div class="scale-labels" aria-hidden="true">
+                  @for (option of shoppingScaleDisplayOptions; track option.key) {
+                    <span [class.active-scale-label]="shoppingScale() === option.key">
+                      <strong>{{ loc.t(option.labelKey) }}</strong>
+                      <small>{{ loc.t(option.hintKey) }}</small>
+                    </span>
+                  }
+                </div>
+              </div>
+
+              <div class="pulse-orbit pulse-orbit-live">
+                <span></span>
+                <span></span>
+                <span></span>
+                <strong>{{ previewShoppingItems().length }}</strong>
+              </div>
+
+              <button
+                class="cart-button"
+                type="button"
+                disabled
+                [attr.aria-label]="loc.t('household.generateShoppingList')"
+                [attr.title]="loc.t('household.generateShoppingList')"
+              >
+                <span aria-hidden="true">🛒+</span>
+              </button>
             </div>
-            <div class="pulse-row">
-              <span>{{ loc.t("home.coffee") }}</span>
-              <span>{{ loc.t("home.watch") }}</span>
+
+            <div class="household-bar">
+              <div class="household-picker-group">
+                <label class="household-select">
+                  <span>{{ loc.t("household.activeHousehold") }}</span>
+                  <select disabled>
+                    <option>{{ loc.t("home.pantryPulse") }}</option>
+                  </select>
+                </label>
+
+                <button class="ui-button ui-button-quiet ui-button-sm" type="button" disabled>
+                  {{ loc.t("household.manageHousehold") }}
+                </button>
+              </div>
+
+              <button class="ui-button ui-button-quiet ui-button-sm" type="button" disabled>
+                {{ loc.t("common.refresh") }}
+              </button>
             </div>
-          </div>
+
+            <div class="stock-table-shell">
+              <div class="stock-table-header stock-table-grid" aria-hidden="true">
+                <span>{{ loc.t("common.product") }}</span>
+                <span>{{ loc.t("household.currentShort") }}</span>
+                <span aria-hidden="true"></span>
+                <span>{{ loc.t("household.minShort") }}</span>
+                <span>{{ loc.t("common.state") }}</span>
+              </div>
+
+              <div class="stock-table-body">
+                @for (item of previewStockItems(); track item.id) {
+                  <div class="stock-table-row stock-table-grid preview-stock-row">
+                    <span class="stock-name">{{ item.displayName }}</span>
+                    <span>{{ formatAmount(item.currentAmount, item.unit) }}</span>
+                    <span
+                      class="relation-symbol"
+                      [class.relation-below]="item.stockStatus === 'below_limit' || item.stockStatus === 'at_limit'"
+                      [class.relation-watch]="item.stockStatus === 'low_soon'"
+                      [class.relation-steady]="item.stockStatus === 'steady'"
+                    >
+                      {{ relationSymbol(item.stockStatus) }}
+                    </span>
+                    <span>{{ formatAmount(item.minLimit, item.unit) }}</span>
+                    <span
+                      class="status-badge"
+                      [class.status-danger]="item.stockStatus === 'below_limit' || item.stockStatus === 'at_limit'"
+                      [class.status-watch]="item.stockStatus === 'low_soon'"
+                    >
+                      {{ loc.t(stockStatusTranslationKey(item.stockStatus)) }}
+                    </span>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <button class="ui-button ui-button-primary add-new-button" type="button" disabled>
+              {{ loc.t("household.addNewItem") }}
+            </button>
+          </section>
+
+          <section class="ui-panel-card preview-shopping-card" [attr.aria-label]="loc.t('household.shoppingListPanelTitle')">
+            <div class="preview-shopping-topline">
+              <div>
+                <p class="ui-kicker">{{ loc.t("household.shoppingListKicker") }}</p>
+                <h2 class="ui-card-title">{{ loc.t("household.shoppingListPanelTitle") }}</h2>
+              </div>
+
+              <div class="preview-shopping-actions">
+                <button class="ui-button ui-button-quiet ui-button-sm" type="button" disabled>
+                  {{ loc.t("common.refresh") }}
+                </button>
+                <button class="ui-button ui-button-primary ui-button-sm" type="button" disabled>
+                  {{ loc.t("household.generateShoppingList") }}
+                </button>
+              </div>
+            </div>
+
+            <p class="shopping-scale-copy">
+              {{ loc.t("household.shoppingListScaleLabel") }}:
+              <strong>{{ shoppingScaleLabel() }}</strong>
+            </p>
+
+            <div class="preview-shopping-shell">
+              @for (item of previewShoppingItems(); track item.id) {
+                <article class="preview-shopping-line">
+                  <div class="preview-shopping-row">
+                    <label class="shopping-check">
+                      <input type="checkbox" [checked]="false" disabled />
+                      <span>{{ item.displayName }}</span>
+                    </label>
+
+                    <div class="preview-shopping-amounts">
+                      <label>
+                        <span>{{ loc.t("household.plannedShort") }}</span>
+                        <input type="number" step="0.01" [value]="item.minLimit" disabled />
+                      </label>
+                      <label>
+                        <span>{{ loc.t("household.purchasedShort") }}</span>
+                        <input type="number" step="0.01" value="0" disabled />
+                      </label>
+                      <label class="shopping-unit">
+                        <span>{{ loc.t("household.unit") }}</span>
+                        <input type="text" [value]="item.unit" disabled />
+                      </label>
+                    </div>
+                  </div>
+                </article>
+              } @empty {
+                <p class="shopping-note">{{ loc.t("household.shoppingListEmpty") }}</p>
+              }
+            </div>
+          </section>
         </div>
 
-        <div class="home-copy">
-          <p class="eyebrow">{{ loc.t("home.today") }}</p>
-          <h1 id="home-title">{{ loc.t("home.pantryPulse") }}</h1>
-          <p>{{ loc.t("home.description") }}</p>
+        <section class="editor-panel preview-surface" [attr.aria-label]="loc.t('household.selectedItem')">
+          <p class="card-kicker">{{ loc.t("household.selectedItem") }}</p>
+          <h2>{{ previewEditorItem().displayName }}</h2>
+          <p class="preview-copy">{{ loc.t("home.description") }}</p>
 
-          <dl class="mini-stats">
-            <div>
-              <dt>{{ loc.t("home.notes") }}</dt>
-              <dd>3</dd>
+          <form class="stock-form">
+            <label>
+              <span>{{ loc.t("common.name") }}</span>
+              <input type="text" [value]="previewEditorItem().displayName" disabled />
+            </label>
+
+            <div class="split-fields">
+              <label>
+                <span>{{ loc.t("household.currentAmount") }}</span>
+                <input type="number" step="0.01" [value]="previewEditorItem().currentAmount" disabled />
+              </label>
+              <label>
+                <span>{{ loc.t("household.minLimit") }}</span>
+                <input type="number" step="0.01" [value]="previewEditorItem().minLimit" disabled />
+              </label>
             </div>
-            <div>
-              <dt>{{ loc.t("home.lists") }}</dt>
-              <dd>1</dd>
+
+            <div class="split-fields">
+              <label>
+                <span>{{ loc.t("household.unit") }}</span>
+                <input type="text" [value]="previewEditorItem().unit" disabled />
+              </label>
+              <label>
+                <span>{{ loc.t("household.stockedAt") }}</span>
+                <input type="date" value="2026-07-10" disabled />
+              </label>
             </div>
-            <div>
-              <dt>{{ loc.t("home.sources") }}</dt>
-              <dd>0</dd>
+
+            <button class="details-toggle" type="button" disabled>
+              <span>{{ loc.t("household.showAdditionalDetails") }}</span>
+              <strong aria-hidden="true">+</strong>
+            </button>
+
+            <div class="editor-actions">
+              <button class="ui-button ui-button-primary" type="button" disabled>
+                {{ loc.t("common.save") }}
+              </button>
+              <button class="ui-button ui-button-quiet" type="button" disabled>
+                {{ loc.t("common.delete") }}
+              </button>
             </div>
-          </dl>
-        </div>
-      </section>
-
-      <section class="placeholder-grid" [attr.aria-label]="loc.t('home.kamraPreview')">
-        <article>
-          <p class="card-kicker">{{ loc.t("home.cardQueue") }}</p>
-          <h2>{{ loc.t("home.stockingNotes") }}</h2>
-          <p>{{ loc.t("home.queueDescription") }}</p>
-        </article>
-
-        <article>
-          <p class="card-kicker">{{ loc.t("home.cardShape") }}</p>
-          <h2>{{ loc.t("home.shoppingPlan") }}</h2>
-          <p>{{ loc.t("home.shoppingPlanDescription") }}</p>
-        </article>
-
-        <article>
-          <p class="card-kicker">{{ loc.t("home.cardOps") }}</p>
-          <h2>{{ loc.t("home.sourceReview") }}</h2>
-          <p>{{ loc.t("home.opsDescription") }}</p>
-        </article>
+          </form>
+        </section>
       </section>
     } @else {
       <section class="stock-workspace" aria-labelledby="home-title">
@@ -216,13 +387,14 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
                 </select>
               </label>
 
-              <a
+              <button
                 class="ui-button ui-button-quiet ui-button-sm"
+                type="button"
                 [routerLink]="selectedHouseholdId() ? ['/households', selectedHouseholdId()] : ['/']"
-                [attr.aria-disabled]="!selectedHouseholdId()"
+                [disabled]="!selectedHouseholdId()"
               >
                 {{ loc.t("household.manageHousehold") }}
-              </a>
+              </button>
             </div>
 
             <button class="ui-button ui-button-quiet ui-button-sm" type="button" (click)="refreshHome()" [disabled]="loadState() === 'loading'">
@@ -456,6 +628,10 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
       .workspace-main {
         display: grid;
         gap: var(--space-4);
+      }
+
+      .preview-workspace {
+        opacity: 0.96;
       }
 
       .pulse-card,
@@ -743,6 +919,10 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
         outline-offset: 0.16rem;
       }
 
+      .preview-surface :is(button, input, select, textarea) {
+        cursor: not-allowed;
+      }
+
       .home-copy,
       .state-panel {
         align-content: center;
@@ -894,6 +1074,14 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
         justify-self: start;
       }
 
+      .preview-stock-row {
+        cursor: default;
+      }
+
+      .preview-stock-row:hover {
+        background: var(--pulse-row-background);
+      }
+
       .stock-form,
       .stack-form,
       .additional-details {
@@ -975,6 +1163,90 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
         display: grid;
         gap: var(--space-3);
         grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .preview-shopping-card {
+        gap: var(--space-4);
+      }
+
+      .shopping-scale-copy {
+        margin: 0;
+      }
+
+      .preview-shopping-topline,
+      .preview-shopping-actions,
+      .preview-shopping-row,
+      .preview-shopping-amounts {
+        align-items: center;
+        display: flex;
+        gap: var(--space-3);
+      }
+
+      .preview-shopping-topline {
+        justify-content: space-between;
+      }
+
+      .preview-shopping-actions,
+      .preview-shopping-amounts {
+        flex-wrap: wrap;
+      }
+
+      .preview-shopping-shell {
+        display: grid;
+        gap: 0.75rem;
+        max-height: 22rem;
+        overflow: auto;
+      }
+
+      .preview-shopping-line {
+        background: var(--pulse-row-background);
+        border: 1px solid var(--pulse-row-border);
+        border-radius: var(--radius-ui);
+        display: grid;
+        gap: 0.75rem;
+        margin: 0;
+        padding: 0.8rem;
+      }
+
+      .preview-shopping-row {
+        align-items: flex-start;
+        justify-content: space-between;
+      }
+
+      .shopping-check {
+        align-items: center;
+        display: flex;
+        gap: 0.6rem;
+        font-weight: 800;
+      }
+
+      .preview-shopping-amounts {
+        flex: 1 1 auto;
+        justify-content: flex-end;
+      }
+
+      .preview-shopping-amounts label {
+        color: var(--color-text-muted);
+        display: grid;
+        font-size: 0.75rem;
+        font-weight: 800;
+        gap: 0.3rem;
+      }
+
+      .preview-shopping-amounts input {
+        background: var(--form-field-background);
+        border: 1px solid var(--line-subtle);
+        border-radius: var(--radius-ui);
+        color: var(--color-text);
+        font: inherit;
+        min-height: 2.2rem;
+        padding: 0.45rem 0.55rem;
+        width: 6.5rem;
+      }
+
+      .preview-copy {
+        color: var(--color-text-muted);
+        line-height: 1.6;
       }
 
       .mini-stats div {
@@ -1065,7 +1337,10 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
         .household-bar,
         .household-picker-group,
         .split-fields,
-        .editor-actions {
+        .editor-actions,
+        .preview-shopping-topline,
+        .preview-shopping-row,
+        .preview-shopping-amounts {
           align-items: stretch;
           flex-direction: column;
         }
@@ -1120,10 +1395,58 @@ export class HomeComponent {
       || left.displayName.localeCompare(right.displayName, this.loc.language() === "hu" ? "hu-HU" : "en-US")
     )
   );
+  readonly previewStockItems = computed<PreviewStockItem[]>(() => [
+    {
+      currentAmount: 0.6,
+      displayName: this.loc.t("home.milk"),
+      id: "preview_milk",
+      minLimit: 1,
+      stockStatus: "low_soon",
+      unit: "l"
+    },
+    {
+      currentAmount: 2,
+      displayName: this.loc.t("home.rice"),
+      id: "preview_rice",
+      minLimit: 1,
+      stockStatus: "steady",
+      unit: "kg"
+    },
+    {
+      currentAmount: 0,
+      displayName: this.loc.t("home.coffee"),
+      id: "preview_coffee",
+      minLimit: 1,
+      stockStatus: "below_limit",
+      unit: "bag"
+    }
+  ]);
+  readonly previewShoppingItems = computed(() =>
+    this.previewStockItems().filter((item) => shouldBuyForScale(item.stockStatus, this.shoppingScale()))
+  );
+  readonly previewEditorItem = computed<PreviewStockItem>(() =>
+    this.previewStockItems()[0] ?? {
+      currentAmount: 0,
+      displayName: this.loc.t("home.milk"),
+      id: "preview_fallback",
+      minLimit: 1,
+      stockStatus: "low_soon",
+      unit: "l"
+    }
+  );
   readonly shoppingItems = computed(() =>
     this.stockItemsByPriority().filter((item) => shouldBuyForScale(item.stockStatus, this.shoppingScale()))
   );
   readonly shoppingItemCount = computed(() => this.shoppingItems().length);
+  readonly shoppingScaleLabel = computed(() => {
+    const key = this.shoppingScale() === "usual"
+      ? "household.shoppingScaleUsual"
+      : this.shoppingScale() === "chill"
+        ? "household.shoppingScaleChill"
+        : "household.shoppingScaleStockUp";
+
+    return this.loc.t(key);
+  });
   readonly apiShoppingScale = computed<"business_as_usual" | "keep_it_chill" | "stock_em_up">(() =>
     this.shoppingScale() === "usual"
       ? "business_as_usual"
