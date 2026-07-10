@@ -268,7 +268,8 @@ export const adminDashboardFeatureFlagsRoute: AppRoute = {
     if (request.method === "GET") {
       return json(200, {
         featureFlags: [
-          await repository.readFeatureFlag("allowAutoTickingAllShoppingListEntries", true)
+          await repository.readFeatureFlag("allowAutoTickingAllShoppingListEntries", true),
+          await repository.readFeatureFlag("allowControlledAlphaAccess", false)
         ]
       });
     }

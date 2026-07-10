@@ -17,23 +17,23 @@ export const routes: Routes = [
     component: AboutPageComponent
   },
   {
-    path: "admin/dashboard",
+    path: "dev-admin",
     component: AdminDashboardComponent
   },
   {
     path: "health",
-    redirectTo: "admin/dashboard"
+    redirectTo: "dev-admin"
   },
   {
-    path: "products",
+    path: "product-lookup",
     component: ProductCatalogComponent
   },
   {
-    path: "households/:householdId",
+    path: "household/:householdId",
     component: HouseholdManagementComponent
   },
   {
-    path: "admin/ingestion",
+    path: "site-admin/ingestion",
     component: IngestionAdminComponent
   },
   {

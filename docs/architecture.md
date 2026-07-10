@@ -152,19 +152,23 @@ Expected access boundaries:
 - admins manually accept, decline, edit, or merge crawled product candidates before they become trusted catalog data
 - ingestion jobs write raw and transformed data through controlled credentials
 
-Google account sign-in is an expected later authentication direction, but the household/product MVP can operate with admin-controlled and whitelisted access.
+Google account sign-in is an expected later authentication direction. For the current MVP, the existing admin can explicitly create controlled alpha users; public self-registration remains closed.
+
+Controlled alpha users are marked explicitly in the user document and receive one new empty household with an owner membership. Existing bootstrap and demo users are not inferred to be alpha users.
 
 ## Feature Flags
 
-The whitelist registration feature must be behind a feature flag.
+The controlled alpha registration path is behind the database-backed `allowControlledAlphaAccess` feature flag.
 
 When disabled:
 
+- admins cannot create new alpha users
+- users marked as alpha users cannot log in
 - admins may not trigger automatic invitation emails
 - whitelist cleanup cron must not run
 - registration remains closed except for the currently approved admin-only path
 
-When enabled:
+When a future whitelist flow is enabled:
 
 - admins can add email addresses to the whitelist
 - invitation email is sent with a registration link

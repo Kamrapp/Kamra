@@ -62,7 +62,10 @@ export type HouseholdShopStatus = (typeof householdShopStatuses)[number];
 export const householdShoppingListUpdateScopes = ["update_ticked_only", "tick_all_and_update"] as const;
 export type HouseholdShoppingListUpdateScope = (typeof householdShoppingListUpdateScopes)[number];
 
-export const householdFeatureFlagKeys = ["allowAutoTickingAllShoppingListEntries"] as const;
+export const householdFeatureFlagKeys = [
+  "allowAutoTickingAllShoppingListEntries",
+  "allowControlledAlphaAccess"
+] as const;
 export type HouseholdFeatureFlagKey = (typeof householdFeatureFlagKeys)[number];
 
 export interface HouseholdRecord {

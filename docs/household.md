@@ -29,6 +29,7 @@ Implemented runtime surfaces:
 - Logged-out home preview mirrors the signed-in household workspace with disabled controls and minimal fake data.
 - Admin dashboard exposes a demo household reseed action and separates read-only health checks from modifying maintenance actions.
 - Admin dashboard exposes the database-backed `allowAutoTickingAllShoppingListEntries` household feature toggle.
+- Controlled alpha onboarding creates one new empty household for each explicitly created alpha user; it does not reuse or alter the demo household.
 
 Implemented API surfaces:
 
@@ -46,6 +47,7 @@ Implemented API surfaces:
 - `GET /api/admin/dashboard/feature-flags`
 - `PATCH /api/admin/dashboard/feature-flags`
 - `POST /api/admin/dashboard/reseed-demo-household`
+- `POST /api/admin/alpha-users`
 
 Core package area:
 

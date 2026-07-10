@@ -175,6 +175,16 @@ export interface HouseholdSetupSummary {
   skippedValidatorUpdates: string[];
 }
 
+export interface HouseholdValidatorUpgradeResult {
+  createdCollections: string[];
+  databaseName: string;
+  upgradedCollections: string[];
+}
+
+export interface HouseholdFieldsMigrationResult {
+  updatedCount: number;
+}
+
 export interface CreateHouseholdInput extends CreateHouseholdRequest {
   createdAt: string;
   createdByUserId: string;
@@ -276,13 +286,81 @@ export class MongoHouseholdRepository {
     };
   }
 
+  async upgradeHouseholdValidators(): Promise<HouseholdValidatorUpgradeResult> {
+    const existingCollections = new Set(
+      (await this.database.listCollections({}, { nameOnly: true }).toArray()).map((entry) => entry.name)
+    );
+    const createdCollections: string[] = [];
+    const upgradedCollections: string[] = [];
+
+    for (const [collectionName, schema] of Object.entries(householdV1CollectionSchemas)) {
+      if (!existingCollections.has(collectionName)) {
+        await this.database.createCollection(collectionName, {
+          validationAction: "error",
+          validationLevel: "strict",
+          validator: {
+            $jsonSchema: schema
+          }
+        });
+        createdCollections.push(collectionName);
+        existingCollections.add(collectionName);
+        continue;
+      }
+
+      await this.database.command({
+        collMod: collectionName,
+        validationAction: "error",
+        validationLevel: "strict",
+        validator: {
+          $jsonSchema: schema
+        }
+      });
+      upgradedCollections.push(collectionName);
+    }
+
+    return {
+      createdCollections,
+      databaseName: this.database.databaseName,
+      upgradedCollections
+    };
+  }
+
+  async migrateHouseholdDefaultFields(): Promise<HouseholdFieldsMigrationResult> {
+    let updatedCount = 0;
+    const households = await this.householdsCollection.find({}).toArray();
+
+    for (const household of households) {
+      const fieldsToSet: Record<string, number | null> = {};
+      if (household.defaultCalculatedMaxLimitMultiplier === undefined) {
+        fieldsToSet["defaultCalculatedMaxLimitMultiplier"] = 2;
+      }
+      if (household.favouriteShopId === undefined) {
+        fieldsToSet["favouriteShopId"] = null;
+      }
+      if (Object.keys(fieldsToSet).length === 0) {
+        continue;
+      }
+
+      await this.householdsCollection.updateOne(
+        { id: household.id },
+        {
+          $set: {
+            ...fieldsToSet,
+            updatedAt: household.updatedAt
+          }
+        }
+      );
+      updatedCount += 1;
+    }
+
+    return { updatedCount };
+  }
+
   async createHousehold(input: CreateHouseholdInput): Promise<CreateHouseholdResult> {
     const createdAt = input.createdAt;
     const household: HouseholdRecord = {
       createdAt,
       createdByUserId: input.createdByUserId,
-      defaultCalculatedMaxLimitMultiplier: 2,
-      favouriteShopId: null,
       id: input.id,
       name: input.name,
       status: "active",

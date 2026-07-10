@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import type { UserDocument, UserRepository } from "../auth/user-auth.js";
 import { createUserToken } from "../auth/user-token.js";
 import { MongoHouseholdRepository } from "../household/current/mongo-household-repository.js";
 import { createFakeDb } from "../test-support/fake-mongo.js";
@@ -126,6 +127,10 @@ describe("handleAppRequest auth guards", () => {
         {
           enabled: true,
           key: "allowAutoTickingAllShoppingListEntries"
+        },
+        {
+          enabled: false,
+          key: "allowControlledAlphaAccess"
         }
       ]
     });
@@ -159,6 +164,110 @@ describe("handleAppRequest auth guards", () => {
         }
       ]
     });
+  });
+
+  it("creates alpha users with an empty household and blocks their login when disabled", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "admin@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "admin",
+      secret: "test-secret"
+    });
+    const db = createFakeDb();
+    const householdRepository = new MongoHouseholdRepository(db);
+    await householdRepository.setupCollections();
+    const alphaUsers = new Map<string, UserDocument>();
+    const userRepository: UserRepository = {
+      createAlphaUser: async (input) => {
+        const user: UserDocument = {
+          alphaAccess: input.alphaAccess,
+          authProvider: "bootstrap_credentials",
+          email: input.email,
+          passwordHash: input.passwordHash,
+          role: input.role,
+          status: input.status
+        };
+        alphaUsers.set(user.email, user);
+        return user;
+      },
+      findActiveUserByEmail: async (email) => {
+        const user = alphaUsers.get(email);
+        return user?.status === "active" ? user : null;
+      },
+      findUserByEmail: async (email) => alphaUsers.get(email) ?? null,
+      updateUserProfile: async () => null
+    };
+    const dependencies = {
+      createHouseholdRepository: () => householdRepository,
+      createUserRepository: () => userRepository,
+      getMongoClient: async () => ({
+        db: () => db
+      }) as never
+    };
+
+    await householdRepository.updateFeatureFlag({
+      enabled: true,
+      key: "allowControlledAlphaAccess",
+      updatedAt: "2026-07-10T10:00:00.000Z",
+      updatedByUserId: "admin@kamra.test"
+    });
+
+    const createResponse = await handleAppRequest(
+      {
+        bodyText: JSON.stringify({
+          email: "alpha@kamra.test",
+          password: "correct-password"
+        }),
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "POST",
+        path: "/api/admin/alpha-users"
+      },
+      dependencies
+    );
+
+    expect(createResponse.status).toBe(201);
+    expect(JSON.parse(createResponse.body)).toMatchObject({
+      household: {
+        memberCount: 1,
+        name: "alpha@kamra.test household"
+      },
+      user: {
+        email: "alpha@kamra.test",
+        role: "user"
+      }
+    });
+    expect(JSON.parse(createResponse.body)).not.toHaveProperty("password");
+    expect((await householdRepository.listHouseholdsForUser("alpha@kamra.test"))).toHaveLength(1);
+
+    await householdRepository.updateFeatureFlag({
+      enabled: false,
+      key: "allowControlledAlphaAccess",
+      updatedAt: "2026-07-10T10:01:00.000Z",
+      updatedByUserId: "admin@kamra.test"
+    });
+
+    const loginResponse = await handleAppRequest(
+      {
+        bodyText: JSON.stringify({
+          email: "alpha@kamra.test",
+          password: "correct-password"
+        }),
+        headers: {},
+        method: "POST",
+        path: "/api/login"
+      },
+      dependencies
+    );
+
+    expect(loginResponse.status).toBe(401);
+    expect(JSON.parse(loginResponse.body)).toEqual({ error: "invalid_credentials" });
   });
 
   it("lists household stock for a signed-in household member", async () => {
@@ -1127,7 +1236,16 @@ describe("handleAppRequest auth guards", () => {
       },
       {
         createUserRepository: () => ({
+          createAlphaUser: async (input) => ({
+            alphaAccess: input.alphaAccess,
+            authProvider: "bootstrap_credentials" as const,
+            email: input.email,
+            passwordHash: input.passwordHash,
+            role: input.role,
+            status: input.status
+          }),
           findActiveUserByEmail: async () => null,
+          findUserByEmail: async () => null,
           updateUserProfile: async (email, profile) => ({
             authProvider: "bootstrap_credentials" as const,
             email,
@@ -1235,6 +1353,166 @@ describe("handleAppRequest auth guards", () => {
       skippedCount: 0,
       status: "updated",
       updatedCount: 42
+    });
+  });
+
+  it("lists and tracks database validator and migration actions", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "admin@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "admin",
+      secret: "test-secret"
+    });
+    const db = createFakeDb();
+    const repository = new MongoHouseholdRepository(db);
+    await repository.setupCollections();
+    await repository.createHousehold({
+      createdAt: "2026-07-10T10:00:00.000Z",
+      createdByUserId: "user@kamra.test",
+      id: "household-maintenance-test",
+      name: "Maintenance test household"
+    });
+    const dependencies = {
+      createHouseholdRepository: () => repository,
+      getMongoClient: async () => ({
+        db: () => db
+      }) as never
+    };
+    const requestHeaders = {
+      authorization: `Bearer ${token}`
+    };
+
+    const initialResponse = await handleAppRequest({
+      headers: requestHeaders,
+      method: "GET",
+      path: "/api/admin/database-maintenance"
+    }, dependencies);
+    expect(initialResponse.status).toBe(200);
+    expect(JSON.parse(initialResponse.body)).toMatchObject({
+      entries: [
+        {
+          id: "catalog-product-validation",
+          migrationCompleted: false,
+          validatorUpdated: false
+        },
+        {
+          id: "household-fields",
+          migrationCompleted: false,
+          validatorUpdated: false
+        }
+      ]
+    });
+
+    const manualCompletionResponse = await handleAppRequest({
+      bodyText: JSON.stringify({ entryId: "catalog-product-validation" }),
+      headers: requestHeaders,
+      method: "POST",
+      path: "/api/admin/database-maintenance/complete"
+    }, dependencies);
+    expect(manualCompletionResponse.status).toBe(200);
+    expect(JSON.parse(manualCompletionResponse.body)).toMatchObject({
+      manuallyMarkedComplete: true,
+      state: {
+        completionMarkedByUserId: "admin@kamra.test",
+        migrationCompletedByUserId: "admin@kamra.test",
+        validatorUpdatedByUserId: "admin@kamra.test"
+      }
+    });
+
+    const validatorResponse = await handleAppRequest({
+      bodyText: JSON.stringify({ entryId: "household-fields" }),
+      headers: requestHeaders,
+      method: "POST",
+      path: "/api/admin/database-maintenance/validators"
+    }, dependencies);
+    expect(validatorResponse.status).toBe(200);
+
+    const migrationResponse = await handleAppRequest({
+      bodyText: JSON.stringify({ entryId: "household-fields" }),
+      headers: requestHeaders,
+      method: "POST",
+      path: "/api/admin/database-maintenance/migrations"
+    }, dependencies);
+    expect(migrationResponse.status).toBe(200);
+    expect(JSON.parse(migrationResponse.body)).toMatchObject({
+      result: {
+        updatedCount: 1
+      }
+    });
+
+    const finishedResponse = await handleAppRequest({
+      headers: requestHeaders,
+      method: "GET",
+      path: "/api/admin/database-maintenance"
+    }, dependencies);
+    const finishedPayload = JSON.parse(finishedResponse.body) as {
+      entries: Array<Record<string, unknown>>;
+    };
+    expect(finishedPayload.entries.find((entry) => entry["id"] === "household-fields")).toMatchObject({
+      migrationCompleted: true,
+      validatorUpdated: true
+    });
+  });
+
+  it("runs all incomplete database maintenance actions sequentially", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "admin@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "admin",
+      secret: "test-secret"
+    });
+    const db = createFakeDb();
+    const householdRepository = new MongoHouseholdRepository(db);
+    await householdRepository.setupCollections();
+    const actionOrder: string[] = [];
+    const dependencies = {
+      createCatalogRepository: () => ({
+        listCatalogProductsForReview: async () => ({ products: [], totalCount: 0 }),
+        markLegacyProductsUnvalidated: async () => {
+          actionOrder.push("catalog:migration");
+          return { skippedCount: 0, status: "updated" as const, updatedCount: 0 };
+        },
+        upgradeCatalogValidators: async () => {
+          actionOrder.push("catalog:validator");
+          return { createdCollections: [], databaseName: "kamra_test", upgradedCollections: [] };
+        }
+      }),
+      createHouseholdRepository: () => householdRepository,
+      getMongoClient: async () => ({
+        db: () => db
+      }) as never
+    };
+
+    const response = await handleAppRequest({
+      headers: {
+        authorization: `Bearer ${token}`
+      },
+      method: "POST",
+      path: "/api/admin/database-maintenance/run-all"
+    }, dependencies);
+
+    expect(response.status).toBe(200);
+    expect(actionOrder).toEqual([
+      "catalog:validator",
+      "catalog:migration"
+    ]);
+    expect(JSON.parse(response.body)).toMatchObject({
+      completedActions: [
+        "catalog-product-validation:validator",
+        "catalog-product-validation:migration",
+        "household-fields:validator",
+        "household-fields:migration"
+      ]
     });
   });
 

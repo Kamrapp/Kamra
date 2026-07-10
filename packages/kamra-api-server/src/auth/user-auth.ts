@@ -9,8 +9,14 @@ export interface UserProfile {
   theme?: UserThemePreference;
 }
 
+export interface AlphaAccessAudit {
+  createdAt: Date;
+  createdByUserId: string;
+}
+
 export interface UserDocument {
   authProvider: "bootstrap_credentials";
+  alphaAccess?: AlphaAccessAudit;
   createdAt?: Date;
   email: string;
   passwordHash: PasswordHash;
@@ -27,7 +33,15 @@ export interface AuthenticatedUser {
 }
 
 export interface UserRepository {
+  createAlphaUser(input: {
+    alphaAccess: AlphaAccessAudit;
+    email: string;
+    passwordHash: PasswordHash;
+    role: UserRole;
+    status: UserDocument["status"];
+  }): Promise<UserDocument>;
   findActiveUserByEmail(email: string): Promise<UserDocument | null>;
+  findUserByEmail(email: string): Promise<UserDocument | null>;
   updateUserProfile(email: string, profile: UserProfile): Promise<UserDocument | null>;
 }
 
@@ -70,7 +84,8 @@ export function toAuthenticatedUser(user: UserDocument): AuthenticatedUser {
 export async function authenticateUser(
   email: string,
   password: string,
-  repository: UserRepository
+  repository: UserRepository,
+  options: { alphaAccessEnabled?: boolean } = {}
 ): Promise<AuthenticateUserResult> {
   const normalizedEmail = normalizeUserEmail(email);
   if (!normalizedEmail || !password) {
@@ -79,6 +94,10 @@ export async function authenticateUser(
 
   const user = await repository.findActiveUserByEmail(normalizedEmail);
   if (!user) {
+    return { status: "invalid_credentials" };
+  }
+
+  if (user.alphaAccess && options.alphaAccessEnabled === false) {
     return { status: "invalid_credentials" };
   }
 

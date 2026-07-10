@@ -257,7 +257,7 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
               <button
                 class="ui-button ui-button-quiet ui-button-sm manage-household-button"
                 type="button"
-                [routerLink]="selectedHouseholdId() ? ['/households', selectedHouseholdId()] : ['/']"
+                [routerLink]="selectedHouseholdId() ? ['/household', selectedHouseholdId()] : ['/']"
                 [disabled]="!selectedHouseholdId()"
               >
                 {{ loc.t("household.manageHousehold") }}
