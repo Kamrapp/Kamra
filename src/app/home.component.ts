@@ -1,5 +1,6 @@
 import { FormsModule } from "@angular/forms";
 import { Component, computed, effect, inject, signal } from "@angular/core";
+import { RouterLink } from "@angular/router";
 
 import { AuthService } from "./auth.service";
 import {
@@ -8,6 +9,7 @@ import {
   type HouseholdStockItemListItem,
   type HouseholdStockPage
 } from "./household/household-stock.service";
+import { HouseholdShoppingListComponent } from "./household/household-shopping-list.component";
 import { LocalizationService, type TranslationKey } from "./shared/localization.service";
 import { ToastService } from "./shared/toast.service";
 
@@ -19,9 +21,11 @@ interface StockDraft {
   displayName: string;
   gtin: string;
   id: string;
+  idealMaxLimit: number | null;
   initialAmount: number;
   minLimit: number;
   note: string;
+  productSourceId: string;
   sourceName: string;
   sourceProductUrl: string;
   stockedAt: string;
@@ -65,7 +69,7 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
 @Component({
   selector: "app-home",
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, RouterLink, HouseholdShoppingListComponent],
   template: `
     @if (!auth.isAuthenticated()) {
       <section class="home-board" aria-labelledby="home-title">
@@ -134,6 +138,7 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
       </section>
     } @else {
       <section class="stock-workspace" aria-labelledby="home-title">
+        <div class="workspace-main">
         <section class="pulse-card stock-pulse" [attr.aria-label]="loc.t('home.activityPreview')">
           <div class="pulse-topline">
             <div>
@@ -190,25 +195,35 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
               type="button"
               [attr.aria-label]="loc.t('household.generateShoppingList')"
               [attr.title]="loc.t('household.generateShoppingList')"
-              (click)="household.showShoppingListComingSoon()"
+              (click)="shoppingListPanel?.generateShoppingList()"
             >
               <span aria-hidden="true">🛒+</span>
             </button>
           </div>
 
           <div class="household-bar">
-            <label class="household-select">
-              <span>{{ loc.t("household.activeHousehold") }}</span>
-              <select
-                [ngModel]="selectedHouseholdId()"
-                (ngModelChange)="selectHousehold($event)"
-                [disabled]="loadState() === 'loading' || households().length === 0"
+            <div class="household-picker-group">
+              <label class="household-select">
+                <span>{{ loc.t("household.activeHousehold") }}</span>
+                <select
+                  [ngModel]="selectedHouseholdId()"
+                  (ngModelChange)="selectHousehold($event)"
+                  [disabled]="loadState() === 'loading' || households().length === 0"
+                >
+                  @for (household of households(); track household.id) {
+                    <option [value]="household.id">{{ household.name }}</option>
+                  }
+                </select>
+              </label>
+
+              <a
+                class="ui-button ui-button-quiet ui-button-sm"
+                [routerLink]="selectedHouseholdId() ? ['/households', selectedHouseholdId()] : ['/']"
+                [attr.aria-disabled]="!selectedHouseholdId()"
               >
-                @for (household of households(); track household.id) {
-                  <option [value]="household.id">{{ household.name }}</option>
-                }
-              </select>
-            </label>
+                {{ loc.t("household.manageHousehold") }}
+              </a>
+            </div>
 
             <button class="ui-button ui-button-quiet ui-button-sm" type="button" (click)="refreshHome()" [disabled]="loadState() === 'loading'">
               {{ loadState() === "loading" ? loc.t("common.loading") : loc.t("common.refresh") }}
@@ -296,6 +311,14 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
           }
         </section>
 
+        <app-household-shopping-list
+          #shoppingListPanel
+          [householdId]="selectedHouseholdId()"
+          [shoppingScale]="apiShoppingScale()"
+          (stockPageUpdated)="applyShoppingListStockPage($event)"
+        />
+        </div>
+
         <section class="editor-panel" [attr.aria-label]="loc.t('household.selectedItem')">
           <p class="card-kicker">{{ editorMode() === "create" ? loc.t("household.addNewItem") : loc.t("household.selectedItem") }}</p>
           <h2>{{ editorTitle() }}</h2>
@@ -347,12 +370,23 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
               <div class="additional-details">
                 <div class="split-fields">
                   <label>
+                    <span>{{ loc.t("household.idealMaxLimitOptional") }}</span>
+                    <input type="number" step="0.01" name="editorIdealMaxLimit" [(ngModel)]="editorDraft.idealMaxLimit" />
+                  </label>
+                  <label>
                     <span>{{ loc.t("household.initialAmountOptional") }}</span>
                     <input type="number" step="0.01" name="editorInitialAmount" [(ngModel)]="editorDraft.initialAmount" />
                   </label>
+                </div>
+
+                <div class="split-fields">
                   <label>
                     <span>{{ loc.t("household.stockGroupKeyOptional") }}</span>
                     <input type="text" name="editorStockGroupKey" [(ngModel)]="editorDraft.stockGroupKey" />
+                  </label>
+                  <label>
+                    <span>{{ loc.t("household.productSourceIdOptional") }}</span>
+                    <input type="text" name="editorProductSourceId" [(ngModel)]="editorDraft.productSourceId" />
                   </label>
                 </div>
 
@@ -419,6 +453,11 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
         grid-template-columns: minmax(0, 1fr);
       }
 
+      .workspace-main {
+        display: grid;
+        gap: var(--space-4);
+      }
+
       .pulse-card,
       .home-copy,
       article,
@@ -464,6 +503,7 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
 
       .pulse-topline,
       .household-bar,
+      .household-picker-group,
       .split-fields,
       .editor-actions {
         align-items: center;
@@ -1033,6 +1073,7 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
 
         .pulse-topline,
         .household-bar,
+        .household-picker-group,
         .split-fields,
         .editor-actions {
           align-items: stretch;
@@ -1093,6 +1134,13 @@ export class HomeComponent {
     this.stockItemsByPriority().filter((item) => shouldBuyForScale(item.stockStatus, this.shoppingScale()))
   );
   readonly shoppingItemCount = computed(() => this.shoppingItems().length);
+  readonly apiShoppingScale = computed<"business_as_usual" | "keep_it_chill" | "stock_em_up">(() =>
+    this.shoppingScale() === "usual"
+      ? "business_as_usual"
+      : this.shoppingScale() === "chill"
+        ? "keep_it_chill"
+        : "stock_em_up"
+  );
   readonly selectedItem = computed(() =>
     this.stockItems().find((item) => item.id === this.selectedItemId()) ?? null
   );
@@ -1206,9 +1254,11 @@ export class HomeComponent {
           displayName: draft.displayName.trim(),
           gtin: nullableTrim(draft.gtin),
           householdId,
+          idealMaxLimit: nullableNumber(draft.idealMaxLimit),
           initialAmount: initialAmountForCreate(draft),
           minLimit: draft.minLimit,
           note: nullableTrim(draft.note),
+          productSourceId: nullableTrim(draft.productSourceId),
           sourceName: nullableTrim(draft.sourceName),
           sourceProductUrl: nullableTrim(draft.sourceProductUrl),
           stockedAt: toIsoDateTime(draft.stockedAt),
@@ -1221,9 +1271,11 @@ export class HomeComponent {
           gtin: nullableTrim(draft.gtin),
           householdId,
           id: draft.id,
+          idealMaxLimit: nullableNumber(draft.idealMaxLimit),
           initialAmount: draft.initialAmount,
           minLimit: draft.minLimit,
           note: nullableTrim(draft.note),
+          productSourceId: nullableTrim(draft.productSourceId),
           sourceName: nullableTrim(draft.sourceName),
           sourceProductUrl: nullableTrim(draft.sourceProductUrl),
           stockedAt: toIsoDateTime(draft.stockedAt),
@@ -1256,6 +1308,11 @@ export class HomeComponent {
 
     this.selectedHouseholdId.set(householdId);
     await this.loadHouseholdPage(householdId, this.loadSerial);
+  }
+
+  applyShoppingListStockPage(page: HouseholdStockPage): void {
+    this.applyLoadedPage(page);
+    this.statusMessage.set(this.loc.t("household.shoppingListAppliedAndStockRefreshed"));
   }
 
   adjustEditorMinLimit(delta: number): void {
@@ -1398,9 +1455,11 @@ function createEmptyStockDraft(): StockDraft {
     displayName: "",
     gtin: "",
     id: "",
+    idealMaxLimit: null,
     initialAmount: 0,
     minLimit: 1,
     note: "",
+    productSourceId: "",
     sourceName: "",
     sourceProductUrl: "",
     stockedAt: todayDateInputValue(),
@@ -1421,6 +1480,12 @@ function clampAmount(value: number): number {
 
 function nullableTrim(value: string): string | null {
   return value.trim() || null;
+}
+
+function nullableNumber(value: number | null): number | null {
+  return typeof value === "number" && Number.isFinite(value)
+    ? value
+    : null;
 }
 
 function normalizeStockGroupKey(value: string): string {
@@ -1456,9 +1521,11 @@ function stockItemToDraft(item: HouseholdStockItemListItem): StockDraft {
     displayName: item.displayName,
     gtin: item.gtin ?? "",
     id: item.id,
+    idealMaxLimit: item.idealMaxLimit ?? null,
     initialAmount: item.initialAmount,
     minLimit: item.minLimit,
     note: item.note ?? "",
+    productSourceId: item.productSourceId ?? "",
     sourceName: item.sourceName ?? "",
     sourceProductUrl: item.sourceProductUrl ?? "",
     stockedAt: item.stockedAt.slice(0, 10),

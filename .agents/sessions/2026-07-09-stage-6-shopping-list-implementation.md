@@ -5,7 +5,7 @@
 - Date: 2026-07-09
 - Plan: `.agents/plans/2026-07-09-stage-6-shopping-list-low-stock-notices-plan.md`
 - Branch: current workspace branch
-- Current objective: continue Stage 6 Step 3 and Step 4 shopping-list completion and route work, including the admin-editable shopping-list feature toggler
+- Current objective: finish the remaining Stage 6 frontend flow and management shell, then leave a clean handoff for docs and browser verification
 
 ## Completed
 
@@ -26,6 +26,11 @@
 - Item: replaced the admin dashboard placeholder feature-flag card with a real toggle/save flow for `allowAutoTickingAllShoppingListEntries`.
 - Item: aligned shopping-list and stock validators with nullable `idealMaxLimit` values returned by the API.
 - Item: added targeted tests covering admin feature-flag reads/updates and repository-level feature-flag persistence.
+- Item: replaced the home-page shopping-list coming-soon path with a real shopping-list panel that generates, reloads, edits, quick-adds, and applies shopping-list lines through the Stage 6 household APIs.
+- Item: added a dedicated Angular household shopping-list component to keep the Stage 6 UI logic out of the already-large home component.
+- Item: added a minimal household management page shell and route at `/households/:householdId`, plus a navigation button beside the active-household selector on the home pulse.
+- Item: exposed Stage 6 stock fields `idealMaxLimit` and `productSourceId` in the home stock editor additional-details section.
+- Item: added the translation copy needed for the shopping-list panel, confirmation flow, and household-management shell in both English and Hungarian.
 
 ## Changed Files
 
@@ -46,6 +51,11 @@
 - Path: `packages/kamra-api-server/src/http/app-handler.ts`
 - Path: `packages/kamra-api-server/src/http/app-handler.test.ts`
 - Path: `api/admin/dashboard/feature-flags.ts`
+- Path: `src/app/household/household-shopping-list.component.ts`
+- Path: `src/app/household/household-management.component.ts`
+- Path: `src/app/household/household-stock.service.ts`
+- Path: `src/app/app.routes.ts`
+- Path: `src/app/home.component.ts`
 - Path: `src/app/dev-admin/admin-dashboard.component.ts`
 - Path: `src/app/i18n/en.json`
 - Path: `src/app/i18n/hu.json`
@@ -62,8 +72,14 @@
 - Result: passed
 - Ran: `npm test -- packages/kamra-api-server/src/http/app-handler.test.ts packages/kamra-api-server/src/household/current/mongo-household-repository.test.ts`
 - Result: passed
-- Not run: broader frontend/browser/lint/build validation set
-- Reason: this slice finished the backend/admin route and dashboard wiring, but no end-to-end browser validation was run in this session
+- Ran: `npm run typecheck`
+- Result: passed
+- Ran: `npm run build`
+- Result: passed
+- Ran: `npm run lint`
+- Result: passed
+- Not run: browser-level manual verification for the new shopping-list and management UI flows
+- Reason: this session completed the compile/lint/build validation set, but did not open the app to exercise the full UI flow interactively
 
 ## Decisions
 
@@ -85,23 +101,25 @@
 - Reason: the approved Stage 6 plan expects that toggle to start enabled while still allowing admin override through the dashboard.
 - Decision: accept nullable `idealMaxLimit` values in shopping-list and stock validators.
 - Reason: the shopping-list generator and persistence layer legitimately emit `null` when no ideal max is set.
+- Decision: keep the new shopping-list UI in a dedicated `src/app/household/household-shopping-list.component.ts` instead of pushing the full Stage 6 flow directly into the home component body.
+- Reason: the existing home component was already large, and isolating the Stage 6 in-store loop makes follow-up review and browser debugging easier.
 
 ## Open Issues
 
-- Issue: the Stage 6 backend routes and admin feature-toggle route are in place, but the shopping-list frontend flow itself still needs to consume the new APIs.
-- Impact: the backend/admin foundation is ready, but Stage 6 is not yet complete from a user-flow perspective.
-- Issue: browser-level validation for the admin dashboard feature-toggle card and shopping-list flow has not been run.
-- Impact: the TypeScript surface is covered, but a UI integration issue could still exist.
+- Issue: browser-level validation for the shopping-list flow, management shell, and admin feature-toggle card still has not been run.
+- Impact: the TypeScript/lint/build surface is covered, but a UI integration or layout issue could still exist.
+- Issue: Stage 6 docs have not yet been refreshed to describe the implemented shopping-list panel, management shell, and remaining UI limits.
+- Impact: the code is ahead of the durable documentation until the closeout doc pass happens.
 
 ## Roadmap Or Plan Updates
 
 - Needed: no roadmap update yet
-- Status: Step 1 and Step 2 are complete, and substantial Step 3/4 backend/admin work is now in place with targeted tests passing
+- Status: Steps 1-5 now have meaningful implementation coverage; the main remaining Stage 6 work is docs closeout plus browser/manual verification
 
 ## Next Step
 
-Continue the remaining Stage 6 frontend flow that consumes the shopping-list routes, then run browser-level validation for both the shopping-list flow and the admin feature-toggle card.
+Run browser/manual verification for the new home shopping-list flow, management shell, and admin feature-toggle card, then finish the Stage 6 documentation/closeout pass.
 
 ## Notes For Future Agent
 
-Stage 6 now has the pure generator, persistence foundations, shopping-list completion logic, shopping-list HTTP routes, and a DB-backed admin-editable `allowAutoTickingAllShoppingListEntries` toggle. Targeted backend tests and typecheck pass. The next agent should focus on the remaining frontend shopping-list flow and browser verification rather than reworking the backend toggle design again.
+Stage 6 now has the pure generator, persistence foundations, shopping-list completion logic, shopping-list HTTP routes, DB-backed admin-editable `allowAutoTickingAllShoppingListEntries` toggle, a real Angular shopping-list panel on the home screen, and a minimal household-management route shell. Typecheck, lint, build, and targeted backend tests pass. The next agent should spend time on browser/manual verification and docs closeout rather than adding more Stage 6 core behavior unless that testing reveals a concrete gap.

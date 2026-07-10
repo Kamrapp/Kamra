@@ -12,6 +12,7 @@ import {
 } from "../catalog/current/mongo-catalog-repository.js";
 import type {
   CatalogProductListItem,
+  PriceObservationRecord,
   CatalogV1SeedDataset,
   ProductMeasurement,
   SourceRecordProcessingStateRecord
@@ -128,7 +129,7 @@ export interface AppHandlerDependencies {
       status: "invalid" | "validated";
     }): Promise<CatalogProductListItem | null>;
     setupCollections?(): Promise<unknown>;
-    upsertPriceObservations?(records: readonly import("../catalog/v1/contracts.js").PriceObservationRecord[]): Promise<void>;
+    upsertPriceObservations?(records: readonly PriceObservationRecord[]): Promise<void>;
     updateCatalogProduct?(input: {
       brandName?: string | null;
       id: string;
