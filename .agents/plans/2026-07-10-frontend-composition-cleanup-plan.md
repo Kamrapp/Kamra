@@ -68,7 +68,7 @@ The initial version was intentionally broad. A second pass against the actual si
 1. Do not add a shared authenticated-request service. It would hide only a small amount of repeated `fetch` plumbing while adding a cross-cutting abstraction around otherwise clear domain services.
 2. Do not extract product-catalog or ingestion table rows into standalone components. Their markup is projected through `ResizableTableComponent`; a component host plus encapsulated styles would complicate the direct row structure, grid sizing, virtual-scroll layout, and accessibility for little reduction in page logic.
 3. Do not split every feature service's DTOs into separate model files. Create a feature-local model file only when a newly extracted child needs a shared type or a public contract becomes genuinely hard to scan.
-4. Do not make companion `.component.html` and `.component.css` files an independent cleanup step. They are appropriate only when attached to a real extracted component or after a page has become a small orchestration shell.
+4. Keep each extracted component's logic, inline template, and inline styles together in its single `.component.ts` file. Do not create companion HTML/CSS files as part of this cleanup.
 5. Create a standalone component only for a complete UI responsibility with its own markup, styles, and local presentation logic. If an extraction needs a large callback bag or mutable parent draft, redesign the boundary or retain that block in the page container.
 
 These decisions take precedence over any earlier, broader wording in this plan.
@@ -77,7 +77,7 @@ These decisions take precedence over any earlier, broader wording in this plan.
 
 - Keep route/page components as thin containers that own feature state, loading, mutation calls, and page-rail integration.
 - Extract feature-local standalone view components with explicit `input()` and `output()` contracts. Do not move mutable application state into a new global store.
-- Each extracted component owns its own `.component.ts`, `.component.html`, and `.component.css` (or equivalent inline style only when genuinely tiny). A parent may use companion files only after it has become a small composition shell.
+- Each extracted component owns its logic, inline template, and inline styles in one `.component.ts` file. This repository's cleanup convention intentionally optimizes for one maintainable component unit rather than three synchronized files.
 - Keep CSS with the component that owns its visual structure. Promote only stable, cross-feature primitives to `src/styles.css`.
 - Retain existing feature services and their explicit domain result handling; create a feature service only where a page currently has no such boundary.
 - Keep existing global design tokens and visual language. Do not adopt Bootstrap, Material, Tailwind, or another framework in this cleanup.
@@ -99,7 +99,7 @@ These decisions take precedence over any earlier, broader wording in this plan.
 - Replacing Angular or adding a CSS/component framework.
 - A generic CRUD/repository abstraction or shared authenticated-request service.
 - Redesigning the radial navigation, table virtualization, or application theme.
-- Splitting a monolith into a `.ts` file plus a same-component `.html` and `.css` file without extracting ownership.
+- Splitting a component into separate `.ts`, `.html`, and `.css` files.
 - Extracting product or ingestion table rows through the existing content-projected `ResizableTableComponent`.
 - Changing the unrelated modified backend files:
   - `packages/kamra-api-server/src/household/current/mongo-household-repository.ts`
@@ -191,7 +191,7 @@ Keep local to each feature component:
 - radial-menu geometry and page-rail-specific layout
 - dialog-specific layout and JSON review display
 
-When a real child is extracted, move its relevant markup and CSS together and preserve selector behavior during the first move. Consolidate duplicates only after a visual check. Do not create companion files solely to relocate a monolith.
+When a real child is extracted, move its relevant markup, CSS, and presentation logic together into the child `.component.ts` file and preserve selector behavior during the first move. Consolidate duplicates only after a visual check.
 
 ## Implementation Steps
 
@@ -200,8 +200,8 @@ When a real child is extracted, move its relevant markup and CSS together and pr
 - Goal: Record the frontend validation baseline, then extract the account/preferences and radial-navigation blocks as real standalone components. The parent retains auth, toast, routing, role filtering, and preference persistence.
 - Files likely affected:
   - `src/app/app.component.ts`
-  - `src/app/shared/shell-account-panel.component.*` (new)
-  - `src/app/shared/radial-navigation.component.*` (new)
+  - `src/app/shared/shell-account-panel.component.ts` (new, with inline template/styles)
+  - `src/app/shared/radial-navigation.component.ts` (new, with inline template/styles)
 - Validation:
   - `npm run test`
   - `npm run typecheck`
@@ -216,9 +216,9 @@ When a real child is extracted, move its relevant markup and CSS together and pr
 - Files likely affected:
   - `src/app/home.component.ts`
   - `src/app/household/household-home.models.ts` (new only if contracts require it)
-  - `src/app/household/household-preview-workspace.component.*` (new)
-  - `src/app/household/household-stock-panel.component.*` (new)
-  - `src/app/household/household-stock-editor.component.*` (new)
+  - `src/app/household/household-preview-workspace.component.ts` (new, with inline template/styles)
+  - `src/app/household/household-stock-panel.component.ts` (new, with inline template/styles)
+  - `src/app/household/household-stock-editor.component.ts` (new, with inline template/styles)
 - Validation:
   - `npm run typecheck`
   - `npm run lint`
@@ -231,14 +231,14 @@ When a real child is extracted, move its relevant markup and CSS together and pr
 - Goal: Give the shopping-list overview and completion surfaces their own presentation logic, then move direct developer-admin HTTP and independent admin cards behind real feature boundaries.
 - Files likely affected:
   - `src/app/household/household-shopping-list.component.ts`
-  - `src/app/household/shopping-list-overview.component.*` (new)
-  - `src/app/household/shopping-list-completion-panel.component.*` (new)
+  - `src/app/household/shopping-list-overview.component.ts` (new, with inline template/styles)
+  - `src/app/household/shopping-list-completion-panel.component.ts` (new, with inline template/styles)
   - `src/app/dev-admin/admin-dashboard.component.ts`
   - `src/app/dev-admin/admin-dashboard.service.ts` (new)
   - `src/app/dev-admin/admin-dashboard.models.ts` (new only if shared types require it)
-  - `src/app/dev-admin/admin-health-card.component.*` (new)
-  - `src/app/dev-admin/admin-feature-flags-card.component.*` (new)
-  - `src/app/dev-admin/admin-alpha-access-card.component.*` (new)
+  - `src/app/dev-admin/admin-health-card.component.ts` (new, with inline template/styles)
+  - `src/app/dev-admin/admin-feature-flags-card.component.ts` (new, with inline template/styles)
+  - `src/app/dev-admin/admin-alpha-access-card.component.ts` (new, with inline template/styles)
 - Validation:
   - `npm run typecheck`
   - `npm run lint`
@@ -251,11 +251,11 @@ When a real child is extracted, move its relevant markup and CSS together and pr
 - Goal: Extract table-level components that own their HTML, CSS, row-formatting logic, and scroll/selection intents without wrapping individual projected rows.
 - Files likely affected:
   - `src/app/product-lookup/product-catalog.component.ts`
-  - `src/app/product-lookup/product-catalog-filter-bar.component.*` (new)
-  - `src/app/product-lookup/product-catalog-table.component.*` (new)
+  - `src/app/product-lookup/product-catalog-filter-bar.component.ts` (new, with inline template/styles)
+  - `src/app/product-lookup/product-catalog-table.component.ts` (new, with inline template/styles)
   - `src/app/site-admin/ingestion-admin.component.ts`
-  - `src/app/site-admin/ingestion-snapshot-table.component.*` (new)
-  - `src/app/site-admin/ingestion-detail-table.component.*` (new)
+  - `src/app/site-admin/ingestion-snapshot-table.component.ts` (new, with inline template/styles)
+  - `src/app/site-admin/ingestion-detail-table.component.ts` (new, with inline template/styles)
 - Validation:
   - `npm run typecheck`
   - `npm run lint`
