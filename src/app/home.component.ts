@@ -89,9 +89,9 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
   template: `
     @if (!auth.isAuthenticated()) {
       <section class="stock-workspace" aria-labelledby="home-title">
-        <section class="stock-panel preview-surface" [attr.aria-label]="loc.t('home.activityPreview')">
+        <section class="stock-panel preview-surface" [attr.aria-label]="loc.t('household.stockPanelLabel')">
           <div class="panel-topline">
-            <p class="panel-title" id="home-title">{{ loc.t("home.liveTitle") }}</p>
+            <p class="panel-title" id="home-title">{{ loc.t("household.stockPanelTitle") }}</p>
           </div>
 
           <div class="household-bar">
@@ -234,9 +234,9 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
       </section>
     } @else {
       <section class="stock-workspace" aria-labelledby="home-title">
-        <section class="stock-panel" [attr.aria-label]="loc.t('home.activityPreview')">
+        <section class="stock-panel" [attr.aria-label]="loc.t('household.stockPanelLabel')">
           <div class="panel-topline">
-            <p class="panel-title" id="home-title">{{ loc.t("home.liveTitle") }}</p>
+            <p class="panel-title" id="home-title">{{ loc.t("household.stockPanelTitle") }}</p>
           </div>
 
           <div class="household-bar">
@@ -514,7 +514,6 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
         --scale-stock-up: #ec6758;
       }
 
-      .home-board,
       .stock-workspace {
         align-items: stretch;
         display: grid;
@@ -522,8 +521,6 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
         grid-template-columns: minmax(0, 1fr);
       }
 
-      .home-copy,
-      article,
       .stock-panel,
       .state-panel,
       .editor-panel {
@@ -577,7 +574,6 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
         cursor: not-allowed;
       }
 
-      .home-copy,
       .state-panel {
         align-content: center;
         display: grid;
@@ -585,19 +581,9 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
         padding: clamp(1.1rem, 3vw, 1.75rem);
       }
 
-      h1,
       h2,
-      p,
-      dl,
-      dd {
+      p {
         margin: 0;
-      }
-
-      h1 {
-        color: var(--color-text);
-        font-family: var(--font-display);
-        font-size: 2.55rem;
-        line-height: 1.04;
       }
 
       .panel-title {
@@ -613,13 +599,12 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
       .row-title {
         color: var(--color-text);
       }
-        
+
       .status-note {
         color: var(--color-text-muted);
         line-height: 0;
       }
 
-      .home-copy > p,
       .empty-copy,
       .state-panel p {
         color: var(--color-text-muted);
@@ -900,90 +885,18 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
         padding-top: var(--space-3);
       }
 
-      .mini-stats {
-        display: grid;
-        gap: var(--space-3);
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-      }
-
-      .shopping-scale-copy {
-        margin: 0;
-      }
-
-      .mini-stats div {
-        background: var(--surface-soft-background);
-        border-radius: var(--radius-ui);
-        display: grid;
-        gap: 0.2rem;
-        min-height: 4.6rem;
-        padding: 0.8rem;
-      }
-
-      dt {
-        color: var(--color-text-muted);
-        font-size: 0.74rem;
-        font-weight: 700;
-        text-transform: uppercase;
-      }
-
-      dd {
-        color: var(--color-text);
-        font-size: 1.4rem;
-        font-weight: 700;
-      }
-
-      .placeholder-grid {
-        display: grid;
-        gap: var(--space-4);
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-      }
-
-      article {
-        display: grid;
-        gap: var(--space-2);
-        min-height: 10rem;
-        padding: clamp(1rem, 2vw, 1.25rem);
-      }
-
       .state-panel-error {
         border-color: color-mix(in srgb, var(--color-status-danger) 45%, var(--line-panel));
       }
 
-      @keyframes breathe {
-        0%,
-        100% {
-          opacity: 0.55;
-          transform: scale(0.94);
-        }
-
-        50% {
-          opacity: 1;
-          transform: scale(1.03);
-        }
-      }
-
       @media (min-width: 900px) {
-        .home-board {
-          grid-template-columns: minmax(20rem, 0.85fr) minmax(0, 1.15fr);
-        }
-
         .stock-workspace {
           grid-template-columns: minmax(26rem, 1.2fr) minmax(20rem, 0.8fr);
           grid-template-rows: auto auto auto;
         }
       }
 
-      @media (max-width: 900px) {
-        .placeholder-grid {
-          grid-template-columns: 1fr;
-        }
-      }
-
       @media (max-width: 740px) {
-        .mini-stats {
-          grid-template-columns: 1fr;
-        }
-
         .panel-topline,
         .household-bar,
         .household-picker-group,
@@ -1414,10 +1327,10 @@ export class HomeComponent implements OnDestroy {
 
   stockStatusTranslationKey(status: HouseholdStockItemListItem["stockStatus"]): TranslationKey {
     const keys = {
-      at_limit: "home.atLimit",
-      below_limit: "home.belowLimit",
-      low_soon: "home.lowSoon",
-      steady: "home.steady"
+      at_limit: "household.atLimit",
+      below_limit: "household.belowLimit",
+      low_soon: "household.lowSoonShort",
+      steady: "household.steady"
     } as const;
 
     return keys[status];
