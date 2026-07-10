@@ -15,7 +15,7 @@ import {
   catalogProductValidationRoute,
   catalogSourcesRoute
 } from "./routes/catalog-routes.js";
-import { currentUserRoute, loginRoute, logoutRoute, userPreferencesRoute } from "./routes/auth-routes.js";
+import { createAlphaUserRoute, currentUserRoute, loginRoute, logoutRoute, userPreferencesRoute } from "./routes/auth-routes.js";
 import {
   adminDashboardHealthRoute,
   adminDashboardFeatureFlagsRoute,
@@ -51,6 +51,7 @@ const appRoutes: AppRoute[] = [
   healthzRoute,
   logRoute,
   loginRoute,
+  createAlphaUserRoute,
   logoutRoute,
   currentUserRoute,
   userPreferencesRoute,

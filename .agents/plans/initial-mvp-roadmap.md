@@ -23,7 +23,7 @@ Roadmap priorities:
 | Stage 4 | Crawler intake and processing pipeline | Completed | Current in-scope ingestion, processing, operator review, product acceptance, source filtering, accepted-item hiding, strict new-ingestion collection validators, and explicit accept create/merge confirmation are in place. SPAR and Tesco are moved out of Stage 4 and should be revisited near the end of the MVP. |
 | Stage 5 | Household stock foundation | Completed | User-owned household collections, membership-checked routes, demo household reseed, signed-in home pulse/editor, shopping-scale preview, admin dashboard controls, and durable `docs/household.md` are in place. |
 | Stage 6 | Shopping list and low-stock notices | Completed | Deterministic shopping-list generation, DB-backed auto-tick feature toggle, household workspace refactor, start-fresh flow, read-only product browsing for signed-in users, About page, and logout redirect are implemented; browser/manual verification remains the main closeout task. |
-| Stage 7 | Controlled alpha access and app module shell | Planned | Move external demo access later, after household and list value exist; keep public/product, household, site-admin, and dev-admin concerns visibly separate. |
+| Stage 7 | Controlled alpha access and app module shell | Implemented | Admin-created alpha users with database-backed creation/login gating, empty household allocation, and direct product-lookup, household, site-admin, and dev-admin route grouping are implemented. |
 | Stage 8 | Expiry and buffer logic | Planned | This completes the first strong product MVP loop with buy-before style usefulness. |
 
 Non-MVP and post-MVP ideas are tracked in `mvp-followups.md` so this roadmap stays focused on the shortest useful household grocery-planning MVP.
@@ -353,11 +353,12 @@ Scope slice:
 
 Validation:
 
-- alpha/demo access fails for identities the admin has not allowed or created
-- alpha/demo access succeeds for the controlled identity path
-- feature flag disabled means no onboarding path is available
+- unauthenticated and non-admin alpha creation fails
+- alpha creation succeeds only when the database-backed flag is enabled
+- each created alpha identity receives an empty household with initial owner membership
+- disabling the flag blocks alpha-marked login while leaving demo and bootstrap identities unaffected
 - external users cannot access admin, dev-admin, or other household data
-- navigation grouping keeps module boundaries visible even if the UI remains simple
+- direct navigation paths keep product lookup, household, site-admin, and dev-admin boundaries visible
 
 ## Stage 8: Expiry And Buffer Logic
 

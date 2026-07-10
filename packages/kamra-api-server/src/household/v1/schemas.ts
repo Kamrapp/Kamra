@@ -66,7 +66,7 @@ const householdStockItemStatusSchema = {
 };
 
 const householdFeatureFlagKeySchema = {
-  enum: ["allowAutoTickingAllShoppingListEntries"]
+  enum: ["allowAutoTickingAllShoppingListEntries", "allowControlledAlphaAccess"]
 };
 
 const householdShoppingListStatusSchema = {

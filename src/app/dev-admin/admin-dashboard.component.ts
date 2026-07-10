@@ -50,6 +50,15 @@ interface FeatureFlagListItem {
   key: string;
 }
 
+interface AlphaUserCreationResponse {
+  household?: {
+    name: string;
+  };
+  user?: {
+    email: string;
+  };
+}
+
 type AsyncActionState = "idle" | "loading" | "error" | "success";
 
 @Component({
@@ -59,7 +68,7 @@ type AsyncActionState = "idle" | "loading" | "error" | "success";
     <section class="page-shell admin-dashboard-page" aria-labelledby="admin-dashboard-title">
       <div class="page-intro admin-dashboard-copy">
         <p class="ui-kicker">{{ loc.t("health.runtime") }}</p>
-        <h1 id="admin-dashboard-title" class="page-title">{{ loc.t("common.adminDashboard") }}</h1>
+        <h1 id="admin-dashboard-title" class="page-title">{{ loc.t("common.devAdmin") }}</h1>
         <p class="page-lead">
           {{ loc.t("health.description") }}
         </p>
@@ -89,7 +98,7 @@ type AsyncActionState = "idle" | "loading" | "error" | "success";
         <section class="ui-panel-card status-panel unauthorized-panel" aria-live="polite">
           <div class="status-heading">
             <p class="ui-kicker">{{ loc.t("common.adminOnly") }}</p>
-            <p class="status-summary">{{ loc.t("common.adminDashboard") }}</p>
+            <p class="status-summary">{{ loc.t("common.devAdmin") }}</p>
           </div>
           <p class="status-message">
             {{ loc.t("health.adminOnlyDescription") }}
@@ -204,6 +213,63 @@ type AsyncActionState = "idle" | "loading" | "error" | "success";
               </button>
             </div>
             @if (featureFlagsMessage(); as message) {
+              <p class="maintenance-message">{{ message }}</p>
+            }
+          </article>
+
+          <article class="ui-panel-card status-panel utility-card alpha-access-card">
+            <div class="status-heading">
+              <p class="ui-kicker">{{ loc.t("health.alphaAccessKicker") }}</p>
+              <p class="status-summary">{{ loc.t("health.alphaAccessTitle") }}</p>
+            </div>
+            <p class="status-message">{{ loc.t("health.alphaAccessDescription") }}</p>
+            <label class="placeholder-row" for="controlled-alpha-access-flag">
+              <span>{{ loc.t("health.alphaAccessEnabled") }}</span>
+              <input
+                id="controlled-alpha-access-flag"
+                type="checkbox"
+                [checked]="allowControlledAlphaAccessEnabled()"
+                [disabled]="featureFlagsState() === 'loading' || !isAdminUser()"
+                (change)="setAllowControlledAlphaAccessEnabled($any($event.target).checked)"
+              >
+            </label>
+            <div class="alpha-form">
+              <label for="alpha-user-email">{{ loc.t("health.alphaUserEmail") }}</label>
+              <input
+                id="alpha-user-email"
+                type="email"
+                autocomplete="off"
+                [value]="alphaUserEmail()"
+                (input)="alphaUserEmail.set($any($event.target).value)"
+              >
+              <label for="alpha-user-password">{{ loc.t("health.alphaUserPassword") }}</label>
+              <input
+                id="alpha-user-password"
+                type="password"
+                autocomplete="new-password"
+                [value]="alphaUserPassword()"
+                (input)="alphaUserPassword.set($any($event.target).value)"
+              >
+            </div>
+            <div class="button-row">
+              <button
+                class="run-button ui-button"
+                type="button"
+                (click)="saveAlphaAccessFlag()"
+                [disabled]="isMaintenanceBusy()"
+              >
+                {{ featureFlagsState() === "loading" ? loc.t("health.updating") : loc.t("health.saveAlphaAccess") }}
+              </button>
+              <button
+                class="run-button ui-button"
+                type="button"
+                (click)="createAlphaUser()"
+                [disabled]="isMaintenanceBusy() || !allowControlledAlphaAccessEnabled()"
+              >
+                {{ alphaUserState() === "loading" ? loc.t("health.creatingAlphaUser") : loc.t("health.createAlphaUser") }}
+              </button>
+            </div>
+            @if (alphaUserMessage(); as message) {
               <p class="maintenance-message">{{ message }}</p>
             }
           </article>
@@ -339,6 +405,28 @@ type AsyncActionState = "idle" | "loading" | "error" | "success";
         text-transform: uppercase;
       }
 
+      .alpha-form {
+        display: grid;
+        gap: 0.35rem;
+      }
+
+      .alpha-form label {
+        color: var(--color-text-muted);
+        font-size: 0.78rem;
+        font-weight: 700;
+      }
+
+      .alpha-form input {
+        background: var(--form-field-background);
+        border: 1px solid var(--line-panel);
+        border-radius: var(--radius-ui);
+        color: var(--color-text);
+        font: inherit;
+        min-height: 2.15rem;
+        padding: 0.45rem 0.62rem;
+        width: 100%;
+      }
+
       .check-card {
         background: var(--surface-soft-background);
         border: 1px solid var(--line-subtle);
@@ -450,6 +538,11 @@ export class AdminDashboardComponent implements OnInit {
   readonly featureFlagsMessage = signal("");
   readonly featureFlagsState = signal<AsyncActionState>("idle");
   readonly allowAutoTickingAllShoppingListEntriesEnabled = signal(true);
+  readonly allowControlledAlphaAccessEnabled = signal(false);
+  readonly alphaUserEmail = signal("");
+  readonly alphaUserPassword = signal("");
+  readonly alphaUserMessage = signal("");
+  readonly alphaUserState = signal<AsyncActionState>("idle");
   readonly validatorUpgradeMessage = signal("");
   readonly validatorUpgradeState = signal<AsyncActionState>("idle");
   readonly healthChecks = computed((): HealthCheckItem[] => {
@@ -486,6 +579,7 @@ export class AdminDashboardComponent implements OnInit {
     this.healthState() === "loading"
       || this.demoSeedState() === "loading"
       || this.featureFlagsState() === "loading"
+      || this.alphaUserState() === "loading"
       || this.invalidationState() === "loading"
       || this.validatorUpgradeState() === "loading"
   );
@@ -793,6 +887,9 @@ export class AdminDashboardComponent implements OnInit {
       this.allowAutoTickingAllShoppingListEntriesEnabled.set(
         featureFlags.find((flag) => flag.key === "allowAutoTickingAllShoppingListEntries")?.enabled ?? true
       );
+      this.allowControlledAlphaAccessEnabled.set(
+        featureFlags.find((flag) => flag.key === "allowControlledAlphaAccess")?.enabled ?? false
+      );
       this.featureFlagsState.set(response.ok ? "success" : "error");
       this.featureFlagsMessage.set(response.ok ? "" : message);
     } catch (error: unknown) {
@@ -808,6 +905,64 @@ export class AdminDashboardComponent implements OnInit {
     this.allowAutoTickingAllShoppingListEntriesEnabled.set(enabled);
   }
 
+  setAllowControlledAlphaAccessEnabled(enabled: boolean): void {
+    this.allowControlledAlphaAccessEnabled.set(enabled);
+  }
+
+  async saveAlphaAccessFlag(): Promise<void> {
+    if (!this.requireAdminAccess(this.featureFlagsState, this.featureFlagsMessage, "health.signInBeforeFeatureFlags")) {
+      return;
+    }
+
+    await this.saveFeatureFlag("allowControlledAlphaAccess", this.allowControlledAlphaAccessEnabled());
+  }
+
+  async createAlphaUser(): Promise<void> {
+    if (!this.requireAdminAccess(this.alphaUserState, this.alphaUserMessage, "health.signInBeforeFeatureFlags")) {
+      return;
+    }
+
+    this.alphaUserState.set("loading");
+    this.alphaUserMessage.set("");
+
+    try {
+      const response = await this.fetchAdminDashboardRoute("/api/admin/alpha-users", {
+        body: JSON.stringify({
+          email: this.alphaUserEmail(),
+          password: this.alphaUserPassword()
+        }),
+        headers: {
+          accept: "application/json",
+          "content-type": "application/json",
+          ...this.auth.getAuthorizationHeaders()
+        },
+        method: "POST"
+      });
+      const { message, payload } = await this.readRoutePayload<AlphaUserCreationResponse>(
+        response,
+        this.loc.t("health.alphaUserCreateFailure")
+      );
+
+      if (!response.ok || !payload?.user?.email) {
+        this.alphaUserState.set("error");
+        this.alphaUserMessage.set(message);
+        this.toast.push(message, "error");
+        return;
+      }
+
+      this.alphaUserPassword.set("");
+      this.alphaUserState.set("success");
+      this.alphaUserMessage.set(this.loc.t("health.alphaUserCreateSuccess", {
+        email: payload.user.email,
+        household: payload.household?.name ?? ""
+      }));
+    } catch {
+      this.alphaUserState.set("error");
+      this.alphaUserMessage.set(this.loc.t("health.alphaUserCreateFailure"));
+      this.toast.push(this.loc.t("health.alphaUserCreateFailure"), "error");
+    }
+  }
+
   async saveShoppingListFeatureFlags(): Promise<void> {
     if (!this.requireAdminAccess(this.featureFlagsState, this.featureFlagsMessage, "health.signInBeforeFeatureFlags")) {
       return;
@@ -816,12 +971,19 @@ export class AdminDashboardComponent implements OnInit {
     this.featureFlagsState.set("loading");
     this.featureFlagsMessage.set("");
 
+    await this.saveFeatureFlag(
+      "allowAutoTickingAllShoppingListEntries",
+      this.allowAutoTickingAllShoppingListEntriesEnabled()
+    );
+  }
+
+  private async saveFeatureFlag(key: string, enabled: boolean): Promise<void> {
+    this.featureFlagsState.set("loading");
+    this.featureFlagsMessage.set("");
+
     try {
       const response = await this.fetchAdminDashboardRoute("/api/admin/dashboard/feature-flags", {
-        body: JSON.stringify({
-          enabled: this.allowAutoTickingAllShoppingListEntriesEnabled(),
-          key: "allowAutoTickingAllShoppingListEntries"
-        }),
+        body: JSON.stringify({ enabled, key }),
         headers: {
           accept: "application/json",
           "content-type": "application/json",
@@ -841,6 +1003,11 @@ export class AdminDashboardComponent implements OnInit {
       );
       const featureFlags = payload?.featureFlags ?? [];
       this.featureFlags.set(featureFlags);
+      if (key === "allowControlledAlphaAccess") {
+        this.allowControlledAlphaAccessEnabled.set(
+          featureFlags.find((flag) => flag.key === key)?.enabled ?? enabled
+        );
+      }
       this.featureFlagsState.set(response.ok ? "success" : "error");
       this.featureFlagsMessage.set(response.ok
         ? this.loc.t("health.featureFlagsSaveSuccess")

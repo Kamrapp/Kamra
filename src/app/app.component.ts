@@ -682,23 +682,23 @@ export class AppComponent implements OnInit {
       angle: 195,
       exact: false,
       iconPath: "M12 2 4 5v6c0 5 3.4 9.7 8 11 4.6-1.3 8-6 8-11V5l-8-3Zm0 2.1 6 2.25v4.53c0 3.9-2.44 7.54-6 8.88-3.56-1.34-6-4.98-6-8.88V6.35L12 4.1Zm-1 3.4h2v4h-2v-4Zm0 5h2v2h-2v-2Z",
-      labelKey: "common.adminDashboard",
-      path: "/admin/dashboard",
+      labelKey: "common.devAdmin",
+      path: "/dev-admin",
       requiresAdmin: true
     },
     {
       angle: 165,
       exact: false,
       iconPath: "M5 5H19V8H5V5ZM5 10.5H19V13.5H5V10.5ZM5 16H19V19H5V16Z",
-      labelKey: "common.products" as const,
-      path: "/products"
+      labelKey: "common.productLookup",
+      path: "/product-lookup"
     },
     {
       angle: 135,
       exact: false,
       iconPath: "M4 5H20V9H4V5ZM6 11H18V14H6V11ZM8 16H16V19H8V16Z",
-      labelKey: "common.crawls" as const,
-      path: "/admin/ingestion",
+      labelKey: "common.siteAdmin",
+      path: "/site-admin/ingestion",
       requiresAdmin: true
     }
   ];
@@ -804,11 +804,11 @@ export class AppComponent implements OnInit {
   }
 
   private pageTitleForUrl(url: string): string {
-    if (url.startsWith("/admin/ingestion")) {
-      return this.loc.t("common.crawls");
+    if (url.startsWith("/site-admin/ingestion")) {
+      return this.loc.t("common.siteAdmin");
     }
 
-    if (url.startsWith("/products")) {
+    if (url.startsWith("/product-lookup")) {
       return this.loc.t("app.productOffers");
     }
 
@@ -816,8 +816,8 @@ export class AppComponent implements OnInit {
       return this.loc.t("about.pageTitle");
     }
 
-    if (url.startsWith("/admin/dashboard") || url.startsWith("/health")) {
-      return this.loc.t("common.adminDashboard");
+    if (url.startsWith("/dev-admin") || url.startsWith("/health")) {
+      return this.loc.t("common.devAdmin");
     }
 
     return this.loc.t("app.home");

@@ -10,10 +10,25 @@ import {
 class InMemoryUserRepository implements UserRepository {
   constructor(private readonly user: UserDocument | null) {}
 
+  async createAlphaUser(input: Parameters<UserRepository["createAlphaUser"]>[0]): Promise<UserDocument> {
+    return {
+      alphaAccess: input.alphaAccess,
+      authProvider: "bootstrap_credentials",
+      email: input.email,
+      passwordHash: input.passwordHash,
+      role: input.role,
+      status: input.status
+    };
+  }
+
   async findActiveUserByEmail(email: string): Promise<UserDocument | null> {
     return this.user?.email === email && this.user.status === "active"
       ? this.user
       : null;
+  }
+
+  async findUserByEmail(email: string): Promise<UserDocument | null> {
+    return this.user?.email === email ? this.user : null;
   }
 
   async updateUserProfile(email: string, profile: UserDocument["profile"]): Promise<UserDocument | null> {
@@ -128,6 +143,26 @@ describe("authenticateUser", () => {
       "admin@kamra.test",
       "correct-password",
       repository
+    )).resolves.toEqual({ status: "invalid_credentials" });
+  });
+
+  it("rejects an alpha user when alpha access is disabled", async () => {
+    const repository = new InMemoryUserRepository(
+      await createUser("correct-password", {
+        alphaAccess: {
+          createdAt: new Date("2026-07-10T10:00:00.000Z"),
+          createdByUserId: "admin@kamra.test"
+        },
+        email: "alpha@kamra.test",
+        role: "user"
+      })
+    );
+
+    await expect(authenticateUser(
+      "alpha@kamra.test",
+      "correct-password",
+      repository,
+      { alphaAccessEnabled: false }
     )).resolves.toEqual({ status: "invalid_credentials" });
   });
 });

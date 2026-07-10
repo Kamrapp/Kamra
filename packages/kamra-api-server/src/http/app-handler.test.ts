@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import type { UserDocument, UserRepository } from "../auth/user-auth.js";
 import { createUserToken } from "../auth/user-token.js";
 import { MongoHouseholdRepository } from "../household/current/mongo-household-repository.js";
 import { createFakeDb } from "../test-support/fake-mongo.js";
@@ -126,6 +127,10 @@ describe("handleAppRequest auth guards", () => {
         {
           enabled: true,
           key: "allowAutoTickingAllShoppingListEntries"
+        },
+        {
+          enabled: false,
+          key: "allowControlledAlphaAccess"
         }
       ]
     });
@@ -159,6 +164,110 @@ describe("handleAppRequest auth guards", () => {
         }
       ]
     });
+  });
+
+  it("creates alpha users with an empty household and blocks their login when disabled", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "admin@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "admin",
+      secret: "test-secret"
+    });
+    const db = createFakeDb();
+    const householdRepository = new MongoHouseholdRepository(db);
+    await householdRepository.setupCollections();
+    const alphaUsers = new Map<string, UserDocument>();
+    const userRepository: UserRepository = {
+      createAlphaUser: async (input) => {
+        const user: UserDocument = {
+          alphaAccess: input.alphaAccess,
+          authProvider: "bootstrap_credentials",
+          email: input.email,
+          passwordHash: input.passwordHash,
+          role: input.role,
+          status: input.status
+        };
+        alphaUsers.set(user.email, user);
+        return user;
+      },
+      findActiveUserByEmail: async (email) => {
+        const user = alphaUsers.get(email);
+        return user?.status === "active" ? user : null;
+      },
+      findUserByEmail: async (email) => alphaUsers.get(email) ?? null,
+      updateUserProfile: async () => null
+    };
+    const dependencies = {
+      createHouseholdRepository: () => householdRepository,
+      createUserRepository: () => userRepository,
+      getMongoClient: async () => ({
+        db: () => db
+      }) as never
+    };
+
+    await householdRepository.updateFeatureFlag({
+      enabled: true,
+      key: "allowControlledAlphaAccess",
+      updatedAt: "2026-07-10T10:00:00.000Z",
+      updatedByUserId: "admin@kamra.test"
+    });
+
+    const createResponse = await handleAppRequest(
+      {
+        bodyText: JSON.stringify({
+          email: "alpha@kamra.test",
+          password: "correct-password"
+        }),
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "POST",
+        path: "/api/admin/alpha-users"
+      },
+      dependencies
+    );
+
+    expect(createResponse.status).toBe(201);
+    expect(JSON.parse(createResponse.body)).toMatchObject({
+      household: {
+        memberCount: 1,
+        name: "alpha@kamra.test household"
+      },
+      user: {
+        email: "alpha@kamra.test",
+        role: "user"
+      }
+    });
+    expect(JSON.parse(createResponse.body)).not.toHaveProperty("password");
+    expect((await householdRepository.listHouseholdsForUser("alpha@kamra.test"))).toHaveLength(1);
+
+    await householdRepository.updateFeatureFlag({
+      enabled: false,
+      key: "allowControlledAlphaAccess",
+      updatedAt: "2026-07-10T10:01:00.000Z",
+      updatedByUserId: "admin@kamra.test"
+    });
+
+    const loginResponse = await handleAppRequest(
+      {
+        bodyText: JSON.stringify({
+          email: "alpha@kamra.test",
+          password: "correct-password"
+        }),
+        headers: {},
+        method: "POST",
+        path: "/api/login"
+      },
+      dependencies
+    );
+
+    expect(loginResponse.status).toBe(401);
+    expect(JSON.parse(loginResponse.body)).toEqual({ error: "invalid_credentials" });
   });
 
   it("lists household stock for a signed-in household member", async () => {
@@ -1127,7 +1236,16 @@ describe("handleAppRequest auth guards", () => {
       },
       {
         createUserRepository: () => ({
+          createAlphaUser: async (input) => ({
+            alphaAccess: input.alphaAccess,
+            authProvider: "bootstrap_credentials" as const,
+            email: input.email,
+            passwordHash: input.passwordHash,
+            role: input.role,
+            status: input.status
+          }),
           findActiveUserByEmail: async () => null,
+          findUserByEmail: async () => null,
           updateUserProfile: async (email, profile) => ({
             authProvider: "bootstrap_credentials" as const,
             email,

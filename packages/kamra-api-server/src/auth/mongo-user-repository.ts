@@ -9,11 +9,32 @@ export class MongoUserRepository implements UserRepository {
     this.usersCollection = database.collection<UserDocument>("users");
   }
 
+  async createAlphaUser(input: Parameters<UserRepository["createAlphaUser"]>[0]): Promise<UserDocument> {
+    const now = new Date();
+    const user: UserDocument = {
+      alphaAccess: input.alphaAccess,
+      authProvider: "bootstrap_credentials",
+      createdAt: now,
+      email: input.email,
+      passwordHash: input.passwordHash,
+      role: input.role,
+      status: input.status,
+      updatedAt: now
+    };
+
+    await this.usersCollection.insertOne(user);
+    return user;
+  }
+
   async findActiveUserByEmail(email: string): Promise<UserDocument | null> {
     return await this.usersCollection.findOne({
       email,
       status: "active"
     });
+  }
+
+  async findUserByEmail(email: string): Promise<UserDocument | null> {
+    return await this.usersCollection.findOne({ email });
   }
 
   async updateUserProfile(email: string, profile: UserProfile): Promise<UserDocument | null> {
