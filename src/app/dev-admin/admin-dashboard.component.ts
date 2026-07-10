@@ -3,6 +3,7 @@ import { Component, computed, inject, signal, type OnInit, type WritableSignal }
 import { buildApiUrl } from "../api-url";
 import { logBrowserEvent } from "../browser-logger";
 import { AuthService } from "../auth.service";
+import { DatabaseMaintenanceComponent } from "./database-maintenance.component";
 import { readApiErrorMessage } from "../shared/api-errors";
 import { LocalizationService, type TranslationKey } from "../shared/localization.service";
 import { ToastService } from "../shared/toast.service";
@@ -64,6 +65,7 @@ type AsyncActionState = "idle" | "loading" | "error" | "success";
 @Component({
   selector: "app-admin-dashboard",
   standalone: true,
+  imports: [DatabaseMaintenanceComponent],
   template: `
     <section class="page-shell admin-dashboard-page" aria-labelledby="admin-dashboard-title">
       <div class="page-intro admin-dashboard-copy">
@@ -274,42 +276,8 @@ type AsyncActionState = "idle" | "loading" | "error" | "success";
             }
           </article>
 
-          <article class="ui-panel-card status-panel utility-card">
-            <div class="status-heading">
-              <p class="ui-kicker">{{ loc.t("health.modifierKicker") }}</p>
-              <p class="status-summary">{{ loc.t("health.modifierTitle") }}</p>
-            </div>
-            <p class="status-message">{{ loc.t("health.modifierDescription") }}</p>
-            <div class="button-row">
-              <button
-                class="maintenance-button ui-button ui-button-warm"
-                type="button"
-                [title]="loc.t('health.upgradeTitle')"
-                (click)="upgradeCatalogValidators()"
-                [disabled]="isMaintenanceBusy()"
-              >
-                {{ validatorUpgradeState() === "loading" ? loc.t("health.upgrading") : loc.t("health.upgradeValidators") }}
-              </button>
+          <app-database-maintenance />
 
-              <button
-                class="maintenance-button ui-button ui-button-warm"
-                type="button"
-                [title]="loc.t('health.backfillTitle')"
-                (click)="backfillLegacyProductsAsUnvalidated()"
-                [disabled]="isMaintenanceBusy()"
-              >
-                {{ invalidationState() === "loading" ? loc.t("health.updating") : loc.t("health.unvalidated") }}
-              </button>
-            </div>
-
-            @if (validatorUpgradeMessage(); as message) {
-              <p class="maintenance-message">{{ message }}</p>
-            }
-
-            @if (invalidationMessage(); as message) {
-              <p class="maintenance-message">{{ message }}</p>
-            }
-          </article>
         </section>
       }
     </section>

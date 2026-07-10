@@ -222,6 +222,8 @@ The developer-admin dashboard also keeps read-only runtime health checks separat
 
 Stage 7 controlled alpha access is documented in [docs/access.md](./access.md). It is admin-created, public registration remains closed, and the database-backed `allowControlledAlphaAccess` flag blocks both alpha-user creation and alpha-marked login when disabled.
 
+Database structural changes are operated through the developer-admin database maintenance table at `/dev-admin`. Each registry entry has separate `Update validators` and `Migrate data` actions, plus `Mark as complete` for work verified outside Kamra. `Run all` executes incomplete actions sequentially and stops at the first failure. Successful action state is stored in `database_maintenance_runs`; entries with both actions complete are shown under `Finished entries`. Future changes that alter a MongoDB validator or existing document shape must add a stable entry to the registry and provide an idempotent migration before the change is considered complete.
+
 For the full household stock model, current Stage 5 behavior, seeded rows, and Stage 6 handoff, see [docs/household.md](./household.md).
 
 Catalog seed direction:

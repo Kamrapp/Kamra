@@ -1356,6 +1356,166 @@ describe("handleAppRequest auth guards", () => {
     });
   });
 
+  it("lists and tracks database validator and migration actions", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "admin@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "admin",
+      secret: "test-secret"
+    });
+    const db = createFakeDb();
+    const repository = new MongoHouseholdRepository(db);
+    await repository.setupCollections();
+    await repository.createHousehold({
+      createdAt: "2026-07-10T10:00:00.000Z",
+      createdByUserId: "user@kamra.test",
+      id: "household-maintenance-test",
+      name: "Maintenance test household"
+    });
+    const dependencies = {
+      createHouseholdRepository: () => repository,
+      getMongoClient: async () => ({
+        db: () => db
+      }) as never
+    };
+    const requestHeaders = {
+      authorization: `Bearer ${token}`
+    };
+
+    const initialResponse = await handleAppRequest({
+      headers: requestHeaders,
+      method: "GET",
+      path: "/api/admin/database-maintenance"
+    }, dependencies);
+    expect(initialResponse.status).toBe(200);
+    expect(JSON.parse(initialResponse.body)).toMatchObject({
+      entries: [
+        {
+          id: "catalog-product-validation",
+          migrationCompleted: false,
+          validatorUpdated: false
+        },
+        {
+          id: "household-fields",
+          migrationCompleted: false,
+          validatorUpdated: false
+        }
+      ]
+    });
+
+    const manualCompletionResponse = await handleAppRequest({
+      bodyText: JSON.stringify({ entryId: "catalog-product-validation" }),
+      headers: requestHeaders,
+      method: "POST",
+      path: "/api/admin/database-maintenance/complete"
+    }, dependencies);
+    expect(manualCompletionResponse.status).toBe(200);
+    expect(JSON.parse(manualCompletionResponse.body)).toMatchObject({
+      manuallyMarkedComplete: true,
+      state: {
+        completionMarkedByUserId: "admin@kamra.test",
+        migrationCompletedByUserId: "admin@kamra.test",
+        validatorUpdatedByUserId: "admin@kamra.test"
+      }
+    });
+
+    const validatorResponse = await handleAppRequest({
+      bodyText: JSON.stringify({ entryId: "household-fields" }),
+      headers: requestHeaders,
+      method: "POST",
+      path: "/api/admin/database-maintenance/validators"
+    }, dependencies);
+    expect(validatorResponse.status).toBe(200);
+
+    const migrationResponse = await handleAppRequest({
+      bodyText: JSON.stringify({ entryId: "household-fields" }),
+      headers: requestHeaders,
+      method: "POST",
+      path: "/api/admin/database-maintenance/migrations"
+    }, dependencies);
+    expect(migrationResponse.status).toBe(200);
+    expect(JSON.parse(migrationResponse.body)).toMatchObject({
+      result: {
+        updatedCount: 1
+      }
+    });
+
+    const finishedResponse = await handleAppRequest({
+      headers: requestHeaders,
+      method: "GET",
+      path: "/api/admin/database-maintenance"
+    }, dependencies);
+    const finishedPayload = JSON.parse(finishedResponse.body) as {
+      entries: Array<Record<string, unknown>>;
+    };
+    expect(finishedPayload.entries.find((entry) => entry["id"] === "household-fields")).toMatchObject({
+      migrationCompleted: true,
+      validatorUpdated: true
+    });
+  });
+
+  it("runs all incomplete database maintenance actions sequentially", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+
+    const token = createUserToken({
+      email: "admin@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "admin",
+      secret: "test-secret"
+    });
+    const db = createFakeDb();
+    const householdRepository = new MongoHouseholdRepository(db);
+    await householdRepository.setupCollections();
+    const actionOrder: string[] = [];
+    const dependencies = {
+      createCatalogRepository: () => ({
+        listCatalogProductsForReview: async () => ({ products: [], totalCount: 0 }),
+        markLegacyProductsUnvalidated: async () => {
+          actionOrder.push("catalog:migration");
+          return { skippedCount: 0, status: "updated" as const, updatedCount: 0 };
+        },
+        upgradeCatalogValidators: async () => {
+          actionOrder.push("catalog:validator");
+          return { createdCollections: [], databaseName: "kamra_test", upgradedCollections: [] };
+        }
+      }),
+      createHouseholdRepository: () => householdRepository,
+      getMongoClient: async () => ({
+        db: () => db
+      }) as never
+    };
+
+    const response = await handleAppRequest({
+      headers: {
+        authorization: `Bearer ${token}`
+      },
+      method: "POST",
+      path: "/api/admin/database-maintenance/run-all"
+    }, dependencies);
+
+    expect(response.status).toBe(200);
+    expect(actionOrder).toEqual([
+      "catalog:validator",
+      "catalog:migration"
+    ]);
+    expect(JSON.parse(response.body)).toMatchObject({
+      completedActions: [
+        "catalog-product-validation:validator",
+        "catalog-product-validation:migration",
+        "household-fields:validator",
+        "household-fields:migration"
+      ]
+    });
+  });
+
   it("upgrades catalog validators with a valid admin token", async () => {
     vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
     vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
