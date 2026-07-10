@@ -5,7 +5,7 @@
 - Date: 2026-07-09
 - Plan: `.agents/plans/2026-07-09-stage-6-shopping-list-low-stock-notices-plan.md`
 - Branch: current workspace branch
-- Current objective: finish the remaining Stage 6 frontend flow and management shell, then leave a clean handoff for docs and browser verification
+- Current objective: incorporate the 2026-07-10 Stage 6 continuation refinements into the approved plan before implementing them
 
 ## Completed
 
@@ -31,6 +31,8 @@
 - Item: added a minimal household management page shell and route at `/households/:householdId`, plus a navigation button beside the active-household selector on the home pulse.
 - Item: exposed Stage 6 stock fields `idealMaxLimit` and `productSourceId` in the home stock editor additional-details section.
 - Item: added the translation copy needed for the shopping-list panel, confirmation flow, and household-management shell in both English and Hungarian.
+- Item: expanded the Stage 6 plan with the 2026-07-10 continuation refinements requested by the user, including the About page, logout redirect, read-only product browsing, household/shopping fixes, larger household shopping layout refactor, and documentation closeout.
+- Item: split the continuation work into five separate planned commits: About page, session/product access fixes, small household shopping fixes, major household shopping layout refactor, and final docs/verification.
 
 ## Changed Files
 
@@ -59,6 +61,7 @@
 - Path: `src/app/dev-admin/admin-dashboard.component.ts`
 - Path: `src/app/i18n/en.json`
 - Path: `src/app/i18n/hu.json`
+- Path: `.agents/plans/2026-07-09-stage-6-shopping-list-low-stock-notices-plan.md`
 
 ## Validation
 
@@ -78,6 +81,8 @@
 - Result: passed
 - Ran: `npm run lint`
 - Result: passed
+- Not run: validation for the new 2026-07-10 continuation refinements
+- Reason: this turn only incorporated the requested implementation plan; implementation starts after plan approval
 - Not run: browser-level manual verification for the new shopping-list and management UI flows
 - Reason: this session completed the compile/lint/build validation set, but did not open the app to exercise the full UI flow interactively
 
@@ -103,6 +108,10 @@
 - Reason: the shopping-list generator and persistence layer legitimately emit `null` when no ideal max is set.
 - Decision: keep the new shopping-list UI in a dedicated `src/app/household/household-shopping-list.component.ts` instead of pushing the full Stage 6 flow directly into the home component body.
 - Reason: the existing home component was already large, and isolating the Stage 6 in-store loop makes follow-up review and browser debugging easier.
+- Decision: treat the 2026-07-10 request as a plan expansion before implementation.
+- Reason: the user explicitly asked to plan all actions, keep separate implementations in separate commits, and implement afterward once incorporated into the Stage 6 plan.
+- Decision: start the continuation implementation with the About page and bottom-right shell button.
+- Reason: the user requested this as the first separate commit before logout/product access fixes and the larger household shopping refactor.
 
 ## Open Issues
 
@@ -110,16 +119,18 @@
 - Impact: the TypeScript/lint/build surface is covered, but a UI integration or layout issue could still exist.
 - Issue: Stage 6 docs have not yet been refreshed to describe the implemented shopping-list panel, management shell, and remaining UI limits.
 - Impact: the code is ahead of the durable documentation until the closeout doc pass happens.
+- Issue: the 2026-07-10 continuation refinements are now planned but not implemented.
+- Impact: the next implementation session should start with Refinement Commit 1 from the Stage 6 plan instead of attempting the household layout refactor first.
 
 ## Roadmap Or Plan Updates
 
 - Needed: no roadmap update yet
-- Status: Steps 1-5 now have meaningful implementation coverage; the main remaining Stage 6 work is docs closeout plus browser/manual verification
+- Status: Steps 1-5 have meaningful implementation coverage, and the 2026-07-10 continuation work is now captured in the Stage 6 plan as five separate implementation commits
 
 ## Next Step
 
-Run browser/manual verification for the new home shopping-list flow, management shell, and admin feature-toggle card, then finish the Stage 6 documentation/closeout pass.
+Implement Refinement Commit 1 from the Stage 6 plan: add the About page and bottom-right shell navigation button, then validate and commit that slice separately.
 
 ## Notes For Future Agent
 
-Stage 6 now has the pure generator, persistence foundations, shopping-list completion logic, shopping-list HTTP routes, DB-backed admin-editable `allowAutoTickingAllShoppingListEntries` toggle, a real Angular shopping-list panel on the home screen, and a minimal household-management route shell. Typecheck, lint, build, and targeted backend tests pass. The next agent should spend time on browser/manual verification and docs closeout rather than adding more Stage 6 core behavior unless that testing reveals a concrete gap.
+Stage 6 now has the pure generator, persistence foundations, shopping-list completion logic, shopping-list HTTP routes, DB-backed admin-editable `allowAutoTickingAllShoppingListEntries` toggle, a real Angular shopping-list panel on the home screen, and a minimal household-management route shell. Typecheck, lint, build, and targeted backend tests pass for the already-implemented work. The 2026-07-10 continuation request is captured in the Stage 6 plan as five separate commits; start with the About page commit and keep each subsequent slice separate.
