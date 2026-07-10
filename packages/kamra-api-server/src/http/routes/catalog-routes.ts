@@ -15,8 +15,8 @@ export const catalogProductsRoute: AppRoute = {
   match: (request) => request.method === "GET" && request.path === "/api/catalog/products",
   handle: async (request, context) => {
     const user = context.authenticateRequestUser(request);
-    if (!user || user.role !== "admin") {
-      return unauthorized("Sign in as an admin to view this resource.");
+    if (!user) {
+      return unauthorized("apiErrors.signInRequired");
     }
 
     const config = context.config;
@@ -63,8 +63,8 @@ export const catalogSourcesRoute: AppRoute = {
   match: (request) => request.method === "GET" && request.path === "/api/catalog/sources",
   handle: async (request, context) => {
     const user = context.authenticateRequestUser(request);
-    if (!user || user.role !== "admin") {
-      return unauthorized("Sign in as an admin to view this resource.");
+    if (!user) {
+      return unauthorized("apiErrors.signInRequired");
     }
 
     const config = context.config;
@@ -215,7 +215,7 @@ async function createCatalogRepositoryForAdminRequest(
   const user = context.authenticateRequestUser(request);
   if (!user || user.role !== "admin") {
     return {
-      response: unauthorized("Sign in as an admin to view this resource.")
+      response: unauthorized("apiErrors.adminRequired")
     };
   }
 

@@ -3,7 +3,7 @@ import { Injectable, inject } from "@angular/core";
 import { buildApiUrl } from "../api-url";
 import { AuthService } from "../auth.service";
 import { readApiErrorMessage } from "../shared/api-errors";
-import { LocalizationService } from "../shared/localization.service";
+import { LocalizationService, type TranslationKey } from "../shared/localization.service";
 import { ToastService } from "../shared/toast.service";
 
 export interface ProductMeasurement {
@@ -151,7 +151,9 @@ export class ProductCatalogService {
     }
 
     if (!response.ok) {
-      const message = await readApiErrorMessage(response, this.loc.t("product.catalogSourcesRouteError"));
+      const message = await readApiErrorMessage(response, this.loc.t("product.catalogSourcesRouteError"), (messageKey) =>
+        this.loc.t(messageKey as TranslationKey)
+      );
       return {
         message: this.toastMessage(message),
         status: "unavailable"
@@ -212,7 +214,9 @@ export class ProductCatalogService {
     }
 
     if (!response.ok) {
-      const message = await readApiErrorMessage(response, this.loc.t("product.catalogRouteError"));
+      const message = await readApiErrorMessage(response, this.loc.t("product.catalogRouteError"), (messageKey) =>
+        this.loc.t(messageKey as TranslationKey)
+      );
       return {
         message: this.toastMessage(message),
         status: "unavailable"
@@ -331,7 +335,9 @@ export class ProductCatalogService {
     }
 
     if (!response.ok) {
-      const message = await readApiErrorMessage(response, this.loc.t("product.catalogEditRouteError"));
+      const message = await readApiErrorMessage(response, this.loc.t("product.catalogEditRouteError"), (messageKey) =>
+        this.loc.t(messageKey as TranslationKey)
+      );
       return {
         message,
         status: "unavailable"

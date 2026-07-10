@@ -45,25 +45,30 @@ interface HealthCheckItem {
   status: string;
 }
 
+interface FeatureFlagListItem {
+  enabled: boolean;
+  key: string;
+}
+
 type AsyncActionState = "idle" | "loading" | "error" | "success";
 
 @Component({
   selector: "app-admin-dashboard",
   standalone: true,
   template: `
-    <section class="admin-dashboard-page" aria-labelledby="admin-dashboard-title">
-      <div class="admin-dashboard-copy">
-        <p class="eyebrow">{{ loc.t("health.runtime") }}</p>
-        <h1 id="admin-dashboard-title">{{ loc.t("common.adminDashboard") }}</h1>
-        <p>
+    <section class="page-shell admin-dashboard-page" aria-labelledby="admin-dashboard-title">
+      <div class="page-intro admin-dashboard-copy">
+        <p class="ui-kicker">{{ loc.t("health.runtime") }}</p>
+        <h1 id="admin-dashboard-title" class="page-title">{{ loc.t("common.adminDashboard") }}</h1>
+        <p class="page-lead">
           {{ loc.t("health.description") }}
         </p>
       </div>
 
       @if (!auth.token()) {
-        <section class="status-panel unauthorized-panel" aria-live="polite">
+        <section class="ui-panel-card status-panel unauthorized-panel" aria-live="polite">
           <div class="status-heading">
-            <p class="status-kicker">{{ loc.t("common.adminOnly") }}</p>
+            <p class="ui-kicker">{{ loc.t("common.adminOnly") }}</p>
             <p class="status-summary">{{ loc.t("health.signIn") }}</p>
           </div>
           <p class="status-message">
@@ -71,9 +76,9 @@ type AsyncActionState = "idle" | "loading" | "error" | "success";
           </p>
         </section>
       } @else if (!auth.user()) {
-        <section class="status-panel unauthorized-panel" aria-live="polite">
+        <section class="ui-panel-card status-panel unauthorized-panel" aria-live="polite">
           <div class="status-heading">
-            <p class="status-kicker">{{ loc.t("common.adminOnly") }}</p>
+            <p class="ui-kicker">{{ loc.t("common.adminOnly") }}</p>
             <p class="status-summary">{{ loc.t("common.loading") }}</p>
           </div>
           <p class="status-message">
@@ -81,9 +86,9 @@ type AsyncActionState = "idle" | "loading" | "error" | "success";
           </p>
         </section>
       } @else if (!isAdminUser()) {
-        <section class="status-panel unauthorized-panel" aria-live="polite">
+        <section class="ui-panel-card status-panel unauthorized-panel" aria-live="polite">
           <div class="status-heading">
-            <p class="status-kicker">{{ loc.t("common.adminOnly") }}</p>
+            <p class="ui-kicker">{{ loc.t("common.adminOnly") }}</p>
             <p class="status-summary">{{ loc.t("common.adminDashboard") }}</p>
           </div>
           <p class="status-message">
@@ -91,10 +96,10 @@ type AsyncActionState = "idle" | "loading" | "error" | "success";
           </p>
         </section>
       } @else {
-        <section class="admin-grid" aria-label="Admin utilities">
-          <article class="status-panel utility-card" aria-live="polite">
+        <section class="ui-card-grid admin-grid" aria-label="Admin utilities">
+          <article class="ui-panel-card status-panel utility-card" aria-live="polite">
             <div class="status-heading">
-              <p class="status-kicker">{{ loc.t("health.demoSeedKicker") }}</p>
+              <p class="ui-kicker">{{ loc.t("health.demoSeedKicker") }}</p>
               <p class="status-summary">{{ loc.t("health.demoSeedTitle") }}</p>
             </div>
             <p class="status-message">{{ loc.t("health.demoSeedDescription") }}</p>
@@ -111,9 +116,9 @@ type AsyncActionState = "idle" | "loading" | "error" | "success";
             }
           </article>
 
-          <article class="status-panel utility-card" aria-live="polite">
+          <article class="ui-panel-card status-panel utility-card" aria-live="polite">
             <div class="status-heading">
-              <p class="status-kicker">{{ loc.t("health.databaseKicker") }}</p>
+              <p class="ui-kicker">{{ loc.t("health.databaseKicker") }}</p>
               <p class="status-summary">{{ healthSummary() }}</p>
             </div>
 
@@ -170,31 +175,42 @@ type AsyncActionState = "idle" | "loading" | "error" | "success";
             }
           </article>
 
-          <article class="status-panel utility-card placeholder-card">
+          <article class="ui-panel-card status-panel utility-card placeholder-card">
             <div class="status-heading">
-              <p class="status-kicker">{{ loc.t("health.featureFlagsKicker") }}</p>
+              <p class="ui-kicker">{{ loc.t("health.featureFlagsKicker") }}</p>
               <p class="status-summary">{{ loc.t("health.featureFlagsTitle") }}</p>
             </div>
             <p class="status-message">{{ loc.t("health.featureFlagsDescription") }}</p>
-            <div class="placeholder-list" aria-hidden="true">
-              <div class="placeholder-row">
-                <span>{{ loc.t("health.featureFlagInvites") }}</span>
-                <strong>{{ loc.t("health.placeholderOff") }}</strong>
-              </div>
-              <div class="placeholder-row">
-                <span>{{ loc.t("health.featureFlagNotifications") }}</span>
-                <strong>{{ loc.t("health.placeholderOff") }}</strong>
-              </div>
-              <div class="placeholder-row">
-                <span>{{ loc.t("health.featureFlagMobilePush") }}</span>
-                <strong>{{ loc.t("health.placeholderOff") }}</strong>
-              </div>
+            <div class="placeholder-list">
+              <label class="placeholder-row" for="shopping-list-auto-tick-flag">
+                <span>{{ loc.t("health.featureFlagAutoTickAllShoppingListEntries") }}</span>
+                <input
+                  id="shopping-list-auto-tick-flag"
+                  type="checkbox"
+                  [checked]="allowAutoTickingAllShoppingListEntriesEnabled()"
+                  [disabled]="featureFlagsState() === 'loading' || !isAdminUser()"
+                  (change)="setAllowAutoTickingAllShoppingListEntriesEnabled($any($event.target).checked)"
+                >
+              </label>
             </div>
+            <div class="button-row">
+              <button
+                class="run-button ui-button"
+                type="button"
+                (click)="saveShoppingListFeatureFlags()"
+                [disabled]="isMaintenanceBusy() || featureFlagsState() === 'loading'"
+              >
+                {{ featureFlagsState() === "loading" ? loc.t("health.updating") : loc.t("common.save") }}
+              </button>
+            </div>
+            @if (featureFlagsMessage(); as message) {
+              <p class="maintenance-message">{{ message }}</p>
+            }
           </article>
 
-          <article class="status-panel utility-card">
+          <article class="ui-panel-card status-panel utility-card">
             <div class="status-heading">
-              <p class="status-kicker">{{ loc.t("health.modifierKicker") }}</p>
+              <p class="ui-kicker">{{ loc.t("health.modifierKicker") }}</p>
               <p class="status-summary">{{ loc.t("health.modifierTitle") }}</p>
             </div>
             <p class="status-message">{{ loc.t("health.modifierDescription") }}</p>
@@ -239,64 +255,12 @@ type AsyncActionState = "idle" | "loading" | "error" | "success";
         min-height: 100%;
       }
 
-      .admin-dashboard-page {
-        display: grid;
-        gap: var(--space-6);
-        grid-template-columns: minmax(0, 1fr);
-      }
-
-      .admin-dashboard-copy {
-        display: grid;
-        gap: var(--space-3);
-        max-width: 43rem;
-      }
-
-      .eyebrow,
-      .status-kicker {
-        color: var(--color-text-muted);
-        font-size: 0.78rem;
-        font-weight: 700;
-        letter-spacing: 0;
-        margin: 0;
-        text-transform: uppercase;
-      }
-
-      h1,
-      p {
-        margin: 0;
-      }
-
-      h1 {
-        color: var(--color-text);
-        font-family: var(--font-display);
-        font-size: clamp(2rem, 5vw, 3.4rem);
-        line-height: 1.05;
-      }
-
-      .admin-dashboard-copy p:last-child {
-        color: var(--color-text-muted);
-        font-size: 1rem;
-        line-height: 1.65;
-      }
-
       .status-panel {
-        background: var(--surface-panel-background);
-        border: 1px solid var(--line-panel);
-        border-radius: var(--radius-ui);
-        box-shadow: var(--surface-panel-shadow);
-        display: grid;
         gap: var(--space-4);
-        padding: clamp(1rem, 2.5vw, 1.5rem);
       }
 
       .unauthorized-panel {
         align-content: center;
-      }
-
-      .admin-grid {
-        display: grid;
-        gap: var(--space-4);
-        grid-template-columns: minmax(0, 1fr);
       }
 
       .utility-card {
@@ -312,6 +276,7 @@ type AsyncActionState = "idle" | "loading" | "error" | "success";
       .status-summary,
       .status-message {
         color: var(--color-text);
+        margin: 0;
       }
 
       .status-summary {
@@ -481,6 +446,10 @@ export class AdminDashboardComponent implements OnInit {
   readonly demoSeedState = signal<AsyncActionState>("idle");
   readonly invalidationMessage = signal("");
   readonly invalidationState = signal<AsyncActionState>("idle");
+  readonly featureFlags = signal<FeatureFlagListItem[]>([]);
+  readonly featureFlagsMessage = signal("");
+  readonly featureFlagsState = signal<AsyncActionState>("idle");
+  readonly allowAutoTickingAllShoppingListEntriesEnabled = signal(true);
   readonly validatorUpgradeMessage = signal("");
   readonly validatorUpgradeState = signal<AsyncActionState>("idle");
   readonly healthChecks = computed((): HealthCheckItem[] => {
@@ -516,13 +485,22 @@ export class AdminDashboardComponent implements OnInit {
   readonly isMaintenanceBusy = computed(() =>
     this.healthState() === "loading"
       || this.demoSeedState() === "loading"
+      || this.featureFlagsState() === "loading"
       || this.invalidationState() === "loading"
       || this.validatorUpgradeState() === "loading"
   );
 
   ngOnInit(): void {
-    void this.auth.loadCurrentUser();
+    void this.initializeDashboard();
     this.healthMessage.set(this.loc.t("health.runFirst"));
+  }
+
+  async initializeDashboard(): Promise<void> {
+    await this.auth.loadCurrentUser();
+
+    if (this.isAdminUser()) {
+      await this.loadFeatureFlags();
+    }
   }
 
   async reseedDemoHousehold(): Promise<void> {
@@ -783,6 +761,103 @@ export class AdminDashboardComponent implements OnInit {
     }
   }
 
+  async loadFeatureFlags(): Promise<void> {
+    if (!this.requireAdminAccess(this.featureFlagsState, this.featureFlagsMessage, "health.signInBeforeFeatureFlags")) {
+      return;
+    }
+
+    this.featureFlagsState.set("loading");
+    this.featureFlagsMessage.set("");
+
+    try {
+      const response = await this.fetchAdminDashboardRoute("/api/admin/dashboard/feature-flags", {
+        headers: {
+          accept: "application/json",
+          ...this.auth.getAuthorizationHeaders()
+        },
+        method: "GET"
+      });
+
+      if (response.status === 401) {
+        this.handleUnauthorizedResponse(this.featureFlagsState, this.featureFlagsMessage);
+        return;
+      }
+
+      const { message, payload } = await this.readRoutePayload<{ featureFlags?: FeatureFlagListItem[] }>(
+        response,
+        this.loc.t("health.featureFlagsLoadFailure")
+      );
+      const featureFlags = payload?.featureFlags ?? [];
+
+      this.featureFlags.set(featureFlags);
+      this.allowAutoTickingAllShoppingListEntriesEnabled.set(
+        featureFlags.find((flag) => flag.key === "allowAutoTickingAllShoppingListEntries")?.enabled ?? true
+      );
+      this.featureFlagsState.set(response.ok ? "success" : "error");
+      this.featureFlagsMessage.set(response.ok ? "" : message);
+    } catch (error: unknown) {
+      this.featureFlagsState.set("error");
+      this.featureFlagsMessage.set(this.loc.t("health.browserFeatureFlagsFailure"));
+      this.toast.push(this.loc.t("health.browserFeatureFlagsFailure"), "error");
+
+      logBrowserEvent("error", "Feature flag load request failed", error);
+    }
+  }
+
+  setAllowAutoTickingAllShoppingListEntriesEnabled(enabled: boolean): void {
+    this.allowAutoTickingAllShoppingListEntriesEnabled.set(enabled);
+  }
+
+  async saveShoppingListFeatureFlags(): Promise<void> {
+    if (!this.requireAdminAccess(this.featureFlagsState, this.featureFlagsMessage, "health.signInBeforeFeatureFlags")) {
+      return;
+    }
+
+    this.featureFlagsState.set("loading");
+    this.featureFlagsMessage.set("");
+
+    try {
+      const response = await this.fetchAdminDashboardRoute("/api/admin/dashboard/feature-flags", {
+        body: JSON.stringify({
+          enabled: this.allowAutoTickingAllShoppingListEntriesEnabled(),
+          key: "allowAutoTickingAllShoppingListEntries"
+        }),
+        headers: {
+          accept: "application/json",
+          "content-type": "application/json",
+          ...this.auth.getAuthorizationHeaders()
+        },
+        method: "PATCH"
+      });
+
+      if (response.status === 401) {
+        this.handleUnauthorizedResponse(this.featureFlagsState, this.featureFlagsMessage);
+        return;
+      }
+
+      const { message, payload } = await this.readRoutePayload<{ featureFlags?: FeatureFlagListItem[] }>(
+        response,
+        this.loc.t("health.featureFlagsSaveFailure")
+      );
+      const featureFlags = payload?.featureFlags ?? [];
+      this.featureFlags.set(featureFlags);
+      this.featureFlagsState.set(response.ok ? "success" : "error");
+      this.featureFlagsMessage.set(response.ok
+        ? this.loc.t("health.featureFlagsSaveSuccess")
+        : message);
+
+      if (!response.ok) {
+        this.toast.push(message, "error");
+      }
+    } catch (error: unknown) {
+      this.featureFlagsState.set("error");
+      this.featureFlagsMessage.set(this.loc.t("health.browserFeatureFlagsFailure"));
+      this.toast.push(this.loc.t("health.browserFeatureFlagsFailure"), "error");
+
+      logBrowserEvent("error", "Feature flag save request failed", error);
+    }
+  }
+
   private formatLegacyBackfillMessage(payload: {
     message?: string;
     skippedCount?: number;
@@ -829,7 +904,9 @@ export class AdminDashboardComponent implements OnInit {
     response: Response,
     fallbackMessage: string
   ): Promise<{ message: string; payload: T | null }> {
-    const message = await readApiErrorMessage(response.clone(), fallbackMessage);
+    const message = await readApiErrorMessage(response.clone(), fallbackMessage, (messageKey) =>
+      this.loc.t(messageKey as TranslationKey)
+    );
 
     try {
       return {

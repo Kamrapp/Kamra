@@ -12,6 +12,7 @@ import {
 } from "../catalog/current/mongo-catalog-repository.js";
 import type {
   CatalogProductListItem,
+  PriceObservationRecord,
   CatalogV1SeedDataset,
   ProductMeasurement,
   SourceRecordProcessingStateRecord
@@ -40,6 +41,11 @@ export interface AppResponse {
   headers: Record<string, string>;
   status: number;
 }
+
+export type UnauthorizedMessageKey =
+  | "apiErrors.adminRequired"
+  | "apiErrors.preferencesSignInRequired"
+  | "apiErrors.signInRequired";
 
 export interface RequestLogDetails {
   requestMethod: string;
@@ -128,6 +134,7 @@ export interface AppHandlerDependencies {
       status: "invalid" | "validated";
     }): Promise<CatalogProductListItem | null>;
     setupCollections?(): Promise<unknown>;
+    upsertPriceObservations?(records: readonly PriceObservationRecord[]): Promise<void>;
     updateCatalogProduct?(input: {
       brandName?: string | null;
       id: string;
@@ -220,10 +227,10 @@ export function empty(status: number): AppResponse {
   };
 }
 
-export function unauthorized(message = "Sign in to view this resource."): AppResponse {
+export function unauthorized(messageKey: UnauthorizedMessageKey = "apiErrors.signInRequired"): AppResponse {
   return json(401, {
     error: "unauthorized",
-    message
+    messageKey
   });
 }
 

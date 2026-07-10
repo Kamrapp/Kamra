@@ -18,11 +18,20 @@ import {
 import { currentUserRoute, loginRoute, logoutRoute, userPreferencesRoute } from "./routes/auth-routes.js";
 import {
   adminDashboardHealthRoute,
+  adminDashboardFeatureFlagsRoute,
   adminDashboardMarkLegacyProductsUnvalidatedRoute,
   adminDashboardReseedDemoHouseholdRoute,
   adminDashboardUpgradeCatalogValidatorsRoute
 } from "./routes/admin-dashboard-route.js";
-import { householdStockRoute, householdsRoute } from "./routes/household-routes.js";
+import {
+  householdShoppingListPreviewRoute,
+  householdShoppingListsRoute,
+  householdShoppingListUpdateStocksRoute,
+  householdStockRoute,
+  householdsRoute,
+  latestHouseholdShoppingListRoute,
+  shopsRoute
+} from "./routes/household-routes.js";
 import {
   acceptProductReviewItemRoute,
   declineProductReviewItemRoute,
@@ -47,6 +56,12 @@ const appRoutes: AppRoute[] = [
   userPreferencesRoute,
   householdsRoute,
   householdStockRoute,
+  householdShoppingListPreviewRoute,
+  householdShoppingListsRoute,
+  latestHouseholdShoppingListRoute,
+  householdShoppingListUpdateStocksRoute,
+  shopsRoute,
+  adminDashboardFeatureFlagsRoute,
   adminDashboardHealthRoute,
   adminDashboardUpgradeCatalogValidatorsRoute,
   adminDashboardMarkLegacyProductsUnvalidatedRoute,

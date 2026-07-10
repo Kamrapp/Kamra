@@ -2,7 +2,7 @@ import { computed, inject, Injectable, signal } from "@angular/core";
 
 import { buildApiUrl } from "./api-url";
 import { readApiErrorMessage } from "./shared/api-errors";
-import { isLanguagePreference, LocalizationService, type LanguagePreference } from "./shared/localization.service";
+import { isLanguagePreference, LocalizationService, type LanguagePreference, type TranslationKey } from "./shared/localization.service";
 import { isThemePreference, type ThemePreference } from "./shared/theme-preference.service";
 
 export type UserRole = "admin" | "user";
@@ -110,7 +110,9 @@ export class AuthService {
           ? this.loc.t("app.loginInvalid")
           : response.status === 503
             ? this.loc.t("app.loginNotConfigured")
-          : await readApiErrorMessage(response, this.loc.t("app.loginFailure")),
+          : await readApiErrorMessage(response, this.loc.t("app.loginFailure"), (messageKey) =>
+              this.loc.t(messageKey as TranslationKey)
+            ),
         status: "error"
       };
     }

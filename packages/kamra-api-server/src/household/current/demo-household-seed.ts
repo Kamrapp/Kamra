@@ -6,9 +6,13 @@ import { writeServerLog } from "../../logging/kamra-logger.js";
 import type { SeedDefinition, SeedExecutionContext } from "../../seeds/seed-runner.js";
 import type { SeedLedgerRecord } from "../../seeds/admin-identity-seed.js";
 import type {
+  HouseholdFeatureFlagRecord,
   HouseholdLocalProductRecord,
   HouseholdMembershipRecord,
+  HouseholdPurchasePriceObservationRecord,
   HouseholdRecord,
+  HouseholdShopRecord,
+  HouseholdShoppingListRecord,
   HouseholdStockItemRecord
 } from "../v1/contracts.js";
 import { MongoHouseholdRepository } from "./mongo-household-repository.js";
@@ -29,10 +33,15 @@ export interface DemoHouseholdSeedCounts {
   deletedMemberships: number;
   deletedLocalProducts: number;
   deletedStockItems: number;
+  deletedPurchasePriceObservations: number;
+  deletedShoppingLists: number;
   users: number;
   households: number;
   memberships: number;
   localProducts: number;
+  purchasePriceObservations: number;
+  shops: number;
+  shoppingLists: number;
   stockItems: number;
 }
 
@@ -166,9 +175,13 @@ export class MongoHouseholdDemoSeedRepository implements DemoHouseholdSeedReposi
 
     await this.upsertDemoUsers(dataset.users);
     await this.householdRepository.upsertSeedDataset({
+      householdFeatureFlags: dataset.householdFeatureFlags,
       households: dataset.households,
       householdLocalProducts: dataset.householdLocalProducts,
       householdMemberships: dataset.householdMemberships,
+      householdPurchasePriceObservations: dataset.householdPurchasePriceObservations,
+      householdShops: dataset.householdShops,
+      householdShoppingLists: dataset.householdShoppingLists,
       householdStockItems: dataset.householdStockItems
     });
 
@@ -176,11 +189,16 @@ export class MongoHouseholdDemoSeedRepository implements DemoHouseholdSeedReposi
       deletedHouseholds: deletedHouseholdData.deletedHouseholds,
       deletedLocalProducts: deletedHouseholdData.deletedLocalProducts,
       deletedMemberships: deletedHouseholdData.deletedMemberships,
+      deletedPurchasePriceObservations: deletedHouseholdData.deletedPurchasePriceObservations,
+      deletedShoppingLists: deletedHouseholdData.deletedShoppingLists,
       deletedStockItems: deletedHouseholdData.deletedStockItems,
       deletedUsers: deletedUsers.deletedCount ?? 0,
       households: dataset.households.length,
       localProducts: dataset.householdLocalProducts.length,
       memberships: dataset.householdMemberships.length,
+      purchasePriceObservations: dataset.householdPurchasePriceObservations.length,
+      shops: dataset.householdShops.length,
+      shoppingLists: dataset.householdShoppingLists.length,
       stockItems: dataset.householdStockItems.length,
       users: dataset.users.length
     };
@@ -229,6 +247,10 @@ export function createDemoHouseholdSeedDataset(
   households: HouseholdRecord[];
   householdLocalProducts: HouseholdLocalProductRecord[];
   householdMemberships: HouseholdMembershipRecord[];
+  householdPurchasePriceObservations: HouseholdPurchasePriceObservationRecord[];
+  householdFeatureFlags: HouseholdFeatureFlagRecord[];
+  householdShops: HouseholdShopRecord[];
+  householdShoppingLists: HouseholdShoppingListRecord[];
   householdStockItems: HouseholdStockItemRecord[];
   users: UserDocument[];
 } {
@@ -245,6 +267,8 @@ export function createDemoHouseholdSeedDataset(
   const household: HouseholdRecord = {
     createdAt,
     createdByUserId: demoHouseholdOwnerUserId,
+    defaultCalculatedMaxLimitMultiplier: 2,
+    favouriteShopId: null,
     id: demoHouseholdId,
     name: "Hungarian nature household",
     status: "active",
@@ -265,8 +289,10 @@ export function createDemoHouseholdSeedDataset(
       catalogProductId: null,
       currentAmount: 0.2,
       displayName: "Kenyér",
+      idealMaxLimit: 1,
       initialAmount: 1,
       minLimit: 0.5,
+      productSourceId: null,
       stockedAt: offsetIsoDate(now, -2),
       stockGroupKey: "kenyer",
       unit: "kg"
@@ -275,8 +301,10 @@ export function createDemoHouseholdSeedDataset(
       catalogProductId: null,
       currentAmount: 1.8,
       displayName: "Tej",
+      idealMaxLimit: 4,
       initialAmount: 2,
       minLimit: 2,
+      productSourceId: null,
       stockedAt: offsetIsoDate(now, -3),
       stockGroupKey: "tej",
       unit: "l"
@@ -285,8 +313,10 @@ export function createDemoHouseholdSeedDataset(
       catalogProductId: null,
       currentAmount: 4,
       displayName: "Vegyes lekvárok",
+      idealMaxLimit: 6,
       initialAmount: 4,
       minLimit: 3,
+      productSourceId: null,
       stockedAt: offsetIsoDate(now, -7),
       stockGroupKey: "vegyes_lekvarok",
       unit: "uveg"
@@ -295,8 +325,10 @@ export function createDemoHouseholdSeedDataset(
       catalogProductId: null,
       currentAmount: 0,
       displayName: "Pelenka",
+      idealMaxLimit: 80,
       initialAmount: 40,
       minLimit: 40,
+      productSourceId: null,
       stockedAt: offsetIsoDate(now, -30),
       stockGroupKey: "pelenka",
       unit: "db"
@@ -305,8 +337,10 @@ export function createDemoHouseholdSeedDataset(
       catalogProductId: null,
       currentAmount: 1.2,
       displayName: "Alma",
+      idealMaxLimit: 1.6,
       initialAmount: 1.5,
       minLimit: 0.4,
+      productSourceId: null,
       stockedAt: offsetIsoDate(now, -6),
       stockGroupKey: "alma",
       unit: "kg"
@@ -315,8 +349,10 @@ export function createDemoHouseholdSeedDataset(
       catalogProductId: null,
       currentAmount: 0.22,
       displayName: "Répa",
+      idealMaxLimit: 0.5,
       initialAmount: 0.3,
       minLimit: 0.2,
+      productSourceId: null,
       stockedAt: offsetIsoDate(now, -4),
       stockGroupKey: "repa",
       unit: "kg"
@@ -325,8 +361,10 @@ export function createDemoHouseholdSeedDataset(
       catalogProductId: null,
       currentAmount: 0.3,
       displayName: "Mosószer",
+      idealMaxLimit: 2,
       initialAmount: 2,
       minLimit: 1,
+      productSourceId: null,
       stockedAt: offsetIsoDate(now, -21),
       stockGroupKey: "mososzer",
       unit: "l"
@@ -335,8 +373,10 @@ export function createDemoHouseholdSeedDataset(
       catalogProductId: null,
       currentAmount: 9,
       displayName: "WC papír",
+      idealMaxLimit: 16,
       initialAmount: 16,
       minLimit: 8,
+      productSourceId: null,
       stockedAt: offsetIsoDate(now, -10),
       stockGroupKey: "wc_papir",
       unit: "tekercs"
@@ -345,8 +385,10 @@ export function createDemoHouseholdSeedDataset(
       catalogProductId: null,
       currentAmount: 5,
       displayName: "Tojás",
+      idealMaxLimit: 12,
       initialAmount: 6,
       minLimit: 6,
+      productSourceId: null,
       stockedAt: offsetIsoDate(now, -5),
       stockGroupKey: "tojas",
       unit: "db"
@@ -355,8 +397,10 @@ export function createDemoHouseholdSeedDataset(
       catalogProductId: null,
       currentAmount: 0,
       displayName: "Rizs",
+      idealMaxLimit: 2,
       initialAmount: 1,
       minLimit: 1,
+      productSourceId: null,
       stockedAt: offsetIsoDate(now, -45),
       stockGroupKey: "rizs",
       unit: "kg"
@@ -365,8 +409,10 @@ export function createDemoHouseholdSeedDataset(
       catalogProductId: null,
       currentAmount: 2.5,
       displayName: "Cukor",
+      idealMaxLimit: 3,
       initialAmount: 3,
       minLimit: 1,
+      productSourceId: null,
       stockedAt: offsetIsoDate(now, -12),
       stockGroupKey: "cukor",
       unit: "kg"
@@ -375,8 +421,10 @@ export function createDemoHouseholdSeedDataset(
       catalogProductId: null,
       currentAmount: 1,
       displayName: "Tusfürdő",
+      idealMaxLimit: 2,
       initialAmount: 1,
       minLimit: 1,
+      productSourceId: null,
       stockedAt: offsetIsoDate(now, -1),
       stockGroupKey: "tusfurdo",
       unit: "flakon"
@@ -385,8 +433,10 @@ export function createDemoHouseholdSeedDataset(
     catalogProductId: string | null;
     currentAmount: number;
     displayName: string;
+    idealMaxLimit: number;
     initialAmount: number;
     minLimit: number;
+    productSourceId: string | null;
     stockedAt: string;
     stockGroupKey: string;
     unit: string;
@@ -400,6 +450,7 @@ export function createDemoHouseholdSeedDataset(
     displayName: row.displayName,
     householdId: household.id,
     id: createDemoHouseholdProductId(row.stockGroupKey),
+    productSourceId: row.productSourceId,
     stockGroupKey: row.stockGroupKey,
     status: "active",
     updatedAt: createdAt,
@@ -416,9 +467,11 @@ export function createDemoHouseholdSeedDataset(
     householdId: household.id,
     householdProductId: createDemoHouseholdProductId(row.stockGroupKey),
     id: `household_stock_${demoHouseholdId}_${row.stockGroupKey}`,
+    idealMaxLimit: row.idealMaxLimit,
     initialAmount: row.initialAmount,
     minLimit: row.minLimit,
     note: null,
+    productSourceId: row.productSourceId,
     stockedAt: row.stockedAt,
     stockGroupKey: row.stockGroupKey,
     status: "active",
@@ -427,10 +480,21 @@ export function createDemoHouseholdSeedDataset(
     updatedByUserId: demoHouseholdOwnerUserId
   }));
 
+  const householdShops: HouseholdShopRecord[] = [
+    createSeedShop(createdAt, "shop_hu_aldi", "ALDI Hungary", ["aldi-hu-offers"], ["aldi-hu"]),
+    createSeedShop(createdAt, "shop_hu_coop", "COOP Hungary", ["coop-hu-offers"], ["coop-hu"]),
+    createSeedShop(createdAt, "shop_hu_lidl", "Lidl Hungary", ["lidl-hu-brochure"], ["lidl-hu"]),
+    createSeedShop(createdAt, "shop_hu_penny", "PENNY Hungary", ["penny_hu_offers"], ["penny-hu"])
+  ];
+
   return {
     households: [household],
+    householdFeatureFlags: [],
     householdLocalProducts,
     householdMemberships: memberships,
+    householdPurchasePriceObservations: [],
+    householdShops,
+    householdShoppingLists: [],
     householdStockItems,
     users
   };
@@ -438,6 +502,25 @@ export function createDemoHouseholdSeedDataset(
 
 function createDemoHouseholdProductId(stockGroupKey: string): string {
   return `household_product_${demoHouseholdId}_${stockGroupKey}`;
+}
+
+function createSeedShop(
+  createdAt: string,
+  id: string,
+  label: string,
+  sourceNames: string[],
+  storeBrandKeys: string[]
+): HouseholdShopRecord {
+  return {
+    countryCode: "HU",
+    createdAt,
+    id,
+    label,
+    sourceNames,
+    status: "active",
+    storeBrandKeys,
+    updatedAt: createdAt
+  };
 }
 
 function offsetIsoDate(now: Date, days: number): string {
