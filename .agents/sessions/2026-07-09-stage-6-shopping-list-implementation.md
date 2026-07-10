@@ -5,7 +5,7 @@
 - Date: 2026-07-09
 - Plan: `.agents/plans/2026-07-09-stage-6-shopping-list-low-stock-notices-plan.md`
 - Branch: current workspace branch
-- Current objective: implement the Stage 6 continuation refinements commit-by-commit, with auth-message localization cleanup and shared page-style extraction now folded into the active frontend refinement pass
+- Current objective: Stage 6 implementation and closeout are complete in code; only manual browser verification and any resulting follow-up fixes remain
 
 ## Completed
 
@@ -44,6 +44,12 @@
 - Item: refreshed the logged-out home view so it mirrors the signed-in household workspace with disabled controls, minimal preview data, and a preview shopping-list/editor layout instead of the old collided pulse text.
 - Item: changed the signed-in `Manage household` navigation to a real button-style control so longer localized copy stays inside the control without link underlining.
 - Item: fixed the shopping-list scale caption to stay synchronized with the selected top-level shopping scale by tracking the input value reactively inside the shopping-list component.
+- Item: extended Stage 6 shopping-list contracts and routes with `start_fresh` scale support and archive/cancel behavior for active shopping lists.
+- Item: added targeted backend coverage proving `start_fresh` creates an empty list and archived shopping lists disappear from the active latest-list view.
+- Item: refactored the signed-in household page into the requested stock/editor top row, compact shopping control band, and shopping overview plus finalization bottom row.
+- Item: highlighted stock rows covered by the current shopping scale and added row-level add-to-list actions that append stock items into the active shopping list.
+- Item: moved shopping finalization actions into a dedicated right-side block, added the receipt-upload placeholder button/toast, and grouped ticked shopping rows into a collapsible purchased section.
+- Item: documented the Stage 6 household/shopping workflow, `Start fresh`, cancel-list behavior, feature-toggle-driven completion behavior, About/product-access refinements, and Stage 6 completion status in the durable docs and roadmap.
 
 ## Changed Files
 
@@ -78,6 +84,9 @@
 - Path: `src/app/i18n/en.json`
 - Path: `src/app/i18n/hu.json`
 - Path: `.agents/plans/2026-07-09-stage-6-shopping-list-low-stock-notices-plan.md`
+- Path: `docs/household.md`
+- Path: `docs/architecture.md`
+- Path: `.agents/plans/initial-mvp-roadmap.md`
 - Path: `packages/kamra-api-server/src/http/routes/household-routes.ts`
 - Path: `packages/kamra-api-server/src/http/app-handler.test.ts`
 - Path: `src/app/home.component.ts`
@@ -134,6 +143,18 @@
 - Result: passed
 - Ran: `npm run build`
 - Result: passed
+- Ran: `npm test -- packages/kamra-api-server/src/household/current/shopping-list.test.ts packages/kamra-api-server/src/http/app-handler.test.ts`
+- Result: passed
+- Ran: `npm run typecheck`
+- Result: passed
+- Ran: `npm run build`
+- Result: passed
+- Ran: `npm run typecheck`
+- Result: passed
+- Ran: `npm run lint`
+- Result: passed
+- Ran: `npm run build`
+- Result: passed
 - Not run: browser-level manual verification for the new shopping-list and management UI flows
 - Reason: this session completed the compile/lint/build validation set, but did not open the app to exercise the full UI flow interactively
 - Not run: browser/manual verification for the new About page and bottom-right shell card
@@ -177,33 +198,40 @@
 - Reason: this removes hardcoded auth copy from the server layer while letting the Angular app render the right localized message.
 - Decision: extract only clearly repeated page-shell and card primitives into global styles instead of centralizing every local visual detail.
 - Reason: it reduces CSS clutter and cross-page drift without flattening intentional page-specific layout or atmosphere.
+- Decision: represent `Start fresh` as a real fourth shopping scale in the shared contracts instead of a frontend-only special case.
+- Reason: it keeps preview, persistence, and later automation aligned on one deterministic shopping-list shape.
+- Decision: archive cancelled shopping lists through the existing update route instead of adding a separate delete endpoint.
+- Reason: Stage 6 already treats shopping lists as persisted snapshots with status transitions, so archive-on-update keeps the backend thinner and preserves auditability.
+- Decision: keep stock-row add-to-list as a direct append into the active shopping list instead of silently merging quantities into an existing line.
+- Reason: the user explicitly asked for additional item-by-item list building after generation, and explicit appended rows keep that behavior obvious.
 
 ## Open Issues
 
-- Issue: browser-level validation for the shopping-list flow, management shell, and admin feature-toggle card still has not been run.
-- Impact: the TypeScript/lint/build surface is covered, but a UI integration or layout issue could still exist.
-- Issue: Stage 6 docs have not yet been refreshed to describe the implemented shopping-list panel, management shell, and remaining UI limits.
-- Impact: the code is ahead of the durable documentation until the closeout doc pass happens.
-- Issue: browser-level validation for the new About route and right-rail CTA still has not been run.
-- Impact: layout, spacing, or small interaction issues could still exist despite passing compile checks.
-- Issue: browser-level validation for logout redirect and the signed-in basic-user product browsing flow still has not been run.
-- Impact: the intended UX is implemented, but a route-state or view-state mismatch could still exist until manually exercised.
-- Issue: browser-level validation for the new shared page primitives across About, admin, management, and shopping-list surfaces still has not been run.
-- Impact: the compile checks pass, but spacing or responsive regressions could still exist until manually exercised.
-- Issue: browser-level validation for the refreshed logged-out home preview, the new confirmation-button priority states, and the `Manage household` button sizing still has not been run.
-- Impact: compile/build coverage is good, but small responsive or interaction issues could still exist until manually exercised.
-- Issue: the larger Stage 6 household workspace refactor remains pending after the small refinement slice.
-- Impact: the next implementation session should continue with Refinement Commit 4 rather than re-opening these smaller fixes unless review finds regressions.
+- Issue: browser/manual verification has not been run for the final Stage 6 UI state.
+- Impact: compile, lint, build, and targeted backend tests are green, but layout or route-state issues could still exist until manually exercised.
 
 ## Roadmap Or Plan Updates
 
-- Needed: no roadmap update yet
-- Status: Steps 1-5 have meaningful implementation coverage, and the 2026-07-10 continuation work is now captured in the Stage 6 plan as five separate implementation commits
+- Needed: no further roadmap update for Stage 6
+- Status: Stage 6 is implemented in code, documented in durable repo docs, and reduced to manual browser verification plus any follow-up fixes found there
 
 ## Next Step
 
-Implement Refinement Commit 4 from the Stage 6 plan: the larger household workspace and shopping-list layout refactor.
+Run compact browser verification against the final Stage 6 surfaces and fix any findings before planning Stage 7.
 
 ## Notes For Future Agent
 
-Stage 6 now has the pure generator, persistence foundations, shopping-list completion logic, shopping-list HTTP routes, DB-backed admin-editable `allowAutoTickingAllShoppingListEntries` toggle, a real Angular shopping-list panel on the home screen, a minimal household-management route shell, the new About page plus right-rail entry, logout redirection to home, signed-in non-admin product browsing with admin-only mutations, localized auth-guard server message keys, shared page/card style primitives in global CSS, and the smaller household/shopping refinement fixes from Commit 3. The latest checks covered the household route test plus typecheck, lint, and build after the logged-out home refresh and shopping-list behavior tweaks. The next commit should be Refinement Commit 4: the larger household workspace and shopping-list layout refactor.
+Stage 6 now has deterministic shopping-list generation, persisted shopping lists, DB-backed auto-tick feature toggling, `Start fresh`, cancel/archive behavior, the refactored household shopping workspace, row-level stock-to-list adds, grouped purchased rows, receipt-upload placeholder UI, logout redirection to `/`, signed-in read-only product browsing, the About page plus right-rail entry, localized auth error keys, and shared page/card style primitives in global CSS. The final code commits for the continuation pass are `812e9a3`, `af7f3e8`, and `9421068`. No browser verification was run in this session.
+
+## Manual Browser Verification
+
+- Home logged out: check the disabled household preview still resembles the signed-in workspace and no pulse text overlaps or clipped buttons remain.
+- Home logged in desktop: check top row shows stock table left and editor right, middle band stays on one row, bottom row shows shopping list left and finalization block right.
+- Home logged in mobile: check the stock/editor/band/shopping blocks stack cleanly, no horizontal clipping appears, and the middle band buttons stay full width.
+- Household stock table: check highlighted rows change when switching `Start fresh`, `Business as usual`, `Keep it chill`, and `Stock 'em up!`; `Manage household` stays inside its button; row `+` buttons stay disabled before a list exists and become usable after generation.
+- Shopping generation: check `Start fresh` creates an empty list, `Regenerate list` recreates the list for the current scale, `Refresh` reloads without layout jumps, and `Cancel shopping` removes the active list from view.
+- Shopping row behavior: check generated rows start with `Bought = 0`, ticking a zero-bought row copies the planned amount, unticked rows stay above, and ticked rows collapse under the purchased section toggle.
+- Shopping finalization: check the right block contains shop selector, apply date, stock-update button, and receipt button; clicking `Upload receipt` shows the coming-soon toast only.
+- Partial completion feature flag: with auto-tick enabled in admin, check the confirmation panel highlights `Tick everything and update stock`; with it disabled, check `Update only ticked items` becomes the highlighted action.
+- Products page as basic user: check products and source filters load normally, opening a product editor is blocked, and the warning toast appears instead of an editable admin drawer.
+- About page and logout: check the right-rail About button opens `/about`, the page reads well on desktop/mobile, `kamrapp.hu` is the primary URL, and logging out from a protected page returns to `/`.

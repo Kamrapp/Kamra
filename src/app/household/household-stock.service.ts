@@ -129,7 +129,7 @@ export interface HouseholdShoppingListLine {
   plannedAmount: number;
   productSourceId?: string | null;
   purchasedAmount: number;
-  reasonCode?: "at_limit" | "below_minimum" | "low_soon" | "stock_up" | null;
+  reasonCode?: "at_minimum" | "below_minimum" | "broad_restock" | "low_soon" | null;
   sourceKind: "generated" | "manual";
   sourceName?: string | null;
   sourceProductUrl?: string | null;
@@ -168,7 +168,7 @@ export interface HouseholdShoppingListPreviewItem {
   householdStockItemId?: string | null;
   idealMaxLimit?: number | null;
   productSourceId?: string | null;
-  reasonCode: "at_limit" | "below_minimum" | "low_soon" | "stock_up";
+  reasonCode: "at_minimum" | "below_minimum" | "broad_restock" | "low_soon";
   sourceName?: string | null;
   sourceProductUrl?: string | null;
   stockGroupKey?: string | null;

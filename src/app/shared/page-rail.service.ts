@@ -12,9 +12,16 @@ export interface PageRailOption {
   onToggle: () => void;
 }
 
+export interface PageRailShoppingScaleOption {
+  key: string;
+  label: string;
+  hint: string;
+  active: boolean;
+}
+
 export interface PageRailSection {
   key: string;
-  kind: "summary" | "status" | "filters" | "action";
+  kind: "summary" | "status" | "filters" | "action" | "shopping";
   kicker: string;
   loading?: boolean;
   optionCount?: number;
@@ -32,6 +39,17 @@ export interface PageRailSection {
   onAction?: () => void;
   note?: string;
   error?: string;
+  cancelActionDisabled?: boolean;
+  cancelActionLabel?: string;
+  itemCount?: number;
+  itemCountLabel?: string;
+  onCancelAction?: () => void;
+  onReloadAction?: () => void;
+  onScaleIndexChange?: (value: number | string) => void;
+  reloadActionDisabled?: boolean;
+  reloadActionLabel?: string;
+  scaleIndex?: number;
+  scaleOptions?: readonly PageRailShoppingScaleOption[];
 }
 
 @Injectable({

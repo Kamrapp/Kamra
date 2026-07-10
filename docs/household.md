@@ -6,9 +6,9 @@ Household stock is Kamra's user-owned pantry model.
 
 It is intentionally separate from catalog, crawler, source, and store stock. Store/source stock describes observed retailer availability or offers. Household stock describes what a household believes it has at home, what minimum level it wants to keep, and what should later become shopping-list demand.
 
-Stage 5 makes this loop real enough for a signed-in user to log in, see a low-stock pulse on the home page, add custom household items, adjust amounts and minimum limits, and reset stable demo data from the admin dashboard.
+Stage 6 makes this loop real enough for a signed-in user to log in, see a low-stock pulse on the home page, add custom household items, generate or manually build shopping lists, and apply purchased items back into household stock.
 
-## Current Stage 5 State
+## Current Stage 6 State
 
 Implemented runtime surfaces:
 
@@ -19,8 +19,16 @@ Implemented runtime surfaces:
 - The stock editor supports current amount, minimum limit, unit, stocked date, optional initial amount, stock group key, GTIN, source name, source URL, and note.
 - Minimum limit has direct input plus quick minus/plus controls.
 - Stock rows are sorted by priority: below limit, at limit, low soon, then steady.
-- The home pulse shopping scale previews how many items would be included at three levels, but does not generate a persisted shopping list yet.
+- Signed-in users can browse products read-only even when they are not admins; product edits remain admin-only.
+- The home workspace is split into stock overview plus editor, a compact shopping control band, and a shopping-list workspace with separate finalization actions.
+- Shopping lists are persisted, can be regenerated, refreshed, cancelled, or started empty through the `Start fresh` scale.
+- Generated shopping-list rows start with `Bought = 0`; ticking a zero-bought row copies the planned amount into bought automatically.
+- Shopping-list rows are grouped into unticked rows first and a collapsible purchased section at the end.
+- Users can manually add rows to a shopping list, add stock rows one-by-one from the stock table, record observed prices, pick a shop, and apply purchased items back into stock.
+- Receipt upload is intentionally visible but still a coming-soon placeholder in Stage 6.
+- Logged-out home preview mirrors the signed-in household workspace with disabled controls and minimal fake data.
 - Admin dashboard exposes a demo household reseed action and separates read-only health checks from modifying maintenance actions.
+- Admin dashboard exposes the database-backed `allowAutoTickingAllShoppingListEntries` household feature toggle.
 
 Implemented API surfaces:
 
@@ -30,6 +38,13 @@ Implemented API surfaces:
 - `POST /api/household/items`
 - `PATCH /api/household/items`
 - `DELETE /api/household/items?householdId=...&id=...`
+- `POST /api/household/shopping-list/preview`
+- `POST /api/household/shopping-lists`
+- `PATCH /api/household/shopping-lists`
+- `GET /api/household/shopping-lists/latest?householdId=...`
+- `POST /api/household/shopping-lists/update-stocks`
+- `GET /api/admin/dashboard/feature-flags`
+- `PATCH /api/admin/dashboard/feature-flags`
 - `POST /api/admin/dashboard/reseed-demo-household`
 
 Core package area:
@@ -37,7 +52,8 @@ Core package area:
 - `packages/kamra-api-server/src/household/v1/` contains versioned contracts, schemas, and validation.
 - `packages/kamra-api-server/src/household/current/` contains current repository, stock status, and demo seed logic.
 - `src/app/household/household-stock.service.ts` is the frontend API/service boundary.
-- `src/app/home.component.ts` currently owns the signed-in household pulse and stock editor UI.
+- `src/app/home.component.ts` owns the signed-in household pulse, stock overview, and shopping control band UI.
+- `src/app/household/household-shopping-list.component.ts` owns the shopping-list overview plus finalization workspace.
 
 ## Domain Concepts
 
@@ -133,17 +149,27 @@ Current statuses:
 
 The current threshold is intentionally simple. It is good enough to order the pulse and preview demand, while leaving more nuanced prediction for Stage 6 and Stage 8.
 
-## Shopping Scale Preview
+## Shopping Workspace
 
-Stage 5 includes a non-persistent preview of shopping-list scope.
+Stage 6 turns the old shopping-scale preview into a persisted shopping workspace.
 
 Current levels:
 
+- `Start fresh`: creates an empty shopping list for manual building.
 - `Business as usual`: includes below-limit and at-limit rows.
 - `Keep it chill`: includes below-limit, at-limit, and low-soon rows.
-- `Stock 'em up!`: includes every tracked stock row.
+- `Stock 'em up!'`: includes every tracked stock row.
 
-Clicking the shopping-list action currently shows a coming-soon toast. Stage 6 should turn this preview into real list generation and persistence.
+Current behavior:
+
+- stock rows covered by the active level are highlighted in the stock table
+- each stock row can be added one-by-one to the active shopping list once a list exists
+- generated rows start unticked with bought amount set to `0`
+- unticked rows stay at the top while ticked rows move into a collapsible purchased section
+- applying purchased items may require confirmation when unticked rows remain
+- the `allowAutoTickingAllShoppingListEntries` feature toggle decides whether `Tick everything and update stock` is available during partial completion
+- cancelling a shopping list archives it out of the active household view
+- receipt upload remains visible as a future placeholder, not a working import flow
 
 ## Demo Household
 
@@ -224,46 +250,30 @@ npm run lint
 npm run build
 ```
 
-## Known Stage 5 Limits
+## Known Stage 6 Limits
 
-Stage 5 deliberately does not implement:
+Stage 6 deliberately does not implement:
 
-- real shopping-list generation
-- persisted shopping lists
-- notices beyond the home pulse
+- receipt parsing or automatic receipt-to-stock import
+- route or store optimization
+- richer notice feeds beyond the current household pulse and shopping workflow
 - expiry dates
 - buy-before buffers
 - automatic consumption-rate forecasting
-- product catalog linking UI
-- generic-product promotion into shared catalog records
+- product catalog linking UI inside the household editor
 - invitations or external household onboarding
 - barcode scanning
-- mobile app behavior
-- route optimization or store-choice optimization
+- mobile-specific shopping ergonomics
 
-These are not defects in the Stage 5 foundation; they are the next product layers.
+These are not Stage 6 defects; they are later product layers.
 
-## Stage 6 Direction
+## Next Direction
 
-Stage 6 should introduce deterministic shopping-list generation from household stock.
+Near-term follow-up after Stage 6:
 
-Recommended shape:
-
-- keep a pure core function that accepts household stock rows and a shopping scale
-- return explicit needed items with reason codes
-- preserve unmatched household-local items instead of hiding them
-- make unit uncertainty visible
-- avoid catalog matching as a prerequisite
-- persist generated lists only after the deterministic output shape is stable
-
-Initial reason codes might include:
-
-- below minimum
-- at minimum
-- low soon
-- included by broad restock scale
-
-The frontend should be able to explain why each item was included.
+- low-stock notices beyond the current home pulse
+- controlled alpha access only after the household and shopping loop is manually verified
+- further separation of household, product, site-admin, and dev-admin modules in the shell
 
 ## Future And Post-MVP Ideas
 

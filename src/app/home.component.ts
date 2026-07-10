@@ -1,20 +1,22 @@
 import { FormsModule } from "@angular/forms";
-import { Component, computed, effect, inject, signal } from "@angular/core";
+import { Component, ViewChild, computed, effect, inject, signal, type OnDestroy } from "@angular/core";
 import { RouterLink } from "@angular/router";
 
 import { AuthService } from "./auth.service";
 import {
   HouseholdStockService,
   type HouseholdListItem,
+  type HouseholdShoppingList,
   type HouseholdStockItemListItem,
   type HouseholdStockPage
 } from "./household/household-stock.service";
 import { HouseholdShoppingListComponent } from "./household/household-shopping-list.component";
 import { LocalizationService, type TranslationKey } from "./shared/localization.service";
+import { PageRailService, type PageRailSection } from "./shared/page-rail.service";
 import { ToastService } from "./shared/toast.service";
 
 type EditorMode = "create" | "edit";
-type ShoppingScale = "usual" | "chill" | "stock_up";
+type ShoppingScale = "start_fresh" | "usual" | "chill" | "stock_up";
 
 interface StockDraft {
   currentAmount: number;
@@ -50,6 +52,11 @@ interface PreviewStockItem {
 
 const shoppingScaleOptions: readonly ShoppingScaleOption[] = [
   {
+    hintKey: "household.shoppingScaleStartFreshHint",
+    key: "start_fresh",
+    labelKey: "household.shoppingScaleStartFresh"
+  },
+  {
     hintKey: "household.shoppingScaleUsualHint",
     key: "usual",
     labelKey: "household.shoppingScaleUsual"
@@ -81,101 +88,52 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
   imports: [FormsModule, RouterLink, HouseholdShoppingListComponent],
   template: `
     @if (!auth.isAuthenticated()) {
-      <section class="stock-workspace preview-workspace" aria-labelledby="home-title">
-        <div class="workspace-main">
-          <section class="pulse-card stock-pulse preview-surface" [attr.aria-label]="loc.t('home.activityPreview')">
-            <div class="pulse-topline">
-              <div>
-                <p class="eyebrow">{{ loc.t("home.today") }}</p>
-                <h1 id="home-title">{{ loc.t("home.liveTitle") }}</h1>
-              </div>
-            </div>
+      <section class="stock-workspace" aria-labelledby="home-title">
+        <section class="stock-panel preview-surface" [attr.aria-label]="loc.t('home.activityPreview')">
+          <div class="panel-topline">
+            <p class="panel-title" id="home-title">{{ loc.t("home.liveTitle") }}</p>
+          </div>
 
-            <div class="pulse-control-row">
-              <div
-                class="shopping-scale"
-                [class.scale-usual]="shoppingScale() === 'usual'"
-                [class.scale-chill]="shoppingScale() === 'chill'"
-                [class.scale-stock-up]="shoppingScale() === 'stock_up'"
-                [attr.aria-label]="loc.t('household.shoppingScale')"
-              >
-                <div class="scale-rail">
-                  <input
-                    class="scale-slider"
-                    type="range"
-                    min="0"
-                    max="2"
-                    step="1"
-                    [ngModel]="shoppingScaleIndex()"
-                    disabled
-                    [attr.aria-label]="loc.t('household.shoppingScale')"
-                  />
-                  <div class="scale-ticks" aria-hidden="true">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                  </div>
-                </div>
+          <div class="household-bar">
+            <div class="household-picker-group">
+              <label class="household-select">
+                <span>{{ loc.t("household.activeHousehold") }}</span>
+                <select disabled>
+                  <option>{{ loc.t("home.pantryPulse") }}</option>
+                </select>
+              </label>
 
-                <div class="scale-labels" aria-hidden="true">
-                  @for (option of shoppingScaleDisplayOptions; track option.key) {
-                    <span [class.active-scale-label]="shoppingScale() === option.key">
-                      <strong>{{ loc.t(option.labelKey) }}</strong>
-                      <small>{{ loc.t(option.hintKey) }}</small>
-                    </span>
-                  }
-                </div>
-              </div>
-
-              <div class="pulse-orbit pulse-orbit-live">
-                <span></span>
-                <span></span>
-                <span></span>
-                <strong>{{ previewShoppingItems().length }}</strong>
-              </div>
-
-              <button
-                class="cart-button"
-                type="button"
-                disabled
-                [attr.aria-label]="loc.t('household.generateShoppingList')"
-                [attr.title]="loc.t('household.generateShoppingList')"
-              >
-                <span aria-hidden="true">🛒+</span>
+              <button class="ui-button ui-button-quiet ui-button-sm manage-household-button" type="button" disabled>
+                {{ loc.t("household.manageHousehold") }}
               </button>
             </div>
 
-            <div class="household-bar">
-              <div class="household-picker-group">
-                <label class="household-select">
-                  <span>{{ loc.t("household.activeHousehold") }}</span>
-                  <select disabled>
-                    <option>{{ loc.t("home.pantryPulse") }}</option>
-                  </select>
-                </label>
+            <button
+              class="ui-button ui-button-quiet ui-button-sm icon-button"
+              type="button"
+              disabled
+              [attr.aria-label]="loc.t('common.refresh')"
+              [attr.title]="loc.t('common.refresh')"
+            >
+              <span aria-hidden="true">↻</span>
+            </button>
+          </div>
 
-                <button class="ui-button ui-button-quiet ui-button-sm" type="button" disabled>
-                  {{ loc.t("household.manageHousehold") }}
-                </button>
-              </div>
-
-              <button class="ui-button ui-button-quiet ui-button-sm" type="button" disabled>
-                {{ loc.t("common.refresh") }}
-              </button>
-            </div>
-
-            <div class="stock-table-shell">
-              <div class="stock-table-header stock-table-grid" aria-hidden="true">
+          <div class="stock-table-shell">
+            <div class="stock-table-header" aria-hidden="true">
+              <div class="stock-header-main">
                 <span>{{ loc.t("common.product") }}</span>
                 <span>{{ loc.t("household.currentShort") }}</span>
                 <span aria-hidden="true"></span>
                 <span>{{ loc.t("household.minShort") }}</span>
                 <span>{{ loc.t("common.state") }}</span>
               </div>
+            </div>
 
-              <div class="stock-table-body">
-                @for (item of previewStockItems(); track item.id) {
-                  <div class="stock-table-row stock-table-grid preview-stock-row">
+            <div class="stock-table-body">
+              @for (item of previewStockItems(); track item.id) {
+                <div class="stock-table-row stock-table-grid preview-stock-row">
+                  <button class="stock-row-main" type="button" disabled>
                     <span class="stock-name">{{ item.displayName }}</span>
                     <span>{{ formatAmount(item.currentAmount, item.unit) }}</span>
                     <span
@@ -194,74 +152,29 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
                     >
                       {{ loc.t(stockStatusTranslationKey(item.stockStatus)) }}
                     </span>
-                  </div>
-                }
-              </div>
-            </div>
+                  </button>
 
-            <button class="ui-button ui-button-primary add-new-button" type="button" disabled>
-              {{ loc.t("household.addNewItem") }}
-            </button>
-          </section>
-
-          <section class="ui-panel-card preview-shopping-card" [attr.aria-label]="loc.t('household.shoppingListPanelTitle')">
-            <div class="preview-shopping-topline">
-              <div>
-                <p class="ui-kicker">{{ loc.t("household.shoppingListKicker") }}</p>
-                <h2 class="ui-card-title">{{ loc.t("household.shoppingListPanelTitle") }}</h2>
-              </div>
-
-              <div class="preview-shopping-actions">
-                <button class="ui-button ui-button-quiet ui-button-sm" type="button" disabled>
-                  {{ loc.t("common.refresh") }}
-                </button>
-                <button class="ui-button ui-button-primary ui-button-sm" type="button" disabled>
-                  {{ loc.t("household.generateShoppingList") }}
-                </button>
-              </div>
-            </div>
-
-            <p class="shopping-scale-copy">
-              {{ loc.t("household.shoppingListScaleLabel") }}:
-              <strong>{{ shoppingScaleLabel() }}</strong>
-            </p>
-
-            <div class="preview-shopping-shell">
-              @for (item of previewShoppingItems(); track item.id) {
-                <article class="preview-shopping-line">
-                  <div class="preview-shopping-row">
-                    <label class="shopping-check">
-                      <input type="checkbox" [checked]="false" disabled />
-                      <span>{{ item.displayName }}</span>
-                    </label>
-
-                    <div class="preview-shopping-amounts">
-                      <label>
-                        <span>{{ loc.t("household.plannedShort") }}</span>
-                        <input type="number" step="0.01" [value]="item.minLimit" disabled />
-                      </label>
-                      <label>
-                        <span>{{ loc.t("household.purchasedShort") }}</span>
-                        <input type="number" step="0.01" value="0" disabled />
-                      </label>
-                      <label class="shopping-unit">
-                        <span>{{ loc.t("household.unit") }}</span>
-                        <input type="text" [value]="item.unit" disabled />
-                      </label>
-                    </div>
-                  </div>
-                </article>
-              } @empty {
-                <p class="shopping-note">{{ loc.t("household.shoppingListEmpty") }}</p>
+                  <button
+                    class="stock-list-add"
+                    type="button"
+                    disabled
+                    [attr.title]="loc.t('household.shoppingListAddRequiresExisting')"
+                  >
+                    <span aria-hidden="true">🛒+</span>
+                  </button>
+                </div>
               }
             </div>
-          </section>
-        </div>
+          </div>
+
+          <button class="ui-button ui-button-primary add-new-button" type="button" disabled>
+            {{ loc.t("household.addNewItem") }}
+          </button>
+        </section>
 
         <section class="editor-panel preview-surface" [attr.aria-label]="loc.t('household.selectedItem')">
           <p class="card-kicker">{{ loc.t("household.selectedItem") }}</p>
           <h2>{{ previewEditorItem().displayName }}</h2>
-          <p class="preview-copy">{{ loc.t("home.description") }}</p>
 
           <form class="stock-form">
             <label>
@@ -291,9 +204,14 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
               </label>
             </div>
 
-            <button class="details-toggle" type="button" disabled>
+            <button
+              class="details-toggle icon-button"
+              type="button"
+              disabled
+              [attr.aria-label]="loc.t('household.showAdditionalDetails')"
+              [attr.title]="loc.t('household.showAdditionalDetails')"
+            >
               <span>{{ loc.t("household.showAdditionalDetails") }}</span>
-              <strong aria-hidden="true">+</strong>
             </button>
 
             <div class="editor-actions">
@@ -306,70 +224,19 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
             </div>
           </form>
         </section>
+
+        <app-household-shopping-list
+          class="shopping-bottom-row"
+          householdId="preview_household"
+          [demoShoppingList]="demoShoppingList()"
+          [shoppingScale]="apiShoppingScale()"
+        />
       </section>
     } @else {
       <section class="stock-workspace" aria-labelledby="home-title">
-        <div class="workspace-main">
-        <section class="pulse-card stock-pulse" [attr.aria-label]="loc.t('home.activityPreview')">
-          <div class="pulse-topline">
-            <div>
-              <p class="eyebrow">{{ loc.t("home.today") }}</p>
-              <h1 id="home-title">{{ loc.t("home.liveTitle") }}</h1>
-            </div>
-          </div>
-
-          <div class="pulse-control-row">
-            <div
-              class="shopping-scale"
-              [class.scale-usual]="shoppingScale() === 'usual'"
-              [class.scale-chill]="shoppingScale() === 'chill'"
-              [class.scale-stock-up]="shoppingScale() === 'stock_up'"
-              [attr.aria-label]="loc.t('household.shoppingScale')"
-            >
-              <div class="scale-rail">
-                <input
-                  class="scale-slider"
-                  type="range"
-                  min="0"
-                  max="2"
-                  step="1"
-                  [ngModel]="shoppingScaleIndex()"
-                  (ngModelChange)="setShoppingScaleIndex($event)"
-                  [attr.aria-label]="loc.t('household.shoppingScale')"
-                />
-                <div class="scale-ticks" aria-hidden="true">
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                </div>
-              </div>
-
-              <div class="scale-labels" aria-hidden="true">
-                @for (option of shoppingScaleDisplayOptions; track option.key) {
-                  <span [class.active-scale-label]="shoppingScale() === option.key">
-                    <strong>{{ loc.t(option.labelKey) }}</strong>
-                    <small>{{ loc.t(option.hintKey) }}</small>
-                  </span>
-                }
-              </div>
-            </div>
-
-            <div class="pulse-orbit pulse-orbit-live">
-              <span></span>
-              <span></span>
-              <span></span>
-              <strong>{{ shoppingItemCount() }}</strong>
-            </div>
-
-            <button
-              class="cart-button"
-              type="button"
-              [attr.aria-label]="loc.t('household.generateShoppingList')"
-              [attr.title]="loc.t('household.generateShoppingList')"
-              (click)="shoppingListPanel?.generateShoppingList()"
-            >
-              <span aria-hidden="true">🛒+</span>
-            </button>
+        <section class="stock-panel" [attr.aria-label]="loc.t('home.activityPreview')">
+          <div class="panel-topline">
+            <p class="panel-title" id="home-title">{{ loc.t("home.liveTitle") }}</p>
           </div>
 
           <div class="household-bar">
@@ -388,7 +255,7 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
               </label>
 
               <button
-                class="ui-button ui-button-quiet ui-button-sm"
+                class="ui-button ui-button-quiet ui-button-sm manage-household-button"
                 type="button"
                 [routerLink]="selectedHouseholdId() ? ['/households', selectedHouseholdId()] : ['/']"
                 [disabled]="!selectedHouseholdId()"
@@ -397,8 +264,15 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
               </button>
             </div>
 
-            <button class="ui-button ui-button-quiet ui-button-sm" type="button" (click)="refreshHome()" [disabled]="loadState() === 'loading'">
-              {{ loadState() === "loading" ? loc.t("common.loading") : loc.t("common.refresh") }}
+            <button
+              class="ui-button ui-button-quiet ui-button-sm icon-button"
+              type="button"
+              (click)="refreshHome()"
+              [disabled]="loadState() === 'loading'"
+              [attr.aria-label]="loc.t('common.refresh')"
+              [attr.title]="loc.t('common.refresh')"
+            >
+              <span aria-hidden="true">↻</span>
             </button>
           </div>
 
@@ -432,64 +306,69 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
             </section>
           } @else {
             <div class="stock-table-shell">
-              <div class="stock-table-header stock-table-grid" aria-hidden="true">
-                <span>{{ loc.t("common.product") }}</span>
-                <span>{{ loc.t("household.currentShort") }}</span>
-                <span aria-hidden="true"></span>
-                <span>{{ loc.t("household.minShort") }}</span>
-                <span>{{ loc.t("common.state") }}</span>
+              <div class="stock-table-header" aria-hidden="true">
+                <div class="stock-header-main">
+                  <span>{{ loc.t("common.product") }}</span>
+                  <span>{{ loc.t("household.currentShort") }}</span>
+                  <span aria-hidden="true"></span>
+                  <span>{{ loc.t("household.minShort") }}</span>
+                  <span>{{ loc.t("common.state") }}</span>
+                </div>
               </div>
 
               <div class="stock-table-body">
                 @for (item of stockItemsByPriority(); track item.id) {
-                  <button
+                  <div
                     class="stock-table-row stock-table-grid"
-                    type="button"
                     [class.selected-row]="selectedItem()?.id === item.id"
-                    (click)="openEditor(item)"
+                    [class.shopping-candidate-row]="shouldHighlightStockItem(item)"
                   >
-                    <span class="stock-name">{{ item.displayName }}</span>
-                    <span>{{ formatAmount(item.currentAmount, item.unit) }}</span>
-                    <span
-                      class="relation-symbol"
-                      [class.relation-below]="item.stockStatus === 'below_limit' || item.stockStatus === 'at_limit'"
-                      [class.relation-watch]="item.stockStatus === 'low_soon'"
-                      [class.relation-steady]="item.stockStatus === 'steady'"
+                    <button class="stock-row-main" type="button" (click)="openEditor(item)">
+                      <span class="stock-name">{{ item.displayName }}</span>
+                      <span>{{ formatAmount(item.currentAmount, item.unit) }}</span>
+                      <span
+                        class="relation-symbol"
+                        [class.relation-below]="item.stockStatus === 'below_limit' || item.stockStatus === 'at_limit'"
+                        [class.relation-watch]="item.stockStatus === 'low_soon'"
+                        [class.relation-steady]="item.stockStatus === 'steady'"
+                      >
+                        {{ relationSymbol(item.stockStatus) }}
+                      </span>
+                      <span>{{ formatAmount(item.minLimit, item.unit) }}</span>
+                      <span
+                        class="status-badge"
+                        [class.status-danger]="item.stockStatus === 'below_limit' || item.stockStatus === 'at_limit'"
+                        [class.status-watch]="item.stockStatus === 'low_soon'"
+                      >
+                        {{ loc.t(stockStatusTranslationKey(item.stockStatus)) }}
+                      </span>
+                    </button>
+
+                    <button
+                      class="stock-list-add"
+                      type="button"
+                      [disabled]="!shoppingListPanel?.shoppingList() || shoppingListPanel.hasShoppingLineForStockItem(item.id)"
+                      [attr.title]="shoppingListPanel?.shoppingList()
+                        ? (shoppingListPanel.hasShoppingLineForStockItem(item.id)
+                          ? loc.t('household.shoppingListAlreadyAdded')
+                          : loc.t('household.shoppingListAddItemAction'))
+                        : loc.t('household.shoppingListAddRequiresExisting')"
+                      (click)="addStockItemToShoppingList(item, shoppingListPanel)"
                     >
-                      {{ relationSymbol(item.stockStatus) }}
-                    </span>
-                    <span>{{ formatAmount(item.minLimit, item.unit) }}</span>
-                    <span
-                      class="status-badge"
-                      [class.status-danger]="item.stockStatus === 'below_limit' || item.stockStatus === 'at_limit'"
-                      [class.status-watch]="item.stockStatus === 'low_soon'"
-                    >
-                      {{ loc.t(stockStatusTranslationKey(item.stockStatus)) }}
-                    </span>
-                  </button>
+                      <span aria-hidden="true">🛒+</span>
+                    </button>
+                  </div>
                 } @empty {
                   <p class="empty-copy">{{ loc.t("household.noStockItems") }}</p>
                 }
               </div>
             </div>
-
-            <button class="ui-button ui-button-primary add-new-button" type="button" (click)="startCreateItem()">
-              {{ loc.t("household.addNewItem") }}
-            </button>
           }
 
           @if (statusMessage()) {
-            <p class="status-note">{{ statusMessage() }}</p>
+            <small class="status-note">{{ statusMessage() }}</small>
           }
         </section>
-
-        <app-household-shopping-list
-          #shoppingListPanel
-          [householdId]="selectedHouseholdId()"
-          [shoppingScale]="apiShoppingScale()"
-          (stockPageUpdated)="applyShoppingListStockPage($event)"
-        />
-        </div>
 
         <section class="editor-panel" [attr.aria-label]="loc.t('household.selectedItem')">
           <p class="card-kicker">{{ editorMode() === "create" ? loc.t("household.addNewItem") : loc.t("household.selectedItem") }}</p>
@@ -533,9 +412,14 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
               </label>
             </div>
 
-            <button class="details-toggle" type="button" (click)="toggleDetails()">
-              <span>{{ detailsOpen() ? loc.t("household.hideAdditionalDetails") : loc.t("household.showAdditionalDetails") }}</span>
-              <strong aria-hidden="true">{{ detailsOpen() ? "−" : "+" }}</strong>
+            <button
+              class="details-toggle icon-button"
+              type="button"
+              (click)="toggleDetails()"
+              [attr.aria-label]="detailsOpen() ? loc.t('household.hideAdditionalDetails') : loc.t('household.showAdditionalDetails')"
+              [attr.title]="detailsOpen() ? loc.t('household.hideAdditionalDetails') : loc.t('household.showAdditionalDetails')"
+            >
+              <span aria-hidden="true">{{ detailsOpen() ? loc.t('household.hideAdditionalDetails') : loc.t('household.showAdditionalDetails') }}</span>
             </button>
 
             @if (detailsOpen()) {
@@ -586,6 +470,9 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
             }
 
             <div class="editor-actions">
+              <button class="ui-button ui-button-warm add-new-button" type="button" (click)="startCreateItem()" [disabled]="mutationState() === 'saving'">
+                {{ loc.t("household.addNewItem") }}
+              </button>
               <button class="ui-button ui-button-primary" type="submit" [disabled]="mutationState() === 'saving'">
                 {{ mutationState() === "saving" ? loc.t("common.loading") : loc.t("common.save") }}
               </button>
@@ -597,6 +484,14 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
             </div>
           </form>
         </section>
+
+        <app-household-shopping-list
+          #shoppingListPanel
+          class="shopping-bottom-row"
+          [householdId]="selectedHouseholdId()"
+          [shoppingScale]="apiShoppingScale()"
+          (stockPageUpdated)="applyShoppingListStockPage($event)"
+        />
       </section>
     }
   `,
@@ -606,12 +501,14 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
         display: grid;
         gap: var(--space-7);
         min-height: 100%;
+        --scale-start-fresh: #6f8f3a;
         --scale-usual: #e5bd55;
         --scale-chill: #e98f39;
         --scale-stock-up: #d94c3c;
       }
 
       :host-context(:root[data-theme="dark"]) {
+        --scale-start-fresh: #96b760;
         --scale-usual: #f2d47a;
         --scale-chill: #f2a855;
         --scale-stock-up: #ec6758;
@@ -625,18 +522,9 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
         grid-template-columns: minmax(0, 1fr);
       }
 
-      .workspace-main {
-        display: grid;
-        gap: var(--space-4);
-      }
-
-      .preview-workspace {
-        opacity: 0.96;
-      }
-
-      .pulse-card,
       .home-copy,
       article,
+      .stock-panel,
       .state-panel,
       .editor-panel {
         background: var(--surface-shell-background);
@@ -645,7 +533,7 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
         box-shadow: var(--surface-panel-shadow);
       }
 
-      .pulse-card,
+      .stock-panel,
       .editor-panel {
         align-content: start;
         display: grid;
@@ -653,270 +541,36 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
         padding: clamp(1rem, 3vw, 1.5rem);
       }
 
-      .pulse-card {
-        background: var(--pulse-card-background);
-        min-height: 20rem;
-        overflow: hidden;
-        position: relative;
-      }
-
-      .pulse-card::before {
-        animation: scan 2400ms ease-in-out infinite;
-        background: linear-gradient(90deg, transparent, var(--pulse-sheen-background), transparent);
-        content: "";
-        height: 100%;
-        left: -60%;
-        position: absolute;
-        top: 0;
-        transform: skewX(-12deg);
-        width: 42%;
-      }
-
-      .stock-pulse > * {
-        position: relative;
-        z-index: 1;
-      }
-
-      .pulse-topline,
+      .panel-topline,
       .household-bar,
       .household-picker-group,
       .split-fields,
       .editor-actions {
-        align-items: center;
+        align-items: end;
         display: flex;
         gap: var(--space-3);
       }
 
-      .pulse-topline,
+      .panel-topline,
       .household-bar {
         justify-content: space-between;
       }
 
-      .pulse-control-row {
-        align-items: center;
-        display: grid;
-        gap: clamp(0.85rem, 2vw, var(--space-4));
-        grid-template-columns: minmax(12rem, 1.05fr) minmax(8rem, 0.9fr) minmax(8rem, 0.85fr);
-        min-height: 10rem;
+      .shopping-bottom-row {
+        grid-column: 1 / -1;
       }
 
-      .pulse-orbit {
-        align-items: center;
-        display: grid;
-        justify-self: center;
-        min-height: 10rem;
-        place-items: center;
-        position: relative;
-        width: min(100%, 18rem);
+      .icon-button {
+        min-width: 2.35rem;
+        padding-inline: 0;
       }
 
-      .pulse-orbit span {
-        border: 1px solid color-mix(in srgb, var(--color-accent-leaf) 36%, transparent);
-        border-radius: var(--radius-pill);
-        box-shadow: 0 1rem 2rem rgb(111 159 33 / 12%);
-        position: absolute;
-      }
-
-      .pulse-orbit span:nth-child(1) {
-        animation: breathe 2200ms ease-in-out infinite;
-        background: var(--pulse-core-background);
-        height: 4.8rem;
-        width: 4.8rem;
-      }
-
-      .pulse-orbit span:nth-child(2) {
-        animation: breathe 2200ms ease-in-out 240ms infinite;
-        height: 7.4rem;
-        width: 7.4rem;
-      }
-
-      .pulse-orbit span:nth-child(3) {
-        animation: breathe 2200ms ease-in-out 480ms infinite;
-        height: 10rem;
-        width: 10rem;
-      }
-
-      .pulse-orbit-live strong {
-        color: var(--color-text);
-        font-size: 2.65rem;
-        line-height: 1;
-        position: relative;
-        z-index: 1;
-      }
-
-      .shopping-scale {
-        align-items: center;
-        display: grid;
-        gap: var(--space-2);
-        grid-template-columns: 2.7rem minmax(0, 1fr);
-        min-height: 9rem;
-      }
-
-      .scale-rail {
-        display: grid;
-        height: 6.25rem;
-        place-items: center;
-        position: relative;
-        width: 2.7rem;
-      }
-
-      .scale-slider {
-        appearance: none;
-        background: transparent;
-        cursor: pointer;
-        direction: rtl;
-        height: 6.25rem;
-        margin: 0;
-        position: relative;
-        width: 2.35rem;
-        writing-mode: vertical-lr;
-        z-index: 1;
-      }
-
-      .scale-slider::-webkit-slider-runnable-track {
-        background:
-          var(--scale-fill-background),
-          linear-gradient(to top, rgb(255 229 151 / 24%), rgb(246 155 68 / 24%) 55%, rgb(213 70 54 / 24%));
-        border: 1px solid color-mix(in srgb, var(--line-panel) 70%, transparent);
-        border-radius: var(--radius-pill);
-        box-shadow: inset 0 0.08rem 0.18rem rgb(40 31 21 / 18%);
-        height: 6.25rem;
-        width: 0.72rem;
-      }
-
-      .scale-slider::-moz-range-track {
-        background:
-          var(--scale-fill-background),
-          linear-gradient(to top, rgb(255 229 151 / 24%), rgb(246 155 68 / 24%) 55%, rgb(213 70 54 / 24%));
-        border: 1px solid color-mix(in srgb, var(--line-panel) 70%, transparent);
-        border-radius: var(--radius-pill);
-        box-shadow: inset 0 0.08rem 0.18rem rgb(40 31 21 / 18%);
-        height: 6.25rem;
-        width: 0.72rem;
-      }
-
-      .scale-slider::-webkit-slider-thumb {
-        appearance: none;
-        background: linear-gradient(180deg, #ffffff, color-mix(in srgb, var(--scale-thumb-color) 32%, #ffffff));
-        border: 2px solid var(--scale-thumb-color);
-        border-radius: 0.32rem;
-        box-shadow: 0 0.35rem 0.8rem rgb(40 31 21 / 22%);
-        height: 0.9rem;
-        margin-left: -0.78rem;
-        width: 2.25rem;
-      }
-
-      .scale-slider::-moz-range-thumb {
-        background: linear-gradient(180deg, #ffffff, color-mix(in srgb, var(--scale-thumb-color) 32%, #ffffff));
-        border: 2px solid var(--scale-thumb-color);
-        border-radius: 0.32rem;
-        box-shadow: 0 0.35rem 0.8rem rgb(40 31 21 / 22%);
-        height: 0.9rem;
-        width: 2.25rem;
-      }
-
-      .scale-usual {
-        --scale-fill-background: linear-gradient(to top, #ffe6a3 0%, #ffe6a3 22%, transparent 22%, transparent 100%);
-        --scale-thumb-color: var(--scale-usual);
-      }
-
-      .scale-chill {
-        --scale-fill-background: linear-gradient(to top, #ffe6a3 0%, #f3ad54 56%, transparent 56%, transparent 100%);
-        --scale-thumb-color: var(--scale-chill);
-      }
-
-      .scale-stock-up {
-        --scale-fill-background: linear-gradient(to top, #ffe6a3 0%, #f3ad54 52%, #d94c3c 100%);
-        --scale-thumb-color: var(--scale-stock-up);
-      }
-
-      .scale-ticks {
-        display: flex;
-        flex-direction: column;
-        height: 6.05rem;
-        justify-content: space-between;
-        left: 0.28rem;
-        pointer-events: none;
-        position: absolute;
-        top: 0.1rem;
-        width: 2.15rem;
-      }
-
-      .scale-ticks span {
-        background: color-mix(in srgb, var(--color-text) 55%, transparent);
-        border-radius: var(--radius-pill);
-        height: 0.12rem;
-        width: 0.52rem;
-      }
-
-      .scale-labels {
-        color: var(--color-text-muted);
-        display: grid;
-        font-size: 0.76rem;
-        gap: 0.7rem;
-        grid-template-rows: repeat(3, minmax(0, 1fr));
-        line-height: 1.2;
-      }
-
-      .scale-labels span {
-        display: grid;
-        gap: 0.12rem;
-      }
-
-      .scale-labels strong {
-        color: inherit;
-        font-size: 0.78rem;
-        font-weight: 900;
-      }
-
-      .scale-labels small {
-        color: var(--color-text-muted);
-        font-size: 0.68rem;
-        font-weight: 700;
-      }
-
-      .active-scale-label {
-        color: var(--color-text);
-      }
-
-      .active-scale-label small {
-        color: color-mix(in srgb, var(--color-text) 72%, var(--color-text-muted));
-      }
-
-      .cart-button {
-        align-items: center;
-        align-self: center;
-        background: var(--surface-soft-background);
-        border: 1px solid var(--line-subtle);
-        border-radius: var(--radius-ui);
-        color: var(--color-text);
-        box-shadow: var(--surface-floating-shadow);
-        cursor: pointer;
+      .icon-button span {
         display: inline-flex;
-        font-size: 2.35rem;
+        font-size: 1rem;
         font-weight: 900;
-        justify-self: center;
         justify-content: center;
-        min-height: 10rem;
-        min-width: 10rem;
-        transition:
-          background 160ms ease,
-          border-color 160ms ease,
-          box-shadow 180ms ease,
-          transform 180ms ease;
-      }
-
-      .cart-button:hover,
-      .cart-button:focus-visible {
-        background: var(--control-quiet-background);
-        border-color: var(--control-quiet-border);
-        box-shadow: 0 1rem 2.2rem rgb(48 43 50 / 14%);
-        transform: translateY(-0.08rem);
-      }
-
-      .cart-button:focus-visible {
-        outline: 2px solid color-mix(in srgb, var(--color-accent-sky) 48%, transparent);
-        outline-offset: 0.16rem;
+        width: 100%;
       }
 
       .preview-surface :is(button, input, select, textarea) {
@@ -946,15 +600,27 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
         line-height: 1.04;
       }
 
+      .panel-title {
+        color: var(--color-text-muted);
+        font-size: 0.82rem;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+      }
+
       h2,
       .stock-name,
       .row-title {
         color: var(--color-text);
       }
+        
+      .status-note {
+        color: var(--color-text-muted);
+        line-height: 0;
+      }
 
       .home-copy > p,
       .empty-copy,
-      .status-note,
       .state-panel p {
         color: var(--color-text-muted);
         line-height: 1.6;
@@ -974,6 +640,13 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
         min-width: min(22rem, 100%);
       }
 
+      .manage-household-button,
+      .add-new-stock-button {
+        flex: 0 1 auto;
+        min-width: max-content;
+        white-space: nowrap;
+      }
+
       .stock-table-shell {
         border: 1px solid var(--line-panel);
         border-radius: var(--radius-ui);
@@ -981,18 +654,44 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
       }
 
       .stock-table-grid {
+        align-items: center;
         display: grid;
-        gap: var(--space-2);
-        grid-template-columns: minmax(9rem, 1.5fr) minmax(4.5rem, 0.72fr) 2.4rem minmax(4.5rem, 0.72fr) minmax(6.5rem, 0.9fr);
+        gap: 0.55rem;
+        grid-template-columns: minmax(0, 1fr) 2.35rem;
       }
 
       .stock-table-header {
+        align-items: center;
         background: color-mix(in srgb, var(--pulse-row-background) 72%, transparent);
         color: var(--color-text-muted);
-        font-size: 0.72rem;
+        display: grid;
+        font-size: 0.66rem;
         font-weight: 900;
-        padding: 0.55rem 0.75rem;
+        gap: 0.55rem;
+        grid-template-columns: minmax(0, 1fr) 2.35rem;
+        line-height: 1;
+        min-height: 2.25rem;
+        padding: 0.45rem 0.65rem;
         text-transform: uppercase;
+      }
+
+      .stock-header-main,
+      .stock-row-main {
+        align-items: center;
+        display: grid;
+        gap: 0.55rem;
+        grid-template-columns: minmax(8rem, 1.5fr) minmax(4.25rem, 0.72fr) 1.8rem minmax(4.25rem, 0.72fr) minmax(5.5rem, 0.9fr);
+        min-width: 0;
+      }
+
+      .stock-header-main span,
+      .stock-header-add {
+        line-height: 1.1;
+        white-space: nowrap;
+      }
+
+      .stock-header-add {
+        justify-self: center;
       }
 
       .stock-table-body {
@@ -1003,20 +702,52 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
       .stock-table-row {
         align-items: center;
         background: var(--pulse-row-background);
-        border: 0;
         border-bottom: 1px solid var(--pulse-row-border);
         color: var(--pulse-row-text);
-        cursor: pointer;
-        font: inherit;
-        min-height: 3.2rem;
-        padding: 0.65rem 0.75rem;
-        text-align: left;
-        width: 100%;
+        min-height: 2.65rem;
+        padding: 0.42rem 0.65rem;
       }
 
       .stock-table-row:hover,
       .selected-row {
         background: var(--row-hover-background);
+      }
+
+      .shopping-candidate-row {
+        background: color-mix(in srgb, var(--color-accent-leaf) 16%, var(--pulse-row-background));
+      }
+
+      .stock-row-main {
+        background: transparent;
+        border: 0;
+        color: inherit;
+        cursor: pointer;
+        font: inherit;
+        min-height: 0;
+        min-width: 0;
+        padding: 0;
+        text-align: left;
+        width: 100%;
+      }
+
+      .stock-list-add {
+        background: var(--control-quiet-background);
+        border: 1px solid var(--control-quiet-border);
+        border-radius: var(--radius-ui);
+        color: var(--control-quiet-text);
+        cursor: pointer;
+        font: inherit;
+        font-size: 0.92rem;
+        font-weight: 900;
+        line-height: 1;
+        min-height: 2rem;
+        min-width: 2.15rem;
+        padding: 0;
+      }
+
+      .stock-list-add:disabled {
+        cursor: not-allowed;
+        opacity: 0.68;
       }
 
       .stock-name {
@@ -1031,10 +762,11 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
         border-radius: var(--radius-ui);
         display: inline-flex;
         font-family: var(--font-mono);
-        font-size: 1.1rem;
+        font-size: 0.98rem;
         font-weight: 900;
         justify-content: center;
-        min-height: 2rem;
+        line-height: 1;
+        min-height: 1.55rem;
       }
 
       .relation-below {
@@ -1050,16 +782,21 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
       }
 
       .status-badge {
+        align-self: center;
         background: color-mix(in srgb, var(--color-accent-leaf) 12%, var(--surface-soft-background));
         border-radius: var(--radius-ui);
         color: var(--color-text);
         display: inline-flex;
-        font-size: 0.72rem;
+        font-size: 0.88rem;
         font-weight: 900;
         justify-content: center;
-        min-height: 1.9rem;
-        padding: 0.3rem 0.5rem;
+        justify-self: start;
+        line-height: 1;
+        min-height: 1.45rem;
+        padding: 0.24rem 0.45rem;
         text-transform: uppercase;
+        white-space: nowrap;
+        width: max-content;
       }
 
       .status-danger {
@@ -1080,6 +817,10 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
 
       .preview-stock-row:hover {
         background: var(--pulse-row-background);
+      }
+
+      .preview-stock-row .stock-row-main {
+        cursor: not-allowed;
       }
 
       .stock-form,
@@ -1149,9 +890,9 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
         display: flex;
         font: inherit;
         font-weight: 800;
-        justify-content: space-between;
+        justify-content: center;
         min-height: 2.4rem;
-        padding: 0.45rem 0.65rem;
+        padding: 0.45rem;
       }
 
       .additional-details {
@@ -1165,88 +906,8 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
         grid-template-columns: repeat(3, minmax(0, 1fr));
       }
 
-      .preview-shopping-card {
-        gap: var(--space-4);
-      }
-
       .shopping-scale-copy {
         margin: 0;
-      }
-
-      .preview-shopping-topline,
-      .preview-shopping-actions,
-      .preview-shopping-row,
-      .preview-shopping-amounts {
-        align-items: center;
-        display: flex;
-        gap: var(--space-3);
-      }
-
-      .preview-shopping-topline {
-        justify-content: space-between;
-      }
-
-      .preview-shopping-actions,
-      .preview-shopping-amounts {
-        flex-wrap: wrap;
-      }
-
-      .preview-shopping-shell {
-        display: grid;
-        gap: 0.75rem;
-        max-height: 22rem;
-        overflow: auto;
-      }
-
-      .preview-shopping-line {
-        background: var(--pulse-row-background);
-        border: 1px solid var(--pulse-row-border);
-        border-radius: var(--radius-ui);
-        display: grid;
-        gap: 0.75rem;
-        margin: 0;
-        padding: 0.8rem;
-      }
-
-      .preview-shopping-row {
-        align-items: flex-start;
-        justify-content: space-between;
-      }
-
-      .shopping-check {
-        align-items: center;
-        display: flex;
-        gap: 0.6rem;
-        font-weight: 800;
-      }
-
-      .preview-shopping-amounts {
-        flex: 1 1 auto;
-        justify-content: flex-end;
-      }
-
-      .preview-shopping-amounts label {
-        color: var(--color-text-muted);
-        display: grid;
-        font-size: 0.75rem;
-        font-weight: 800;
-        gap: 0.3rem;
-      }
-
-      .preview-shopping-amounts input {
-        background: var(--form-field-background);
-        border: 1px solid var(--line-subtle);
-        border-radius: var(--radius-ui);
-        color: var(--color-text);
-        font: inherit;
-        min-height: 2.2rem;
-        padding: 0.45rem 0.55rem;
-        width: 6.5rem;
-      }
-
-      .preview-copy {
-        color: var(--color-text-muted);
-        line-height: 1.6;
       }
 
       .mini-stats div {
@@ -1301,17 +962,6 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
         }
       }
 
-      @keyframes scan {
-        0% {
-          left: -60%;
-        }
-
-        55%,
-        100% {
-          left: 118%;
-        }
-      }
-
       @media (min-width: 900px) {
         .home-board {
           grid-template-columns: minmax(20rem, 0.85fr) minmax(0, 1.15fr);
@@ -1319,6 +969,7 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
 
         .stock-workspace {
           grid-template-columns: minmax(26rem, 1.2fr) minmax(20rem, 0.8fr);
+          grid-template-rows: auto auto auto;
         }
       }
 
@@ -1333,42 +984,36 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
           grid-template-columns: 1fr;
         }
 
-        .pulse-topline,
+        .panel-topline,
         .household-bar,
         .household-picker-group,
         .split-fields,
-        .editor-actions,
-        .preview-shopping-topline,
-        .preview-shopping-row,
-        .preview-shopping-amounts {
+        .editor-actions {
           align-items: stretch;
           flex-direction: column;
-        }
-
-        .pulse-control-row {
-          grid-template-columns: 1fr;
-        }
-
-        .cart-button {
-          min-height: 7.5rem;
-          min-width: 7.5rem;
         }
 
         .stock-table-shell {
           overflow-x: auto;
         }
 
-        .stock-table-grid {
-          min-width: 38rem;
+        .stock-table-grid,
+        .stock-row-main {
+          min-width: 40rem;
+        }
+
+        .stock-header-main {
+          min-width: 40rem;
         }
       }
     `
   ]
 })
-export class HomeComponent {
+export class HomeComponent implements OnDestroy {
   readonly auth = inject(AuthService);
   readonly household = inject(HouseholdStockService);
   readonly loc = inject(LocalizationService);
+  readonly pageRail = inject(PageRailService);
   private readonly toast = inject(ToastService);
 
   readonly detailsOpen = signal(false);
@@ -1384,9 +1029,15 @@ export class HomeComponent {
   readonly statusMessage = signal("");
   readonly shoppingScaleDisplayOptions = shoppingScaleDisplayOptions;
   readonly shoppingScaleOptions = shoppingScaleOptions;
+  readonly shoppingListPanel = signal<HouseholdShoppingListComponent | null>(null);
   createHouseholdName = "";
   editorDraft: StockDraft = createEmptyStockDraft();
   private loadSerial = 0;
+
+  @ViewChild(HouseholdShoppingListComponent)
+  set shoppingListPanelRef(panel: HouseholdShoppingListComponent | undefined) {
+    this.shoppingListPanel.set(panel ?? null);
+  }
 
   readonly stockItems = computed(() => this.householdPage()?.stockItems ?? []);
   readonly stockItemsByPriority = computed(() =>
@@ -1424,6 +1075,44 @@ export class HomeComponent {
   readonly previewShoppingItems = computed(() =>
     this.previewStockItems().filter((item) => shouldBuyForScale(item.stockStatus, this.shoppingScale()))
   );
+  readonly demoShoppingList = computed<HouseholdShoppingList>(() => ({
+    createdAt: "2026-07-10T12:00:00.000Z",
+    createdByUserId: "preview_user",
+    householdId: "preview_household",
+    id: "preview_shopping_list",
+    items: this.previewShoppingItems().map((item) => {
+      const planning = createShoppingLinePlanning(previewStockItemToHouseholdStockItem(item));
+      return {
+        currentAmount: item.currentAmount,
+        displayName: item.displayName,
+        householdProductId: `preview_product_${item.id}`,
+        householdStockItemId: item.id,
+        id: `preview_line_${item.id}`,
+        idealMaxLimit: null,
+        minLimit: item.minLimit,
+        observedPrice: null,
+        plannedAmount: planning.plannedAmount,
+        purchasedAmount: 0,
+        reasonCode: planning.reasonCode,
+        sourceKind: "generated",
+        status: "not_applied",
+        stockGroupKey: item.id,
+        stockStatus: item.stockStatus,
+        suggestedBuyAmount: planning.plannedAmount,
+        targetAmount: planning.targetAmount,
+        ticked: false,
+        uncertaintyFlags: ["missing_catalog_product", "missing_product_source"],
+        unit: item.unit
+      };
+    }),
+    scale: this.apiShoppingScale(),
+    schemaVersion: "demo",
+    shopId: null,
+    status: "active",
+    stockAppliedAt: todayDateInputValue(),
+    updatedAt: "2026-07-10T12:00:00.000Z",
+    updatedByUserId: "preview_user"
+  }));
   readonly previewEditorItem = computed<PreviewStockItem>(() =>
     this.previewStockItems()[0] ?? {
       currentAmount: 0,
@@ -1438,21 +1127,63 @@ export class HomeComponent {
     this.stockItemsByPriority().filter((item) => shouldBuyForScale(item.stockStatus, this.shoppingScale()))
   );
   readonly shoppingItemCount = computed(() => this.shoppingItems().length);
+  readonly railShoppingItemCount = computed(() =>
+    this.auth.isAuthenticated() ? this.shoppingItemCount() : this.previewShoppingItems().length
+  );
+  readonly pageRailSections = computed<PageRailSection[]>(() => [
+    {
+      key: "home-shopping-controls",
+      kind: "shopping",
+      kicker: this.loc.t("household.shoppingListKicker"),
+      title: this.loc.t("household.shoppingScale"),
+      scaleIndex: this.shoppingScaleIndex(),
+      scaleOptions: shoppingScaleDisplayOptions.map((option) => ({
+        key: option.key,
+        label: this.loc.t(option.labelKey),
+        hint: this.loc.t(option.hintKey),
+        active: this.shoppingScale() === option.key
+      })),
+      onScaleIndexChange: (value) => this.setShoppingScaleIndex(value),
+      itemCount: this.railShoppingItemCount(),
+      itemCountLabel: this.loc.t("household.shoppingBandCount", { count: this.railShoppingItemCount() }),
+      actionLabel: this.shoppingListPanel()?.shoppingList()
+        ? this.loc.t("household.regenerateShoppingList")
+        : this.loc.t("household.generateShoppingList"),
+      actionDisabled: !this.auth.isAuthenticated() || !this.selectedHouseholdId(),
+      onAction: () => {
+        void this.shoppingListPanel()?.generateShoppingList();
+      },
+      reloadActionLabel: this.loc.t("common.refresh"),
+      reloadActionDisabled: !this.auth.isAuthenticated() || !this.selectedHouseholdId(),
+      onReloadAction: () => {
+        void this.shoppingListPanel()?.reloadShoppingList();
+      },
+      cancelActionLabel: this.loc.t("household.cancelShoppingList"),
+      cancelActionDisabled: !this.auth.isAuthenticated() || !this.shoppingListPanel()?.shoppingList(),
+      onCancelAction: () => {
+        void this.shoppingListPanel()?.cancelShoppingList();
+      }
+    }
+  ]);
   readonly shoppingScaleLabel = computed(() => {
-    const key = this.shoppingScale() === "usual"
-      ? "household.shoppingScaleUsual"
-      : this.shoppingScale() === "chill"
-        ? "household.shoppingScaleChill"
-        : "household.shoppingScaleStockUp";
+    const key = this.shoppingScale() === "start_fresh"
+      ? "household.shoppingScaleStartFresh"
+      : this.shoppingScale() === "usual"
+        ? "household.shoppingScaleUsual"
+        : this.shoppingScale() === "chill"
+          ? "household.shoppingScaleChill"
+          : "household.shoppingScaleStockUp";
 
     return this.loc.t(key);
   });
-  readonly apiShoppingScale = computed<"business_as_usual" | "keep_it_chill" | "stock_em_up">(() =>
-    this.shoppingScale() === "usual"
-      ? "business_as_usual"
-      : this.shoppingScale() === "chill"
-        ? "keep_it_chill"
-        : "stock_em_up"
+  readonly apiShoppingScale = computed<"business_as_usual" | "keep_it_chill" | "start_fresh" | "stock_em_up">(() =>
+    this.shoppingScale() === "start_fresh"
+      ? "start_fresh"
+      : this.shoppingScale() === "usual"
+        ? "business_as_usual"
+        : this.shoppingScale() === "chill"
+          ? "keep_it_chill"
+          : "stock_em_up"
   );
   readonly selectedItem = computed(() =>
     this.stockItems().find((item) => item.id === this.selectedItemId()) ?? null
@@ -1469,6 +1200,13 @@ export class HomeComponent {
 
     void this.loadHouseholdContext();
   });
+  private readonly syncPageRail = effect(() => {
+    this.pageRail.setSections(this.pageRailSections());
+  });
+
+  ngOnDestroy(): void {
+    this.pageRail.clearSections();
+  }
 
   async createHousehold(): Promise<void> {
     const name = this.createHouseholdName.trim();
@@ -1503,6 +1241,13 @@ export class HomeComponent {
     return `${amount.toLocaleString(this.loc.language() === "hu" ? "hu-HU" : "en-US")} ${unit}`;
   }
 
+  async addStockItemToShoppingList(
+    item: HouseholdStockItemListItem,
+    shoppingListPanel: HouseholdShoppingListComponent
+  ): Promise<void> {
+    await shoppingListPanel.addStockItemFromHouseholdStock(item, createShoppingLinePlanning(item));
+  }
+
   openEditor(item: HouseholdStockItemListItem): void {
     this.editorMode.set("edit");
     this.selectedItemId.set(item.id);
@@ -1519,6 +1264,10 @@ export class HomeComponent {
     };
 
     return symbols[status];
+  }
+
+  shouldHighlightStockItem(item: HouseholdStockItemListItem): boolean {
+    return shouldBuyForScale(item.stockStatus, this.shoppingScale());
   }
 
   async archiveSelectedItem(): Promise<void> {
@@ -1563,38 +1312,38 @@ export class HomeComponent {
     this.mutationState.set("saving");
     const result = this.editorMode() === "create"
       ? await this.household.createStockItem({
-          currentAmount: draft.currentAmount,
-          displayName: draft.displayName.trim(),
-          gtin: nullableTrim(draft.gtin),
-          householdId,
-          idealMaxLimit: nullableNumber(draft.idealMaxLimit),
-          initialAmount: initialAmountForCreate(draft),
-          minLimit: draft.minLimit,
-          note: nullableTrim(draft.note),
-          productSourceId: nullableTrim(draft.productSourceId),
-          sourceName: nullableTrim(draft.sourceName),
-          sourceProductUrl: nullableTrim(draft.sourceProductUrl),
-          stockedAt: toIsoDateTime(draft.stockedAt),
-          stockGroupKey: normalizeStockGroupKey(draft.stockGroupKey || draft.displayName),
-          unit: draft.unit.trim()
-        })
+        currentAmount: draft.currentAmount,
+        displayName: draft.displayName.trim(),
+        gtin: nullableTrim(draft.gtin),
+        householdId,
+        idealMaxLimit: nullableNumber(draft.idealMaxLimit),
+        initialAmount: initialAmountForCreate(draft),
+        minLimit: draft.minLimit,
+        note: nullableTrim(draft.note),
+        productSourceId: nullableTrim(draft.productSourceId),
+        sourceName: nullableTrim(draft.sourceName),
+        sourceProductUrl: nullableTrim(draft.sourceProductUrl),
+        stockedAt: toIsoDateTime(draft.stockedAt),
+        stockGroupKey: normalizeStockGroupKey(draft.stockGroupKey || draft.displayName),
+        unit: draft.unit.trim()
+      })
       : await this.household.updateStockItem({
-          currentAmount: draft.currentAmount,
-          displayName: draft.displayName.trim(),
-          gtin: nullableTrim(draft.gtin),
-          householdId,
-          id: draft.id,
-          idealMaxLimit: nullableNumber(draft.idealMaxLimit),
-          initialAmount: draft.initialAmount,
-          minLimit: draft.minLimit,
-          note: nullableTrim(draft.note),
-          productSourceId: nullableTrim(draft.productSourceId),
-          sourceName: nullableTrim(draft.sourceName),
-          sourceProductUrl: nullableTrim(draft.sourceProductUrl),
-          stockedAt: toIsoDateTime(draft.stockedAt),
-          stockGroupKey: normalizeStockGroupKey(draft.stockGroupKey || draft.displayName),
-          unit: draft.unit.trim()
-        });
+        currentAmount: draft.currentAmount,
+        displayName: draft.displayName.trim(),
+        gtin: nullableTrim(draft.gtin),
+        householdId,
+        id: draft.id,
+        idealMaxLimit: nullableNumber(draft.idealMaxLimit),
+        initialAmount: draft.initialAmount,
+        minLimit: draft.minLimit,
+        note: nullableTrim(draft.note),
+        productSourceId: nullableTrim(draft.productSourceId),
+        sourceName: nullableTrim(draft.sourceName),
+        sourceProductUrl: nullableTrim(draft.sourceProductUrl),
+        stockedAt: toIsoDateTime(draft.stockedAt),
+        stockGroupKey: normalizeStockGroupKey(draft.stockGroupKey || draft.displayName),
+        unit: draft.unit.trim()
+      });
     this.mutationState.set("idle");
 
     if (result.status !== "ok") {
@@ -1715,7 +1464,7 @@ export class HomeComponent {
       && listResult.households.some((household) => household.id === preferredHouseholdId)
       ? preferredHouseholdId
       : this.selectedHouseholdId()
-          && listResult.households.some((household) => household.id === this.selectedHouseholdId())
+        && listResult.households.some((household) => household.id === this.selectedHouseholdId())
         ? this.selectedHouseholdId()
         : listResult.households[0]!.id;
 
@@ -1741,8 +1490,7 @@ export class HomeComponent {
     this.applyLoadedPage(pageResult.page);
     this.loadState.set("ready");
     this.statusMessage.set(this.loc.t("household.loadedHousehold", {
-      count: pageResult.page.stockItems.length,
-      name: pageResult.page.household.name
+      count: pageResult.page.stockItems.length
     }));
   }
 
@@ -1817,6 +1565,10 @@ function shouldBuyForScale(
   status: HouseholdStockItemListItem["stockStatus"],
   scale: ShoppingScale
 ): boolean {
+  if (scale === "start_fresh") {
+    return false;
+  }
+
   if (scale === "usual") {
     return status === "below_limit" || status === "at_limit";
   }
@@ -1826,6 +1578,46 @@ function shouldBuyForScale(
   }
 
   return true;
+}
+
+function createShoppingLinePlanning(item: HouseholdStockItemListItem): {
+  plannedAmount: number;
+  reasonCode: "at_minimum" | "below_minimum" | "broad_restock" | "low_soon";
+  targetAmount: number;
+} {
+  const targetAmount = item.idealMaxLimit ?? item.minLimit * 2;
+  const suggestedBuyAmount = Math.max(0, targetAmount - item.currentAmount);
+
+  return {
+    plannedAmount: suggestedBuyAmount,
+    reasonCode: item.stockStatus === "below_limit"
+      ? "below_minimum"
+      : item.stockStatus === "at_limit"
+        ? "at_minimum"
+        : item.stockStatus === "low_soon"
+          ? "low_soon"
+          : "broad_restock",
+    targetAmount
+  };
+}
+
+function previewStockItemToHouseholdStockItem(item: PreviewStockItem): HouseholdStockItemListItem {
+  return {
+    createdAt: "2026-07-10T12:00:00.000Z",
+    currentAmount: item.currentAmount,
+    displayName: item.displayName,
+    householdId: "preview_household",
+    householdProductId: `preview_product_${item.id}`,
+    id: item.id,
+    initialAmount: item.currentAmount,
+    minLimit: item.minLimit,
+    status: "active",
+    stockedAt: "2026-07-10T12:00:00.000Z",
+    stockGroupKey: item.id,
+    stockStatus: item.stockStatus,
+    unit: item.unit,
+    updatedAt: "2026-07-10T12:00:00.000Z"
+  };
 }
 
 function stockItemToDraft(item: HouseholdStockItemListItem): StockDraft {

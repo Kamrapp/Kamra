@@ -1,3 +1,4 @@
+import { NgTemplateOutlet } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { Component, EventEmitter, Input, Output, computed, inject, signal, type OnChanges, type SimpleChanges } from "@angular/core";
 
@@ -6,6 +7,7 @@ import {
   type HouseholdShop,
   type HouseholdShoppingList,
   type HouseholdShoppingListLine,
+  type HouseholdStockItemListItem,
   type HouseholdStockPage
 } from "./household-stock.service";
 import { LocalizationService } from "../shared/localization.service";
@@ -24,243 +26,304 @@ interface PendingConfirmation {
 @Component({
   selector: "app-household-shopping-list",
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, NgTemplateOutlet],
   template: `
     <section class="ui-panel-card shopping-card" [attr.aria-label]="loc.t('household.shoppingListPanelTitle')">
-      <div class="shopping-card-topline">
-        <div>
-          <p class="ui-kicker">{{ loc.t("household.shoppingListKicker") }}</p>
-          <h2 class="ui-card-title">{{ loc.t("household.shoppingListPanelTitle") }}</h2>
-        </div>
+      <div class="shopping-layout">
+        <section class="shopping-overview">
+          <div class="shopping-card-topline">
+            <div>
+              <p class="ui-kicker">{{ loc.t("household.shoppingListKicker") }}</p>
+              <h2 class="ui-card-title">{{ loc.t("household.shoppingListPanelTitle") }}</h2>
+            </div>
+          </div>
 
-        <div class="shopping-card-actions">
-          <button
-            class="ui-button ui-button-quiet ui-button-sm"
-            type="button"
-            (click)="reloadShoppingList()"
-            [disabled]="loadState() === 'loading' || !householdId"
-          >
-            {{ loc.t("common.refresh") }}
-          </button>
-          <button
-            class="ui-button ui-button-primary ui-button-sm"
-            type="button"
-            (click)="generateShoppingList()"
-            [disabled]="loadState() === 'loading' || mutationState() === 'saving' || !householdId"
-          >
-            {{ shoppingList() ? loc.t("household.regenerateShoppingList") : loc.t("household.generateShoppingList") }}
-          </button>
-        </div>
-      </div>
-
-      <p class="shopping-scale-copy">
-        {{ loc.t("household.shoppingListScaleLabel") }}:
-        <strong>{{ shoppingScaleLabel() }}</strong>
-      </p>
-
-      @if (loadState() === "loading" && !shoppingList()) {
-        <p class="shopping-note">{{ loc.t("household.shoppingListLoading") }}</p>
-      } @else if (errorMessage()) {
-        <div class="shopping-note shopping-error">
-          <strong>{{ loc.t("household.shoppingListLoadFailure") }}</strong>
-          <p>{{ errorMessage() }}</p>
-        </div>
-      } @else if (!shoppingList()) {
-        <div class="shopping-empty">
-          <p>{{ loc.t("household.shoppingListEmpty") }}</p>
-          <p class="shopping-muted">{{ loc.t("household.shoppingListEmptyHint") }}</p>
-        </div>
-      } @else {
-        <div class="shopping-toolbar">
-          <label>
-            <span>{{ loc.t("household.shoppingListShop") }}</span>
-            <select
-              [ngModel]="shoppingList()!.shopId ?? ''"
-              (ngModelChange)="changeShop($event)"
-              [disabled]="mutationState() === 'saving'"
-            >
-              <option value="">{{ loc.t("household.shoppingListShopNone") }}</option>
-              @for (shop of shops(); track shop.id) {
-                <option [value]="shop.id">{{ shop.label }}</option>
-              }
-            </select>
-          </label>
-
-          <label>
-            <span>{{ loc.t("household.shoppingListAppliedDate") }}</span>
-            <input
-              type="date"
-              [ngModel]="stockAppliedAt()"
-              (ngModelChange)="setStockAppliedDate($event)"
-              [disabled]="mutationState() === 'saving'"
-            />
-          </label>
-
-          <button
-            class="ui-button ui-button-primary ui-button-sm"
-            type="button"
-            (click)="applyPurchasedItems()"
-            [disabled]="mutationState() === 'saving' || shoppingList()!.items.length === 0"
-          >
-            {{ loc.t("household.applyShoppingListToStock") }}
-          </button>
-        </div>
-
-        @if (pendingConfirmation(); as confirmation) {
-          <section class="confirmation-panel">
-            <p>{{ loc.t("household.shoppingListConfirmationPrompt") }}</p>
-            <div class="confirmation-actions">
-              @if (confirmation.allowedModes.includes("tick_all_and_update")) {
-                <button
-                  class="ui-button ui-button-sm"
-                  [class.ui-button-primary]="isPrimaryConfirmationMode(confirmation, 'tick_all_and_update')"
-                  [class.ui-button-quiet]="!isPrimaryConfirmationMode(confirmation, 'tick_all_and_update')"
-                  type="button"
-                  (click)="applyPurchasedItems('tick_all_and_update')"
-                >
-                  {{ loc.t("household.tickAllAndApply") }}
-                </button>
-              }
-              @if (confirmation.allowedModes.includes("update_ticked_only")) {
-                <button
-                  class="ui-button ui-button-sm"
-                  [class.ui-button-primary]="isPrimaryConfirmationMode(confirmation, 'update_ticked_only')"
-                  [class.ui-button-quiet]="!isPrimaryConfirmationMode(confirmation, 'update_ticked_only')"
-                  type="button"
-                  (click)="applyPurchasedItems('update_ticked_only')"
-                >
-                  {{ loc.t("household.applyTickedOnly") }}
-                </button>
-              }
-              <button class="ui-button ui-button-danger ui-button-sm" type="button" (click)="pendingConfirmation.set(null)">
-                {{ loc.t("common.close") }}
+          @if (loadState() === "loading" && !shoppingList()) {
+            <p class="shopping-note">{{ loc.t("household.shoppingListLoading") }}</p>
+          } @else if (errorMessage()) {
+            <div class="shopping-note shopping-error">
+              <strong>{{ loc.t("household.shoppingListLoadFailure") }}</strong>
+              <p>{{ errorMessage() }}</p>
+            </div>
+          } @else if (!shoppingList()) {
+            <div class="shopping-empty">
+              <p>{{ loc.t("household.shoppingListEmpty") }}</p>
+              <p class="shopping-muted">{{ loc.t("household.shoppingListEmptyHint") }}</p>
+            </div>
+          } @else {
+            <div class="quick-add-row">
+              <input
+                type="text"
+                [ngModel]="quickAddDraft().displayName"
+                (ngModelChange)="updateQuickAddText($event)"
+                [placeholder]="loc.t('household.quickAddPlaceholder')"
+                [disabled]="isReadOnly()"
+              />
+              <input
+                type="number"
+                step="0.01"
+                [ngModel]="quickAddDraft().purchasedAmount"
+                (ngModelChange)="updateQuickAddAmount($event)"
+                [disabled]="isReadOnly()"
+              />
+              <input
+                type="text"
+                [ngModel]="quickAddDraft().unit"
+                (ngModelChange)="updateQuickAddUnit($event)"
+                [placeholder]="loc.t('household.unit')"
+                [disabled]="isReadOnly()"
+              />
+              <button
+                class="ui-button ui-button-quiet ui-button-sm icon-button"
+                type="button"
+                (click)="addManualLine()"
+                [disabled]="isReadOnly()"
+                [attr.aria-label]="loc.t('household.quickAddAction')"
+                [attr.title]="loc.t('household.quickAddAction')"
+              >
+                <span aria-hidden="true">+</span>
               </button>
             </div>
-          </section>
-        }
 
-        <div class="quick-add-row">
-          <input
-            type="text"
-            [ngModel]="quickAddDraft().displayName"
-            (ngModelChange)="updateQuickAddText($event)"
-            [placeholder]="loc.t('household.quickAddPlaceholder')"
-          />
-          <input
-            type="number"
-            step="0.01"
-            [ngModel]="quickAddDraft().purchasedAmount"
-            (ngModelChange)="updateQuickAddAmount($event)"
-          />
-          <input
-            type="text"
-            [ngModel]="quickAddDraft().unit"
-            (ngModelChange)="updateQuickAddUnit($event)"
-            [placeholder]="loc.t('household.unit')"
-          />
-          <button class="ui-button ui-button-quiet ui-button-sm" type="button" (click)="addManualLine()">
-            {{ loc.t("household.quickAddAction") }}
-          </button>
-        </div>
-
-        <div class="shopping-list-shell">
-          @for (item of shoppingList()!.items; track item.id) {
-            <article class="shopping-line" [class.shopping-line-ticked]="item.ticked">
-              <div class="shopping-line-row">
-                <label class="shopping-check">
-                  <input
-                    type="checkbox"
-                    [checked]="item.ticked"
-                    (change)="toggleTicked(item.id, $any($event.target).checked)"
-                    [disabled]="mutationState() === 'saving'"
-                  />
-                  <span>{{ item.displayName }}</span>
-                </label>
-
-                <div class="shopping-amounts">
-                  <label>
-                    <span>{{ loc.t("household.plannedShort") }}</span>
-                    <input
-                      type="number"
-                      step="0.01"
-                      [ngModel]="item.plannedAmount"
-                      (ngModelChange)="updateLineNumber(item.id, 'plannedAmount', $event)"
-                    />
-                  </label>
-                  <label>
-                    <span>{{ loc.t("household.purchasedShort") }}</span>
-                    <input
-                      type="number"
-                      step="0.01"
-                      [ngModel]="item.purchasedAmount"
-                      (ngModelChange)="updateLineNumber(item.id, 'purchasedAmount', $event)"
-                    />
-                  </label>
-                  <label class="shopping-unit">
-                    <span>{{ loc.t("household.unit") }}</span>
-                    <input
-                      type="text"
-                      [ngModel]="item.unit"
-                      (ngModelChange)="updateLineText(item.id, 'unit', $event)"
-                    />
-                  </label>
-                </div>
-
-                <button class="details-toggle" type="button" (click)="toggleExpanded(item.id)">
-                  <span>{{ expandedLineIds().includes(item.id) ? loc.t("household.hideAdditionalDetails") : loc.t("household.showAdditionalDetails") }}</span>
-                  <strong aria-hidden="true">{{ expandedLineIds().includes(item.id) ? "−" : "+" }}</strong>
-                </button>
-              </div>
-
-              @if (expandedLineIds().includes(item.id)) {
-                <div class="shopping-line-details">
-                  <div class="shopping-meta">
-                    <p>{{ loc.t("household.shoppingListTargetAmount", { amount: item.targetAmount }) }}</p>
-                    <p>{{ loc.t("household.shoppingListSuggestedAmount", { amount: item.suggestedBuyAmount }) }}</p>
-                    @if (item.reasonCode) {
-                      <p>{{ loc.t(reasonKey(item.reasonCode)) }}</p>
-                    }
-                  </div>
-
-                  <div class="shopping-detail-fields">
-                    <label>
-                      <span>{{ loc.t("common.price") }}</span>
-                      <input
-                        type="number"
-                        step="1"
-                        [ngModel]="item.observedPrice?.amount ?? ''"
-                        (ngModelChange)="updateObservedPriceAmount(item.id, $event)"
-                        [placeholder]="loc.t('household.observedPricePlaceholder')"
-                      />
-                    </label>
-                    <label>
-                      <span>{{ loc.t("household.currencyCode") }}</span>
-                      <input
-                        type="text"
-                        [ngModel]="item.observedPrice?.currencyCode ?? defaultCurrencyCode"
-                        (ngModelChange)="updateObservedPriceCurrency(item.id, $event)"
-                      />
-                    </label>
-                  </div>
-
-                  @if (item.uncertaintyFlags.length) {
-                    <p class="shopping-muted">
-                      {{ loc.t("household.shoppingListUncertainty") }}:
-                      {{ describeUncertainty(item) }}
-                    </p>
-                  }
+            <div class="shopping-list-table">
+              @if (pendingItems().length || purchasedItems().length) {
+                <div class="shopping-list-header" aria-hidden="true">
+                  <span></span>
+                  <span>{{ loc.t("household.plannedShort") }}</span>
+                  <span>{{ loc.t("household.purchasedShort") }}</span>
+                  <span>{{ loc.t("household.unit") }}</span>
+                  <span></span>
                 </div>
               }
-            </article>
-          } @empty {
-            <p class="shopping-note">{{ loc.t("household.shoppingListNoItems") }}</p>
+
+              <div class="shopping-list-shell">
+                @if (pendingItems().length) {
+                  @for (item of pendingItems(); track item.id) {
+                    <article class="shopping-line">
+                      <ng-container [ngTemplateOutlet]="shoppingLineTemplate" [ngTemplateOutletContext]="{ $implicit: item }"></ng-container>
+                    </article>
+                  }
+                } @else if (!purchasedItems().length) {
+                  <p class="shopping-note">{{ loc.t("household.shoppingListNoItems") }}</p>
+                }
+
+                @if (purchasedItems().length) {
+                  <section class="purchased-group">
+                    <button class="purchased-toggle" type="button" (click)="togglePurchasedSection()" [disabled]="isReadOnly()">
+                      <span>{{ loc.t("household.shoppingListPurchasedGroup", { count: purchasedItems().length }) }}</span>
+                      <strong aria-hidden="true">{{ purchasedSectionCollapsed() ? "+" : "−" }}</strong>
+                    </button>
+
+                    @if (!purchasedSectionCollapsed()) {
+                      <div class="purchased-shell">
+                        @for (item of purchasedItems(); track item.id) {
+                          <article class="shopping-line shopping-line-ticked">
+                            <ng-container [ngTemplateOutlet]="shoppingLineTemplate" [ngTemplateOutletContext]="{ $implicit: item }"></ng-container>
+                          </article>
+                        }
+                      </div>
+                    }
+                  </section>
+                }
+              </div>
+            </div>
           }
-        </div>
-      }
+        </section>
+
+        <section class="shopping-finalize">
+          <div>
+            <p class="ui-kicker">{{ loc.t("household.shoppingListFinalizeKicker") }}</p>
+            <h3 class="finalize-title">{{ loc.t("household.shoppingListFinalizeTitle") }}</h3>
+          </div>
+
+          @if (shoppingList()) {
+            <label>
+              <span>{{ loc.t("household.shoppingListShop") }}</span>
+              <select
+                [ngModel]="shoppingList()!.shopId ?? ''"
+                (ngModelChange)="changeShop($event)"
+                [disabled]="isReadOnly() || mutationState() === 'saving'"
+              >
+                <option value="">{{ loc.t("household.shoppingListShopNone") }}</option>
+                @for (shop of shops(); track shop.id) {
+                  <option [value]="shop.id">{{ shop.label }}</option>
+                }
+              </select>
+            </label>
+
+            <label>
+              <span>{{ loc.t("household.shoppingListAppliedDate") }}</span>
+              <input
+                type="date"
+                [ngModel]="stockAppliedAt()"
+                (ngModelChange)="setStockAppliedDate($event)"
+                [disabled]="isReadOnly() || mutationState() === 'saving'"
+              />
+            </label>
+
+            <button
+              class="ui-button ui-button-primary"
+              type="button"
+              (click)="applyPurchasedItems()"
+              [disabled]="isReadOnly() || mutationState() === 'saving' || shoppingList()!.items.length === 0"
+            >
+              {{ loc.t("household.applyShoppingListToStock") }}
+            </button>
+
+            @if (pendingConfirmation(); as confirmation) {
+              <section class="confirmation-panel">
+                <p>{{ loc.t("household.shoppingListConfirmationPrompt") }}</p>
+                <div class="confirmation-actions">
+                  @if (confirmation.allowedModes.includes("tick_all_and_update")) {
+                    <button
+                      class="ui-button ui-button-sm"
+                      [class.ui-button-primary]="isPrimaryConfirmationMode(confirmation, 'tick_all_and_update')"
+                      [class.ui-button-quiet]="!isPrimaryConfirmationMode(confirmation, 'tick_all_and_update')"
+                      type="button"
+                      (click)="applyPurchasedItems('tick_all_and_update')"
+                    >
+                      {{ loc.t("household.tickAllAndApply") }}
+                    </button>
+                  }
+                  @if (confirmation.allowedModes.includes("update_ticked_only")) {
+                    <button
+                      class="ui-button ui-button-sm"
+                      [class.ui-button-primary]="isPrimaryConfirmationMode(confirmation, 'update_ticked_only')"
+                      [class.ui-button-quiet]="!isPrimaryConfirmationMode(confirmation, 'update_ticked_only')"
+                      type="button"
+                      (click)="applyPurchasedItems('update_ticked_only')"
+                    >
+                      {{ loc.t("household.applyTickedOnly") }}
+                    </button>
+                  }
+                  <button class="ui-button ui-button-danger ui-button-sm" type="button" (click)="pendingConfirmation.set(null)">
+                    {{ loc.t("common.close") }}
+                  </button>
+                </div>
+              </section>
+            }
+
+            <button class="ui-button ui-button-quiet receipt-button" type="button" (click)="notifyReceiptUploadComingSoon()" [disabled]="isReadOnly()">
+              {{ loc.t("household.uploadReceipt") }}
+            </button>
+          } @else {
+            <div class="shopping-empty">
+              <p>{{ loc.t("household.shoppingListFinalizeEmpty") }}</p>
+              <p class="shopping-muted">{{ loc.t("household.shoppingListFinalizeEmptyHint") }}</p>
+            </div>
+          }
+        </section>
+      </div>
 
       @if (statusMessage()) {
         <p class="shopping-note">{{ statusMessage() }}</p>
       }
+
+      <ng-template #shoppingLineTemplate let-item>
+        <div class="shopping-line-row">
+          <label class="shopping-check">
+            <input
+              type="checkbox"
+              [checked]="item.ticked"
+              (change)="toggleTicked(item.id, $any($event.target).checked)"
+              [disabled]="isReadOnly() || mutationState() === 'saving'"
+            />
+            <span>{{ item.displayName }}</span>
+          </label>
+
+          <div class="shopping-amounts">
+            <label>
+              <span>{{ loc.t("household.plannedShort") }}</span>
+              <input
+                type="number"
+                step="0.01"
+                [ngModel]="item.plannedAmount"
+                (ngModelChange)="updateLineNumber(item.id, 'plannedAmount', $event)"
+                [disabled]="isReadOnly()"
+              />
+            </label>
+            <label>
+              <span>{{ loc.t("household.purchasedShort") }}</span>
+              <input
+                type="number"
+                step="0.01"
+                [ngModel]="item.purchasedAmount"
+                (ngModelChange)="updateLineNumber(item.id, 'purchasedAmount', $event)"
+                [disabled]="isReadOnly()"
+              />
+            </label>
+            <label class="shopping-unit">
+              <span>{{ loc.t("household.unit") }}</span>
+              <input
+                type="text"
+                [ngModel]="item.unit"
+                (ngModelChange)="updateLineText(item.id, 'unit', $event)"
+                [disabled]="isReadOnly()"
+              />
+            </label>
+          </div>
+
+          <button
+            class="details-toggle icon-button"
+            type="button"
+            (click)="toggleExpanded(item.id)"
+            [disabled]="isReadOnly()"
+            [attr.aria-label]="expandedLineIds().includes(item.id) ? loc.t('household.hideAdditionalDetails') : loc.t('household.showAdditionalDetails')"
+            [attr.title]="expandedLineIds().includes(item.id) ? loc.t('household.hideAdditionalDetails') : loc.t('household.showAdditionalDetails')"
+          >
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d="M10.5 4a6.5 6.5 0 0 1 5.18 10.43l3.45 3.44-1.42 1.42-3.44-3.45A6.5 6.5 0 1 1 10.5 4Zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Z"></path>
+              @if (expandedLineIds().includes(item.id)) {
+                <path d="M7.5 10h6v1.6h-6V10Z"></path>
+              } @else {
+                <path d="M9.7 7.8h1.6V10h2.2v1.6h-2.2v2.2H9.7v-2.2H7.5V10h2.2V7.8Z"></path>
+              }
+            </svg>
+          </button>
+        </div>
+
+        @if (expandedLineIds().includes(item.id)) {
+          <div class="shopping-line-details">
+            <div class="shopping-meta">
+              <p>{{ loc.t("household.shoppingListTargetAmount", { amount: item.targetAmount }) }}</p>
+              <p>{{ loc.t("household.shoppingListSuggestedAmount", { amount: item.suggestedBuyAmount }) }}</p>
+              @if (item.reasonCode) {
+                <p>{{ loc.t(reasonKey(item.reasonCode)) }}</p>
+              }
+            </div>
+
+            <div class="shopping-detail-fields">
+              <label>
+                <span>{{ loc.t("common.price") }}</span>
+                <input
+                  type="number"
+                  step="1"
+                  [ngModel]="item.observedPrice?.amount ?? ''"
+                  (ngModelChange)="updateObservedPriceAmount(item.id, $event)"
+                  [placeholder]="loc.t('household.observedPricePlaceholder')"
+                  [disabled]="isReadOnly()"
+                />
+              </label>
+              <label>
+                <span>{{ loc.t("household.currencyCode") }}</span>
+                <input
+                  type="text"
+                  [ngModel]="item.observedPrice?.currencyCode ?? defaultCurrencyCode"
+                  (ngModelChange)="updateObservedPriceCurrency(item.id, $event)"
+                  [disabled]="isReadOnly()"
+                />
+              </label>
+            </div>
+
+            @if (item.uncertaintyFlags.length) {
+              <p class="shopping-muted">
+                {{ loc.t("household.shoppingListUncertainty") }}:
+                {{ describeUncertainty(item) }}
+              </p>
+            }
+          </div>
+        }
+      </ng-template>
     </section>
   `,
   styles: [
@@ -274,8 +337,6 @@ interface PendingConfirmation {
       }
 
       .shopping-card-topline,
-      .shopping-card-actions,
-      .shopping-toolbar,
       .quick-add-row,
       .shopping-line-row,
       .shopping-amounts,
@@ -285,16 +346,44 @@ interface PendingConfirmation {
         gap: var(--space-3);
       }
 
-      .shopping-card-topline,
-      .shopping-toolbar {
-        justify-content: space-between;
-      }
-
       .shopping-scale-copy,
       .shopping-note,
       .shopping-muted,
       .shopping-meta p {
         margin: 0;
+      }
+
+      .icon-button {
+        min-width: 2.35rem;
+        padding-inline: 0.45rem;
+      }
+
+      .icon-button span {
+        display: inline-flex;
+        font-size: 1rem;
+        font-weight: 900;
+        justify-content: center;
+        width: 100%;
+      }
+
+      .shopping-layout {
+        display: grid;
+        gap: var(--space-4);
+        grid-template-columns: minmax(0, 1.35fr) minmax(18rem, 0.65fr);
+      }
+
+      .shopping-overview,
+      .shopping-finalize {
+        display: grid;
+        gap: var(--space-4);
+      }
+
+      .shopping-finalize {
+        align-content: start;
+        background: var(--surface-soft-background);
+        border: 1px solid var(--line-subtle);
+        border-radius: var(--radius-ui);
+        padding: 1rem;
       }
 
       .shopping-empty,
@@ -311,12 +400,11 @@ interface PendingConfirmation {
         color: var(--color-status-danger-text);
       }
 
-      .shopping-toolbar,
       .quick-add-row {
         flex-wrap: wrap;
       }
 
-      .shopping-toolbar label,
+      .shopping-finalize label,
       .shopping-amounts label,
       .shopping-detail-fields label {
         display: grid;
@@ -342,11 +430,23 @@ interface PendingConfirmation {
         width: 7rem;
       }
 
+      .shopping-list-table {
+        display: grid;
+        gap: 0.45rem;
+        min-height: 0;
+      }
+
       .shopping-list-shell {
         display: grid;
-        gap: 0.75rem;
+        gap: 0.45rem;
         max-height: 28rem;
         overflow: auto;
+      }
+
+      .purchased-group,
+      .purchased-shell {
+        display: grid;
+        gap: 0.75rem;
       }
 
       .shopping-line {
@@ -354,17 +454,47 @@ interface PendingConfirmation {
         border: 1px solid var(--pulse-row-border);
         border-radius: var(--radius-ui);
         display: grid;
-        gap: 0.75rem;
-        padding: 0.8rem;
+        gap: 0.55rem;
+        padding: 0.55rem 0.65rem;
       }
 
       .shopping-line-ticked {
         opacity: 0.68;
       }
 
-      .shopping-line-row {
-        align-items: flex-start;
+      .purchased-toggle {
+        align-items: center;
+        background: var(--surface-soft-background);
+        border: 1px solid var(--line-subtle);
+        border-radius: var(--radius-ui);
+        color: var(--color-text);
+        cursor: pointer;
+        display: flex;
+        font: inherit;
+        font-weight: 800;
         justify-content: space-between;
+        min-height: 2.65rem;
+        padding: 0.55rem 0.8rem;
+      }
+
+      .shopping-line-row {
+        align-items: center;
+        display: grid;
+        gap: 0.55rem;
+        grid-template-columns: minmax(10rem, 1fr) minmax(4.8rem, 6.5rem) minmax(4.8rem, 6.5rem) minmax(3.8rem, 4.5rem) 2.2rem;
+        justify-content: stretch;
+      }
+
+      .shopping-list-header {
+        align-items: end;
+        color: var(--color-text-muted);
+        display: grid;
+        font-size: 0.68rem;
+        font-weight: 900;
+        gap: 0.55rem;
+        grid-template-columns: minmax(10rem, 1fr) minmax(4.8rem, 6.5rem) minmax(4.8rem, 6.5rem) minmax(3.8rem, 4.5rem) 2.2rem;
+        line-height: 1;
+        padding: 0 0.65rem 0.15rem;
       }
 
       .shopping-check {
@@ -375,16 +505,24 @@ interface PendingConfirmation {
       }
 
       .shopping-amounts {
-        flex: 1 1 auto;
-        justify-content: flex-end;
+        display: contents;
+      }
+
+      .shopping-amounts label {
+        display: contents;
+      }
+
+      .shopping-amounts label span {
+        height: 1px;
+        margin: -1px;
+        overflow: hidden;
+        position: absolute;
+        width: 1px;
       }
 
       .shopping-amounts input {
-        width: 6.5rem;
-      }
-
-      .shopping-unit input {
-        width: 4.5rem;
+        min-width: 0;
+        width: 100%;
       }
 
       .shopping-line-details {
@@ -404,6 +542,14 @@ interface PendingConfirmation {
         gap: var(--space-3);
       }
 
+      .finalize-title {
+        margin: 0;
+      }
+
+      .receipt-button {
+        min-height: 3.25rem;
+      }
+
       .details-toggle {
         align-items: center;
         background: var(--control-quiet-background);
@@ -411,32 +557,61 @@ interface PendingConfirmation {
         border-radius: var(--radius-ui);
         color: var(--control-quiet-text);
         cursor: pointer;
-        display: flex;
+        display: inline-grid;
         font: inherit;
         font-weight: 800;
-        gap: 0.6rem;
-        justify-content: space-between;
-        min-height: 2.3rem;
-        padding: 0.45rem 0.65rem;
+        justify-content: center;
+        min-height: 2rem;
+        min-width: 2rem;
+        padding: 0;
+        place-items: center;
+        white-space: nowrap;
+      }
+
+      .details-toggle svg {
+        display: block;
+        fill: currentColor;
+        height: 1rem;
+        width: 1rem;
       }
 
       @media (max-width: 900px) {
+        .shopping-layout,
         .shopping-card-topline,
-        .shopping-toolbar,
-        .shopping-line-row,
-        .shopping-amounts,
         .shopping-detail-fields {
           align-items: stretch;
           flex-direction: column;
         }
 
-        .shopping-amounts {
-          width: 100%;
+        .shopping-layout {
+          display: grid;
+          grid-template-columns: 1fr;
         }
 
-        .shopping-amounts input,
-        .shopping-unit input {
-          width: 100%;
+        .shopping-amounts {
+          display: grid;
+          gap: 0.35rem;
+          grid-template-columns: minmax(4.8rem, 1fr) minmax(4.8rem, 1fr) minmax(3.8rem, 0.7fr);
+        }
+
+        .shopping-line-row {
+          grid-template-columns: 1fr;
+        }
+
+        .shopping-list-header {
+          display: none;
+        }
+
+        .shopping-amounts label span {
+          height: auto;
+          margin: 0;
+          overflow: visible;
+          position: static;
+          width: auto;
+        }
+
+        .details-toggle {
+          justify-self: start;
         }
       }
     `
@@ -444,6 +619,7 @@ interface PendingConfirmation {
 })
 export class HouseholdShoppingListComponent implements OnChanges {
   @Input({ required: true }) householdId = "";
+  @Input() demoShoppingList: HouseholdShoppingList | null = null;
   @Input() shoppingScale: HouseholdShoppingList["scale"] = "keep_it_chill";
   @Output() stockPageUpdated = new EventEmitter<HouseholdStockPage>();
 
@@ -457,6 +633,7 @@ export class HouseholdShoppingListComponent implements OnChanges {
   readonly loadState = signal<"idle" | "loading" | "ready" | "error">("idle");
   readonly mutationState = signal<"idle" | "saving">("idle");
   readonly pendingConfirmation = signal<PendingConfirmation | null>(null);
+  readonly purchasedSectionCollapsed = signal(true);
   readonly quickAddDraft = signal<QuickAddDraft>({
     displayName: "",
     purchasedAmount: 1,
@@ -471,10 +648,22 @@ export class HouseholdShoppingListComponent implements OnChanges {
       ? "household.shoppingScaleUsual"
       : this.shoppingScaleValue() === "keep_it_chill"
         ? "household.shoppingScaleChill"
-        : "household.shoppingScaleStockUp";
+        : this.shoppingScaleValue() === "start_fresh"
+          ? "household.shoppingScaleStartFresh"
+          : "household.shoppingScaleStockUp";
 
     return this.loc.t(key);
   });
+  readonly pendingItems = computed(() =>
+    [...(this.shoppingList()?.items ?? [])]
+      .filter((item) => !item.ticked)
+      .sort(compareShoppingLines)
+  );
+  readonly purchasedItems = computed(() =>
+    [...(this.shoppingList()?.items ?? [])]
+      .filter((item) => item.ticked)
+      .sort(compareShoppingLines)
+  );
   readonly stockAppliedAt = signal(todayDateInputValue());
   private loadSerial = 0;
 
@@ -483,12 +672,29 @@ export class HouseholdShoppingListComponent implements OnChanges {
       this.shoppingScaleValue.set(changes["shoppingScale"].currentValue ?? "keep_it_chill");
     }
 
+    if (changes["demoShoppingList"]) {
+      this.applyDemoShoppingList();
+      return;
+    }
+
+    if (this.demoShoppingList) {
+      return;
+    }
+
     if (changes["householdId"]?.currentValue) {
       void this.loadPanelState();
     }
   }
 
+  isReadOnly(): boolean {
+    return this.demoShoppingList !== null;
+  }
+
   async addManualLine(): Promise<void> {
+    if (this.isReadOnly()) {
+      return;
+    }
+
     const list = this.shoppingList();
     const draft = this.quickAddDraft();
     if (!list) {
@@ -537,6 +743,10 @@ export class HouseholdShoppingListComponent implements OnChanges {
   }
 
   async applyPurchasedItems(confirmationMode?: "tick_all_and_update" | "update_ticked_only"): Promise<void> {
+    if (this.isReadOnly()) {
+      return;
+    }
+
     const list = this.shoppingList();
     if (!list) {
       return;
@@ -572,6 +782,10 @@ export class HouseholdShoppingListComponent implements OnChanges {
   }
 
   async changeShop(shopId: string): Promise<void> {
+    if (this.isReadOnly()) {
+      return;
+    }
+
     const list = this.shoppingList();
     if (!list) {
       return;
@@ -584,6 +798,10 @@ export class HouseholdShoppingListComponent implements OnChanges {
   }
 
   async generateShoppingList(): Promise<void> {
+    if (this.isReadOnly()) {
+      return;
+    }
+
     if (!this.householdId) {
       return;
     }
@@ -608,7 +826,41 @@ export class HouseholdShoppingListComponent implements OnChanges {
     this.statusMessage.set(this.loc.t("household.shoppingListGenerated", { count: result.shoppingList.items.length }));
   }
 
+  async cancelShoppingList(): Promise<void> {
+    if (this.isReadOnly()) {
+      return;
+    }
+
+    const list = this.shoppingList();
+    if (!list) {
+      return;
+    }
+
+    this.pendingConfirmation.set(null);
+    this.mutationState.set("saving");
+    const result = await this.household.updateShoppingList({
+      householdId: list.householdId,
+      id: list.id,
+      status: "archived"
+    });
+    this.mutationState.set("idle");
+
+    if (result.status !== "ok") {
+      this.errorMessage.set(result.message);
+      return;
+    }
+
+    this.shoppingList.set(null);
+    this.stockAppliedAt.set(todayDateInputValue());
+    this.statusMessage.set(this.loc.t("household.shoppingListCancelled"));
+  }
+
   async reloadShoppingList(): Promise<void> {
+    if (this.isReadOnly()) {
+      this.applyDemoShoppingList();
+      return;
+    }
+
     await this.loadPanelState();
   }
 
@@ -622,10 +874,10 @@ export class HouseholdShoppingListComponent implements OnChanges {
 
   reasonKey(reasonCode: NonNullable<HouseholdShoppingListLine["reasonCode"]>): "household.reasonAtLimit" | "household.reasonBelowMinimum" | "household.reasonLowSoon" | "household.reasonStockUp" {
     const keys = {
-      at_limit: "household.reasonAtLimit",
+      at_minimum: "household.reasonAtLimit",
       below_minimum: "household.reasonBelowMinimum",
+      broad_restock: "household.reasonStockUp",
       low_soon: "household.reasonLowSoon",
-      stock_up: "household.reasonStockUp"
     } as const;
 
     return keys[reasonCode];
@@ -639,6 +891,10 @@ export class HouseholdShoppingListComponent implements OnChanges {
   }
 
   toggleExpanded(id: string): void {
+    if (this.isReadOnly()) {
+      return;
+    }
+
     this.expandedLineIds.update((ids) =>
       ids.includes(id)
         ? ids.filter((existingId) => existingId !== id)
@@ -647,6 +903,14 @@ export class HouseholdShoppingListComponent implements OnChanges {
   }
 
   async toggleTicked(id: string, ticked: boolean): Promise<void> {
+    if (this.isReadOnly()) {
+      return;
+    }
+
+    if (ticked) {
+      this.purchasedSectionCollapsed.set(true);
+    }
+
     await this.updateLine(id, (item) => ({
       ...item,
       purchasedAmount: ticked && item.purchasedAmount === 0 ? item.plannedAmount : item.purchasedAmount,
@@ -654,11 +918,87 @@ export class HouseholdShoppingListComponent implements OnChanges {
     }));
   }
 
+  togglePurchasedSection(): void {
+    this.purchasedSectionCollapsed.update((collapsed) => !collapsed);
+  }
+
+  hasShoppingLineForStockItem(stockItemId: string): boolean {
+    return (this.shoppingList()?.items ?? []).some((item) => item.householdStockItemId === stockItemId);
+  }
+
+  notifyReceiptUploadComingSoon(): void {
+    this.toast.push(this.loc.t("household.receiptUploadComingSoon"), "info");
+  }
+
+  async addStockItemFromHouseholdStock(
+    item: HouseholdStockItemListItem,
+    planning: {
+      plannedAmount: number;
+      reasonCode: HouseholdShoppingListLine["reasonCode"];
+      targetAmount: number;
+    }
+  ): Promise<void> {
+    if (this.isReadOnly()) {
+      return;
+    }
+
+    const list = this.shoppingList();
+    if (!list) {
+      this.toast.push(this.loc.t("household.shoppingListAddRequiresExisting"), "info");
+      return;
+    }
+
+    if (this.hasShoppingLineForStockItem(item.id)) {
+      return;
+    }
+
+    const manualLine: HouseholdShoppingListLine = {
+      catalogProductId: item.catalogProductId ?? null,
+      catalogProductNameSnapshot: item.catalogProductNameSnapshot ?? null,
+      currentAmount: item.currentAmount,
+      displayName: item.displayName,
+      gtin: item.gtin ?? null,
+      householdProductId: item.householdProductId,
+      householdStockItemId: item.id,
+      id: `manual_stock_${Date.now()}_${normalizeStockGroupKey(item.displayName)}`,
+      idealMaxLimit: item.idealMaxLimit ?? null,
+      minLimit: item.minLimit,
+      observedPrice: null,
+      plannedAmount: Math.max(0, planning.plannedAmount),
+      productSourceId: item.productSourceId ?? null,
+      purchasedAmount: 0,
+      reasonCode: planning.reasonCode,
+      sourceKind: "manual",
+      sourceName: item.sourceName ?? null,
+      sourceProductUrl: item.sourceProductUrl ?? null,
+      status: "not_applied",
+      stockGroupKey: item.stockGroupKey,
+      stockStatus: item.stockStatus,
+      suggestedBuyAmount: Math.max(0, planning.plannedAmount),
+      targetAmount: planning.targetAmount,
+      ticked: false,
+      uncertaintyFlags: [
+        ...(item.catalogProductId ? [] : ["missing_catalog_product" as const]),
+        ...(item.productSourceId ? [] : ["missing_product_source" as const])
+      ],
+      unit: item.unit
+    };
+
+    await this.persistShoppingList({
+      ...list,
+      items: [...list.items, manualLine]
+    }, this.loc.t("household.shoppingListAddItemSuccess", { name: item.displayName }));
+  }
+
   async updateLineNumber(
     id: string,
     field: "plannedAmount" | "purchasedAmount",
     value: number | string
   ): Promise<void> {
+    if (this.isReadOnly()) {
+      return;
+    }
+
     await this.updateLine(id, (item) => ({
       ...item,
       [field]: coerceNumber(value, item[field])
@@ -670,6 +1010,10 @@ export class HouseholdShoppingListComponent implements OnChanges {
     field: "unit",
     value: string
   ): Promise<void> {
+    if (this.isReadOnly()) {
+      return;
+    }
+
     await this.updateLine(id, (item) => ({
       ...item,
       [field]: value
@@ -677,6 +1021,10 @@ export class HouseholdShoppingListComponent implements OnChanges {
   }
 
   async updateObservedPriceAmount(id: string, value: number | string): Promise<void> {
+    if (this.isReadOnly()) {
+      return;
+    }
+
     await this.updateLine(id, (item) => ({
       ...item,
       observedPrice: value === "" || value === null
@@ -690,6 +1038,10 @@ export class HouseholdShoppingListComponent implements OnChanges {
   }
 
   async updateObservedPriceCurrency(id: string, value: string): Promise<void> {
+    if (this.isReadOnly()) {
+      return;
+    }
+
     await this.updateLine(id, (item) => ({
       ...item,
       observedPrice: {
@@ -725,7 +1077,29 @@ export class HouseholdShoppingListComponent implements OnChanges {
     this.stockAppliedAt.set(value || todayDateInputValue());
   }
 
+  private applyDemoShoppingList(): void {
+    const demoList = this.demoShoppingList;
+    if (!demoList) {
+      return;
+    }
+
+    this.errorMessage.set("");
+    this.loadState.set("ready");
+    this.mutationState.set("idle");
+    this.pendingConfirmation.set(null);
+    this.purchasedSectionCollapsed.set(true);
+    this.shoppingList.set(demoList);
+    this.shops.set([]);
+    this.stockAppliedAt.set(readPreferredStockAppliedAt(demoList.stockAppliedAt));
+    this.statusMessage.set("");
+  }
+
   private async loadPanelState(): Promise<void> {
+    if (this.isReadOnly()) {
+      this.applyDemoShoppingList();
+      return;
+    }
+
     if (!this.householdId) {
       this.shoppingList.set(null);
       this.shops.set([]);
@@ -752,6 +1126,7 @@ export class HouseholdShoppingListComponent implements OnChanges {
 
     if (listResult.status === "ok") {
       this.shoppingList.set(listResult.shoppingList);
+      this.purchasedSectionCollapsed.set(true);
       this.stockAppliedAt.set(readPreferredStockAppliedAt(listResult.shoppingList.stockAppliedAt));
       this.loadState.set("ready");
       return;
@@ -769,6 +1144,10 @@ export class HouseholdShoppingListComponent implements OnChanges {
   }
 
   private async persistShoppingList(nextList: HouseholdShoppingList, successMessage?: string): Promise<void> {
+    if (this.isReadOnly()) {
+      return;
+    }
+
     this.shoppingList.set(nextList);
     this.pendingConfirmation.set(null);
     this.mutationState.set("saving");
@@ -838,4 +1217,8 @@ function toObservedAt(dateInput: string): string {
   return trimmed
     ? new Date(`${trimmed}T12:00:00.000Z`).toISOString()
     : new Date().toISOString();
+}
+
+function compareShoppingLines(left: HouseholdShoppingListLine, right: HouseholdShoppingListLine): number {
+  return left.displayName.localeCompare(right.displayName, "hu-HU");
 }
