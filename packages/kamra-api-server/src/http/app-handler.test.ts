@@ -1406,6 +1406,11 @@ describe("handleAppRequest auth guards", () => {
           validatorUpdated: false
         },
         {
+          id: "catalog-classification-v1",
+          migrationCompleted: false,
+          validatorUpdated: false
+        },
+        {
           id: "feature-flag-audit-v1",
           migrationCompleted: false,
           validatorUpdated: false
@@ -1517,6 +1522,8 @@ describe("handleAppRequest auth guards", () => {
       "catalog-product-validation:migration",
       "household-fields:validator",
       "household-fields:migration",
+      "catalog-classification-v1:validator",
+      "catalog-classification-v1:migration",
       "feature-flag-audit-v1:validator",
       "feature-flag-audit-v1:migration"
       ]

@@ -16,6 +16,11 @@ export const databaseMaintenanceEntries: readonly DatabaseMaintenanceEntry[] = [
     title: "Household default fields"
   },
   {
+    details: "Creates the final Product Concept, Product Attribute, relation, and product-classification assignment collections and migrates legacy category/attribute tags without treating keyword hints as eligibility rules.",
+    id: "catalog-classification-v1",
+    title: "Catalog product classification"
+  },
+  {
     details: "Ensures the feature_flag_change_audits collection and its indexes for persisted old/new values, actor, reason, and revision. This is an audit-schema action; it does not change the current value of any feature flag.",
     id: "feature-flag-audit-v1",
     title: "Feature flag audit history"
