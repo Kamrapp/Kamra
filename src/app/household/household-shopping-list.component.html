@@ -1,0 +1,180 @@
+
+    <section class="ui-panel-card shopping-card" [attr.aria-label]="loc.t('household.shoppingListPanelTitle')">
+      <div class="shopping-layout">
+        <section class="shopping-overview">
+          <div class="shopping-card-topline">
+            <div>
+              <p class="ui-kicker">{{ loc.t("household.shoppingListKicker") }}</p>
+              <h2 class="ui-card-title">{{ loc.t("household.shoppingListPanelTitle") }}</h2>
+            </div>
+          </div>
+
+          @if (loadState() === "loading" && !shoppingList()) {
+            <p class="shopping-note">{{ loc.t("household.shoppingListLoading") }}</p>
+          } @else if (errorMessage()) {
+            <div class="shopping-note shopping-error">
+              <strong>{{ loc.t("household.shoppingListLoadFailure") }}</strong>
+              <p>{{ errorMessage() }}</p>
+            </div>
+          } @else if (!shoppingList()) {
+            <div class="shopping-empty">
+              <p>{{ loc.t("household.shoppingListEmpty") }}</p>
+              <p class="shopping-muted">{{ loc.t("household.shoppingListEmptyHint") }}</p>
+            </div>
+          } @else {
+            <div class="quick-add-row">
+              <input
+                type="text"
+                [ngModel]="quickAddDraft().displayName"
+                (ngModelChange)="updateQuickAddText($event)"
+                [placeholder]="loc.t('household.quickAddPlaceholder')"
+                [disabled]="isReadOnly()"
+              />
+              <input
+                type="number"
+                step="0.01"
+                [ngModel]="quickAddDraft().purchasedAmount"
+                (ngModelChange)="updateQuickAddAmount($event)"
+                [disabled]="isReadOnly()"
+              />
+              <input
+                type="text"
+                [ngModel]="quickAddDraft().unit"
+                (ngModelChange)="updateQuickAddUnit($event)"
+                [placeholder]="loc.t('household.unit')"
+                [disabled]="isReadOnly()"
+              />
+              <button
+                class="ui-button ui-button-quiet ui-button-sm icon-button"
+                type="button"
+                (click)="addManualLine()"
+                [disabled]="isReadOnly()"
+                [attr.aria-label]="loc.t('household.quickAddAction')"
+                [attr.title]="loc.t('household.quickAddAction')"
+              >
+                <span aria-hidden="true">+</span>
+              </button>
+            </div>
+
+            <div class="shopping-list-table">
+              @if (pendingItems().length || purchasedItems().length) {
+                <div class="shopping-list-header" aria-hidden="true">
+                  <span></span>
+                  <span>{{ loc.t("household.plannedShort") }}</span>
+                  <span>{{ loc.t("household.purchasedShort") }}</span>
+                  <span>{{ loc.t("household.unit") }}</span>
+                  <span></span>
+                </div>
+              }
+
+              <div class="shopping-list-shell">
+                @if (pendingItems().length) {
+                  @for (item of pendingItems(); track item.id) {
+                      <article class="shopping-line">
+                        <app-shopping-list-line
+                          [defaultCurrencyCode]="defaultCurrencyCode"
+                          [item]="item"
+                          [readOnly]="isReadOnly()"
+                          [saving]="mutationState() === 'saving'"
+                          (changed)="handleLineChange(item, $event)"
+                        />
+                      </article>
+                  }
+                } @else if (!purchasedItems().length) {
+                  <p class="shopping-note">{{ loc.t("household.shoppingListNoItems") }}</p>
+                }
+
+                @if (purchasedItems().length) {
+                  <section class="purchased-group">
+                    <button class="purchased-toggle" type="button" (click)="togglePurchasedSection()" [disabled]="isReadOnly()">
+                      <span>{{ loc.t("household.shoppingListPurchasedGroup", { count: purchasedItems().length }) }}</span>
+                      <strong aria-hidden="true">{{ purchasedSectionCollapsed() ? "+" : "−" }}</strong>
+                    </button>
+
+                    @if (!purchasedSectionCollapsed()) {
+                      <div class="purchased-shell">
+                        @for (item of purchasedItems(); track item.id) {
+                          <article class="shopping-line shopping-line-ticked">
+                            <app-shopping-list-line
+                              [defaultCurrencyCode]="defaultCurrencyCode"
+                              [item]="item"
+                              [readOnly]="isReadOnly()"
+                              [saving]="mutationState() === 'saving'"
+                              (changed)="handleLineChange(item, $event)"
+                            />
+                          </article>
+                        }
+                      </div>
+                    }
+                  </section>
+                }
+              </div>
+            </div>
+          }
+        </section>
+
+        <section class="shopping-finalize">
+          <div>
+            <p class="ui-kicker">{{ loc.t("household.shoppingListFinalizeKicker") }}</p>
+            <h3 class="finalize-title">{{ loc.t("household.shoppingListFinalizeTitle") }}</h3>
+          </div>
+
+          @if (shoppingList()) {
+            <label>
+              <span>{{ loc.t("household.shoppingListShop") }}</span>
+              <select
+                [ngModel]="shoppingList()!.shopId ?? ''"
+                (ngModelChange)="changeShop($event)"
+                [disabled]="isReadOnly() || mutationState() === 'saving'"
+              >
+                <option value="">{{ loc.t("household.shoppingListShopNone") }}</option>
+                @for (shop of shops(); track shop.id) {
+                  <option [value]="shop.id">{{ shop.label }}</option>
+                }
+              </select>
+            </label>
+
+            <label>
+              <span>{{ loc.t("household.shoppingListAppliedDate") }}</span>
+              <input
+                type="date"
+                [ngModel]="stockAppliedAt()"
+                (ngModelChange)="setStockAppliedDate($event)"
+                [disabled]="isReadOnly() || mutationState() === 'saving'"
+              />
+            </label>
+
+            <button
+              class="ui-button ui-button-primary"
+              type="button"
+              (click)="applyPurchasedItems()"
+              [disabled]="isReadOnly() || mutationState() === 'saving' || shoppingList()!.items.length === 0"
+            >
+              {{ loc.t("household.applyShoppingListToStock") }}
+            </button>
+
+            @if (pendingConfirmation(); as confirmation) {
+              <app-shopping-list-completion-panel
+                [allowedModes]="confirmation.allowedModes"
+                (cancelRequested)="pendingConfirmation.set(null)"
+                (confirmRequested)="applyPurchasedItems($event)"
+              />
+            }
+
+            <button class="ui-button ui-button-quiet receipt-button" type="button" (click)="notifyReceiptUploadComingSoon()" [disabled]="isReadOnly()">
+              {{ loc.t("household.uploadReceipt") }}
+            </button>
+          } @else {
+            <div class="shopping-empty">
+              <p>{{ loc.t("household.shoppingListFinalizeEmpty") }}</p>
+              <p class="shopping-muted">{{ loc.t("household.shoppingListFinalizeEmptyHint") }}</p>
+            </div>
+          }
+        </section>
+      </div>
+
+      @if (statusMessage()) {
+        <p class="shopping-note">{{ statusMessage() }}</p>
+      }
+
+    </section>

@@ -1,10 +1,15 @@
 import { Component, computed, inject, signal, type OnInit, type WritableSignal } from "@angular/core";
 
-import { buildApiUrl } from "../api-url";
-import { logBrowserEvent } from "../browser-logger";
+import { BrowserLoggerService } from "../browser-logger.service";
 import { AuthService } from "../auth.service";
 import { DatabaseMaintenanceComponent } from "./database-maintenance.component";
-import { readApiErrorMessage } from "../shared/api-errors";
+import { AdminDashboardService } from "./admin-dashboard.service";
+import {
+  AdminHealthCardComponent,
+  type HealthCheckItem
+} from "./admin-health-card.component";
+import { AdminFeatureFlagsCardComponent } from "./admin-feature-flags-card.component";
+import { AdminAlphaAccessCardComponent } from "./admin-alpha-access-card.component";
 import { LocalizationService, type TranslationKey } from "../shared/localization.service";
 import { ToastService } from "../shared/toast.service";
 
@@ -31,21 +36,6 @@ interface DemoHouseholdReseedResponse {
   message: string;
 }
 
-interface HealthCheckError {
-  code?: string;
-  message: string;
-  name: string;
-}
-
-interface HealthCheckItem {
-  databaseName?: string | null;
-  error?: HealthCheckError;
-  id: string;
-  label: string;
-  message: string;
-  status: string;
-}
-
 interface FeatureFlagListItem {
   enabled: boolean;
   key: string;
@@ -65,433 +55,14 @@ type AsyncActionState = "idle" | "loading" | "error" | "success";
 @Component({
   selector: "app-admin-dashboard",
   standalone: true,
-  imports: [DatabaseMaintenanceComponent],
-  template: `
-    <section class="page-shell admin-dashboard-page" aria-labelledby="admin-dashboard-title">
-      <div class="page-intro admin-dashboard-copy">
-        <p class="ui-kicker">{{ loc.t("health.runtime") }}</p>
-        <h1 id="admin-dashboard-title" class="page-title">{{ loc.t("common.devAdmin") }}</h1>
-        <p class="page-lead">
-          {{ loc.t("health.description") }}
-        </p>
-      </div>
-
-      @if (!auth.token()) {
-        <section class="ui-panel-card status-panel unauthorized-panel" aria-live="polite">
-          <div class="status-heading">
-            <p class="ui-kicker">{{ loc.t("common.adminOnly") }}</p>
-            <p class="status-summary">{{ loc.t("health.signIn") }}</p>
-          </div>
-          <p class="status-message">
-            {{ loc.t("health.intro") }}
-          </p>
-        </section>
-      } @else if (!auth.user()) {
-        <section class="ui-panel-card status-panel unauthorized-panel" aria-live="polite">
-          <div class="status-heading">
-            <p class="ui-kicker">{{ loc.t("common.adminOnly") }}</p>
-            <p class="status-summary">{{ loc.t("common.loading") }}</p>
-          </div>
-          <p class="status-message">
-            {{ loc.t("health.checkingAccess") }}
-          </p>
-        </section>
-      } @else if (!isAdminUser()) {
-        <section class="ui-panel-card status-panel unauthorized-panel" aria-live="polite">
-          <div class="status-heading">
-            <p class="ui-kicker">{{ loc.t("common.adminOnly") }}</p>
-            <p class="status-summary">{{ loc.t("common.devAdmin") }}</p>
-          </div>
-          <p class="status-message">
-            {{ loc.t("health.adminOnlyDescription") }}
-          </p>
-        </section>
-      } @else {
-        <section class="ui-card-grid admin-grid" aria-label="Admin utilities">
-          <article class="ui-panel-card status-panel utility-card" aria-live="polite">
-            <div class="status-heading">
-              <p class="ui-kicker">{{ loc.t("health.demoSeedKicker") }}</p>
-              <p class="status-summary">{{ loc.t("health.demoSeedTitle") }}</p>
-            </div>
-            <p class="status-message">{{ loc.t("health.demoSeedDescription") }}</p>
-            <button
-              class="run-button ui-button"
-              type="button"
-              (click)="reseedDemoHousehold()"
-              [disabled]="isMaintenanceBusy()"
-            >
-              {{ demoSeedState() === "loading" ? loc.t("health.updating") : loc.t("health.demoSeedRun") }}
-            </button>
-            @if (demoSeedMessage(); as message) {
-              <p class="maintenance-message">{{ message }}</p>
-            }
-          </article>
-
-          <article class="ui-panel-card status-panel utility-card" aria-live="polite">
-            <div class="status-heading">
-              <p class="ui-kicker">{{ loc.t("health.databaseKicker") }}</p>
-              <p class="status-summary">{{ healthSummary() }}</p>
-            </div>
-
-            @if (healthMessage(); as message) {
-              <p class="status-message">{{ message }}</p>
-            }
-
-            <div class="button-row">
-              <button
-                class="run-button ui-button"
-                type="button"
-                (click)="runHealthCheck()"
-                [disabled]="isMaintenanceBusy()"
-              >
-                {{ healthState() === "loading" ? loc.t("health.checking") : loc.t("health.run") }}
-              </button>
-            </div>
-
-            @if (healthChecks().length) {
-              <div class="check-list" [attr.aria-label]="loc.t('common.healthCheck')">
-                @for (check of healthChecks(); track check.id) {
-                  <article
-                    class="check-card"
-                    [class.check-card-ok]="check.status === 'ok'"
-                    [class.check-card-problem]="check.status !== 'ok'"
-                  >
-                    <div class="check-heading">
-                      <h2>{{ check.label }}</h2>
-                      <span>{{ check.status }}</span>
-                    </div>
-                    <p>{{ check.message }}</p>
-
-                    @if (check.databaseName !== undefined) {
-                      <dl>
-                        <div>
-                          <dt>{{ loc.t("common.database") }}</dt>
-                          <dd>{{ check.databaseName ?? loc.t("common.notConfigured") }}</dd>
-                        </div>
-                      </dl>
-                    }
-
-                    @if (check.error; as error) {
-                      <div class="error-block">
-                        <p class="error-title">{{ error.name }}</p>
-                        <p>{{ error.message }}</p>
-                        @if (error.code) {
-                          <p>{{ loc.t("common.code") }}: {{ error.code }}</p>
-                        }
-                      </div>
-                    }
-                  </article>
-                }
-              </div>
-            }
-          </article>
-
-          <article class="ui-panel-card status-panel utility-card placeholder-card">
-            <div class="status-heading">
-              <p class="ui-kicker">{{ loc.t("health.featureFlagsKicker") }}</p>
-              <p class="status-summary">{{ loc.t("health.featureFlagsTitle") }}</p>
-            </div>
-            <p class="status-message">{{ loc.t("health.featureFlagsDescription") }}</p>
-            <div class="placeholder-list">
-              <label class="placeholder-row" for="shopping-list-auto-tick-flag">
-                <span>{{ loc.t("health.featureFlagAutoTickAllShoppingListEntries") }}</span>
-                <input
-                  id="shopping-list-auto-tick-flag"
-                  type="checkbox"
-                  [checked]="allowAutoTickingAllShoppingListEntriesEnabled()"
-                  [disabled]="featureFlagsState() === 'loading' || !isAdminUser()"
-                  (change)="setAllowAutoTickingAllShoppingListEntriesEnabled($any($event.target).checked)"
-                >
-              </label>
-            </div>
-            <div class="button-row">
-              <button
-                class="run-button ui-button"
-                type="button"
-                (click)="saveShoppingListFeatureFlags()"
-                [disabled]="isMaintenanceBusy() || featureFlagsState() === 'loading'"
-              >
-                {{ featureFlagsState() === "loading" ? loc.t("health.updating") : loc.t("common.save") }}
-              </button>
-            </div>
-            @if (featureFlagsMessage(); as message) {
-              <p class="maintenance-message">{{ message }}</p>
-            }
-          </article>
-
-          <article class="ui-panel-card status-panel utility-card alpha-access-card">
-            <div class="status-heading">
-              <p class="ui-kicker">{{ loc.t("health.alphaAccessKicker") }}</p>
-              <p class="status-summary">{{ loc.t("health.alphaAccessTitle") }}</p>
-            </div>
-            <p class="status-message">{{ loc.t("health.alphaAccessDescription") }}</p>
-            <label class="placeholder-row" for="controlled-alpha-access-flag">
-              <span>{{ loc.t("health.alphaAccessEnabled") }}</span>
-              <input
-                id="controlled-alpha-access-flag"
-                type="checkbox"
-                [checked]="allowControlledAlphaAccessEnabled()"
-                [disabled]="featureFlagsState() === 'loading' || !isAdminUser()"
-                (change)="setAllowControlledAlphaAccessEnabled($any($event.target).checked)"
-              >
-            </label>
-            <div class="alpha-form">
-              <label for="alpha-user-email">{{ loc.t("health.alphaUserEmail") }}</label>
-              <input
-                id="alpha-user-email"
-                type="email"
-                autocomplete="off"
-                [value]="alphaUserEmail()"
-                (input)="alphaUserEmail.set($any($event.target).value)"
-              >
-              <label for="alpha-user-password">{{ loc.t("health.alphaUserPassword") }}</label>
-              <input
-                id="alpha-user-password"
-                type="password"
-                autocomplete="new-password"
-                [value]="alphaUserPassword()"
-                (input)="alphaUserPassword.set($any($event.target).value)"
-              >
-            </div>
-            <div class="button-row">
-              <button
-                class="run-button ui-button"
-                type="button"
-                (click)="saveAlphaAccessFlag()"
-                [disabled]="isMaintenanceBusy()"
-              >
-                {{ featureFlagsState() === "loading" ? loc.t("health.updating") : loc.t("health.saveAlphaAccess") }}
-              </button>
-              <button
-                class="run-button ui-button"
-                type="button"
-                (click)="createAlphaUser()"
-                [disabled]="isMaintenanceBusy() || !allowControlledAlphaAccessEnabled()"
-              >
-                {{ alphaUserState() === "loading" ? loc.t("health.creatingAlphaUser") : loc.t("health.createAlphaUser") }}
-              </button>
-            </div>
-            @if (alphaUserMessage(); as message) {
-              <p class="maintenance-message">{{ message }}</p>
-            }
-          </article>
-
-          <app-database-maintenance />
-
-        </section>
-      }
-    </section>
-  `,
-  styles: [
-    `
-      :host {
-        display: block;
-        min-height: 100%;
-      }
-
-      .status-panel {
-        gap: var(--space-4);
-      }
-
-      .unauthorized-panel {
-        align-content: center;
-      }
-
-      .utility-card {
-        align-content: start;
-        min-height: 16rem;
-      }
-
-      .status-heading {
-        display: grid;
-        gap: 0.35rem;
-      }
-
-      .status-summary,
-      .status-message {
-        color: var(--color-text);
-        margin: 0;
-      }
-
-      .status-summary {
-        font-size: 1.05rem;
-        font-weight: 700;
-      }
-
-      .run-button {
-        justify-self: start;
-        min-width: 11rem;
-      }
-
-      .button-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: var(--space-3);
-      }
-
-      .maintenance-button {
-        min-width: 13rem;
-      }
-
-      .maintenance-message {
-        color: var(--color-text-muted);
-        font-size: 0.95rem;
-        line-height: 1.5;
-        margin: 0;
-      }
-
-      .check-list {
-        display: grid;
-        gap: var(--space-3);
-      }
-
-      .placeholder-card {
-        background:
-          linear-gradient(180deg, color-mix(in srgb, var(--surface-panel-background) 92%, white 8%), var(--surface-panel-background)),
-          radial-gradient(circle at top right, color-mix(in srgb, var(--color-accent-sky) 16%, transparent), transparent 55%);
-      }
-
-      .placeholder-list {
-        display: grid;
-        gap: var(--space-2);
-      }
-
-      .placeholder-row {
-        align-items: center;
-        background: var(--surface-soft-background);
-        border: 1px solid var(--line-subtle);
-        border-radius: var(--radius-ui);
-        color: var(--color-text);
-        display: flex;
-        justify-content: space-between;
-        padding: 0.85rem 0.95rem;
-      }
-
-      .placeholder-row strong {
-        color: var(--color-text-muted);
-        font-size: 0.76rem;
-        text-transform: uppercase;
-      }
-
-      .alpha-form {
-        display: grid;
-        gap: 0.35rem;
-      }
-
-      .alpha-form label {
-        color: var(--color-text-muted);
-        font-size: 0.78rem;
-        font-weight: 700;
-      }
-
-      .alpha-form input {
-        background: var(--form-field-background);
-        border: 1px solid var(--line-panel);
-        border-radius: var(--radius-ui);
-        color: var(--color-text);
-        font: inherit;
-        min-height: 2.15rem;
-        padding: 0.45rem 0.62rem;
-        width: 100%;
-      }
-
-      .check-card {
-        background: var(--surface-soft-background);
-        border: 1px solid var(--line-subtle);
-        border-radius: var(--radius-ui);
-        display: grid;
-        gap: var(--space-3);
-        padding: 1rem;
-      }
-
-      .check-card-ok {
-        border-color: color-mix(in srgb, var(--color-accent-leaf) 36%, var(--color-card-tint) 64%);
-      }
-
-      .check-card-problem {
-        border-color: color-mix(in srgb, var(--color-wood) 38%, var(--color-card-tint) 62%);
-      }
-
-      .check-heading {
-        align-items: center;
-        display: flex;
-        gap: var(--space-3);
-        justify-content: space-between;
-      }
-
-      h2 {
-        color: var(--color-text);
-        font-size: 1rem;
-        line-height: 1.25;
-        margin: 0;
-      }
-
-      .check-heading span {
-        background: color-mix(in srgb, var(--color-card-tint) 54%, var(--color-surface) 46%);
-        border-radius: var(--radius-ui);
-        color: var(--color-on-soft-accent);
-        font-size: 0.78rem;
-        font-weight: 700;
-        padding: 0.35rem 0.55rem;
-      }
-
-      .check-card p {
-        color: var(--color-text);
-        margin: 0;
-      }
-
-      dl {
-        display: grid;
-        margin: 0;
-      }
-
-      dt {
-        color: var(--color-text-muted);
-        font-size: 0.82rem;
-        font-weight: 700;
-        margin: 0;
-        text-transform: uppercase;
-      }
-
-      dd {
-        color: var(--color-text);
-        font-size: 1rem;
-        margin: 0;
-        overflow-wrap: anywhere;
-      }
-
-      .error-block {
-        background: var(--surface-soft-background);
-        border-radius: var(--radius-ui);
-        display: grid;
-        gap: 0.35rem;
-        padding: 0.85rem;
-      }
-
-      .error-block .error-title {
-        color: var(--color-text);
-        font-weight: 700;
-      }
-
-      .error-block p {
-        color: var(--color-text-muted);
-        overflow-wrap: anywhere;
-      }
-
-      @media (min-width: 900px) {
-        .admin-dashboard-page {
-          grid-template-columns: minmax(0, 1fr);
-        }
-
-        .admin-grid {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-      }
-    `
-  ]
+  imports: [AdminAlphaAccessCardComponent, AdminFeatureFlagsCardComponent, AdminHealthCardComponent, DatabaseMaintenanceComponent],
+  templateUrl: "./admin-dashboard.component.html",
+  styleUrl: "./admin-dashboard.component.css"
 })
 export class AdminDashboardComponent implements OnInit {
   readonly auth = inject(AuthService);
+  readonly adminDashboard = inject(AdminDashboardService);
+  readonly logger = inject(BrowserLoggerService);
   readonly isAdminUser = computed(() => this.auth.user()?.role === "admin");
   readonly loc = inject(LocalizationService);
   readonly toast = inject(ToastService);
@@ -573,12 +144,12 @@ export class AdminDashboardComponent implements OnInit {
     this.demoSeedState.set("loading");
     this.demoSeedMessage.set("");
 
-    logBrowserEvent("info", "Demo household reseed requested from admin dashboard", {
+    this.logger.log("info", "Demo household reseed requested from admin dashboard", {
       pathname: window.location.pathname
     });
 
     try {
-      const response = await this.fetchAdminDashboardRoute("/api/admin/dashboard/reseed-demo-household", {
+      const response = await this.adminDashboard.request("/api/admin/dashboard/reseed-demo-household", {
         headers: {
           accept: "application/json",
           ...this.auth.getAuthorizationHeaders()
@@ -591,7 +162,7 @@ export class AdminDashboardComponent implements OnInit {
         return;
       }
 
-      const { message, payload } = await this.readRoutePayload<DemoHouseholdReseedResponse & { message?: string }>(
+      const { message, payload } = await this.adminDashboard.readPayload<DemoHouseholdReseedResponse & { message?: string }>(
         response,
         this.loc.t("health.demoSeedFailure")
       );
@@ -615,7 +186,7 @@ export class AdminDashboardComponent implements OnInit {
         this.toast.push(payload.message ?? message, "error");
       }
 
-      logBrowserEvent("info", "Demo household reseed response received", {
+      this.logger.log("info", "Demo household reseed response received", {
         httpStatus: response.status,
         localProducts: payload.counts?.localProducts,
         stockItems: payload.counts?.stockItems,
@@ -626,7 +197,7 @@ export class AdminDashboardComponent implements OnInit {
       this.demoSeedMessage.set(this.loc.t("health.browserDemoSeedFailure"));
       this.toast.push(this.loc.t("health.browserDemoSeedFailure"), "error");
 
-      logBrowserEvent("error", "Demo household reseed request failed", error);
+      this.logger.log("error", "Demo household reseed request failed", { error });
     }
   }
 
@@ -639,12 +210,12 @@ export class AdminDashboardComponent implements OnInit {
     this.healthState.set("loading");
     this.healthMessage.set("");
 
-    logBrowserEvent("info", "Health check requested from admin dashboard", {
+    this.logger.log("info", "Health check requested from admin dashboard", {
       pathname: window.location.pathname
     });
 
     try {
-      const response = await this.fetchAdminDashboardRoute("/api/admin/dashboard/health", {
+      const response = await this.adminDashboard.request("/api/admin/dashboard/health", {
         headers: {
           accept: "application/json",
           ...this.auth.getAuthorizationHeaders()
@@ -658,7 +229,7 @@ export class AdminDashboardComponent implements OnInit {
         return;
       }
 
-      const { message, payload: report } = await this.readRoutePayload<HealthReport>(
+      const { message, payload: report } = await this.adminDashboard.readPayload<HealthReport>(
         response,
         this.loc.t("health.routeError")
       );
@@ -679,7 +250,7 @@ export class AdminDashboardComponent implements OnInit {
         this.toast.push(message, "error");
       }
 
-      logBrowserEvent("info", "Health check response received", {
+      this.logger.log("info", "Health check response received", {
         httpStatus: response.status,
         databaseStatus: report.checks.database.status,
         status: report.status
@@ -690,7 +261,7 @@ export class AdminDashboardComponent implements OnInit {
       this.healthMessage.set(this.loc.t("health.browserHealthFailure"));
       this.toast.push(this.loc.t("health.browserHealthFailure"), "error");
 
-      logBrowserEvent("error", "Health check request failed", error);
+      this.logger.log("error", "Health check request failed", { error });
     }
   }
 
@@ -706,12 +277,12 @@ export class AdminDashboardComponent implements OnInit {
     this.validatorUpgradeState.set("loading");
     this.validatorUpgradeMessage.set("");
 
-    logBrowserEvent("info", "Catalog validator upgrade requested from admin dashboard", {
+    this.logger.log("info", "Catalog validator upgrade requested from admin dashboard", {
       pathname: window.location.pathname
     });
 
     try {
-      const response = await this.fetchAdminDashboardRoute("/api/admin/dashboard/upgrade-catalog-validators", {
+      const response = await this.adminDashboard.request("/api/admin/dashboard/upgrade-catalog-validators", {
         headers: {
           accept: "application/json",
           ...this.auth.getAuthorizationHeaders()
@@ -724,7 +295,7 @@ export class AdminDashboardComponent implements OnInit {
         return;
       }
 
-      const { message, payload } = await this.readRoutePayload<{
+      const { message, payload } = await this.adminDashboard.readPayload<{
         createdCollections?: string[];
         message?: string;
         upgradedCollections?: string[];
@@ -747,7 +318,7 @@ export class AdminDashboardComponent implements OnInit {
         this.toast.push(payload.message ?? message, "error");
       }
 
-      logBrowserEvent("info", "Catalog validator upgrade response received", {
+      this.logger.log("info", "Catalog validator upgrade response received", {
         createdCollectionCount: payload.createdCollections?.length,
         httpStatus: response.status,
         upgradedCollectionCount: payload.upgradedCollections?.length
@@ -757,7 +328,7 @@ export class AdminDashboardComponent implements OnInit {
       this.validatorUpgradeMessage.set(this.loc.t("health.browserValidatorFailure"));
       this.toast.push(this.loc.t("health.browserValidatorFailure"), "error");
 
-      logBrowserEvent("error", "Catalog validator upgrade request failed", error);
+      this.logger.log("error", "Catalog validator upgrade request failed", { error });
     }
   }
 
@@ -769,12 +340,12 @@ export class AdminDashboardComponent implements OnInit {
     this.invalidationState.set("loading");
     this.invalidationMessage.set("");
 
-    logBrowserEvent("info", "Legacy validation backfill requested from admin dashboard", {
+    this.logger.log("info", "Legacy validation backfill requested from admin dashboard", {
       pathname: window.location.pathname
     });
 
     try {
-      const response = await this.fetchAdminDashboardRoute("/api/admin/dashboard/backfill-unvalidated-products", {
+      const response = await this.adminDashboard.request("/api/admin/dashboard/backfill-unvalidated-products", {
         headers: {
           accept: "application/json",
           ...this.auth.getAuthorizationHeaders()
@@ -787,7 +358,7 @@ export class AdminDashboardComponent implements OnInit {
         return;
       }
 
-      const { message, payload } = await this.readRoutePayload<{
+      const { message, payload } = await this.adminDashboard.readPayload<{
         message?: string;
         skippedCount?: number;
         status?: "updated" | "validator_incompatible";
@@ -808,7 +379,7 @@ export class AdminDashboardComponent implements OnInit {
         this.toast.push(payload.message ?? message, "error");
       }
 
-      logBrowserEvent("info", "Legacy validation backfill response received", {
+      this.logger.log("info", "Legacy validation backfill response received", {
         httpStatus: response.status,
         skippedCount: payload.skippedCount,
         status: payload.status,
@@ -819,7 +390,7 @@ export class AdminDashboardComponent implements OnInit {
       this.invalidationMessage.set(this.loc.t("health.browserBackfillFailure"));
       this.toast.push(this.loc.t("health.browserBackfillFailure"), "error");
 
-      logBrowserEvent("error", "Legacy validation backfill request failed", error);
+      this.logger.log("error", "Legacy validation backfill request failed", { error });
     }
   }
 
@@ -832,7 +403,7 @@ export class AdminDashboardComponent implements OnInit {
     this.featureFlagsMessage.set("");
 
     try {
-      const response = await this.fetchAdminDashboardRoute("/api/admin/dashboard/feature-flags", {
+      const response = await this.adminDashboard.request("/api/admin/dashboard/feature-flags", {
         headers: {
           accept: "application/json",
           ...this.auth.getAuthorizationHeaders()
@@ -845,7 +416,7 @@ export class AdminDashboardComponent implements OnInit {
         return;
       }
 
-      const { message, payload } = await this.readRoutePayload<{ featureFlags?: FeatureFlagListItem[] }>(
+      const { message, payload } = await this.adminDashboard.readPayload<{ featureFlags?: FeatureFlagListItem[] }>(
         response,
         this.loc.t("health.featureFlagsLoadFailure")
       );
@@ -865,7 +436,7 @@ export class AdminDashboardComponent implements OnInit {
       this.featureFlagsMessage.set(this.loc.t("health.browserFeatureFlagsFailure"));
       this.toast.push(this.loc.t("health.browserFeatureFlagsFailure"), "error");
 
-      logBrowserEvent("error", "Feature flag load request failed", error);
+      this.logger.log("error", "Feature flag load request failed", { error });
     }
   }
 
@@ -894,7 +465,7 @@ export class AdminDashboardComponent implements OnInit {
     this.alphaUserMessage.set("");
 
     try {
-      const response = await this.fetchAdminDashboardRoute("/api/admin/alpha-users", {
+      const response = await this.adminDashboard.request("/api/admin/alpha-users", {
         body: JSON.stringify({
           email: this.alphaUserEmail(),
           password: this.alphaUserPassword()
@@ -906,7 +477,7 @@ export class AdminDashboardComponent implements OnInit {
         },
         method: "POST"
       });
-      const { message, payload } = await this.readRoutePayload<AlphaUserCreationResponse>(
+      const { message, payload } = await this.adminDashboard.readPayload<AlphaUserCreationResponse>(
         response,
         this.loc.t("health.alphaUserCreateFailure")
       );
@@ -950,7 +521,7 @@ export class AdminDashboardComponent implements OnInit {
     this.featureFlagsMessage.set("");
 
     try {
-      const response = await this.fetchAdminDashboardRoute("/api/admin/dashboard/feature-flags", {
+      const response = await this.adminDashboard.request("/api/admin/dashboard/feature-flags", {
         body: JSON.stringify({ enabled, key }),
         headers: {
           accept: "application/json",
@@ -965,7 +536,7 @@ export class AdminDashboardComponent implements OnInit {
         return;
       }
 
-      const { message, payload } = await this.readRoutePayload<{ featureFlags?: FeatureFlagListItem[] }>(
+      const { message, payload } = await this.adminDashboard.readPayload<{ featureFlags?: FeatureFlagListItem[] }>(
         response,
         this.loc.t("health.featureFlagsSaveFailure")
       );
@@ -989,7 +560,7 @@ export class AdminDashboardComponent implements OnInit {
       this.featureFlagsMessage.set(this.loc.t("health.browserFeatureFlagsFailure"));
       this.toast.push(this.loc.t("health.browserFeatureFlagsFailure"), "error");
 
-      logBrowserEvent("error", "Feature flag save request failed", error);
+      this.logger.log("error", "Feature flag save request failed", { error });
     }
   }
 
@@ -1025,35 +596,6 @@ export class AdminDashboardComponent implements OnInit {
       && candidate.checks.database
       && typeof candidate.status === "string"
     );
-  }
-
-  private async fetchAdminDashboardRoute(input: string, init: RequestInit): Promise<Response> {
-    try {
-      return await fetch(buildApiUrl(input), init);
-    } catch {
-      throw new Error(this.loc.t("health.browserHealthFailure"));
-    }
-  }
-
-  private async readRoutePayload<T>(
-    response: Response,
-    fallbackMessage: string
-  ): Promise<{ message: string; payload: T | null }> {
-    const message = await readApiErrorMessage(response.clone(), fallbackMessage, (messageKey) =>
-      this.loc.t(messageKey as TranslationKey)
-    );
-
-    try {
-      return {
-        message,
-        payload: (await response.json()) as T
-      };
-    } catch {
-      return {
-        message,
-        payload: null
-      };
-    }
   }
 
   private handleUnauthorizedResponse(

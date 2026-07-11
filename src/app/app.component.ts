@@ -1,5 +1,4 @@
 import { Component, computed, effect, inject, signal, type OnInit } from "@angular/core";
-import { FormsModule } from "@angular/forms";
 import {
   NavigationEnd,
   Router,
@@ -8,36 +7,35 @@ import {
   RouterOutlet
 } from "@angular/router";
 
-import { logBrowserEvent } from "./browser-logger";
+import { BrowserLoggerService } from "./browser-logger.service";
 import { AuthService } from "./auth.service";
 import { PageRailService } from "./shared/page-rail.service";
 import { PageRailOutletComponent } from "./shared/page-rail-outlet.component";
 import {
   LocalizationService,
-  type LanguagePreference,
-  type TranslationKey
+  type LanguagePreference
 } from "./shared/localization.service";
 import { ThemePreferenceService, type ThemePreference } from "./shared/theme-preference.service";
 import { ToastHostComponent } from "./shared/toast-host.component";
 import { ToastService } from "./shared/toast.service";
+import { RadialNavigationComponent, type RadialNavigationItem } from "./shared/radial-navigation.component";
+import {
+  ShellAccountPanelComponent,
+  type ShellLoginCredentials
+} from "./shared/shell-account-panel.component";
 
-interface ShellMenuItem {
-  angle: number;
-  exact: boolean;
-  iconPath: string;
-  labelKey: TranslationKey;
-  path: string;
+interface ShellMenuItem extends RadialNavigationItem {
   requiresAdmin?: boolean;
 }
 
 @Component({
-  imports: [FormsModule, PageRailOutletComponent, RouterLink, RouterLinkActive, RouterOutlet, ToastHostComponent],
+  imports: [PageRailOutletComponent, RadialNavigationComponent, RouterLink, RouterLinkActive, RouterOutlet, ShellAccountPanelComponent, ToastHostComponent],
   selector: "app-root",
   standalone: true,
   template: `
     <main class="shell" aria-label="Kamra">
       <aside class="left-rail" [attr.aria-label]="loc.t('app.context')">
-        <a class="brand-card" routerLink="/" (click)="closeMenu()" [attr.aria-label]="loc.t('app.home')">
+        <a class="brand-card" routerLink="/" [attr.aria-label]="loc.t('app.home')">
           <span class="brand-line">
             <img
               class="brand-mark"
@@ -66,60 +64,17 @@ interface ShellMenuItem {
       </section>
 
       <aside class="right-rail" [attr.aria-label]="loc.t('app.actions')">
-        <section class="auth-card" [attr.aria-label]="loc.t('app.account')">
-          @if (auth.user(); as user) {
-            <div class="user-chip">
-              <span>{{ user.email }}</span>
-              <button type="button" (click)="logout()">{{ loc.t("app.logout") }}</button>
-            </div>
-          } @else {
-            <form class="login-form" (ngSubmit)="login()">
-              <input
-                autocomplete="username"
-                name="email"
-                [placeholder]="loc.t('app.email')"
-                type="email"
-                [(ngModel)]="loginEmail"
-                [disabled]="loginState() === 'loading'"
-              />
-              <input
-                autocomplete="current-password"
-                name="password"
-                [placeholder]="loc.t('app.password')"
-                type="password"
-                [(ngModel)]="loginPassword"
-                [disabled]="loginState() === 'loading'"
-              />
-              <button type="submit" [disabled]="loginState() === 'loading'">
-                {{ loginState() === "loading" ? loc.t("app.loadingLogin") : loc.t("app.login") }}
-              </button>
-            </form>
-          }
-
-          <label class="preference-field">
-            <span>{{ loc.t("app.theme") }}</span>
-            <select
-              name="theme"
-              [ngModel]="theme.theme()"
-              (ngModelChange)="setTheme($event)"
-            >
-              <option value="light">{{ loc.t("app.light") }}</option>
-              <option value="dark">{{ loc.t("app.dark") }}</option>
-            </select>
-          </label>
-
-          <label class="preference-field">
-            <span>{{ loc.t("app.language.label") }}</span>
-            <select
-              name="language"
-              [ngModel]="loc.language()"
-              (ngModelChange)="setLanguage($event)"
-            >
-              <option value="en">{{ loc.t("app.language.english") }}</option>
-              <option value="hu">{{ loc.t("app.language.hungarian") }}</option>
-            </select>
-          </label>
-        </section>
+        <app-shell-account-panel
+          [language]="loc.language()"
+          [loginLoading]="loginState() === 'loading'"
+          [loginResetToken]="loginResetToken()"
+          [theme]="theme.theme()"
+          [user]="auth.user()"
+          (languageChanged)="setLanguage($event)"
+          (loginRequested)="login($event)"
+          (logoutRequested)="logout()"
+          (themeChanged)="setTheme($event)"
+        />
 
         <a
           class="about-rail-card"
@@ -136,44 +91,7 @@ interface ShellMenuItem {
 
       <app-toast-host />
 
-      <div class="radial-menu" [class.radial-menu-open]="isMenuOpen">
-        <nav id="primary-menu" class="radial-nav" [attr.aria-label]="loc.t('app.primaryNavigation')">
-          @for (item of menuItems(); track item.path) {
-            <a
-              class="radial-nav-item"
-              [routerLink]="item.path"
-              routerLinkActive="active"
-              [routerLinkActiveOptions]="item.exact ? { exact: true } : { exact: false }"
-              [style.--item-angle]="item.angle + 'deg'"
-              [attr.aria-label]="loc.t(item.labelKey)"
-              [attr.data-label]="loc.t(item.labelKey)"
-              (click)="closeMenu()"
-            >
-              <svg aria-hidden="true" viewBox="0 0 24 24">
-                <path [attr.d]="item.iconPath"></path>
-              </svg>
-              <span>{{ loc.t(item.labelKey) }}</span>
-            </a>
-          }
-        </nav>
-
-        <button
-          class="radial-menu-button"
-          type="button"
-          [attr.aria-label]="loc.t('app.toggleNavigation')"
-          aria-controls="primary-menu"
-          [attr.aria-expanded]="isMenuOpen"
-          (click)="toggleMenu()"
-        >
-          <svg aria-hidden="true" viewBox="0 0 24 24">
-            @if (isMenuOpen) {
-              <path d="M6.4 5 5 6.4 10.6 12 5 17.6 6.4 19 12 13.4 17.6 19 19 17.6 13.4 12 19 6.4 17.6 5 12 10.6 6.4 5Z"></path>
-            } @else {
-              <path d="M4 6.5H20V8.5H4V6.5ZM4 11H20V13H4V11ZM4 15.5H20V17.5H4V15.5Z"></path>
-            }
-          </svg>
-        </button>
-      </div>
+      <app-radial-navigation [items]="menuItems()" [resetToken]="railResetToken()" />
     </main>
   `,
   styles: [
@@ -213,7 +131,6 @@ interface ShellMenuItem {
       }
 
       .brand-card,
-      .auth-card,
       .page-context-card,
       .about-rail-card {
         backdrop-filter: blur(14px);
@@ -262,8 +179,10 @@ interface ShellMenuItem {
         min-width: min(13rem, 100%);
       }
 
-      .auth-card {
-        padding: 0.45rem;
+      .page-context-card {
+        display: grid;
+        gap: 0.18rem;
+        padding: 0.65rem 0.75rem;
       }
 
       .about-rail-card {
@@ -305,12 +224,6 @@ interface ShellMenuItem {
         line-height: 1.35;
       }
 
-      .page-context-card {
-        display: grid;
-        gap: 0.18rem;
-        padding: 0.65rem 0.75rem;
-      }
-
       .rail-kicker,
       .rail-title {
         margin: 0;
@@ -331,71 +244,6 @@ interface ShellMenuItem {
         line-height: 1.1;
       }
 
-      .login-form,
-      .preference-field,
-      .user-chip {
-        align-items: center;
-        display: grid;
-        gap: var(--space-2);
-      }
-
-      .login-form input,
-      .preference-field select {
-        background: var(--form-field-background);
-        border: 1px solid var(--line-panel);
-        border-radius: var(--radius-ui);
-        color: var(--color-text);
-        font: inherit;
-        min-height: 2.15rem;
-        padding: 0.45rem 0.62rem;
-        width: 100%;
-      }
-
-      .preference-field {
-        margin-top: var(--space-2);
-      }
-
-      .preference-field span {
-        color: var(--color-text-muted);
-        font-size: 0.72rem;
-        font-weight: 800;
-        text-transform: uppercase;
-      }
-
-      .login-form button,
-      .user-chip button {
-        background: var(--control-primary-background);
-        border: 1px solid var(--control-primary-border);
-        border-radius: var(--radius-ui);
-        color: white;
-        cursor: pointer;
-        font: inherit;
-        font-weight: 700;
-        min-height: 2.15rem;
-        padding: 0.45rem 0.7rem;
-      }
-
-      .login-form button:disabled {
-        cursor: progress;
-        opacity: 0.72;
-      }
-
-      .user-chip {
-        background: color-mix(in srgb, var(--color-surface) 82%, white 18%);
-        border: 1px solid var(--line-panel);
-        border-radius: var(--radius-ui);
-        padding: 0.25rem;
-      }
-
-      .user-chip span {
-        color: var(--color-text);
-        font-size: 0.84rem;
-        overflow: hidden;
-        padding: 0 0.45rem;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
       .page-body {
         min-height: 0;
         min-width: 0;
@@ -410,151 +258,6 @@ interface ShellMenuItem {
         overflow: auto;
         padding: 0 0 max(var(--space-6), env(safe-area-inset-bottom));
         scrollbar-gutter: stable both-edges;
-      }
-
-      .radial-menu {
-        --item-radius: clamp(5.2rem, 8vw, 6.8rem);
-        --mini-item-radius: clamp(3.65rem, 5vw, 4.2rem);
-        height: 1px;
-        position: fixed;
-        right: max(1.25rem, env(safe-area-inset-right));
-        top: 50%;
-        width: 1px;
-        z-index: 35;
-      }
-
-      .radial-menu-button {
-        align-items: center;
-        background: color-mix(in srgb, var(--color-accent-leaf-strong) 82%, var(--color-wood-deep) 18%);
-        border: 1px solid color-mix(in srgb, var(--color-accent-leaf-strong) 55%, white 45%);
-        border-radius: var(--radius-pill);
-        box-shadow: 0 1rem 2.6rem rgb(48 43 50 / 22%);
-        color: white;
-        cursor: pointer;
-        display: inline-flex;
-        height: 4.3rem;
-        justify-content: center;
-        padding: 0;
-        position: absolute;
-        right: 0;
-        top: 0;
-        transform: translate(0, -50%);
-        transition: box-shadow 180ms ease, transform 180ms ease;
-        width: 4.3rem;
-        z-index: 2;
-      }
-
-      .radial-menu-button:hover,
-      .radial-menu-open .radial-menu-button {
-        box-shadow: 0 1.2rem 3rem rgb(48 43 50 / 28%);
-        transform: translate(0, -50%) scale(1.04);
-      }
-
-      .radial-menu-button svg,
-      .radial-nav-item svg {
-        display: block;
-        fill: currentColor;
-      }
-
-      .radial-menu-button svg {
-        color: white;
-        height: 1.55rem;
-        width: 1.55rem;
-      }
-
-      .radial-nav {
-        inset: 0;
-        position: absolute;
-      }
-
-      .radial-nav-item {
-        align-items: center;
-        background: color-mix(in srgb, var(--color-surface) 92%, white 8%);
-        border: 1px solid var(--line-strong);
-        border-radius: var(--radius-pill);
-        box-shadow: 0 0.45rem 1.2rem rgb(48 43 50 / 16%);
-        color: var(--color-text);
-        display: flex;
-        gap: 0;
-        height: 2.35rem;
-        justify-content: center;
-        min-height: 2.35rem;
-        min-width: 2.35rem;
-        opacity: 0.96;
-        overflow: visible;
-        padding: 0;
-        pointer-events: auto;
-        position: absolute;
-        right: 0;
-        top: 0;
-        text-decoration: none;
-        transform: translate(0, -50%) rotate(var(--item-angle)) translateX(var(--mini-item-radius)) rotate(calc(-1 * var(--item-angle))) scale(0.94);
-        transform-origin: center;
-        transition:
-          background 160ms ease,
-          border-color 160ms ease,
-          box-shadow 180ms ease,
-          gap 220ms ease,
-          height 240ms cubic-bezier(0.2, 0.9, 0.2, 1.08),
-          min-height 240ms cubic-bezier(0.2, 0.9, 0.2, 1.08),
-          min-width 240ms cubic-bezier(0.2, 0.9, 0.2, 1.08),
-          opacity 180ms ease,
-          padding 240ms cubic-bezier(0.2, 0.9, 0.2, 1.08),
-          transform 260ms cubic-bezier(0.2, 0.9, 0.2, 1.08);
-        white-space: nowrap;
-        width: 2.35rem;
-        z-index: 1;
-      }
-
-      .radial-menu-open .radial-nav-item {
-        box-shadow: 0 0.8rem 2rem rgb(48 43 50 / 14%);
-        gap: 0.55rem;
-        height: auto;
-        justify-content: flex-start;
-        min-height: 3rem;
-        min-width: 7.4rem;
-        opacity: 1;
-        overflow: visible;
-        padding: 0.48rem 0.68rem;
-        transform: translate(0, -50%) rotate(var(--item-angle)) translateX(var(--item-radius)) rotate(calc(-1 * var(--item-angle))) scale(1);
-        width: auto;
-      }
-
-      .radial-nav-item:hover,
-      .radial-nav-item.active {
-        background: color-mix(in srgb, var(--color-accent-sky) 34%, var(--color-card-tint) 66%);
-        border-color: color-mix(in srgb, var(--color-accent-sky) 48%, var(--color-wood-deep) 52%);
-      }
-
-      .radial-nav-item svg {
-        color: var(--color-wood-deep);
-        flex: 0 0 auto;
-        height: 1rem;
-        transition: height 220ms ease, width 220ms ease;
-        width: 1rem;
-      }
-
-      .radial-nav-item.active svg {
-        color: var(--color-on-soft-accent);
-      }
-
-      .radial-menu-open .radial-nav-item svg {
-        height: 1.18rem;
-        width: 1.18rem;
-      }
-
-      .radial-nav-item span {
-        font-size: 0.86rem;
-        font-weight: 800;
-        max-width: 0;
-        opacity: 0;
-        overflow: hidden;
-        transition: max-width 220ms ease, opacity 160ms ease 70ms;
-      }
-
-      .radial-menu-open .radial-nav-item span {
-        max-width: 7rem;
-        opacity: 1;
       }
 
       @media (max-width: 1180px) {
@@ -580,20 +283,6 @@ interface ShellMenuItem {
         .page-body {
           grid-column: 1 / -1;
           grid-row: 2;
-        }
-
-        .login-form,
-        .preference-field,
-        .user-chip {
-          align-items: center;
-          display: flex;
-          flex-wrap: wrap;
-          justify-content: flex-end;
-        }
-
-        .login-form input,
-        .preference-field select {
-          width: min(11rem, 28vw);
         }
 
         .left-rail {
@@ -631,39 +320,20 @@ interface ShellMenuItem {
           grid-row: 3;
         }
 
-        .login-form input,
-        .preference-field select {
-          width: min(100%, 11rem);
-        }
-
-        .login-form,
-        .preference-field,
-        .user-chip {
-          align-items: stretch;
-          display: grid;
-          justify-content: stretch;
-        }
-
-        .radial-menu {
-          --item-radius: 5.2rem;
-          right: 0.9rem;
-        }
-
-        .radial-menu-open .radial-nav-item {
-          min-width: 6.8rem;
-        }
       }
     `
   ]
 })
 export class AppComponent implements OnInit {
   readonly auth = inject(AuthService);
+  readonly logger = inject(BrowserLoggerService);
   readonly loc = inject(LocalizationService);
   readonly pageRail = inject(PageRailService);
   readonly theme = inject(ThemePreferenceService);
   readonly toast = inject(ToastService);
   readonly currentPageTitle = signal("");
   readonly loginState = signal<"idle" | "loading">("idle");
+  readonly loginResetToken = signal(0);
   readonly railResetToken = signal(0);
   readonly menuItems = computed(() => {
     const isAdmin = this.auth.user()?.role === "admin";
@@ -702,16 +372,12 @@ export class AppComponent implements OnInit {
       requiresAdmin: true
     }
   ];
-  isMenuOpen = false;
-  loginEmail = "";
-  loginPassword = "";
   private readonly router = inject(Router);
 
   constructor() {
     this.router.events.subscribe((event) => {
       if (event instanceof NavigationEnd) {
         this.updateCurrentPageTitle(event.urlAfterRedirects);
-        this.closeMenu();
         this.railResetToken.update((token) => token + 1);
       }
     });
@@ -726,34 +392,27 @@ export class AppComponent implements OnInit {
     void this.loadCurrentUserProfile();
     this.updateCurrentPageTitle(this.router.url);
 
-    logBrowserEvent("info", "Browser app ready", {
+    this.logger.log("info", "Browser app ready", {
       hostname: window.location.hostname,
       pathname: window.location.pathname
     });
   }
 
-  closeMenu(): void {
-    this.isMenuOpen = false;
-  }
-
-  toggleMenu(): void {
-    this.isMenuOpen = !this.isMenuOpen;
-  }
-
-  async login(): Promise<void> {
+  async login(credentials: ShellLoginCredentials): Promise<void> {
+    const { email, password } = credentials;
     this.loginState.set("loading");
     try {
-      const result = await this.auth.login(this.loginEmail, this.loginPassword);
+      const result = await this.auth.login(email, password);
 
       if (result.status === "error") {
         this.toast.push(result.message, "error");
         return;
       }
 
-      this.loginPassword = "";
       this.theme.applyUserTheme(this.auth.user()?.profile.theme);
       this.loc.applyUserLanguage(this.auth.user()?.profile.language);
-      this.toast.push(this.loc.t("app.signedIn", { email: this.auth.user()?.email ?? this.loginEmail }), "success");
+      this.loginResetToken.update((token) => token + 1);
+      this.toast.push(this.loc.t("app.signedIn", { email: this.auth.user()?.email ?? email }), "success");
     } catch {
       this.toast.push(this.loc.t("app.loginFailure"), "error");
     } finally {
@@ -763,7 +422,7 @@ export class AppComponent implements OnInit {
 
   async logout(): Promise<void> {
     await this.auth.logout();
-    this.loginPassword = "";
+    this.loginResetToken.update((token) => token + 1);
     this.theme.applyUserTheme(undefined);
     this.loc.applyUserLanguage(undefined);
     await this.router.navigateByUrl("/");

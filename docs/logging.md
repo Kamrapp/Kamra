@@ -19,13 +19,24 @@ The file logs roll daily and older log files are removed after 10 days.
 
 ## Browser Logging
 
-The browser bootstrap writes a few startup records through `src/app/browser-logger.ts`.
+The browser bootstrap and feature pages use the root-provided `BrowserLoggerService` from `src/app/browser-logger.service.ts`. The underlying helper in `src/app/browser-logger.ts` remains the compatibility and transport implementation.
 
-That helper:
+The injected facade and helper together:
 
 - logs to the browser console with timestamps
 - sends structured log payloads to `POST /api/log`
 - never blocks the app if the log endpoint is unavailable
+- add bounded `environment: "browser"` context to injected feature events
+
+Frontend logging conventions:
+
+- inject `BrowserLoggerService`; do not call `console.*` or construct `/api/log` requests from feature code
+- use stable, human-readable event names such as `Product catalog loaded` and `Health check response received`
+- include only small operational context such as route, status, counts, and identifiers safe for diagnostics
+- never include access tokens, passwords, full credentials, or unrestricted form payloads
+- wrap thrown values under a named field such as `error` rather than replacing the structured event with an unbounded value
+- log expected user-facing failures at `error` only when the event helps diagnose the failure; avoid logging the same failure repeatedly from nested layers
+- treat browser forwarding failure as non-fatal and do not await it from user actions
 
 The server mirrors those browser logs to the server console. During local runs, it also records them to `logs/browser-YYYY-MM-DD.log`.
 

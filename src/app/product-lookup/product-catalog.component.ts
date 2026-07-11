@@ -1,7 +1,7 @@
 import { Component, computed, effect, inject, signal, type OnDestroy, type OnInit } from "@angular/core";
 
 import { AuthService } from "../auth.service";
-import { logBrowserEvent } from "../browser-logger";
+import { BrowserLoggerService } from "../browser-logger.service";
 import {
   ProductCatalogService,
   type CatalogProductListItem,
@@ -14,6 +14,7 @@ import { PageRailService, type PageRailSection } from "../shared/page-rail.servi
 import { ProductEditorDialogComponent } from "../shared/product-editor-dialog.component";
 import { TableIconButtonComponent } from "../shared/table-icon-button.component";
 import { DebouncedFilterAction } from "../shared/filter-debounce";
+import { ProductCatalogFilterBarComponent } from "./product-catalog-filter-bar.component";
 import { LocalizationService } from "../shared/localization.service";
 import { ToastService } from "../shared/toast.service";
 
@@ -30,289 +31,15 @@ interface ProductCatalogFilters {
 const noOfferSourceKey = "__none__";
 
 @Component({
-  imports: [ProductEditorDialogComponent, ResizableTableComponent, TableIconButtonComponent],
+  imports: [ProductCatalogFilterBarComponent, ProductEditorDialogComponent, ResizableTableComponent, TableIconButtonComponent],
   selector: "app-product-catalog",
   standalone: true,
-  template: `
-    <section class="products-page" aria-labelledby="products-title">
-      <main class="page-main">
-        <section class="product-filter-bar" [attr.aria-label]="loc.t('product.filters')">
-          <label class="filter-field">
-            <span>{{ loc.t("common.name") }}</span>
-            <input
-              type="search"
-              [value]="productFilterDrafts().nameIncludes"
-              [placeholder]="loc.t('product.filterContains')"
-              (input)="setNameFilter($any($event.target).value)"
-            />
-          </label>
-
-          @if (activeProductFilterCount()) {
-            <button class="filter-clear-button ui-button ui-button-quiet ui-button-sm" type="button" (click)="clearProductFilters()">{{ loc.t("common.clear") }}</button>
-          }
-        </section>
-
-        <app-resizable-table #productTable [ariaLabel]="loc.t('product.productTable')" [columns]="tableColumns()">
-          <div
-            class="table-viewport"
-            [style.--row-height]="rowHeight + 'px'"
-            (scroll)="onTableScroll($event)"
-          >
-            @if (!visibleRows().length) {
-              <p class="table-empty-state">{{ productTablePlaceholder() }}</p>
-            }
-
-            <div class="table-spacer" [style.height.px]="tableHeight()">
-              @for (row of visibleRows(); track row.product.id) {
-                <article
-                  class="product-row"
-                  role="row"
-                  [style.grid-template-columns]="productTable.columnTemplate()"
-                  [style.transform]="'translateY(' + row.offset + 'px)'"
-                >
-                  <div class="action-cell" role="cell">
-                    <app-table-icon-button
-                      [titleText]="loc.t('common.editProduct')"
-                      [ariaLabel]="loc.t('common.editProduct')"
-                      (press)="openProductEditor(row.product)"
-                    >
-                      ✎
-                    </app-table-icon-button>
-                  </div>
-
-                  <div class="product-main" role="cell">
-                    <p class="row-title">{{ row.product.name }}</p>
-                    <p class="row-muted">
-                      {{ row.product.brandName || loc.t("common.unbranded") }} · {{ formatMeasurements(row.product.measurements) }}
-                    </p>
-                    <p class="row-muted">{{ row.product.primaryCategoryKey || loc.t("common.uncategorized") }}</p>
-                  </div>
-
-                  <div class="price-cell" role="cell">
-                    @for (price of priceChips(row.product); track price) {
-                      <span class="price-chip ui-token ui-token-tag">{{ price }}</span>
-                    } @empty {
-                      <span class="quiet-chip ui-token ui-token-muted">{{ loc.t("product.noPrice") }}</span>
-                    }
-                  </div>
-
-                  <div class="source-cell" role="cell">
-                    <p class="row-strong">{{ filteredOffers(row.product).length }} {{ loc.t("common.offers") }} · {{ filteredSourceNames(row.product).length }} {{ loc.t("common.sources") }}</p>
-                    <p class="row-muted">{{ formatSources(row.product) }}</p>
-                    <p class="row-muted">{{ formatOfferNames(row.product) }}</p>
-                  </div>
-
-                  <div class="identifier-cell" role="cell">
-                    <p class="row-muted">{{ formatIdentifiers(row.product) }}</p>
-                  </div>
-
-                  <div class="state-cell" role="cell">
-                    <p class="row-strong">{{ formatLatestObserved(row.product) }}</p>
-                    <p class="row-muted">{{ row.product.householdStockCount }} {{ loc.t("common.household") }} · {{ row.product.tagKeys.length }} {{ loc.t("common.tags") }}</p>
-                  </div>
-                </article>
-              }
-            </div>
-          </div>
-        </app-resizable-table>
-      </main>
-
-      <app-product-editor-dialog
-        mode="catalog"
-        [open]="editorOpen()"
-        [product]="editingProduct()"
-        (close)="closeProductEditor()"
-        (deleteProduct)="deleteProduct($event)"
-        (invalidateProduct)="invalidateProduct($event.id, $event.note)"
-        (saveProduct)="saveProduct($event)"
-        (validateProduct)="validateProduct($event.id, $event.note)"
-      />
-    </section>
-  `,
-  styles: [
-    `
-      :host {
-        display: block;
-        min-height: 100%;
-      }
-
-      .products-page {
-        display: block;
-        min-height: 0;
-      }
-
-      .page-main {
-        min-width: 0;
-      }
-
-      dd,
-      dl,
-      h1,
-      p {
-        margin: 0;
-      }
-
-      dt {
-        color: var(--color-text-muted);
-        font-size: 0.72rem;
-        font-weight: 700;
-        letter-spacing: 0;
-        text-transform: uppercase;
-      }
-
-      h1 {
-        color: var(--color-text);
-        font-family: var(--font-display);
-        font-size: clamp(1.8rem, 4vw, 2.7rem);
-        line-height: 1.05;
-      }
-
-      .error-message,
-      .row-muted {
-        color: var(--color-text-muted);
-      }
-
-      .product-filter-bar {
-        align-items: end;
-        display: flex;
-        flex-wrap: wrap;
-        gap: var(--space-3);
-        margin-block-end: 0.45rem;
-        min-width: 0;
-      }
-
-      .filter-field {
-        color: var(--color-text-muted);
-        display: grid;
-        font-size: 0.75rem;
-        font-weight: 800;
-        gap: 0.25rem;
-        min-width: min(18rem, 100%);
-      }
-
-      .filter-field input {
-        background: var(--surface-shell-background);
-        border: 1px solid var(--line-subtle);
-        border-radius: var(--radius-ui);
-        color: var(--color-text);
-        font: inherit;
-        font-size: 0.88rem;
-        font-weight: 700;
-        min-height: 2.15rem;
-        min-width: 0;
-        padding: 0.35rem 0.55rem;
-      }
-
-      .filter-field input::placeholder {
-        color: var(--color-text-muted);
-        font-weight: 600;
-      }
-
-      .filter-clear-button {
-        font-size: 0.84rem;
-      }
-
-      .product-row {
-        box-sizing: border-box;
-        display: grid;
-        gap: var(--space-3);
-        min-width: var(--table-width);
-      }
-
-      .table-viewport {
-        height: min(64vh, 44rem);
-        min-height: 24rem;
-        min-width: var(--table-width);
-        overflow-x: hidden;
-        overflow-y: auto;
-        position: relative;
-      }
-
-      .table-spacer {
-        min-width: 100%;
-        position: relative;
-      }
-
-      .table-empty-state {
-        color: var(--color-text-muted);
-        font-size: 0.9rem;
-        font-weight: 700;
-        left: 1rem;
-        margin: 0;
-        position: absolute;
-        top: 1rem;
-      }
-
-      .product-row {
-        align-items: center;
-        border-bottom: 1px solid var(--line-subtle);
-        height: var(--row-height);
-        left: 0;
-        padding: 0.75rem 1rem;
-        position: absolute;
-        right: 0;
-        top: 0;
-      }
-
-      .product-row:nth-child(2n) {
-        background: var(--row-stripe-background);
-      }
-
-      .product-main,
-      .action-cell,
-      .price-cell,
-      .source-cell,
-      .identifier-cell,
-      .state-cell {
-        min-width: 0;
-      }
-
-      .action-cell {
-        align-items: center;
-        display: flex;
-      }
-
-      .row-title,
-      .row-strong {
-        color: var(--color-text);
-        font-weight: 800;
-      }
-
-      .row-title,
-      .row-muted,
-      .row-strong {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .row-muted {
-        font-size: 0.84rem;
-      }
-
-      .price-cell {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.35rem;
-      }
-
-      .price-chip,
-      .quiet-chip {
-        font-size: 0.8rem;
-        min-height: 1.75rem;
-        padding: 0.3rem 0.5rem;
-      }
-
-      @media (max-width: 820px) {
-        .ui-action-button {
-          width: 100%;
-        }
-      }
-    `
-  ]
+  templateUrl: "./product-catalog.component.html",
+  styleUrl: "./product-catalog.component.css"
 })
 export class ProductCatalogComponent implements OnInit, OnDestroy {
   readonly auth = inject(AuthService);
+  readonly logger = inject(BrowserLoggerService);
   readonly catalog = inject(ProductCatalogService);
   readonly loc = inject(LocalizationService);
   readonly pageRail = inject(PageRailService);
@@ -788,7 +515,7 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
         })
       );
 
-      logBrowserEvent("info", "Product catalog loaded", {
+      this.logger.log("info", "Product catalog loaded", {
         offerCount: this.totalOfferCount(),
         page: result.pagination.page,
         pageSize: result.pagination.pageSize,
@@ -804,7 +531,7 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
       this.statusMessage.set(this.loc.t("product.routeFailure"));
       this.errorMessage.set(this.loc.t("product.routeHint"));
 
-      logBrowserEvent("error", "Product catalog request failed", error);
+      this.logger.log("error", "Product catalog request failed", { error });
     }
   }
 
