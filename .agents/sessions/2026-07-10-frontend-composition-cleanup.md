@@ -32,6 +32,8 @@
 - Item: User explicitly expanded the cleanup rule to allow companion `.html`/`.css` files after useful minor component extraction.
 - Item: Extracted `ShoppingListLineComponent` with local disclosure state, line formatting helpers, inline styles, and a discriminated edit-intent output.
 - Item: Externalized the remaining `HouseholdShoppingListComponent` template and styles into companion `.html`/`.css` files after the line extraction.
+- Item: Extracted `DatabaseMaintenanceEntryComponent` with local row actions, details disclosure, finished-state presentation, and responsive row styles.
+- Item: Externalized the remaining database-maintenance container template/styles and removed row-specific CSS from the parent.
 
 ## Changed Files
 
@@ -79,6 +81,12 @@
   - Holds the shopping-list container template after minor line ownership was extracted.
 - Path: `src/app/household/household-shopping-list.component.css`
   - Holds the unchanged parent-scoped list layout and responsive styles.
+- Path: `src/app/dev-admin/database-maintenance-entry.component.ts`
+  - Owns one maintenance entry's action buttons, completion labels, details tooltip state, and responsive row CSS.
+- Path: `src/app/dev-admin/database-maintenance.component.ts`
+  - Composes entry children and retains auth gating, loading, transport, entry grouping, and run-all state.
+- Path: `src/app/dev-admin/database-maintenance.component.html`, `src/app/dev-admin/database-maintenance.component.css`
+  - Hold the maintenance container markup and container/table framing styles after row extraction.
 - Path: `src/app/dev-admin/admin-feature-flags-card.component.ts`
   - Owns the auto-tick flag presentation, disabled/loading behavior, save action, and local flag-card styles.
 - Path: `src/app/dev-admin/admin-alpha-access-card.component.ts`
@@ -128,6 +136,8 @@
 - Result: Passed; the parent now receives one typed line-change union and no longer owns line disclosure state or display helpers.
 - Ran: `npm run typecheck`, `npm run lint`, `npm run build:web`, and `npm run test` after externalizing the shopping-list parent.
 - Result: Passed; 31 test files and 153 tests passed. Angular companion template/style loading is verified by the production build.
+- Ran: `npm run typecheck`, `npm run lint`, `npm run build:web`, and `npm run test` after the maintenance-entry extraction and parent externalization.
+- Result: Passed; 31 test files and 153 tests passed.
 
 ## Decisions
 
@@ -194,6 +204,8 @@
   - Impact: The next step is companion-file externalization only after reviewing that remaining parent responsibility; confirm relative template/style loading and unchanged component-scoped selectors.
 - Issue: The shopping-list parent now uses relative companion file paths.
   - Impact: Manual checks should verify pending/purchased rendering, completion panel placement, quick-add, empty/loading/error states, responsive layout, theme variables, and that no styles leaked across child boundaries.
+- Issue: Database maintenance rows now render through a child host and the parent uses companion files.
+  - Impact: Manual checks should verify auth gating, active/finished grouping, validator/migration actions, mark-complete, run-all disabling, details hover/focus disclosure, mobile row stacking, and light/dark styling.
 - Issue: Existing working-tree/index state may include user-owned plan or backend changes.
   - Impact: Do not revert, stage, or mix unrelated files into cleanup changes.
 
@@ -204,7 +216,7 @@
 
 ## Next Step
 
-Commit the shopping-list companion-file externalization, then reassess the next monster. Prefer `home.component.ts` or `database-maintenance.component.ts` only after identifying useful minor components; do not mass-externalize every page automatically.
+Commit the database-maintenance entry/container extraction, then reassess `home.component.ts` or the remaining admin/catalog pages one at a time. Continue extracting minor ownership boundaries before companion-file externalization; do not mass-externalize every page automatically.
 
 ## Notes For Future Agent
 

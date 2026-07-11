@@ -1,0 +1,73 @@
+
+    <section class="maintenance-section" aria-labelledby="database-maintenance-title">
+      <div class="section-heading">
+        <p class="ui-kicker">{{ loc.t("health.databaseMaintenanceKicker") }}</p>
+        <h2 id="database-maintenance-title">{{ loc.t("health.databaseMaintenanceTitle") }}</h2>
+        <p>{{ loc.t("health.databaseMaintenanceDescription") }}</p>
+        <button
+          class="ui-button ui-button-warm run-all-button"
+          type="button"
+          [disabled]="busyKey() !== null || activeEntries().length === 0"
+          (click)="runAll()"
+        >
+          {{ busyKey() === "run-all" ? loc.t("health.runningAll") : loc.t("health.runAll") }}
+        </button>
+      </div>
+
+      @if (!auth.token()) {
+        <p class="maintenance-message">{{ loc.t("health.signInBeforeMaintenance") }}</p>
+      } @else if (!auth.user()) {
+        <p class="maintenance-message">{{ loc.t("health.checkingAccess") }}</p>
+      } @else if (auth.user()?.role !== "admin") {
+        <p class="maintenance-message">{{ loc.t("health.adminOnlyDescription") }}</p>
+      } @else {
+        @if (message(); as currentMessage) {
+          <p class="maintenance-message" aria-live="polite">{{ currentMessage }}</p>
+        }
+
+        @if (loadState() === "loading") {
+          <p class="maintenance-message">{{ loc.t("health.loadingDatabaseMaintenance") }}</p>
+        } @else {
+          <div class="maintenance-table" role="table" [attr.aria-label]="loc.t('health.databaseMaintenanceTitle')">
+            <div class="maintenance-table-row maintenance-table-header" role="row">
+              <span role="columnheader">{{ loc.t("health.databaseMaintenanceEntry") }}</span>
+              <span role="columnheader">{{ loc.t("health.updateValidators") }}</span>
+              <span role="columnheader">{{ loc.t("health.migrateExistingData") }}</span>
+              <span role="columnheader" class="details-column">{{ loc.t("health.details") }}</span>
+              <span role="columnheader">{{ loc.t("health.markAsComplete") }}</span>
+            </div>
+
+            <div class="active-entries-scroll">
+              @for (entry of activeEntries(); track entry.id) {
+                <app-database-maintenance-entry
+                  [busyKey]="busyKey()"
+                  [entry]="entry"
+                  [finished]="false"
+                  (actionRequested)="runAction(entry, $event)"
+                  (completeRequested)="markComplete(entry)"
+                />
+              }
+            </div>
+
+            @if (finishedEntries().length > 0) {
+              <details class="finished-entries">
+                <summary>
+                  <span>{{ loc.t("health.finishedDatabaseMaintenance") }}</span>
+                  <span>{{ finishedEntries().length }}</span>
+                </summary>
+                <div class="finished-entries-scroll">
+                  @for (entry of finishedEntries(); track entry.id) {
+                    <app-database-maintenance-entry
+                      [busyKey]="busyKey()"
+                      [entry]="entry"
+                      [finished]="true"
+                    />
+                  }
+                </div>
+              </details>
+            }
+          </div>
+        }
+      }
+    </section>
+  `,
