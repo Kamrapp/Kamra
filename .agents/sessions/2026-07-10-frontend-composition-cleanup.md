@@ -20,6 +20,7 @@
 - Item: Extracted the authenticated household stock panel into a single-file standalone component; the page retains loading, mutation, and page-rail ownership.
 - Item: Extracted the authenticated household stock editor into a single-file standalone component with a normalized draft input/output contract; the page retains API calls and mutation state.
 - Item: Started Step 3 by extracting the shopping-list completion confirmation panel into a single-file standalone component with typed confirm/cancel outputs.
+- Item: Extracted the developer-admin health report card into a single-file standalone component; dashboard transport, auth, localized errors, and toasts remain in the page.
 
 ## Changed Files
 
@@ -47,6 +48,10 @@
   - Owns confirmation prompt markup, mode-button presentation, localization, and primary-mode selection.
 - Path: `src/app/household/household-shopping-list.component.ts`
   - Composes the completion panel while retaining shopping-list state, persistence, and lifecycle methods.
+- Path: `src/app/dev-admin/admin-health-card.component.ts`
+  - Owns health summary/report rendering, check status styling, error detail display, and the run-health output.
+- Path: `src/app/dev-admin/admin-dashboard.component.ts`
+  - Composes the health card and retains all admin request and authorization logic.
 
 ## Validation
 
@@ -60,6 +65,8 @@
 - Result: The editor child uses an explicit normalized draft contract; no companion HTML/CSS files were added.
 - Ran: `npm run typecheck`, `npm run lint`, and `npm run build:web` after the completion-panel extraction.
 - Result: Passed; the full test suite remains the validation gate before closing Step 3.
+- Ran: `npm run typecheck`, `npm run lint`, and `npm run build:web` after the admin health-card extraction.
+- Result: Passed; full tests remain the validation gate before closing Step 3.
 
 ## Decisions
 
@@ -98,6 +105,8 @@
   - Impact: Do not generalize them until a later visual comparison confirms exact equivalence; compare light/dark themes and narrow layouts for spacing, controls, and panel framing.
 - Issue: Shopping-list confirmation actions now render through a component host.
   - Impact: Final manual checks should verify confirmation appearance, allowed-mode ordering, primary-button emphasis, confirm action execution, and close/cancel behavior in both light and dark themes.
+- Issue: The admin health report now renders through a component host.
+  - Impact: Final manual checks should verify health loading/empty/success/degraded states, API/database status styling, database-name display, error code/details, run-button disabling, unauthorized behavior, and narrow-layout wrapping.
 - Issue: Existing working-tree/index state may include user-owned plan or backend changes.
   - Impact: Do not revert, stage, or mix unrelated files into cleanup changes.
 
@@ -108,7 +117,7 @@
 
 ## Next Step
 
-The completion-panel slice is ready to commit. After the commit, continue Step 3 with the shopping-list line overview only if its event contract remains compact; keep `HouseholdShoppingListComponent` as the lifecycle facade.
+The health-card slice is ready to commit. After the commit, continue Step 3 with the next admin card only when its input/output contract is similarly compact; keep `HouseholdShoppingListComponent` as the lifecycle facade and avoid a low-value admin request wrapper.
 
 ## Notes For Future Agent
 

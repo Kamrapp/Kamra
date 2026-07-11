@@ -4,6 +4,10 @@ import { buildApiUrl } from "../api-url";
 import { logBrowserEvent } from "../browser-logger";
 import { AuthService } from "../auth.service";
 import { DatabaseMaintenanceComponent } from "./database-maintenance.component";
+import {
+  AdminHealthCardComponent,
+  type HealthCheckItem
+} from "./admin-health-card.component";
 import { readApiErrorMessage } from "../shared/api-errors";
 import { LocalizationService, type TranslationKey } from "../shared/localization.service";
 import { ToastService } from "../shared/toast.service";
@@ -31,21 +35,6 @@ interface DemoHouseholdReseedResponse {
   message: string;
 }
 
-interface HealthCheckError {
-  code?: string;
-  message: string;
-  name: string;
-}
-
-interface HealthCheckItem {
-  databaseName?: string | null;
-  error?: HealthCheckError;
-  id: string;
-  label: string;
-  message: string;
-  status: string;
-}
-
 interface FeatureFlagListItem {
   enabled: boolean;
   key: string;
@@ -65,7 +54,7 @@ type AsyncActionState = "idle" | "loading" | "error" | "success";
 @Component({
   selector: "app-admin-dashboard",
   standalone: true,
-  imports: [DatabaseMaintenanceComponent],
+  imports: [AdminHealthCardComponent, DatabaseMaintenanceComponent],
   template: `
     <section class="page-shell admin-dashboard-page" aria-labelledby="admin-dashboard-title">
       <div class="page-intro admin-dashboard-copy">
@@ -127,64 +116,13 @@ type AsyncActionState = "idle" | "loading" | "error" | "success";
             }
           </article>
 
-          <article class="ui-panel-card status-panel utility-card" aria-live="polite">
-            <div class="status-heading">
-              <p class="ui-kicker">{{ loc.t("health.databaseKicker") }}</p>
-              <p class="status-summary">{{ healthSummary() }}</p>
-            </div>
-
-            @if (healthMessage(); as message) {
-              <p class="status-message">{{ message }}</p>
-            }
-
-            <div class="button-row">
-              <button
-                class="run-button ui-button"
-                type="button"
-                (click)="runHealthCheck()"
-                [disabled]="isMaintenanceBusy()"
-              >
-                {{ healthState() === "loading" ? loc.t("health.checking") : loc.t("health.run") }}
-              </button>
-            </div>
-
-            @if (healthChecks().length) {
-              <div class="check-list" [attr.aria-label]="loc.t('common.healthCheck')">
-                @for (check of healthChecks(); track check.id) {
-                  <article
-                    class="check-card"
-                    [class.check-card-ok]="check.status === 'ok'"
-                    [class.check-card-problem]="check.status !== 'ok'"
-                  >
-                    <div class="check-heading">
-                      <h2>{{ check.label }}</h2>
-                      <span>{{ check.status }}</span>
-                    </div>
-                    <p>{{ check.message }}</p>
-
-                    @if (check.databaseName !== undefined) {
-                      <dl>
-                        <div>
-                          <dt>{{ loc.t("common.database") }}</dt>
-                          <dd>{{ check.databaseName ?? loc.t("common.notConfigured") }}</dd>
-                        </div>
-                      </dl>
-                    }
-
-                    @if (check.error; as error) {
-                      <div class="error-block">
-                        <p class="error-title">{{ error.name }}</p>
-                        <p>{{ error.message }}</p>
-                        @if (error.code) {
-                          <p>{{ loc.t("common.code") }}: {{ error.code }}</p>
-                        }
-                      </div>
-                    }
-                  </article>
-                }
-              </div>
-            }
-          </article>
+          <app-admin-health-card
+            [checks]="healthChecks()"
+            [loading]="healthState() === 'loading'"
+            [message]="healthMessage()"
+            [summary]="healthSummary()"
+            (runRequested)="runHealthCheck()"
+          />
 
           <article class="ui-panel-card status-panel utility-card placeholder-card">
             <div class="status-heading">
@@ -393,89 +331,6 @@ type AsyncActionState = "idle" | "loading" | "error" | "success";
         min-height: 2.15rem;
         padding: 0.45rem 0.62rem;
         width: 100%;
-      }
-
-      .check-card {
-        background: var(--surface-soft-background);
-        border: 1px solid var(--line-subtle);
-        border-radius: var(--radius-ui);
-        display: grid;
-        gap: var(--space-3);
-        padding: 1rem;
-      }
-
-      .check-card-ok {
-        border-color: color-mix(in srgb, var(--color-accent-leaf) 36%, var(--color-card-tint) 64%);
-      }
-
-      .check-card-problem {
-        border-color: color-mix(in srgb, var(--color-wood) 38%, var(--color-card-tint) 62%);
-      }
-
-      .check-heading {
-        align-items: center;
-        display: flex;
-        gap: var(--space-3);
-        justify-content: space-between;
-      }
-
-      h2 {
-        color: var(--color-text);
-        font-size: 1rem;
-        line-height: 1.25;
-        margin: 0;
-      }
-
-      .check-heading span {
-        background: color-mix(in srgb, var(--color-card-tint) 54%, var(--color-surface) 46%);
-        border-radius: var(--radius-ui);
-        color: var(--color-on-soft-accent);
-        font-size: 0.78rem;
-        font-weight: 700;
-        padding: 0.35rem 0.55rem;
-      }
-
-      .check-card p {
-        color: var(--color-text);
-        margin: 0;
-      }
-
-      dl {
-        display: grid;
-        margin: 0;
-      }
-
-      dt {
-        color: var(--color-text-muted);
-        font-size: 0.82rem;
-        font-weight: 700;
-        margin: 0;
-        text-transform: uppercase;
-      }
-
-      dd {
-        color: var(--color-text);
-        font-size: 1rem;
-        margin: 0;
-        overflow-wrap: anywhere;
-      }
-
-      .error-block {
-        background: var(--surface-soft-background);
-        border-radius: var(--radius-ui);
-        display: grid;
-        gap: 0.35rem;
-        padding: 0.85rem;
-      }
-
-      .error-block .error-title {
-        color: var(--color-text);
-        font-weight: 700;
-      }
-
-      .error-block p {
-        color: var(--color-text-muted);
-        overflow-wrap: anywhere;
       }
 
       @media (min-width: 900px) {
