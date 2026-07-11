@@ -39,6 +39,7 @@
 - Item: Externalized the product-catalog page template/styles after the filter-bar boundary was extracted; virtualized table rows remain in the page by design.
 - Item: Externalized the ingestion-admin page template/styles after the snapshot-table boundary was extracted; selected detail/review rows remain in the page by design.
 - Item: Review fix: restored the original login draft behavior by clearing the shell password only after successful login or logout, not after failed attempts.
+- Item: Review fix: restored the project-note/about rail card's missing styling and bottom anchoring after shell CSS extraction.
 - Item: Reviewed the refact branch for additional contract, companion-file, CSS ownership, DI, transport, logging, and event-wiring regressions; no further concrete defects were found.
 - Item: Deployment review found missing Vercel wrappers for shared admin/domain routes; added `api/[...path].ts` as a thin catch-all adapter to keep the shared dispatcher reachable on Vercel.
 
@@ -177,6 +178,8 @@
 - Result: Passed; 31 test files and 153 tests passed. The catch-all adapter is included in the API typecheck/build.
 - Ran: Post-review validation after `Preserve failed login draft`: `npm run typecheck`, `npm run lint`, `npm run build`, `npm run test`, and `git diff --check`.
 - Result: Passed; 31 test files and 153 tests passed.
+- Ran: Post-shell-visual-fix validation: `npm run typecheck`, `npm run lint`, `npm run build:web`, and `npm run test`.
+- Result: Passed; 31 test files and 153 tests passed.
 
 ## Decisions
 
@@ -199,6 +202,8 @@
   - Impact: Stop and keep that block in the page until its state can be represented by a named view model and deliberate events.
 - Issue: Shell extraction can change login form timing, preference event handling, or radial menu reset behavior.
   - Impact: The failed-login password regression was fixed with an explicit parent reset token; final manual checks must still cover login/logout, preferences, keyboard navigation, role visibility, route changes, and menu reset.
+- Issue: Shell extraction had removed `.about-rail-card`'s specific CSS while leaving its markup in `AppComponent`.
+  - Impact: Fixed by restoring the original gradient, spacing, typography, hover state, and `margin-top: auto`; manually verify the project note sits at the bottom of the right rail across desktop and narrow layouts.
 - Issue: The parent no longer owns the extracted auth/radial CSS, but final visual comparison is still pending.
   - Impact: Verify that the inline child styles preserve the previous shell appearance before considering the shell boundary closed.
 - Issue: Final manual shell verification remains pending.

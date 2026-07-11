@@ -185,6 +185,45 @@ interface ShellMenuItem extends RadialNavigationItem {
         padding: 0.65rem 0.75rem;
       }
 
+      .about-rail-card {
+        background:
+          linear-gradient(180deg, color-mix(in srgb, var(--color-accent-sky) 15%, var(--surface-shell-background)) 0%, var(--surface-shell-background) 100%);
+        color: inherit;
+        display: grid;
+        gap: 0.35rem;
+        margin-top: auto;
+        padding: 0.85rem 0.95rem;
+        position: sticky;
+        text-decoration: none;
+        top: calc(100dvh - 9.5rem);
+        transition: border-color 160ms ease, transform 180ms ease;
+      }
+
+      .about-rail-card:hover,
+      .about-rail-card.active {
+        border-color: var(--line-strong);
+        transform: translateY(-0.15rem);
+      }
+
+      .about-rail-title,
+      .about-rail-copy {
+        margin: 0;
+      }
+
+      .about-rail-title {
+        color: var(--color-text);
+        font-family: var(--font-display);
+        font-size: 1rem;
+        font-weight: 800;
+        line-height: 1.08;
+      }
+
+      .about-rail-copy {
+        color: var(--color-text-muted);
+        font-size: 0.82rem;
+        line-height: 1.35;
+      }
+
       .rail-kicker,
       .rail-title {
         margin: 0;
