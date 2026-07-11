@@ -9,6 +9,7 @@ import {
   type HealthCheckItem
 } from "./admin-health-card.component";
 import { AdminFeatureFlagsCardComponent } from "./admin-feature-flags-card.component";
+import { AdminAlphaAccessCardComponent } from "./admin-alpha-access-card.component";
 import { readApiErrorMessage } from "../shared/api-errors";
 import { LocalizationService, type TranslationKey } from "../shared/localization.service";
 import { ToastService } from "../shared/toast.service";
@@ -55,7 +56,7 @@ type AsyncActionState = "idle" | "loading" | "error" | "success";
 @Component({
   selector: "app-admin-dashboard",
   standalone: true,
-  imports: [AdminFeatureFlagsCardComponent, AdminHealthCardComponent, DatabaseMaintenanceComponent],
+  imports: [AdminAlphaAccessCardComponent, AdminFeatureFlagsCardComponent, AdminHealthCardComponent, DatabaseMaintenanceComponent],
   template: `
     <section class="page-shell admin-dashboard-page" aria-labelledby="admin-dashboard-title">
       <div class="page-intro admin-dashboard-copy">
@@ -135,62 +136,21 @@ type AsyncActionState = "idle" | "loading" | "error" | "success";
             (saveRequested)="saveShoppingListFeatureFlags()"
           />
 
-          <article class="ui-panel-card status-panel utility-card alpha-access-card">
-            <div class="status-heading">
-              <p class="ui-kicker">{{ loc.t("health.alphaAccessKicker") }}</p>
-              <p class="status-summary">{{ loc.t("health.alphaAccessTitle") }}</p>
-            </div>
-            <p class="status-message">{{ loc.t("health.alphaAccessDescription") }}</p>
-            <label class="placeholder-row" for="controlled-alpha-access-flag">
-              <span>{{ loc.t("health.alphaAccessEnabled") }}</span>
-              <input
-                id="controlled-alpha-access-flag"
-                type="checkbox"
-                [checked]="allowControlledAlphaAccessEnabled()"
-                [disabled]="featureFlagsState() === 'loading' || !isAdminUser()"
-                (change)="setAllowControlledAlphaAccessEnabled($any($event.target).checked)"
-              >
-            </label>
-            <div class="alpha-form">
-              <label for="alpha-user-email">{{ loc.t("health.alphaUserEmail") }}</label>
-              <input
-                id="alpha-user-email"
-                type="email"
-                autocomplete="off"
-                [value]="alphaUserEmail()"
-                (input)="alphaUserEmail.set($any($event.target).value)"
-              >
-              <label for="alpha-user-password">{{ loc.t("health.alphaUserPassword") }}</label>
-              <input
-                id="alpha-user-password"
-                type="password"
-                autocomplete="new-password"
-                [value]="alphaUserPassword()"
-                (input)="alphaUserPassword.set($any($event.target).value)"
-              >
-            </div>
-            <div class="button-row">
-              <button
-                class="run-button ui-button"
-                type="button"
-                (click)="saveAlphaAccessFlag()"
-                [disabled]="isMaintenanceBusy()"
-              >
-                {{ featureFlagsState() === "loading" ? loc.t("health.updating") : loc.t("health.saveAlphaAccess") }}
-              </button>
-              <button
-                class="run-button ui-button"
-                type="button"
-                (click)="createAlphaUser()"
-                [disabled]="isMaintenanceBusy() || !allowControlledAlphaAccessEnabled()"
-              >
-                {{ alphaUserState() === "loading" ? loc.t("health.creatingAlphaUser") : loc.t("health.createAlphaUser") }}
-              </button>
-            </div>
-            @if (alphaUserMessage(); as message) {
-              <p class="maintenance-message">{{ message }}</p>
-            }
-          </article>
+          <app-admin-alpha-access-card
+            [admin]="isAdminUser()"
+            [busy]="isMaintenanceBusy()"
+            [email]="alphaUserEmail()"
+            [enabled]="allowControlledAlphaAccessEnabled()"
+            [featureFlagsLoading]="featureFlagsState() === 'loading'"
+            [message]="alphaUserMessage()"
+            [password]="alphaUserPassword()"
+            [userLoading]="alphaUserState() === 'loading'"
+            (createRequested)="createAlphaUser()"
+            (emailChanged)="alphaUserEmail.set($event)"
+            (enabledChanged)="setAllowControlledAlphaAccessEnabled($event)"
+            (passwordChanged)="alphaUserPassword.set($event)"
+            (saveRequested)="saveAlphaAccessFlag()"
+          />
 
           <app-database-maintenance />
 
@@ -259,45 +219,6 @@ type AsyncActionState = "idle" | "loading" | "error" | "success";
       .check-list {
         display: grid;
         gap: var(--space-3);
-      }
-
-      .placeholder-row {
-        align-items: center;
-        background: var(--surface-soft-background);
-        border: 1px solid var(--line-subtle);
-        border-radius: var(--radius-ui);
-        color: var(--color-text);
-        display: flex;
-        justify-content: space-between;
-        padding: 0.85rem 0.95rem;
-      }
-
-      .placeholder-row strong {
-        color: var(--color-text-muted);
-        font-size: 0.76rem;
-        text-transform: uppercase;
-      }
-
-      .alpha-form {
-        display: grid;
-        gap: 0.35rem;
-      }
-
-      .alpha-form label {
-        color: var(--color-text-muted);
-        font-size: 0.78rem;
-        font-weight: 700;
-      }
-
-      .alpha-form input {
-        background: var(--form-field-background);
-        border: 1px solid var(--line-panel);
-        border-radius: var(--radius-ui);
-        color: var(--color-text);
-        font: inherit;
-        min-height: 2.15rem;
-        padding: 0.45rem 0.62rem;
-        width: 100%;
       }
 
       @media (min-width: 900px) {

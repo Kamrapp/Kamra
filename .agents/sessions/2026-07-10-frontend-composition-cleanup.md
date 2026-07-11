@@ -22,6 +22,7 @@
 - Item: Started Step 3 by extracting the shopping-list completion confirmation panel into a single-file standalone component with typed confirm/cancel outputs.
 - Item: Extracted the developer-admin health report card into a single-file standalone component; dashboard transport, auth, localized errors, and toasts remain in the page.
 - Item: Extracted the developer-admin feature-flags card into a single-file standalone component with typed toggle/save events.
+- Item: Extracted the developer-admin alpha-access card into a single-file standalone component with typed form and action events.
 
 ## Changed Files
 
@@ -55,6 +56,8 @@
   - Composes the health card and retains all admin request and authorization logic.
 - Path: `src/app/dev-admin/admin-feature-flags-card.component.ts`
   - Owns the auto-tick flag presentation, disabled/loading behavior, save action, and local flag-card styles.
+- Path: `src/app/dev-admin/admin-alpha-access-card.component.ts`
+  - Owns controlled-alpha flag presentation, credential fields, save/create actions, and local form styles.
 
 ## Validation
 
@@ -72,6 +75,8 @@
 - Result: Passed; full tests remain the validation gate before closing Step 3.
 - Ran: `npm run typecheck`, `npm run lint`, and `npm run build:web` after the feature-flags extraction.
 - Result: Passed; full tests remain the validation gate before closing Step 3.
+- Ran: `npm run typecheck`, `npm run lint`, `npm run build:web`, and `npm run test` after the alpha-access extraction.
+- Result: Passed; 31 test files and 153 tests passed.
 
 ## Decisions
 
@@ -114,6 +119,8 @@
   - Impact: Final manual checks should verify health loading/empty/success/degraded states, API/database status styling, database-name display, error code/details, run-button disabling, unauthorized behavior, and narrow-layout wrapping.
 - Issue: The admin feature-flags card now renders through a component host.
   - Impact: Final manual checks should verify flag checkbox state, admin/read-only disabling, loading/save disabling, success/error message placement, and persistence after reload.
+- Issue: The admin alpha-access card now renders through a component host.
+  - Impact: Final manual checks should verify controlled-access toggle state, credential input retention/clearing, save/create button disabling, create success/error messaging, and non-admin access behavior.
 - Issue: Existing working-tree/index state may include user-owned plan or backend changes.
   - Impact: Do not revert, stage, or mix unrelated files into cleanup changes.
 
@@ -124,7 +131,7 @@
 
 ## Next Step
 
-The feature-flags slice is ready to commit. After the commit, continue Step 3 with the alpha-access card only if its credential and flag event contract remains compact; keep `HouseholdShoppingListComponent` as the lifecycle facade and avoid a low-value admin request wrapper.
+The alpha-access slice is ready to commit. After the commit, review whether the remaining shopping-list overview contract is compact enough; if not, record it as intentionally retained and proceed to the catalog/ingestion table surfaces. Keep `HouseholdShoppingListComponent` as the lifecycle facade and avoid a low-value admin request wrapper.
 
 ## Notes For Future Agent
 
