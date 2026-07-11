@@ -1411,6 +1411,11 @@ describe("handleAppRequest auth guards", () => {
           validatorUpdated: false
         },
         {
+          id: "household-stock-targets-v1",
+          migrationCompleted: false,
+          validatorUpdated: false
+        },
+        {
           id: "feature-flag-audit-v1",
           migrationCompleted: false,
           validatorUpdated: false
@@ -1524,6 +1529,8 @@ describe("handleAppRequest auth guards", () => {
       "household-fields:migration",
       "catalog-classification-v1:validator",
       "catalog-classification-v1:migration",
+      "household-stock-targets-v1:validator",
+      "household-stock-targets-v1:migration",
       "feature-flag-audit-v1:validator",
       "feature-flag-audit-v1:migration"
       ]

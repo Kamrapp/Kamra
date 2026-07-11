@@ -5,6 +5,7 @@ import { writeServerLog } from "../../logging/kamra-logger.js";
 import { MongoFeatureFlagStore } from "../../feature-toggles/mongo-store.js";
 import { MongoClassificationRepository } from "../../catalog/v2/mongo-classification-repository.js";
 import type { ProductTagAssignmentRecord, ProductTagRecord } from "../../catalog/v1/contracts.js";
+import { MongoStockMigrationRepository } from "../../household/v2/mongo-stock-migration.js";
 import { describeRequest, json, unauthorized, type AppRoute } from "../app-route-context.js";
 
 export const databaseMaintenanceListRoute: AppRoute = {
@@ -209,6 +210,9 @@ async function runValidatorAction(
   if (entryId === "feature-flag-audit-v1") {
     return await new MongoFeatureFlagStore(database).setupCollections();
   }
+  if (entryId === "household-stock-targets-v1") {
+    return await new MongoStockMigrationRepository(database).setupCollections();
+  }
   if (entryId === "catalog-product-validation") {
     const repository = context.dependencies.createCatalogRepository
       ? context.dependencies.createCatalogRepository(database)
@@ -238,6 +242,9 @@ async function runMigrationAction(
   }
   if (entryId === "feature-flag-audit-v1") {
     return { status: "ready", migratedCount: 0 };
+  }
+  if (entryId === "household-stock-targets-v1") {
+    return await new MongoStockMigrationRepository(database).migrateLegacy();
   }
   if (entryId === "catalog-product-validation") {
     const repository = context.dependencies.createCatalogRepository

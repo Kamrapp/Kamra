@@ -21,6 +21,11 @@ export const databaseMaintenanceEntries: readonly DatabaseMaintenanceEntry[] = [
     title: "Catalog product classification"
   },
   {
+    details: "Creates the Stage 8 Stock Target, Stock Batch, Stock Allocation, and Stock Movement collections and migrates legacy household rows into unconstrained targets, opening-balance batches, explicit allocations, and history.",
+    id: "household-stock-targets-v1",
+    title: "Household stock targets and batches"
+  },
+  {
     details: "Ensures the feature_flag_change_audits collection and its indexes for persisted old/new values, actor, reason, and revision. This is an audit-schema action; it does not change the current value of any feature flag.",
     id: "feature-flag-audit-v1",
     title: "Feature flag audit history"
