@@ -36,6 +36,28 @@ It should evolve as the repository standardizes. Until then, prefer small, rever
 - Use dependency injection for swappable strategies where applicable, especially crawlers, parsers, normalizers, matchers, pricing logic, email providers, auth providers, and feature-flag providers.
 - Avoid inventing strategy abstractions for trivial one-off logic.
 
+## Feature Toggle Rules
+
+- Routine feature enablement belongs in application storage and the admin dashboard, not environment variables. Environment configuration may still supply deployment secrets or a separately approved emergency infrastructure kill switch.
+- Define flags in one typed code registry with purpose, owner, default value, storage-failure value, rollout scope, and removal condition.
+- Evaluate flags through the injected feature-toggle service. Do not query flag collections from feature code or scatter raw flag-name strings through routes and components.
+- Missing-record and storage-failure behavior must be explicit and tested. Access, external side effects, scheduled writes, maintenance, and destructive behavior fail closed.
+- Global flags are the default. Add household, user, role, or percentage targeting only for an approved use case; do not prebuild a rollout platform.
+- Cache only for a documented bounded TTL and maximum-stale window. Admin updates must invalidate the local cache, and hosted propagation delay must be visible to operators.
+- Persist who changed a flag, the old/new values, time, revision, and a bounded reason for sensitive changes. Administrative audit must not depend only on ephemeral runtime logs.
+- Use flags for staged or risky behavior, kill switches, controlled access, external side effects, and short migrations. Do not use them as permissions, schema versions, permanent configuration, user preferences, or substitutes for valid domain states.
+- Every temporary flag needs a planned removal step. Remove its disabled branch, registry entry, admin control, tests, and stored record when the feature is stable.
+
+## Application Logging Rules
+
+- Emit stable structured events for meaningful domain actions and failures. Include an event name/version, classification, outcome, correlation or operation id, error code when relevant, and only the safe entity identifiers needed to diagnose the action.
+- Distinguish debug diagnostics, normal informational domain events, recoverable warnings, actionable errors, and privileged audit changes. Do not turn every HTTP request or low-level successful write into an application event.
+- The domain command owner should emit the canonical action event. Avoid duplicate logs from route, service, and repository layers for the same outcome.
+- Log expected validation and authorization failures with stable reason/field codes, not rejected values or raw payloads.
+- Never log passwords, tokens, credentials, raw request bodies, private notes, full emails, unrestricted URLs, or source payloads. Use centralized bounded serialization and redaction.
+- Persist audit-relevant administrative changes, such as feature-toggle changes, maintenance actions, catalogue promotion/archive/merge decisions, membership ownership changes, and history reversals. Hosted console retention is not an audit ledger.
+- Update `docs/logging.md` and representative tests whenever event shape, classification, redaction, transport, retention, or audit behavior changes.
+
 ## Code Guardrails
 
 Favor guardrails that reduce cognitive load:

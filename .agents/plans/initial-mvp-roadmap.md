@@ -1,6 +1,6 @@
 # Initial MVP Roadmap
 
-Status: Active Draft
+Status: Finalized Planning Direction — implementation still requires per-stage approval
 
 ## Roadmap Concept
 
@@ -24,7 +24,9 @@ Roadmap priorities:
 | Stage 5 | Household stock foundation | Completed | User-owned household collections, membership-checked routes, demo household reseed, signed-in home pulse/editor, shopping-scale preview, admin dashboard controls, and durable `docs/household.md` are in place. |
 | Stage 6 | Shopping list and low-stock notices | Completed | Deterministic shopping-list generation, DB-backed auto-tick feature toggle, household workspace refactor, start-fresh flow, read-only product browsing for signed-in users, About page, and logout redirect are implemented; browser/manual verification remains the main closeout task. |
 | Stage 7 | Controlled alpha access and app module shell | Implemented | Admin-created alpha users with database-backed creation/login gating, empty household allocation, and direct product-lookup, household, site-admin, and dev-admin route grouping are implemented. |
-| Stage 8 | Expiry and buffer logic | Planned | This completes the first strong product MVP loop with buy-before style usefulness. |
+| Stage 8 | Household-domain correctness | Planned | Adds final Product Classification, Stock Targets/Batches/Allocations/Movements, Shopping Needs, localized base content, adjustable home split, migrations, and rollout foundations. |
+| Stage 9 | Concrete shopping and catalog connection | Planned after Stage 8 | Adds Shop Markets/Products, one-shop Product/Price Observation matching, Shopping Trips, atomic Purchase-to-stock, Purchase Ingestion, and minimum catalog administration. |
+| Stage 10 | Alpha 1.0 hardening | Planned after Stage 9 | Applies the final domain language, preserves/exports/imports Crawl Snapshots, fixes confirmed parser/data defects, improves demonstrated change-locality problems, and prepares external Alpha review. |
 
 Non-MVP and post-MVP ideas are tracked in `mvp-followups.md` so this roadmap stays focused on the shortest useful household grocery-planning MVP.
 
@@ -360,26 +362,286 @@ Validation:
 - external users cannot access admin, dev-admin, or other household data
 - direct navigation paths keep product lookup, household, site-admin, and dev-admin boundaries visible
 
-## Stage 8: Expiry And Buffer Logic
+## Stage 8: Household-Domain Correctness
 
 Goal:
 
-- Warn users before they run out or before items expire. Completing this stage is the first strong product MVP milestone.
+- Correct the household inventory foundation and finish the safe household-to-generic-demand loop on which Stage 9 concrete shopping depends.
 
-Future fields:
+Approved planning direction:
 
-- expiry dates
-- warning buffer
-- desired safety stock
-- buy-before date
-- consumption estimate where useful
+- replace the one-stock-row-per-generic-product assumption with independently dated and linked stock batches
+- keep Stock Targets, Product identity/classification, concrete Stock Batches, and Stock Allocation/counting as distinct concepts
+- replace legacy single tag parents with typed, cycle-safe Product Concept `is_a` relations so narrower concepts inherit broader concepts while Product Attributes/Search Keywords remain distinct
+- let households create/move/merge scoped Product Concepts safely and use minimal flat Acceptance Criteria
+- seed a bounded meaningful base concept/attribute/template pack from checked-in JSON with feature-local English/Hungarian translations through one idempotent CLI/admin sync service
+- aggregate only explicitly allocated stock, with one full-Stock-Batch allocation in Stage 8 so overlapping Stock Targets cannot double-count physical stock
+- add batch/allocation aggregation, explicit consumption/correction/discard actions, immutable movement history, optimistic concurrency, idempotency, and atomic stock commands
+- migrate existing household data through the database maintenance registry with separately tracked validator and data actions
+- connect Stock Targets, Shopping Needs, classifications, and Stock Batches to Products through optional references plus durable snapshots
+- preserve manual/unlinked stock and keep catalogue archive/removal from invalidating household history
+- redesign generic demand as Shopping Needs that hand off cleanly to Stage 9 without pretending to complete Purchases
+- add an accessible locally remembered 30/70–70/30 Household/Shopping home divider with 50/50 reset on non-stacked layouts; defer animated tri-state focus/inline quick-action rows
+- add explainable low-stock and expiry/buy-before notices, including products without expiry dates
+- finish the create-or-join workflow for existing controlled users with basic owner/member capabilities
+- generalize the current database-backed flags into an admin-managed application feature-toggle service with typed definitions, safe defaults/failure behavior, audit history, bounded caching, and removal rules
+- extend structured domain logging and persistent administrative audit coverage
+- keep recommendation, automated matching, substitutions, receipt/barcode automation, and forecasting out of this milestone
+
+Implementation plan:
+
+- `.agents/plans/2026-07-11-stage-8-coherent-household-mvp-plan.md`
 
 Validation:
 
+- multiple generic/manual and explicit-Product Stock Batches allocated to one Stock Target retain independent acquisition/expiry dates and Product/classification snapshots
+- inherited concepts match inclusively, independent attributes filter correctly, the motivating milk/pasta rules are explainable, and cycles/cross-household relations are rejected
+- base content/template sync is additive, localized, repeatable, admin-previewable, and never overwrites customized/household content silently
+- allocation totals, partial consumption, corrections, depletion, and history remain consistent without overlap double counting under retries and concurrent requests
+- Shopping Needs are stable, editable, and do not pretend to be a completed Purchase
+- the desktop/tablet Household/Shopping divider is keyboard/pointer usable, locally remembers a clamped ratio, resets to 50/50, and leaves stacked mobile behavior unchanged
 - warnings are explainable
 - expiry and min-limit logic do not overwrite each other
 - household users can understand why an item is suggested
+- catalogue edits/archive do not invalidate household stock or history
+- existing household data reconciles exactly after idempotent migration
+- a controlled user can create or join a household and repeat the household-to-generic-demand loop without manual reconstruction
 - notification channels beyond in-app notices are explicitly deferred unless planned
+
+## Stage 9: Concrete Shopping And Catalogue Connection
+
+Goal:
+
+- Complete the MVP journey by translating generic demand into an overrideable one-shop plan, processing the trip manually, and feeding trusted/untrusted results into stock and catalogue workflows safely.
+
+Scope:
+
+- first-class shop chains and country-specific shop markets, separate from ingestion methods and physical branches
+- one manually chosen shop and planned date
+- Acceptance-Criteria-compatible Shop Product candidates, package normalization, applicable-Price-Observation selection, and deterministic cheapest repeated-single-SKU choice
+- manual override/search, skip, unresolved generic, stale/no-price/conditional fallbacks, and match explanations
+- explicit resumable Shopping Trip/Trip Item states instead of ambiguous booleans
+- actual product/quantity/price/expiry and unplanned purchase recording
+- atomic idempotent purchase-to-new-batch/allocation/movement conversion
+- structured Purchase Ingestion with immediate household use and asynchronous admin review
+- carry qualified seeded/custom classification refs and localized snapshots through purchase ingestion; allow explicit admin mapping/promotion without rewriting household history
+- minimum manual product, shop-product, and price-observation administration required to unblock the flow
+- append-only/correctable price history and immutable shopping calculation snapshots
+
+Implementation plan:
+
+- `.agents/plans/2026-07-11-stage-9-concrete-shopping-catalogue-plan.md`
+
+Validation:
+
+- one user completes and later repeats the shop-specific workflow without direct database editing
+- expired offers are not current, base/offer prices coexist, stale/no-price states are explicit, and historical plans remain stable
+- retries/partial completion do not duplicate purchases, batches, movements, prices, or ingestion submissions
+- unknown purchases enter household stock immediately and can later be reviewed/promoted without rewriting history
+
+## Stage 10: Alpha 1.0 Hardening
+
+Goal:
+
+- Validate real data and the complete workflow, repair confirmed defects, improve architecture only where evidence shows poor locality or dangerous coupling, and finish a concise professional Alpha baseline.
+
+Scope:
+
+- final dictionary rename across active API/database/code/UI/i18n/logs/docs with an operator-visible maintenance action
+- verified Crawl Snapshot archive export/import, raw-preserving offline correction overlays, and clean reprocessing into Product Candidates
+- read-only development crawl-data audit followed by confirmed parser fixes and dry-run-first repair/reprocessing tools
+- architecture/change-locality review using concrete future-change probes
+- targeted route/repository/service/component responsibility cleanup; no broad rewrite
+- schema/validation consistency and explicit compatibility/migration/repair ownership
+- loading/empty/error/partial/conflict, logging/redaction, permissions, pagination/index, accessibility/responsive, and realistic-volume checks
+- dead compatibility/temporary flag removal
+- setup, migration, contribution, security, demo, limitation, and Alpha readiness documentation
+
+Implementation plan:
+
+- `.agents/plans/2026-07-11-stage-10-alpha-hardening-plan.md`
+
+Validation:
+
+- the final Alpha acceptance scenario passes against realistic seeded/development data
+- every active ingestion source has a quality decision and confirmed repairs have regression fixtures
+- remaining compatibility paths and deferred limitations are explicit
+- a new technical reviewer can run, understand, test, and demonstrate Kamra without private context
+
+## Final Alpha 1.0 Assessment
+
+The combined Stage 8-10 roadmap is conceptually complete for meaningful single-user and family internal testing **if all three stages and the acceptance scenario are completed**. Stage 8 alone is a correct household foundation, not the full product. Stage 9 supplies the missing central value transition from generic need to concrete shop product/price to actual purchase and stock. Stage 10 verifies that the result is trustworthy and understandable enough to call Alpha 1.0.
+
+The external presentation target is a deliberately engineered **source-available public Alpha**, consistent with `LICENSE.md`; documentation must not imply permissive clone-and-host open-source rights.
+
+The smallest additional MVP work found in this final review, beyond the earlier Stage 8 plan, is now explicitly in Stage 9:
+
+- country-specific shop identity separated from ingestion source
+- valid/stale/no-price-aware one-shop product selection
+- resumable manual trip processing and correction
+- append-only price correction/history rather than destructive replacement
+- user purchase ingestion that does not block household stock
+- minimum admin product/shop-product/price creation needed when crawlers are incomplete
+
+Without those items Kamra would remain an inventory tracker plus catalogue browser, not a validation of the intended grocery-planning concept. Advanced optimizers, receipt automation, rich catalogue tooling, analytics, and prediction are not needed for Alpha 1.0.
+
+## Important Overlooked Requirements And Risks
+
+| Finding | Repository evidence/risk | Classification | Owning stage |
+| --- | --- | --- | --- |
+| Concept hierarchy versus attribute tags | Current `product_tags.parentKey` does not provide typed, cycle-safe inherited relationships. | Required for MVP correctness | 8 |
+| Meaningful initial classification content | Empty taxonomy/rule tables would make the new model technically correct but painful to test/use; destructive reseeding would endanger custom content. | Required for MVP usability | 8 |
+| Runtime domain-content localization | Static Angular resources cannot represent admin/user-created concepts; identity must remain stable while labels resolve/fallback by locale. | Required for MVP usability | 8-9 |
+| Explicit stock allocation | Implicit overlapping filters could count one batch toward several limits. | Required for MVP correctness | 8 |
+| Safe concept move/merge | Household-created hierarchy states otherwise cannot be corrected or reorganized. | Required for MVP usability | 8 |
+| Shop market identity | `household_shops` mixes country, source names, and store-brand keys; cross-country offers could be conflated. | Required for MVP correctness | 9 |
+| Price applicability | Catalogue hydration selects latest per kind without shopping-date validity/staleness policy. | Required for MVP correctness | 9 |
+| Price history preservation | Crawl acceptance currently deletes prior source-product observations. | Required for MVP correctness | 9 |
+| Manual catalogue escape hatch | No direct product/shop-product/price create path can unblock a shopping match when crawlers are incomplete. | Required for MVP usability | 9 |
+| Resumable trip states | Current tick/planned/purchased/application booleans allow ambiguous workflows and weak retries. | Required for MVP correctness/usability | 9 |
+| Shopping submission trust boundary | User-entered product/price facts must enter stock immediately but not silently become canonical. | Required for MVP correctness | 9 |
+| Real crawl-data quality | No source-wide audit proves current parsed rows are mergeable/correct. | Required for maintainability before Alpha 1.0 | 10 |
+| Change locality | Large repositories/routes/components and duplicated contracts may spread future changes; refactor only confirmed cases. | Required for maintainability before Alpha 1.0 | 10 |
+| Repeated UX failure states | Loading, empty, no-match, stale, partial, conflict, and resume behavior require end-to-end verification. | Required for MVP usability | 9-10 |
+
+## Final Domain Terminology
+
+- **Product Concept (`ProductConcept`):** generic product meaning such as milk, semi-skimmed milk, pasta, or spaghetti. Concept nodes have strong, explicit `is_a` relationships.
+- **Product Attribute (`ProductAttribute`):** independent filter such as gluten-free or 1.5%-fat. It does not become a parent/child concept merely because it classifies a product.
+- **Stock Target Template (`StockTargetTemplate`):** seeded/global suggestion containing stable concepts, attributes, acceptance criteria, and safe tracking-unit defaults; copying it creates an independently editable household stock target.
+- **Search Keyword (`SearchKeyword`):** search/matching hint only; never sufficient for eligibility or identity.
+- **Stock Target (`StockTarget`):** household's desired stock pool and policy, such as keep 2 l of any milk. It owns acceptance criteria, minimum/target quantity, unit, expiry warning, and consumption policy.
+- **Acceptance Criteria (`AcceptanceCriteria`):** flat typed concept/attribute conditions deciding whether a batch or product is suitable for a stock target. Do not call this a generic “rule” in new contracts/UI.
+- **Product (`Product`):** canonical explicit catalog identity with brand and measurements.
+- **Shop Product (`ShopProduct`):** one shop-market-specific retailer representation of a product. Replaces “product source” as a domain/API term.
+- **Stock Batch (`StockBatch`):** acquired physical quantity with Product/manual snapshot, acquisition/expiry, and remaining amount.
+- **Stock Allocation (`StockAllocation`):** explicit quantity-counting link between a batch and one stock target in Stage 8; prevents overlap double counting.
+- **Stock Movement (`StockMovement`):** immutable explanation of acquisition, consumption, correction, discard, expiry/removal, or reversal.
+- **Shopping Need (`ShoppingNeed`):** generic demand derived from a stock target shortage or entered ad hoc. It is not yet a selected product or purchase.
+- **Shopping Trip (`ShoppingTrip`):** selected shop/date plus planned/unresolved items and resumable shopping results. Avoid using generic “shopping list” for both needs and trips.
+- **Trip Item (`ShoppingTripItem`):** one need/selection/result line within a shopping trip.
+- **Purchase (`Purchase`) / Purchase Item (`PurchaseItem`):** immutable historical record of what was actually bought, including actual product/manual snapshot, quantity, prices, expiry splits, and stock/ingestion references.
+- **Shop chain / shop market:** global retailer identity and its country-specific market. Physical branch is deferred.
+- **Ingestion Source (`IngestionSource`):** acquisition method/adapter, separate from shop identity.
+- **Crawl Snapshot (`CrawlSnapshot`):** immutable crawler-captured source payload plus capture/parser provenance.
+- **Ingestion Submission (`IngestionSubmission`):** structured manual/shopping/repair input awaiting trust review.
+- **Product Candidate (`ProductCandidate`):** normalized reviewable interpretation of crawl/submission data before catalog promotion.
+- **Price Observation (`PriceObservation`):** append-only product/shop-market price fact with kind, time, optional validity, origin, and correction relationship.
+- **Offer:** user-facing description of an applicable promotional price observation; not a duplicate product or shop identity.
+
+Vocabulary rules:
+
+- Reserve `is_a` for persisted relation values/code; UI copy says “is a kind of.”
+- Avoid new domain/API/database uses of ambiguous `tag`, `rule`, `requirement`, `product source`, `store`, `inventory`, `purchase order`, or unqualified `shopping list`.
+- Use `catalog` consistently in code, API paths, database/package names, and technical docs. UI copy may use the locale's natural spelling, but it must not create a second domain concept.
+- Legacy names may appear only in migration/compatibility adapters with a removal note.
+
+## Relationship And Ownership Matrix
+
+| From -> To | Relationship | Stability rule |
+| --- | --- | --- |
+| Narrow concept -> broad concept | Strong explicit `is_a` edge | Cycle-safe; move/merge audited; historical snapshots survive. |
+| Product -> concepts/attributes | Strong classification assignments | Product id remains identity; inherited concepts are derived. |
+| Stock Target -> Product Concepts/Attributes | Strong live Acceptance Criteria + versioned downstream snapshot | Criteria edit flags drift; it does not silently erase allocated stock. |
+| Stock Batch -> Product/Shop Product | Optional reference + immutable acquisition snapshot | Manual/unresolved allowed; catalog archive/merge cannot invalidate history. |
+| Stock Batch -> Stock Target | Explicit Stock Allocation | Aggregates use allocation, never raw match queries. |
+| Shopping Need -> Stock Target | Strong when generated, optional when ad hoc | Preserve Stock Target/Acceptance Criteria/reason snapshot. |
+| Trip Item -> selected Shop Product/Price Observation | Optional reference + immutable plan snapshot | Unresolved/no-price allowed; later observations do not rewrite plan. |
+| Purchase -> plan/actual product/batches | Strong historical references plus snapshots | Corrections/reversals append history. |
+| Shopping submission -> catalogue decision | User-confirmed/inferred candidate link | Admin decision affects future catalogue use, not past purchase/stock. |
+| Shop product -> shop market/catalogue product | Strong references | Market is country-specific; ingestion method is separate. |
+| Price observation -> shop product/market | Strong append-only reference | Corrections supersede; do not delete history. |
+| Crawl/purchase input -> ingestion source | Strong provenance | Raw/structured source is untrusted until reviewed. |
+
+## Stage Dependencies And Prioritization
+
+1. **Stage 8 — household correctness:** no Stage 9 concrete shopping writes land on the legacy one-row stock model. Complete and reconcile Product Classification, Stock Targets/Batches/Allocations/Movements, Shopping Needs, feature toggles, and logging first.
+2. **Stage 9 — MVP usability:** correct Shop Product/Price Observation foundations before automatic matching; then add Shopping Trips, matching, UI, Purchase conversion/Ingestion, and workflow validation.
+3. **Stage 10 — Alpha maintainability:** verify the Crawl Snapshot archive first, apply final-language migration/reset, audit/reprocess actual data, then perform evidence-based cleanup. Move behavior bugs back to the owning feature.
+4. **Post-MVP:** optimize, automate, visualize, predict, and broaden only after internal use validates the loop.
+
+Detailed ordered steps, commit boundaries, validation, migration, and acceptance criteria live in the linked stage plans. Review each commit-sized unit before continuing.
+
+## Final End-To-End Alpha Acceptance Scenario
+
+The Alpha 1.0 release candidate must complete this without direct database editing:
+
+1. Sign in as a controlled user and create/access a household.
+2. Preview/sync the checked-in localized base classification pack as admin; verify a repeat sync is unchanged.
+3. Create a Stock Target from a localized Stock Target Template, then create custom household content with a missing-language fallback.
+4. Create/move/correct an `is_a` relationship; verify a merge preserves references/history.
+5. Create milk and constrained pasta Stock Targets with units/minimums/targets.
+6. Add generic/manual and explicit catalogue stock with multiple acquisition/expiry batches.
+7. Allocate stock once, inspect Stock Batches, and prove overlapping Acceptance Criteria do not double-count.
+8. Consume partially, mark fully consumed, correct, discard/void an invalid batch through the right action, and inspect immutable history.
+9. Generate Shopping Needs from shortages and add one ad-hoc unresolved Shopping Need.
+10. Select one country-specific shop market and planned shopping date.
+11. Translate Shopping Needs into concrete Shop Products/Price Observations; inspect why matches were selected and expected package counts/totals.
+12. Override one match, keep one no-price/no-match item unresolved, and skip one line.
+13. Start shopping, save partial results, leave, and resume.
+14. Mark bought/not-bought, adjust actual quantity/price, substitute an actual product, and add an unplanned purchase.
+15. Record separate normal/offer values and validity where known plus batch expiry splits.
+16. Complete the Shopping Trip and verify new Stock Batches/Allocations/Movements and Purchase history were created once.
+17. Retry the same completion and verify no duplicate side effect.
+18. Confirm an unknown purchase created household stock immediately and a pending structured ingestion review item carrying classification snapshots.
+19. As site admin, link/create/correct/reject the submission, optionally map/promote useful custom classification, and append price observations without changing household history.
+20. Generate a later trip and verify the trusted shop product/price/classification can be reused.
+21. Archive/merge a referenced catalogue product and verify historical trip, purchase, and stock snapshots still render.
+22. Inspect feature-toggle state, maintenance state, structured logs, and audit records for a deliberately exercised failure.
+23. Repeat with a second household member and verify role/household isolation.
+
+## Alpha 1.0 Non-Functional Readiness Checklist
+
+- [ ] Important commands are idempotent, retry-safe, revision-checked, and transactionally consistent.
+- [ ] Household/member/admin authorization and data isolation tests pass.
+- [ ] Inputs, dates, units, currency/country, state transitions, and identifiers are validated explicitly.
+- [ ] Validators, indexes, migration actions, reconciliation, and repair/rollback expectations are documented and tested.
+- [ ] Archive/correction/reversal semantics preserve stock, purchase, catalogue, and price history.
+- [ ] Core loading, empty, error, no-match, no-price, stale, partial, conflict, and resume states are usable/localized.
+- [ ] Core UI is keyboard-labelled, non-color-only, responsive, and manually checked on narrow/desktop layouts.
+- [ ] Logs are structured/redacted/useful; privileged audit records and feature-toggle changes persist.
+- [ ] Product, price, history, ingestion, and admin tables use bounded pagination and appropriate indexes.
+- [ ] Realistic seeds cover multiple batches, hierarchy rules, two markets, current/stale/offer/no-price, unresolved, substitution, and unknown purchase.
+- [ ] Base classification content is checked in, schema/parity tested, additive/idempotent through CLI/admin, and documented for contributor extension.
+- [ ] Basic realistic-volume checks show no misleading MVP result; measured issues are fixed without platform expansion.
+- [ ] Internal database backup/recovery expectations are documented; no production HA/DR promise is implied.
+- [ ] Crawl Snapshot export counts/checksums verify, an isolated import/reprocess drill passes, and no raw evidence is rewritten by a correction overlay.
+- [ ] Active APIs, collections/fields, types/files, UI/i18n, events, seeds, and current docs use the final domain dictionary; legacy terms remain only in named tested adapters/history.
+- [ ] Test, typecheck, lint, build, locale/schema parity, database smoke/reconciliation, and full browser scenario pass.
+- [ ] README, architecture/domain, operations, contribution, security, and known-limitations documentation reflects runtime truth.
+- [ ] No temporary migration flag, silent repair-on-read, or undocumented compatibility branch remains.
+
+## Work Classification Matrix
+
+| Major block | Classification |
+| --- | --- |
+| Product Concepts/Attributes, hierarchy move/merge, Stock Targets/Batches/Allocations/Movements, expiry/consumption/correction, migration | Required for MVP correctness |
+| Bounded localized Product Concepts/Attributes/Stock Target Templates plus non-destructive CLI/admin sync and runtime fallback | Required for MVP usability |
+| Household membership management, inspectable Stock Batches/history, Shopping Needs, usable empty/error/conflict states | Required for MVP usability |
+| Shop Market/Ingestion Source separation, Price Observation applicability/history correction, Shopping Trip state machine, idempotent Purchase conversion, trust boundary for Ingestion Submissions | Required for MVP correctness |
+| One-shop automatic choice, overrides, unresolved/no-price fallbacks, resumable mobile/manual completion, minimum admin data entry | Required for MVP usability |
+| Final-language maintenance action, verified Crawl Snapshot archive/import/reprocessing, confirmed parser repairs, evidence-based cleanup, Alpha docs | Required for maintainability before Alpha 1.0 |
+| Rich catalogue/offer UX, receipt scanning/OCR, multi-shop optimization, duplicate/merge intelligence, substitution ranking, prediction/notifications/analytics | High-priority post-MVP |
+| Floating navigation, broad hosted observability, workflow automation, advanced governance/localization polish | Optional later enhancement |
+
+## Cross-Stage Migration And Compatibility Strategy
+
+- Register stable validator and data actions before changing existing collections; track them independently.
+- Stage 8 migrates legacy category/tag parents to Product Concept edges and legacy household rows to unconstrained Stock Targets, Stock Batches, Stock Allocations, and opening Stock Movements without inventing criteria/history.
+- Stage 8 base-content synchronization is seed-ledger reference-data work, not a structural migration: it adds/updates only checksum-proven seed-owned records and reports customized/archived conflicts.
+- Stage 9 migrates `household_shops` to Shop Chains/Markets, creates final `shop_products`, and changes Price Observation handling from destructive latest-value replacement to append/correct/select. Historical legacy shopping/Purchase snapshots remain readable.
+- Each cutover uses a bounded maintenance/write gate only where required, no indefinite dual writes, idempotent reconciliation, and a documented rollback evidence window.
+- Stage 10 first exports/verifies Crawl Snapshots, then runs `alpha-domain-language-v1`, resets/reseeds disposable derived data where safer, imports/reprocesses raw evidence if using a clean database, and removes dead v1 writes/adapters only after reconciliation. Physical purge always needs a separate explicit maintenance decision.
+- One-time audit/repair tools live outside repositories/runtime paths, default to dry-run, report scope/counts, and document repeat behavior.
+
+## Cross-Stage Validation, Logging, And Feature-Toggle Strategy
+
+- Pure domain tests own hierarchy closure, requirement matching, allocation conservation, expiry/consumption, price applicability/package math, and trip transitions.
+- Contract/schema snapshots own persisted/transport shapes; repository/API tests own transactions, concurrency, idempotency, permissions, pagination, and migration reconciliation.
+- Browser acceptance owns the connected user journey and all meaningful loading/empty/error/partial/conflict states.
+- Domain command owners emit one structured event with correlation/operation ids; persistent audit covers privileged hierarchy, stock-history reversal, shop/catalogue, ingestion-review, feature-toggle, and maintenance changes.
+- Feature toggles remain global/admin-managed initially, typed, audited, cached with bounded failure behavior, and removed with their stabilized branches. They never replace permissions or domain states.
+- Stage 10 reviews realistic-volume query plans/indexes and data quality; it does not add infrastructure without measured need.
 
 ## Deferred Expansion
 
@@ -389,9 +651,9 @@ This includes broader crawler expansion, richer product moderation, Google sign-
 
 Promote those items back into this roadmap only when they directly support the next MVP milestone, remove a current blocker, or the user explicitly chooses the tradeoff.
 
-## Cross-Cutting Data Questions
+## Historical And Future Data Questions
 
-Ask during the relevant planning sessions:
+These prompts remain useful for older stages and post-MVP planning; they are not open decisions for Stages 8-10. The final glossary, stage plans, migration rules, and stop conditions govern implementation. Reopen a prompt only if verified repository reality contradicts a stated stage invariant.
 
 - Which legacy entities should influence MongoDB documents?
 - Which properties should exist early even if initially empty?
@@ -444,12 +706,12 @@ Current direction:
 - make JSON validation, schema artifacts, database smoke checks, and migration-ledger behavior part of the first product-model stage
 - move controlled external alpha/demo access until after household stock and shopping-list value exist
 - keep public product lookup, household management, site-admin operations, and dev-admin diagnostics as separate app concerns even if the first navigation remains simple
-- represent country-wide offer scope with `regionCode = null`
-- treat store records as country-scoped at minimum, with a country-level no-region no-address store anchor per brand for the first country-wide stock model
+- identify a shop market by chain plus country; keep ingestion method separate and defer physical branches
+- represent offer scope explicitly as market/country first, with region/branch only when real source data requires it
 - model composition through quantity plus unit, including percentage-style composition via `%`
 
 ## First Recommended Next Step
 
-Plan Stage 6 shopping-list generation from the documented Stage 5 household stock model and shopping-scale preview.
+Review and approve or revise `.agents/plans/2026-07-11-stage-8-coherent-household-mvp-plan.md`, then implement one approved commit-sized step at a time.
 
 Treat broader crawler expansion as deliberately paused unless a later plan promotes a source back into active scope.
