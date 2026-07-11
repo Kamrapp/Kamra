@@ -34,6 +34,7 @@
 - Item: Added v2 correction and discard routes with shared membership checks, expected batch revisions, and stable command responses.
 - Item: Full repository validation passed after the v2 command/route work.
 - Item: Added pure Shopping Need generation, ad-hoc need creation, and revision-checked skip/restore transitions for the Stage 9 handoff.
+- Item: Added Mongo Shopping Need persistence with one household list, idempotent creation, need upsert, and stale-revision transitions.
 
 ## Changed Files
 
@@ -48,6 +49,8 @@
 - Path: `packages/kamra-api-server/src/http/app-handler.test.ts`
 - Path: `packages/kamra-api-server/src/household/v2/shopping-needs.ts`
 - Path: `packages/kamra-api-server/src/household/v2/shopping-needs.test.ts`
+- Path: `packages/kamra-api-server/src/household/v2/mongo-shopping-need-repository.ts`
+- Path: `packages/kamra-api-server/src/household/v2/mongo-shopping-need-repository.test.ts`
 - Path: `packages/kamra-api-server/src/household/v2/contracts.ts`
 - Path: `packages/kamra-api-server/src/household/v2/validation.ts`
 - Path: `packages/kamra-api-server/src/household/v2/mongo-stock-command-repository.ts`
@@ -226,6 +229,8 @@
 - Impact: Existing UI still exercises v1 behavior, while v2 routes/commands require a deliberate UI/service cutover.
 - Issue: Shopping Needs are currently pure domain records; persistence, active-list uniqueness, routes, and UI are still pending.
 - Impact: Stage 9 can consume the proposed snapshot shape, but users cannot yet manage persisted needs.
+- Issue: Shopping Need persistence exists but is not yet registered in maintenance setup or exposed through routes/UI.
+- Impact: The active-list database boundary is ready for integration, but operators and users cannot invoke it yet.
 - Issue: UI/API manual verification has not started.
 - Impact: Track the final browser checklist as implementation reaches the household workspace.
 
