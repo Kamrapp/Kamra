@@ -40,10 +40,11 @@ Use this against the local/demo database only. Reseeding resets the stable demo 
 9. Create a second batch for the Pilos Product, then classify the Product. Confirm the new batch inherits Product classification while the earlier batch snapshot remains unchanged.
 10. Click **Click to add new product stock**. Save a Product with initial quantity `0` and confirm it appears as an empty Product in Unassigned. Then select it, enable **Create initial stock batch**, enter a positive quantity, and confirm its Batch appears under the Product.
 11. Rename a demo Product and a Stock Target. Confirm both save without a 404 and retain their existing Batch data.
-12. In the left rail, click **Build shopping list**. Confirm checkboxes appear in the temporary selection table and the scale-eligible rows start selected.
-13. Change the shopping scale. Confirm the checked selection resets to that scale's eligible rows; manually select or clear at least one row.
-14. Click **Generate shopping list**. Confirm only checked legacy stock rows are included, then confirm the selection checkboxes disappear. Start Build again and use Cancel; confirm the checkboxes disappear without changing the persisted list.
-15. Re-run `npm run seed` when finished to restore the fixture for the next tester.
+12. Use **Add new concept** in the grouped footer. Confirm it appears in the Product editor alphabetically; associate it with a Product, save, then remove the association and save again. Confirm Batch acquisition/classification snapshots are unchanged.
+13. In the left rail, click **Build shopping list**. Confirm checkboxes appear in the temporary selection table and the scale-eligible rows start selected.
+14. Change the shopping scale. Confirm the checked selection resets to that scale's eligible rows; manually select or clear at least one row.
+15. Click **Generate shopping list**. Confirm only checked legacy stock rows are included, then confirm the selection checkboxes disappear. Start Build again and use Cancel; confirm the checkboxes disappear without changing the persisted list.
+16. Re-run `npm run seed` when finished to restore the fixture for the next tester.
 
 ## Pending workspace refinements
 

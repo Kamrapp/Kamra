@@ -55,6 +55,11 @@
           }
         }
         <button class="stock-grid add-stock-row" type="button" (click)="newProductRequested.emit()"><span class="row-name"><strong>＋ Click to add new product stock</strong></span><span>—</span><span>—</span><span class="ui-copy-muted">Creates a Product; first Batch is optional</span><span></span></button>
+        @if (addingConcept()) {
+          <form class="concept-editor" (ngSubmit)="addConcept()"><label>New concept<input class="ui-form-control" [(ngModel)]="conceptLabel" name="conceptLabel" /></label><div class="editor-actions"><button class="ui-button ui-button-sm" type="submit">Save concept</button><button class="ui-button ui-button-quiet ui-button-sm" type="button" (click)="addingConcept.set(false)">Cancel</button></div></form>
+        } @else {
+          <button class="stock-grid add-stock-row" type="button" (click)="addingConcept.set(true)"><span class="row-name"><strong>＋ Add new concept</strong></span><span>—</span><span>—</span><span class="ui-copy-muted">Household-local classification vocabulary</span><span></span></button>
+        }
       </div>
     </div>
   }

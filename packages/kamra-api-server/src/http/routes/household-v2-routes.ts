@@ -6,6 +6,7 @@ import { MongoShoppingNeedRepository } from "../../household/v2/mongo-shopping-n
 import { createAdHocShoppingNeed } from "../../household/v2/shopping-needs.js";
 import { MongoStockTargetRepository } from "../../household/v2/mongo-stock-target-repository.js";
 import { MongoHouseholdProductRepository } from "../../household/v2/mongo-household-product-repository.js";
+import { MongoHouseholdProductConceptRepository } from "../../household/v2/mongo-household-product-concept-repository.js";
 import { schemaVersion, type CreateHouseholdProductRequest, type CreateManualStockBatchRequest, type CreateStockTargetRequest, type StockTarget, type TrackingUnit } from "../../household/v2/contracts.js";
 import { assertCreateHouseholdProductRequest, assertCreateManualStockBatchRequest, assertCreateStockTargetRequest, assertTrackingUnit } from "../../household/v2/validation.js";
 
@@ -38,6 +39,23 @@ export const householdV2HouseholdProductCollectionRoute: AppRoute = {
       const now = new Date().toISOString();
       const product = { ...input, classificationRevision: 0, createdAt: now, createdByUserId: user.email, directAttributes: input.directAttributes ?? [], directConcepts: input.directConcepts ?? [], householdId, id: `household-product:${householdId}:${slug(input.displayName)}`, identitySnapshot: input.identitySnapshot ?? {}, revision: 0, status: "active" as const, updatedAt: now, updatedByUserId: user.email };
       try { return json(201, { product: await repository.create(product), schemaVersion }); } catch (error) { return commandError(error); }
+    });
+  }
+};
+
+export const householdV2HouseholdConceptsRoute: AppRoute = {
+  match: (request) => (request.method === "GET" || request.method === "POST") && /^\/api\/households\/[^/]+\/concepts$/.test(request.path),
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request);
+    if (!user) return unauthorized("apiErrors.signInRequired");
+    const householdId = request.path.match(/^\/api\/households\/([^/]+)\/concepts$/)?.[1];
+    const body = request.method === "POST" ? parseJsonObject(request.bodyText) : null;
+    if (!householdId || (request.method === "POST" && (!body || typeof body["label"] !== "string" || body["label"].trim().length === 0))) return json(400, { error: "invalid_household_concept_request" });
+    return await withHouseholdDatabase(context, householdId, user.email, async (database) => {
+      const repository = new MongoHouseholdProductConceptRepository(database);
+      if (request.method === "GET") return json(200, { concepts: await repository.list(householdId), schemaVersion });
+      const label = (body!["label"] as string).trim(); const now = new Date().toISOString(); const key = slug(label);
+      try { const concept = await repository.create({ createdAt: now, createdByUserId: user.email, householdId, key, label, revision: 0, status: "active", updatedAt: now, updatedByUserId: user.email }); return json(201, { concept, schemaVersion }); } catch (error) { return commandError(error); }
     });
   }
 };

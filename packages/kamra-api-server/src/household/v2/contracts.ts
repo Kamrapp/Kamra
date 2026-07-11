@@ -28,6 +28,18 @@ export interface ProductAttributeRef {
   scope: ProductConceptScope;
 }
 
+export interface HouseholdProductConcept {
+  createdAt: string;
+  createdByUserId: string;
+  householdId: string;
+  key: string;
+  label: string;
+  revision: number;
+  status: "active" | "archived";
+  updatedAt: string;
+  updatedByUserId: string;
+}
+
 export const householdProductIdentityKinds = ["manual", "catalogue"] as const;
 export type HouseholdProductIdentityKind = (typeof householdProductIdentityKinds)[number];
 

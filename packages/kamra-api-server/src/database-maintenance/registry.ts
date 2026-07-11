@@ -36,6 +36,11 @@ export const databaseMaintenanceEntries: readonly DatabaseMaintenanceEntry[] = [
     title: "Household product anchors"
   },
   {
+    details: "Creates household-local Product Concept indexes. Existing Product classification remains unchanged; this action only enables additive household-owned concept vocabulary.",
+    id: "household-local-classification-v1",
+    title: "Household Product Concepts"
+  },
+  {
     details: "Ensures the feature_flag_change_audits collection and its indexes for persisted old/new values, actor, reason, and revision. This is an audit-schema action; it does not change the current value of any feature flag.",
     id: "feature-flag-audit-v1",
     title: "Feature flag audit history"

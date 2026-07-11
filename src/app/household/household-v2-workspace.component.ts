@@ -13,8 +13,10 @@ export class HouseholdV2WorkspaceComponent {
   readonly loadState = signal<"idle" | "loading" | "ready" | "error">("idle");
   readonly editingTargetId = signal<string | null>(null);
   readonly editingBatchId = signal<string | null>(null);
+  readonly addingConcept = signal(false);
   readonly expandedTargetIds = signal<ReadonlySet<string>>(new Set());
   targetDraft = { displayName: "", minimumQuantity: 0, targetQuantity: 0, trackingUnit: "count" };
+  conceptLabel = "";
   private readonly service = inject(HouseholdV2Service);
   constructor() { effect(() => { const householdId = this.householdId(); this.refreshRevision(); if (householdId) void this.load(householdId); }); }
   async refresh(): Promise<void> { const householdId = this.householdId(); if (householdId) await this.load(householdId); }
@@ -49,5 +51,14 @@ export class HouseholdV2WorkspaceComponent {
     const result = await this.service.discardBatch({ batchId: batch.id, expectedBatchRevision: batch.revision, householdId: this.householdId() });
     if (result.status === "error") { this.errorMessage.set(result.message ?? "Batch could not be discarded."); return; }
     await this.refresh();
+  }
+  async addConcept(): Promise<void> {
+    const label = this.conceptLabel.trim();
+    if (!label) { this.errorMessage.set("Concept name is required."); return; }
+    const result = await this.service.createConcept(this.householdId(), label);
+    if (result.status === "error") { this.errorMessage.set(result.message ?? "Concept could not be created."); return; }
+    this.conceptLabel = "";
+    this.addingConcept.set(false);
+    this.newProductRequested.emit();
   }
 }
