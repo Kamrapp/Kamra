@@ -203,60 +203,21 @@
 
 - Issue: Cross-stage manual verification is now centralized in `.agents/plans/stage8-10-manual-acceptance-checklist.md`.
 - Impact: Stage 8 is not closeable and Stage 9/10 cannot start until the relevant checklist sections and evidence are completed.
-
-- Issue: Mongo transaction support and the existing database abstraction still need an explicit Step 1/Step 4 integration check.
-- Impact: Do not implement atomic stock commands until the configured topology is proven transaction-capable; revise the plan if it is not.
-- Issue: The maintenance actions are wired, but configured-database smoke testing and production validator definitions remain outstanding.
-- Impact: Local/fake Mongo proves routing and idempotent writes; an operator must still run the actions against the configured topology before relying on live migration results.
-- Issue: Mongo transactions are not yet supported by the abstraction and have not been proven against the configured topology.
-- Impact: Before Step 4 atomic stock commands, add the session/transaction seam and run the configured transaction smoke; if unsupported, pause for a plan revision as required by Stage 8.
 - Issue: The connection logger reports the URI default database (`test`) while the smoke correctly targets configured `MONGODB_DB_NAME` (`kamra_dev`).
 - Impact: This is expected Mongo client behavior, but future operational logs should consistently include the effective application database to avoid confusion.
-- Issue: Step 4 command persistence and idempotency receipts are not implemented yet.
-- Impact: The planner is write-free; no stock mutation is exposed until repository transactions enforce revisions, operation fingerprints, and one-active-allocation rules.
-- Issue: Allocation, consume, correction, discard, and void commands are still pending.
-- Impact: Batch acquisition is transactional, but the full household stock loop is not yet available.
-- Issue: Allocation currently has no public API route; it is an internal repository command until Step 5.
-- Impact: Browser users cannot invoke the new command yet; route cutover remains intentionally deferred until the command set is coherent.
-- Issue: Correction/discard/void history commands and aggregate read projections are still pending.
-- Impact: Consumption is transactional, but history reversal and full stock-status explanations are not yet available.
-- Issue: Void/reversal authorization and aggregate read projections remain pending.
-- Impact: Erroneous historical actions are not yet reversible through the command repository, and the UI/API still lacks explainable aggregate status output.
-- Issue: The aggregate projection is currently a pure helper and not yet exposed through a v2 read repository or route.
-- Impact: It is ready for API composition, but legacy household screens still use the v1 model until Step 5/6.
-- Issue: The v2 read model and commands are not yet exposed through household API routes.
-- Impact: Step 5 still needs route adapters, membership capabilities, stable error/status mapping, and v1 mutation cutover.
-- Issue: Only the v2 Stock Target read route exists; acquisition/allocation/consume/correct/discard HTTP commands are not exposed yet.
-- Impact: The new domain commands remain server-internal until request validation and stable error mapping are added.
-- Issue: Allocation, consume, correction, and discard HTTP adapters are still pending.
-- Impact: Manual acquisition can now be invoked through the v2 boundary, but the complete browser household loop is not exposed yet.
-- Issue: Consume/correct/discard HTTP adapters remain pending.
-- Impact: The domain commands are implemented and tested, but the route surface is not yet complete enough for browser use.
-- Issue: Correction and discard route adapters remain pending, as do browser service contracts and UI integration.
-- Impact: Consume is now exposed, but users still cannot complete the full correction/discard workflow through the v2 HTTP surface.
-- Issue: The core v2 stock command route surface is now present, but no Angular client/service uses it yet and no browser manual flow has been run.
-- Impact: Step 6 UI integration and manual desktop/mobile verification remain required before treating the household loop as usable.
-- Issue: Full validation has not replaced the required browser walkthrough; no Angular client has been switched to v2 yet.
-- Impact: Existing UI still exercises v1 behavior, while v2 routes/commands require a deliberate UI/service cutover.
-- Issue: Shopping Needs are currently pure domain records; persistence, active-list uniqueness, routes, and UI are still pending.
-- Impact: Stage 9 can consume the proposed snapshot shape, but users cannot yet manage persisted needs.
-- Issue: Shopping Need persistence exists but is not yet registered in maintenance setup or exposed through routes/UI.
-- Impact: The active-list database boundary is ready for integration, but operators and users cannot invoke it yet.
-- Issue: Shopping Need collection maintenance is registered; need list/transition routes are still pending.
-- Impact: Operators can prepare the collection, but users cannot yet generate, edit, skip, or restore needs through HTTP/UI.
-- Issue: Shopping Need routes currently expose ad-hoc persistence and state transitions; generated shortage synchronization and Angular consumption are still pending.
-- Impact: The generic demand API exists, but the household workspace still renders the legacy shopping-list model.
-- Issue: UI/API manual verification has not started.
-- Impact: Track the final browser checklist as implementation reaches the household workspace.
+- Issue: Stage 8 implementation is incomplete at product level: Stock Target CRUD, checked-in classification content sync, household-local classification management, invitation/join management, migration reconciliation, void/reversal policy, structured domain-event coverage, Angular v2 service/UI cutover, and generated Shopping Need synchronization remain.
+- Impact: The v2 backend foundation and route slices are not yet a coherent browser workflow; do not mark Stage 8 complete or begin Stage 9 implementation.
+- Issue: Stage 9 and Stage 10 plans remain proposed and require their stated approval checkpoints after Stage 8 and Stage 9 close respectively.
+- Impact: No Stage 9/10 code should be started in this session until those gates are genuinely reached.
 
 ## Roadmap Or Plan Updates
 
 - Needed: No roadmap change.
-- Status: Stage 8 is in implementation; the Step 4 transaction gate is cleared by the manual smoke result.
+- Status: Stage 8 remains in implementation; transaction gate is cleared, but product/browser acceptance is not.
 
 ## Next Step
 
-Implement Step 4’s transaction-backed atomic stock command foundation.
+Continue Stage 8 completion from the centralized manual checklist only after the user confirms the current state is ready for further implementation/manual walkthrough.
 
 ## Notes For Future Agent
 
