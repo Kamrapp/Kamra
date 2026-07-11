@@ -300,6 +300,8 @@ The current Angular/API slice uses one small read-only `App Checks` workflow. It
 
 Catalog contract changes use a separate `Catalog Smoke` workflow. It uses the GitHub `Smoke` environment and expects `MONGODB_URI`, `MONGODB_DB_NAME`, and optionally `MONGODB_DNS_SERVERS` to point at `kamra_smoke`. The workflow regenerates the catalog v1 JSON Schema artifact, checks that it was committed, runs focused catalog tests, and runs `npm run smoke:catalog` against the configured smoke database.
 
+Stage 8 transaction behavior has two validation layers. The transaction runner and command tests run in secret-free App Checks. The configured `npm run smoke:transactions` check is a separate narrowly triggered Smoke-environment workflow for changes to Mongo transaction abstractions, household command/repository code, the smoke script, relevant dependency/configuration files, or the workflow itself. It is not useful for unrelated frontend/docs PRs, must target only a disposable `kamra_smoke`-class database, and verifies rollback, commit, cleanup, and effective database selection. If the Smoke environment is unavailable, the configured check is a manual/release gate rather than a fabricated green CI result.
+
 Dependency update automation and PR-branch writeback are followup items, not MVP roadmap requirements. Keep them in `.agents/plans/mvp-followups.md` until the app surface is stable enough to justify the extra workflow behavior.
 
 Workflow files should mostly orchestrate scripts that can also be run locally. This keeps core logic easier to test, debug, and eventually move to other platforms if needed.

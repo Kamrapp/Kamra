@@ -92,6 +92,55 @@ The final roadmap review deliberately narrows this plan. Stage 8 owns household-
 
 None for implementation. The MVP defaults are final: flat Acceptance Criteria, one full Stock Allocation per Stock Batch, one active Shopping Need set, JSON base content with EN/HU runtime labels, local-only 30/70–70/30 home split preference, and no richer tri-state home focus mode. Repository contradictions trigger the named stop/replan rule; they are not permission to invent a different model.
 
+## Product-to-Batch Workflow Reassessment
+
+The existing plan already gets these boundaries right:
+
+- Product identity is distinct from Product Concept and Product Attribute classification.
+- Stock Target is a household demand policy, not a Product or a physical stock row.
+- Stock Batch owns quantity, acquisition date, expiry, remaining amount, and immutable historical snapshots.
+- Stock Allocation is the only counting boundary, so several concrete Products can satisfy one Stock Target without implicit double counting.
+- Catalogue Product references are optional soft references, so catalogue churn cannot invalidate household history.
+
+One gap is now made explicit: a batch-level classification snapshot is not the reusable Product representation for a manually entered or receipt-imported concrete Product. Stage 8 therefore adds a household-owned concrete `Household Product` anchor. It is separate from a global catalogue `Product`, but may optionally link to one.
+
+### Household Product anchor
+
+Persist `household_products` with:
+
+- `id`, `householdId`, `displayName`, `status: active | archived`, `revision`, and actor/timestamps
+- `identityKind: manual | catalogue`
+- optional `catalogProductId` and a bounded identity snapshot (`brand`, GTIN, measurement/package label, source name/key/URL)
+- reusable direct Product Concept and Product Attribute assignments, with classification revision/provenance
+- optional default unit/package metadata used only as an input suggestion; Stock Target compatibility remains authoritative
+
+The anchor is the stable concrete Product identity for repeated manual or receipt-imported acquisitions. A Stock Batch may reference `householdProductId`, but always retains its own acquisition and classification snapshot. Future batches of the same Household Product inherit its current classification by default; changing the Household Product classification never rewrites historical batch snapshots or silently changes existing allocations. A later explicit relink/reallocation command may update live planning without changing history.
+
+Both entry directions are first-class:
+
+- Product-first: create/import an unclassified Household Product, add one or more batches, then classify the Product and explicitly allocate eligible batches to a Stock Target later.
+- Need-first: create a Stock Target and, when only an approximate current amount is known, create an unanchored/manual opening Stock Batch with `householdProductId: null`; later concrete Household Products and additional batches can be allocated to the same Stock Target. Linking a batch later preserves its original snapshot and records the new relationship as an explicit action.
+
+An unclassified Product or unanchored Batch remains visible and usable. It is never silently treated as matching a constrained Stock Target; only an unconstrained target or an explicit bounded override can count it.
+
+### Home workspace hierarchy
+
+The Home view must present domain groups rather than raw batches as unrelated top-level rows:
+
+- Stock Target groups are the primary household entries. Their current amount is derived only from active allocations and is never independently edited.
+- Each expanded Stock Target shows allocated concrete Household Products, then their individual Stock Batches with quantity, acquisition, expiry, and history actions.
+- A separate Unassigned/Unclassified area shows concrete Household Products with unallocated batches and unanchored batches. These remain inspectable and editable without pretending they satisfy a target.
+- Household Product editing changes reusable identity/classification metadata; Batch editing changes only physical quantity/date/expiry/snapshot fields allowed by the command model.
+- A Product may appear under one or more Stock Target groups through explicit allocations, while the same Product's batches retain separate dates and quantities.
+
+The existing adjustable Household/Shopping divider remains a presentation preference and does not become a second domain hierarchy. Stage 8 does not require raw batches to become top-level Home rows.
+
+### Transaction smoke decision
+
+The configured `npm run smoke:transactions` check is useful because transaction behavior depends on Mongo topology, sessions, driver configuration, and the shared transaction abstraction; ordinary unit tests cannot prove those deployment facts. It should not run in the secret-free App Checks workflow.
+
+Keep the focused transaction runner/unit tests in App Checks. Add a separate narrowly triggered `Transaction Smoke` workflow, alongside `Catalog Smoke`, with the GitHub `Smoke` environment and paths covering the Mongo transaction abstraction, household command/repository code, transaction script, package/dependency changes, and its workflow. It should run on `workflow_dispatch` and relevant pull requests, use only `kamra_smoke`, verify rollback/commit/cleanup, and never run against production-named databases. Do not run it for unrelated frontend/docs PRs and do not make it a prerequisite for every PR when the configured Smoke environment is unavailable; record that limitation explicitly.
+
 ## Current-State Architectural Assessment
 
 ### Sound foundations to retain
@@ -337,12 +386,12 @@ Products, Product Concepts, and Product Attributes should be archived by default
 
 ## Data Model And Migration
 
-Create stable database-maintenance entries `catalog-classification-v1` and `household-stock-targets-v1` before collection work.
+Create stable database-maintenance entries `catalog-classification-v1`, `household-stock-targets-v1`, and `household-products-v1` before collection work.
 
 ### Validator action
 
 - Create final Product Concept relation and Product Attribute assignment storage with cycle-safe writes and relation indexes; legacy tag validators are migration input only.
-- Create `household_stock_targets`, `household_product_concepts`, `household_product_concept_relations`, `household_product_attributes`, `household_stock_batches`, `household_stock_allocations`, `household_stock_movements`, `household_domain_operations`, and `household_invitations` with strict validators and indexes.
+- Create `household_products`, `household_stock_targets`, `household_product_concepts`, `household_product_concept_relations`, `household_product_attributes`, `household_stock_batches`, `household_stock_allocations`, `household_stock_movements`, `household_domain_operations`, and `household_invitations` with strict validators and indexes.
 - Create `household_shopping_need_lists` with final Stage 8 fields. Keep legacy `household_shopping_lists` and `household_local_products` as read-only migration input rather than overloading them with final semantics.
 - Create general `feature_flags`, `feature_flag_changes`, and `audit_events` collections as part of their own stable registry entry, `application-operations-foundation`.
 - Add indexes for Product Concept edge uniqueness/redirects, household classification scope, Stock Target/status, Stock Batch/status/expiry, one active Stock Allocation per batch, operation id uniqueness, Stock Movement chronology, one active membership per household/user, invitation state, and active Shopping Need lookup.
@@ -361,11 +410,12 @@ For legacy catalog tags:
 For every active/archived legacy stock row:
 
 1. Create one Stock Target from its legacy `household_local_products` parent and stock policy. Give it unconstrained empty Acceptance Criteria and preserve the manual display name; legacy `stockGroupKey` or one linked concrete Product is not sufficient evidence to invent criteria.
-2. Create a stable batch id derived from the legacy row id.
-3. Set `acquiredOn` from `stockedAt`, `expiryOn: null`, and `remainingQuantity` to legacy `currentAmount`.
-4. Use current amount as the migration opening quantity; retain legacy `initialAmount`, original ids, and source metadata in bounded migration provenance rather than inventing consumption history.
-5. Create exactly one full-remaining-quantity Stock Allocation from the Stock Batch to the migrated Stock Target and one `migration_opening_balance` Stock Movement with stable ids.
-6. Preserve catalogue/source and direct/effective tag snapshots where trustworthy, but do not pretend a legacy `stockGroupKey` is a taxonomy rule.
+2. When the legacy row has a trustworthy catalogue Product link, create or reuse one household-owned Household Product anchor for that household/product identity. Do not create an anchor merely from a generic display name.
+3. Create a stable batch id derived from the legacy row id and set `householdProductId` only when the Household Product anchor is trustworthy.
+4. Set `acquiredOn` from `stockedAt`, `expiryOn: null`, and `remainingQuantity` to legacy `currentAmount`.
+5. Use current amount as the migration opening quantity; retain legacy `initialAmount`, original ids, and source metadata in bounded migration provenance rather than inventing consumption history.
+6. Create exactly one full-remaining-quantity Stock Allocation from the Stock Batch to the migrated Stock Target and one `migration_opening_balance` Stock Movement with stable ids.
+7. Preserve catalogue/source and direct/effective tag snapshots where trustworthy, but do not pretend a legacy `stockGroupKey` is a taxonomy rule.
 
 ### Idempotent base-content sync
 
@@ -444,12 +494,13 @@ API rules:
 
 ### Stock Target and stock workspace
 
-- Replace the one-row editor with a Stock Target summary showing accepted Product Concepts/Attributes, allocated available total, minimum/target, next expiry, status, and batch count.
-- Selecting a Stock Target opens its policy/Acceptance Criteria and allocated Stock Batch list; physical unallocated stock has a separate compact view.
+- Replace the one-row editor with grouped Stock Target entries showing accepted Product Concepts/Attributes, allocated available total, minimum/target, next expiry, status, and batch count. The displayed current amount is derived and read-only.
+- Selecting a Stock Target opens its policy/Acceptance Criteria, then allocated concrete Household Products, then their Stock Batches. Physical unallocated Products and unanchored Batches have a separate compact group with the same drill-down/edit affordances.
 - Provide a minimal Acceptance Criteria editor: required/accepted Product Concepts, required/accepted Product Attributes, and excluded Product Attributes. It shows inherited meaning, for example “spaghetti counts as pasta.” Do not expose arbitrary nested boolean expressions in Stage 8.
 - Seeded Product Concepts, Product Attributes, and Stock Target Templates are the default browse/search suggestions. Users can start from a template, edit the copied Acceptance Criteria/units/limits, or create household-local content without leaving the workflow.
 - Provide explicit actions: add batch, consume, correct batch, discard/deplete, edit definition, archive tracking.
-- Add-batch form captures quantity/unit, acquisition date, optional expiry, optional Product, and classification for manual content. It suggests a matching Stock Target but requires a visible Stock Allocation decision or leaves the batch unassigned.
+- Add-batch form supports selecting or creating a reusable Household Product, quantity/unit, acquisition date, optional expiry, optional catalogue Product, and classification for manual content. It suggests a matching Stock Target but requires a visible Stock Allocation decision or leaves the batch unassigned.
+- Household Product editing captures reusable display identity and classification; Batch editing captures only physical quantity/date/expiry and permitted historical metadata. Product-first unclassified entry and Target-first unanchored opening stock are both supported.
 - Consume defaults to the configured order and previews allocations; an advanced control lets the user choose/reorder batches.
 - Show expired and expiring states with reason text and calendar dates. A no-expiry batch is clearly labelled, not treated as malformed.
 - History shows action, quantity delta, batch/product snapshot, actor label where appropriate, and time without exposing internal diagnostics.
@@ -558,15 +609,15 @@ Execution rule for budget-focused implementation models: implement only the name
 
 ### Step 1 - Lock final Product Classification, Stock Target, Stock Batch, and infrastructure contracts
 
-- Goal: Create `docs/domain-language.md`; add typed Product Concept relation/effective-closure and Product Attribute contracts plus final `StockTarget`, `AcceptanceCriteria`, classification snapshot, `StockAllocation`, `StockBatch`, `StockMovement`, date/quantity/unit, capability, transaction, idempotency, and `ShoppingNeed` vocabulary before persistence or UI changes.
+- Goal: Create `docs/domain-language.md`; add typed Product identity/Household Product anchor, Product Concept relation/effective-closure and Product Attribute contracts plus final `StockTarget`, `AcceptanceCriteria`, classification snapshot, `StockAllocation`, `StockBatch`, `StockMovement`, date/quantity/unit, capability, transaction, idempotency, and `ShoppingNeed` vocabulary before persistence or UI changes.
 - Likely files: catalog v2/current taxonomy helpers, new `household/v2/*`, household/catalogue READMEs, Mongo abstraction/test support, contract/schema snapshots.
 - Acceptance:
-  - Contracts distinguish Product identity, direct/effective classification, Stock Target, match result, Stock Batch, Stock Allocation, Stock Movement, operation, and Shopping Need, with an explicit Stage 9 extension seam.
+  - Contracts distinguish global Product identity, reusable household Product identity, direct/effective classification, Stock Target, match result, Stock Batch, Stock Allocation, Stock Movement, operation, and Shopping Need, with an explicit Stage 9 extension seam.
   - `is_a` closure is deterministic and rejects cycles; flat typed Acceptance Criteria return explainable results.
   - The one-full-batch-allocation Stage 8 invariant prevents double counting while allowing unassigned stock.
   - Unit/date/precision and lifecycle invariants are executable validators.
   - Consumption ordering/aggregation helpers cover no-expiry and tie cases.
-  - A smoke check proves the configured Mongo topology supports the required transaction behavior, or implementation pauses for plan revision.
+  - A configured transaction smoke proves rollback/commit behavior against the supported Mongo topology; unit tests cover the abstraction on every relevant PR.
 - Validation: focused v2 contract/domain tests, schema snapshots, typecheck.
 - Commit idea: `feat: define household stock batch v2 contracts`
 
@@ -596,9 +647,9 @@ Execution rule for budget-focused implementation models: implement only the name
 - Validation: taxonomy fixture/migration/closure tests, registry route tests, configured database smoke.
 - Commit idea: `feat: add inclusive product classification`
 
-### Step 3B - Register and implement the idempotent Stock Target/Stock Batch migration
+### Step 3B - Register and implement the idempotent Household Product/Stock Target/Stock Batch migration
 
-- Goal: Add `household-stock-targets-v1`, final household Product Classification/Stock Target/Stock Batch/Stock Allocation/Stock Movement collections, compatibility validators, migration mapping, reconciliation report, and household maintenance write gate.
+- Goal: Add `household-stock-targets-v1` and `household-products-v1`, final household Product/Classification/Stock Target/Stock Batch/Stock Allocation/Stock Movement collections, compatibility validators, migration mapping, reconciliation report, and household maintenance write gate.
 - Likely files: database-maintenance registry/routes, household repository/migration module, schemas, fake Mongo support, dev-admin maintenance UI.
 - Acceptance:
   - Validator and migration completion remain independently tracked.
@@ -902,6 +953,8 @@ Richer nested rules, multi-shop optimization, receipt/OCR, automatic substitutio
 - [ ] CLI and admin sync share one idempotent non-destructive service; customized/archived conflicts are reported rather than overwritten.
 - [ ] Seeded and custom runtime labels resolve by requested locale with explicit default fallback; Acceptance Criteria identity never depends on translated text.
 - [ ] Multiple generic/manual and explicit-Product Stock Batches can be allocated to one Stock Target with different acquisition/expiry dates.
+- [ ] A reusable Household Product anchor can own reusable classification for repeated manual/receipt-imported batches, while each batch retains its own immutable acquisition/classification snapshot.
+- [ ] Product-first unclassified entry and need-first unanchored opening stock both remain usable and can later converge on the same Stock Target through explicit actions.
 - [ ] A Stock Batch is unassigned or has one active full Stock Allocation; overlapping Acceptance Criteria never double-count it.
 - [ ] Total available quantity is correct and explainable from allocations and batches.
 - [ ] Partial consumption uses deterministic or selected allocations and preserves movements/history.
@@ -913,6 +966,7 @@ Richer nested rules, multi-shop optimization, receipt/OCR, automatic substitutio
 - [ ] Shopping Need state and snapshots form a clear input to Stage 9 without Stage 8 Purchase side effects.
 - [ ] Preferred catalogue product is optional; unavailable/archived catalogue data does not invalidate household history.
 - [ ] Manual link/unlink/relink is possible; Product Concepts/Attributes drive classification/eligibility while Product ids remain identity.
+- [ ] Home groups Stock Targets first, then concrete Household Products, then individual Stock Batches, with visible unassigned/unclassified stock and derived read-only target totals.
 - [ ] The accessible desktop/tablet Household/Shopping divider persists a clamped local ratio, resets to 50/50, and does not alter stacked mobile/domain state.
 - [ ] Archive/history semantics preserve completed lists, purchases, batches, and movements.
 - [ ] Expected validation, authorization, duplicate, and stale-state errors are clear and localized.

@@ -10,9 +10,11 @@ This stage contains work **required for MVP usability** and the catalogue/price 
 
 ## Dependencies
 
-- Stage 8 Stock Targets, Product Concept hierarchy, Product Attribute filters, Stock Batch/Stock Allocation model, Stock Movement history, idempotent command protocol, household permissions, Shopping Needs, structured logging, and feature-toggle foundation are complete.
+- Stage 8 Stock Targets, reusable Household Product anchors, Product Concept hierarchy, Product Attribute filters, Stock Batch/Stock Allocation model, Stock Movement history, idempotent command protocol, household permissions, Shopping Needs, structured logging, and feature-toggle foundation are complete.
 - Stage 8 migration reconciliation has passed and v1 stock writes are disabled.
 - Current ingestion/crawler review remains available; Stage 9 extends it rather than creating an unrelated moderation system.
+
+Stage 9 treats `Household Product` as the reusable concrete household identity. A Purchase creates a new Stock Batch for that Household Product (or creates a manual Household Product first); the batch retains its own acquisition/expiry and immutable snapshot. Stage 9 must not collapse Product identity, Household Product identity, Stock Target policy, or Stock Batch history into one line item.
 
 ## Open Questions
 
