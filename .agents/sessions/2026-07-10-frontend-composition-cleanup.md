@@ -16,7 +16,9 @@
 - Item: Corrected the file-boundary rule: extracted components keep inline template/styles in their single `.component.ts`; no companion HTML/CSS files are part of this cleanup.
 - Item: Created the shell account/preferences and radial-navigation standalone components with local logic and styles.
 - Item: Completed Step 1 shell extraction and validated it with tests, typecheck, lint, and production build.
-- Item: Started Step 2 by extracting the anonymous household preview workspace into a single-file standalone component and wiring `HomeComponent` to compose it.
+- Item: Completed Step 2 preview extraction and validated it.
+- Item: Extracted the authenticated household stock panel into a single-file standalone component; the page retains loading, mutation, and page-rail ownership.
+- Item: Extracted the authenticated household stock editor into a single-file standalone component with a normalized draft input/output contract; the page retains API calls and mutation state.
 
 ## Changed Files
 
@@ -35,7 +37,11 @@
 - Path: `src/app/household/household-preview-workspace.component.ts`
   - New single-file standalone anonymous household preview component with its own template, styles, and display helpers.
 - Path: `src/app/home.component.ts`
-  - Replaced the inline anonymous preview block with the standalone preview workspace component; authenticated household logic remains in the page container.
+  - Composes the preview, stock-panel, and stock-editor components while retaining household loading, mutations, shopping-list integration, and page-rail state.
+- Path: `src/app/household/household-stock-panel.component.ts`
+  - Owns household selection, stock rendering, local create-household form state, row presentation, and add-to-list affordances.
+- Path: `src/app/household/household-stock-editor.component.ts`
+  - Owns editor markup, inline styles, draft editing, additional-details disclosure, min-limit controls, and typed save/archive/create events.
 
 ## Validation
 
@@ -43,8 +49,10 @@
 - Result: Existing Angular standalone patterns and content-projected table boundary confirmed.
 - Ran: `git diff --check` for the changed source files.
 - Result: No whitespace errors.
-- Not run: Step 2 household validation after preview extraction.
-- Reason: Implementation is in progress; run typecheck, lint, build, and likely tests after this slice settles.
+- Ran: `npm run typecheck`, `npm run lint`, `npm run build`, `npm run test`, and `git diff --check` after the preview and stock-panel slices.
+- Result: Passed; `git diff --check` reports only normal CRLF normalization warnings.
+- Result: Household composition step passed `npm run typecheck`, `npm run lint`, `npm run build`, and `npm run test` (31 files / 153 tests).
+- Result: The editor child uses an explicit normalized draft contract; no companion HTML/CSS files were added.
 
 ## Decisions
 
@@ -75,6 +83,12 @@
   - Impact: Later household extractions should either reuse the same child-level structure or promote verified primitives carefully so the preview and authenticated paths do not drift visually.
 - Issue: Anonymous preview rendering has moved behind a component host.
   - Impact: Final manual checks should include preview grid placement, mobile overflow behavior, disabled control styling, shopping-list placement, and translation/theme consistency.
+- Issue: The authenticated stock panel now owns the create-household form and stock-row presentation.
+  - Impact: Final manual checks should cover empty-name warning, form reset timing, household picker selection, manage-household enablement, selected-row highlighting, loading/error/empty states, refresh behavior, and add-to-shopping-list button state.
+- Issue: The authenticated stock editor now owns draft state and disclosure state, with the page receiving a typed save event.
+  - Impact: Final manual checks should cover create/edit mode switching, save/create/archive actions, auto-generated stock-group keys, min-limit stepper behavior, additional-details reset, date persistence, validation warnings, and saving-state button disabling.
+- Issue: Preview and authenticated stock/editor components still have intentionally separate local style recipes.
+  - Impact: Do not generalize them until a later visual comparison confirms exact equivalence; compare light/dark themes and narrow layouts for spacing, controls, and panel framing.
 - Issue: Existing working-tree/index state may include user-owned plan or backend changes.
   - Impact: Do not revert, stage, or mix unrelated files into cleanup changes.
 
@@ -85,7 +99,7 @@
 
 ## Next Step
 
-Proceed within Step 2: validate the preview extraction, then extract the authenticated household stock panel and stock editor only if their contracts stay compact and page-owned mutations remain clear.
+Step 2 household composition is ready to commit. After the commit, begin Step 3 with the shopping-list presentation boundary, keeping `HouseholdShoppingListComponent` as the lifecycle facade.
 
 ## Notes For Future Agent
 

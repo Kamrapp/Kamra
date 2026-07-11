@@ -415,7 +415,7 @@ function createDraft(): HouseholdStockDraft {
     sourceProductUrl: "",
     stockedAt: todayDateInputValue(),
     stockGroupKey: "",
-    unit: "pcs"
+    unit: "db"
   };
 }
 

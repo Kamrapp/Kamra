@@ -537,8 +537,8 @@ export class HomeComponent implements OnDestroy {
   readonly pageRail = inject(PageRailService);
   private readonly toast = inject(ToastService);
 
-  readonly detailsOpen = signal(false);
-  readonly editorMode = signal<EditorMode>("create");
+  readonly editorMode = signal<HouseholdStockEditorMode>("create");
+  readonly editorRevision = signal(0);
   readonly errorMessage = signal("");
   readonly householdPage = signal<HouseholdStockPage | null>(null);
   readonly households = signal<HouseholdListItem[]>([]);
@@ -551,7 +551,7 @@ export class HomeComponent implements OnDestroy {
   readonly shoppingScaleDisplayOptions = shoppingScaleDisplayOptions;
   readonly shoppingScaleOptions = shoppingScaleOptions;
   readonly shoppingListPanel = signal<HouseholdShoppingListComponent | null>(null);
-  editorDraft: StockDraft = createEmptyStockDraft();
+  editorDraftSeed: HouseholdStockDraft = createEmptyStockDraft();
   private loadSerial = 0;
 
   @ViewChild(HouseholdShoppingListComponent)
@@ -755,14 +755,6 @@ export class HomeComponent implements OnDestroy {
     await this.loadHouseholdContext(result.household.id);
   }
 
-  editorTitle(): string {
-    if (this.editorMode() === "create") {
-      return this.loc.t("household.addStockTitle");
-    }
-
-    return this.selectedItem()?.displayName || this.loc.t("household.editorTitle");
-  }
-
   async addStockItemToShoppingList(
     item: HouseholdStockItemListItem,
     shoppingListPanel: HouseholdShoppingListComponent
@@ -773,8 +765,8 @@ export class HomeComponent implements OnDestroy {
   openEditor(item: HouseholdStockItemListItem): void {
     this.editorMode.set("edit");
     this.selectedItemId.set(item.id);
-    this.detailsOpen.set(false);
-    this.editorDraft = stockItemToDraft(item);
+    this.editorDraftSeed = stockItemToDraft(item);
+    this.editorRevision.update((revision) => revision + 1);
   }
 
   async archiveSelectedItem(): Promise<void> {
@@ -804,13 +796,12 @@ export class HomeComponent implements OnDestroy {
     await this.loadHouseholdContext(this.selectedHouseholdId() || undefined);
   }
 
-  async saveEditor(): Promise<void> {
+  async saveEditor(draft: HouseholdStockDraft): Promise<void> {
     const householdId = this.selectedHouseholdId();
     if (!householdId) {
       return;
     }
 
-    const draft = this.editorDraft;
     if (!draft.displayName.trim() || !draft.unit.trim()) {
       this.toast.push(this.loc.t("household.createDraftInvalid"), "warning");
       return;
@@ -884,26 +875,6 @@ export class HomeComponent implements OnDestroy {
     this.statusMessage.set(this.loc.t("household.shoppingListAppliedAndStockRefreshed"));
   }
 
-  adjustEditorMinLimit(delta: number): void {
-    this.editorDraft = {
-      ...this.editorDraft,
-      minLimit: clampAmount(this.editorDraft.minLimit + delta)
-    };
-  }
-
-  setEditorDisplayName(value: string): void {
-    const previousSlug = normalizeStockGroupKey(this.editorDraft.displayName);
-    const nextSlug = normalizeStockGroupKey(value);
-
-    this.editorDraft = {
-      ...this.editorDraft,
-      displayName: value,
-      stockGroupKey: !this.editorDraft.stockGroupKey || this.editorDraft.stockGroupKey === previousSlug
-        ? nextSlug
-        : this.editorDraft.stockGroupKey
-    };
-  }
-
   setShoppingScaleIndex(value: number | string): void {
     const index = Number(value);
     const option = shoppingScaleOptions[index];
@@ -915,12 +886,8 @@ export class HomeComponent implements OnDestroy {
   startCreateItem(): void {
     this.editorMode.set("create");
     this.selectedItemId.set(null);
-    this.detailsOpen.set(false);
-    this.editorDraft = createEmptyStockDraft();
-  }
-
-  toggleDetails(): void {
-    this.detailsOpen.update((open) => !open);
+    this.editorDraftSeed = createEmptyStockDraft();
+    this.editorRevision.update((revision) => revision + 1);
   }
 
   private applyLoadedPage(page: HouseholdStockPage): void {
@@ -991,9 +958,9 @@ export class HomeComponent implements OnDestroy {
   }
 
   private resetState(): void {
-    this.detailsOpen.set(false);
     this.editorMode.set("create");
-    this.editorDraft = createEmptyStockDraft();
+    this.editorDraftSeed = createEmptyStockDraft();
+    this.editorRevision.set(0);
     this.errorMessage.set("");
     this.householdPage.set(null);
     this.households.set([]);
@@ -1005,7 +972,7 @@ export class HomeComponent implements OnDestroy {
   }
 }
 
-function createEmptyStockDraft(): StockDraft {
+function createEmptyStockDraft(): HouseholdStockDraft {
   return {
     currentAmount: 0,
     displayName: "",
@@ -1024,14 +991,8 @@ function createEmptyStockDraft(): StockDraft {
   };
 }
 
-function initialAmountForCreate(draft: StockDraft): number {
+function initialAmountForCreate(draft: HouseholdStockDraft): number {
   return draft.initialAmount > 0 ? draft.initialAmount : draft.currentAmount;
-}
-
-function clampAmount(value: number): number {
-  const finiteValue = Number.isFinite(value) ? value : 0;
-
-  return Math.max(0, Number(finiteValue.toFixed(2)));
 }
 
 function nullableTrim(value: string): string | null {
@@ -1115,7 +1076,7 @@ function previewStockItemToHouseholdStockItem(item: HouseholdPreviewStockItem): 
   };
 }
 
-function stockItemToDraft(item: HouseholdStockItemListItem): StockDraft {
+function stockItemToDraft(item: HouseholdStockItemListItem): HouseholdStockDraft {
   return {
     currentAmount: item.currentAmount,
     displayName: item.displayName,
