@@ -26,8 +26,8 @@ export class HouseholdV2WorkspaceComponent {
     if (result.status === "error") { this.errorMessage.set(result.message ?? "Product could not be updated."); return; }
     this.editingProductId.set(null); await this.refresh();
   }
-  async correctBatch(batch: { id: string; revision: number }, resultingQuantity: number): Promise<void> {
-    const result = await this.service.correctBatch({ batchId: batch.id, expectedBatchRevision: batch.revision, householdId: this.householdId(), resultingQuantity });
+  async correctBatch(batch: { acquiredOn: string; expiryOn?: string | null; id: string; revision: number }, resultingQuantity: number, acquiredOn: string, expiryOn: string): Promise<void> {
+    const result = await this.service.correctBatch({ acquiredOn, batchId: batch.id, expiryOn: expiryOn || null, expectedBatchRevision: batch.revision, householdId: this.householdId(), resultingQuantity });
     if (result.status === "error") { this.errorMessage.set(result.message ?? "Batch could not be corrected."); return; }
     await this.refresh();
   }

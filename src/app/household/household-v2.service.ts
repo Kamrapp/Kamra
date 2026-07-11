@@ -23,8 +23,8 @@ export class HouseholdV2Service {
     return await this.write("PATCH", `/api/households/${encodeURIComponent(input.householdId)}/products/${encodeURIComponent(input.productId)}`, { displayName: input.displayName, expectedRevision: input.expectedRevision });
   }
 
-  async correctBatch(input: { batchId: string; householdId: string; expectedBatchRevision: number; resultingQuantity: number }): Promise<{ status: "error" | "ok"; message?: string }> {
-    return await this.write("POST", `/api/households/${encodeURIComponent(input.householdId)}/batches/${encodeURIComponent(input.batchId)}/correct`, { expectedBatchRevision: input.expectedBatchRevision, operationId: crypto.randomUUID(), requestFingerprint: crypto.randomUUID(), resultingQuantity: input.resultingQuantity });
+  async correctBatch(input: { acquiredOn?: string; batchId: string; expiryOn?: string | null; householdId: string; expectedBatchRevision: number; resultingQuantity: number }): Promise<{ status: "error" | "ok"; message?: string }> {
+    return await this.write("POST", `/api/households/${encodeURIComponent(input.householdId)}/batches/${encodeURIComponent(input.batchId)}/correct`, { acquiredOn: input.acquiredOn, expiryOn: input.expiryOn, expectedBatchRevision: input.expectedBatchRevision, operationId: crypto.randomUUID(), requestFingerprint: crypto.randomUUID(), resultingQuantity: input.resultingQuantity });
   }
 
   async discardBatch(input: { batchId: string; householdId: string; expectedBatchRevision: number }): Promise<{ status: "error" | "ok"; message?: string }> {

@@ -196,7 +196,7 @@ export const householdV2CorrectBatchRoute: AppRoute = {
   handle: async (request, context) => {
     const user = context.authenticateRequestUser(request); if (!user) return unauthorized("apiErrors.signInRequired");
     const match = request.path.match(/^\/api\/households\/([^/]+)\/batches\/([^/]+)\/correct$/); const householdId = match?.[1]; const batchId = match?.[2]; const body = parseJsonObject(request.bodyText);
-    if (!householdId || !batchId || !body || typeof body["operationId"] !== "string" || typeof body["requestFingerprint"] !== "string" || typeof body["resultingQuantity"] !== "number" || !Number.isFinite(body["resultingQuantity"]) || !Number.isInteger(body["expectedBatchRevision"]) || (body["expectedBatchRevision"] as number) < 0) return json(400, { error: "invalid_stock_correction_request" });
+    if (!householdId || !batchId || !body || typeof body["operationId"] !== "string" || typeof body["requestFingerprint"] !== "string" || typeof body["resultingQuantity"] !== "number" || !Number.isFinite(body["resultingQuantity"]) || !Number.isInteger(body["expectedBatchRevision"]) || (body["expectedBatchRevision"] as number) < 0 || (body["acquiredOn"] !== undefined && !isIsoDate(body["acquiredOn"])) || (body["expiryOn"] !== undefined && body["expiryOn"] !== null && !isIsoDate(body["expiryOn"]))) return json(400, { error: "invalid_stock_correction_request" });
     return await runBatchCommand(context, user.email, householdId, batchId, body, "correct");
   }
 };
@@ -249,7 +249,7 @@ async function runBatchCommand(context: Parameters<AppRoute["handle"]>[1], userI
   try {
     const common = { actorUserId: userId, batchId, householdId, expectedBatchRevision: body["expectedBatchRevision"] as number, occurredAt: new Date().toISOString(), operationId: body["operationId"] as string, requestFingerprint: body["requestFingerprint"] as string };
     const repository = new MongoStockCommandRepository(database, client);
-    const result = command === "correct" ? await repository.correctBatch({ ...common, resultingQuantity: body["resultingQuantity"] as number, reasonCode: typeof body["reasonCode"] === "string" ? body["reasonCode"] : undefined }) : await repository.discardBatch({ ...common, reasonCode: typeof body["reasonCode"] === "string" ? body["reasonCode"] : undefined });
+    const result = command === "correct" ? await repository.correctBatch({ ...common, acquiredOn: typeof body["acquiredOn"] === "string" ? body["acquiredOn"] : undefined, expiryOn: body["expiryOn"] === null || typeof body["expiryOn"] === "string" ? body["expiryOn"] : undefined, resultingQuantity: body["resultingQuantity"] as number, reasonCode: typeof body["reasonCode"] === "string" ? body["reasonCode"] : undefined }) : await repository.discardBatch({ ...common, reasonCode: typeof body["reasonCode"] === "string" ? body["reasonCode"] : undefined });
     return json(200, { result, schemaVersion });
   } catch (error) { return commandError(error); }
 }
@@ -260,4 +260,5 @@ async function withHouseholdDatabase(context: Parameters<AppRoute["handle"]>[1],
   const client = await context.getMongoClient(context.config.mongodb.uri, context.config.mongodb.dnsServers); const database = client.db(context.config.mongodb.databaseName); const membership = await database.collection<{ householdId: string; status: string; userId: string }>("household_memberships").findOne({ householdId, status: "active", userId }); if (!membership) return json(403, { error: "household_membership_required" }); return await action(database);
 }
 function slug(value: string): string { return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "target"; }
+function isIsoDate(value: unknown): value is string { return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`)); }
 function commandError(error: unknown): ReturnType<typeof json> { const code = error instanceof Error ? error.message : "stock_command_failed"; const status = code === "idempotency_conflict" || code === "operation_in_progress" || code === "stale_revision" ? 409 : code.endsWith("_not_found") ? 404 : 500; return json(status, { error: code }); }
