@@ -31,6 +31,7 @@
 - Item: Extended `docs/logging.md` with injectable frontend logging, event naming, bounded-context, secret-safety, and failure-isolation conventions.
 - Item: User explicitly expanded the cleanup rule to allow companion `.html`/`.css` files after useful minor component extraction.
 - Item: Extracted `ShoppingListLineComponent` with local disclosure state, line formatting helpers, inline styles, and a discriminated edit-intent output.
+- Item: Externalized the remaining `HouseholdShoppingListComponent` template and styles into companion `.html`/`.css` files after the line extraction.
 
 ## Changed Files
 
@@ -73,7 +74,11 @@
 - Path: `src/app/household/shopping-list-line.component.ts`
   - Owns one shopping-list line's display/edit markup, local disclosure state, responsive line styles, uncertainty/reason localization, and typed change events.
 - Path: `src/app/household/household-shopping-list.component.ts`
-  - Composes the line child and retains list persistence, mutation rules, quick-add, completion, and lifecycle facade behavior.
+  - Composes the line child and retains list persistence, mutation rules, quick-add, completion, and lifecycle facade behavior; companion files now hold its list markup and styles.
+- Path: `src/app/household/household-shopping-list.component.html`
+  - Holds the shopping-list container template after minor line ownership was extracted.
+- Path: `src/app/household/household-shopping-list.component.css`
+  - Holds the unchanged parent-scoped list layout and responsive styles.
 - Path: `src/app/dev-admin/admin-feature-flags-card.component.ts`
   - Owns the auto-tick flag presentation, disabled/loading behavior, save action, and local flag-card styles.
 - Path: `src/app/dev-admin/admin-alpha-access-card.component.ts`
@@ -121,6 +126,8 @@
 - Result: Passed; 31 test files and 153 tests passed, with no diff whitespace errors.
 - Ran: `npm run typecheck`, `npm run lint`, and `npm run build:web` after the shopping-line extraction.
 - Result: Passed; the parent now receives one typed line-change union and no longer owns line disclosure state or display helpers.
+- Ran: `npm run typecheck`, `npm run lint`, `npm run build:web`, and `npm run test` after externalizing the shopping-list parent.
+- Result: Passed; 31 test files and 153 tests passed. Angular companion template/style loading is verified by the production build.
 
 ## Decisions
 
@@ -185,6 +192,8 @@
   - Impact: Manually verify pending/purchased line layout, checkbox/amount/unit edits, detail disclosure, observed price fields, uncertainty text, read-only disabling, saving state, mobile stacking, and theme styling.
 - Issue: The parent still has a large inline template/style block after the line extraction.
   - Impact: The next step is companion-file externalization only after reviewing that remaining parent responsibility; confirm relative template/style loading and unchanged component-scoped selectors.
+- Issue: The shopping-list parent now uses relative companion file paths.
+  - Impact: Manual checks should verify pending/purchased rendering, completion panel placement, quick-add, empty/loading/error states, responsive layout, theme variables, and that no styles leaked across child boundaries.
 - Issue: Existing working-tree/index state may include user-owned plan or backend changes.
   - Impact: Do not revert, stage, or mix unrelated files into cleanup changes.
 
@@ -195,7 +204,7 @@
 
 ## Next Step
 
-Commit the shopping-line extraction, then externalize the remaining shopping-list container template/styles into companion files. Continue one component at a time and keep extracting minor ownership boundaries before externalization.
+Commit the shopping-list companion-file externalization, then reassess the next monster. Prefer `home.component.ts` or `database-maintenance.component.ts` only after identifying useful minor components; do not mass-externalize every page automatically.
 
 ## Notes For Future Agent
 
