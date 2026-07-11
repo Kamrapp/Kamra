@@ -11,6 +11,8 @@
 
 - Item: Step 1 contract/domain foundation implemented: Stage 8 household vocabulary, classification closure/matching, unit conversion, batch ordering, allocation-only aggregation, capabilities, and validators.
 - Item: Added the durable domain dictionary at `docs/domain-language.md`.
+- Item: Added the typed feature-flag registry/evaluator with explicit defaults, storage-failure behavior, bounded cache, invalidation, revision checks, and audit payload contracts.
+- Item: Extended server logging with structured event metadata plus bounded sensitive-detail redaction.
 
 ## Changed Files
 
@@ -21,6 +23,11 @@
 - Path: `packages/kamra-api-server/src/household/README.md`
 - Path: `docs/domain-language.md`
 - Path: `.agents/plans/2026-07-11-stage-8-coherent-household-mvp-plan.md`
+- Path: `packages/kamra-api-server/src/feature-toggles/contracts.ts`
+- Path: `packages/kamra-api-server/src/feature-toggles/service.ts`
+- Path: `packages/kamra-api-server/src/feature-toggles/service.test.ts`
+- Path: `packages/kamra-api-server/src/logging/kamra-logger.ts`
+- Path: `packages/kamra-api-server/src/logging/kamra-logger.test.ts`
 
 ## Validation
 
@@ -28,6 +35,10 @@
 - Result: Passed.
 - Ran: `npm test -- --run packages/kamra-api-server/src/household/v2/domain.test.ts`
 - Result: 5 tests passed.
+- Ran: `npm test -- --run packages/kamra-api-server/src/feature-toggles/service.test.ts packages/kamra-api-server/src/logging/kamra-logger.test.ts`
+- Result: 5 tests passed.
+- Ran: `npx eslint packages/kamra-api-server/src/feature-toggles packages/kamra-api-server/src/logging/kamra-logger.ts`
+- Result: Passed.
 - Not run: Full test, lint, build, and Mongo transaction smoke; defer until the next meaningful integration unit or closeout.
 
 ## Decisions
@@ -41,6 +52,8 @@
 
 - Issue: Mongo transaction support and the existing database abstraction still need an explicit Step 1/Step 4 integration check.
 - Impact: Do not implement atomic stock commands until the configured topology is proven transaction-capable; revise the plan if it is not.
+- Issue: The new feature evaluator/audit contracts are not yet wired into the existing Mongo repository/admin route.
+- Impact: Existing runtime behavior is unchanged; Step 2 must add persistence and route integration before the feature/log foundation is complete.
 - Issue: UI/API manual verification has not started.
 - Impact: Track the final browser checklist as implementation reaches the household workspace.
 
@@ -51,7 +64,7 @@
 
 ## Next Step
 
-Commit the Step 1 contract/domain unit, then implement Step 2’s centralized feature-toggle and structured-logging foundations without changing household runtime behavior.
+Commit the Step 2 evaluator/logging foundation, then wire it into Mongo persistence and the admin route without changing flag behavior.
 
 ## Notes For Future Agent
 
