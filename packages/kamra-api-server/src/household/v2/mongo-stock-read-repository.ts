@@ -12,6 +12,7 @@ export interface StockWorkspaceReadModel {
   allowExpiredItems: boolean;
   products: HouseholdProduct[];
   targets: Array<StockTargetReadModel & { products: HouseholdProduct[] }>;
+  unassignedProducts: HouseholdProduct[];
   unassignedBatches: StockBatch[];
 }
 
@@ -54,6 +55,7 @@ export class MongoStockReadRepository {
       const targetProducts = [...new Map(targetBatches.map((batch) => batch.householdProductId ? [batch.householdProductId, productById.get(batch.householdProductId)] as const : null).filter((entry): entry is readonly [string, HouseholdProduct | undefined] => entry !== null && Boolean(entry[1]))).values()] as HouseholdProduct[];
       return { aggregate: summarizeStockTarget(target, batches, targetAllocations, today, household?.allowExpiredItems ?? true), batches: targetBatches, products: targetProducts, target };
     });
-    return { allowExpiredItems: household?.allowExpiredItems ?? true, products, targets: targetModels, unassignedBatches: batches.filter((batch) => !allocatedBatchIds.has(batch.id)) };
+    const productsWithBatches = new Set(batches.flatMap((batch) => batch.householdProductId ? [batch.householdProductId] : []));
+    return { allowExpiredItems: household?.allowExpiredItems ?? true, products, targets: targetModels, unassignedBatches: batches.filter((batch) => !allocatedBatchIds.has(batch.id)), unassignedProducts: products.filter((product) => !productsWithBatches.has(product.id)) };
   }
 }

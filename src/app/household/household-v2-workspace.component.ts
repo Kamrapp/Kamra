@@ -1,21 +1,22 @@
-import { Component, effect, inject, input, signal } from "@angular/core";
+import { Component, effect, inject, input, output, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
-import { HouseholdV2Service, type HouseholdV2Workspace } from "./household-v2.service";
+import { HouseholdV2Service, type HouseholdV2Product, type HouseholdV2Workspace } from "./household-v2.service";
 
 @Component({ selector: "app-household-v2-workspace", standalone: true, imports: [FormsModule], templateUrl: "./household-v2-workspace.component.html", styleUrl: "./household-v2-workspace.component.css" })
 export class HouseholdV2WorkspaceComponent {
   readonly householdId = input("");
+  readonly refreshRevision = input(0);
+  readonly productSelected = output<HouseholdV2Product>();
+  readonly newProductRequested = output<void>();
   readonly workspace = signal<HouseholdV2Workspace | null>(null);
   readonly errorMessage = signal("");
   readonly loadState = signal<"idle" | "loading" | "ready" | "error">("idle");
-  readonly editingProductId = signal<string | null>(null);
   readonly editingTargetId = signal<string | null>(null);
   readonly editingBatchId = signal<string | null>(null);
   readonly expandedTargetIds = signal<ReadonlySet<string>>(new Set());
-  draftProductName = "";
   targetDraft = { displayName: "", minimumQuantity: 0, targetQuantity: 0, trackingUnit: "count" };
   private readonly service = inject(HouseholdV2Service);
-  constructor() { effect(() => { const householdId = this.householdId(); if (householdId) void this.load(householdId); }); }
+  constructor() { effect(() => { const householdId = this.householdId(); this.refreshRevision(); if (householdId) void this.load(householdId); }); }
   async refresh(): Promise<void> { const householdId = this.householdId(); if (householdId) await this.load(householdId); }
   private async load(householdId: string): Promise<void> {
     this.loadState.set("loading"); this.errorMessage.set("");
@@ -38,13 +39,6 @@ export class HouseholdV2WorkspaceComponent {
   cancelBatchEdit(): void { this.editingBatchId.set(null); }
   productQuantity(group: HouseholdV2Workspace["targets"][number], productId: string): number { return group.batches.filter((batch) => batch.householdProductId === productId).reduce((total, batch) => total + batch.remainingQuantity, 0); }
   stateLabel(state: string): string { return state.replaceAll("_", " "); }
-  editProduct(product: { displayName: string; id: string }): void { this.editingProductId.set(product.id); this.draftProductName = product.displayName; }
-  cancelProductEdit(): void { this.editingProductId.set(null); }
-  async saveProduct(product: { id: string; revision: number }): Promise<void> {
-    const result = await this.service.updateProductIdentity({ displayName: this.draftProductName.trim(), householdId: this.householdId(), productId: product.id, expectedRevision: product.revision });
-    if (result.status === "error") { this.errorMessage.set(result.message ?? "Product could not be updated."); return; }
-    this.editingProductId.set(null); await this.refresh();
-  }
   async correctBatch(batch: { acquiredOn: string; expiryOn?: string | null; id: string; revision: number }, resultingQuantity: number, acquiredOn: string, expiryOn: string): Promise<void> {
     const result = await this.service.correctBatch({ acquiredOn, batchId: batch.id, expiryOn: expiryOn || null, expectedBatchRevision: batch.revision, householdId: this.householdId(), resultingQuantity });
     if (result.status === "error") { this.errorMessage.set(result.message ?? "Batch could not be corrected."); return; }

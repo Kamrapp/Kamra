@@ -11,8 +11,9 @@ button.row-name { cursor: pointer; }
 .product-name { padding-left: var(--space-5); }
 .batch-name { padding-left: var(--space-7); }
 .product-name small { color: var(--color-text-muted); font-size: .72rem; }
-.target-editor, .product-editor, .batch-editor { align-items: end; background: var(--surface-soft-background); border-bottom: 1px solid var(--line-subtle); display: flex; flex-wrap: wrap; gap: var(--space-3); padding: var(--space-3) calc(var(--space-3) + var(--space-5)); }
-.target-editor label, .product-editor label, .batch-editor label { color: var(--color-text-muted); display: grid; font-size: .72rem; font-weight: 800; gap: var(--space-2); }
+.target-editor, .batch-editor { align-items: end; background: var(--surface-soft-background); border-bottom: 1px solid var(--line-subtle); display: flex; flex-wrap: wrap; gap: var(--space-3); padding: var(--space-3) calc(var(--space-3) + var(--space-5)); }
+.target-editor label, .batch-editor label { color: var(--color-text-muted); display: grid; font-size: .72rem; font-weight: 800; gap: var(--space-2); }
 .editor-actions { align-items: center; display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .unassigned-row { background: color-mix(in srgb, var(--color-status-warning) 14%, var(--pulse-row-background)); }
+.add-stock-row { background: var(--surface-soft-background); border: 0; border-top: 1px dashed var(--line-strong); color: var(--color-text-muted); cursor: pointer; font: inherit; text-align: left; }
 @media (max-width: 740px) { .stock-grid-shell { overflow-x: auto; } }

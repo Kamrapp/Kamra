@@ -1,0 +1,19 @@
+<section class="ui-panel-card product-editor" aria-label="Product editor">
+  <p class="ui-kicker">{{ isNew ? 'New product' : 'Product editor' }}</p>
+  <h2 class="ui-card-title">{{ isNew ? 'Add product' : product()!.displayName }}</h2>
+  <p class="ui-copy-muted">A Product can exist without stock. Add a positive first Batch only when physical stock is present.</p>
+  <form (ngSubmit)="save()">
+    <label>Product name<input class="ui-form-control" [(ngModel)]="draft.displayName" name="productDisplayName" /></label>
+    <label class="batch-toggle"><input type="checkbox" [(ngModel)]="draft.createBatch" name="createBatch" /> Create initial stock batch</label>
+    @if (draft.createBatch) {
+      <div class="batch-fields">
+        <label>Quantity<input class="ui-form-control" type="number" min="0" [(ngModel)]="draft.quantity" name="initialQuantity" /></label>
+        <label>Unit<input class="ui-form-control" [(ngModel)]="draft.unit" name="initialUnit" /></label>
+        <label>Stocked at<input class="ui-form-control" type="date" [(ngModel)]="draft.acquiredOn" name="initialAcquiredOn" /></label>
+        <label>Expiry<input class="ui-form-control" type="date" [(ngModel)]="draft.expiryOn" name="initialExpiryOn" /></label>
+      </div>
+    }
+    @if (errorMessage()) { <p class="ui-copy-error">{{ errorMessage() }}</p> }
+    <div class="editor-actions"><button class="ui-button" type="submit" [disabled]="saving()">Save</button>@if (isNew) { <button class="ui-button ui-button-danger" type="button" (click)="clear()">Clear</button> }</div>
+  </form>
+</section>

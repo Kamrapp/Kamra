@@ -7,7 +7,7 @@
   />
 } @else {
   <section class="stock-workspace" aria-labelledby="home-title">
-    <app-household-v2-workspace [householdId]="selectedHouseholdId()" />
+    <app-household-v2-workspace [householdId]="selectedHouseholdId()" [refreshRevision]="v2WorkspaceRevision()" (newProductRequested)="startV2ProductCreate()" (productSelected)="selectV2Product($event)" />
     <app-household-stock-panel
       [errorMessage]="errorMessage()"
       [existingShoppingLineItemIds]="existingShoppingLineItemIds()"
@@ -30,15 +30,7 @@
       (shoppingSelectionToggled)="toggleShoppingItem($event)"
     />
 
-    <app-household-stock-editor
-      [draftInput]="editorDraftSeed"
-      [mode]="editorMode()"
-      [revision]="editorRevision()"
-      [saving]="mutationState() === 'saving'"
-      (archiveRequested)="archiveSelectedItem()"
-      (saveRequested)="saveEditor($event)"
-      (startCreateRequested)="startCreateItem()"
-    />
+    <app-household-product-editor [householdId]="selectedHouseholdId()" [product]="selectedV2Product()" [resetRevision]="productEditorRevision()" (changed)="refreshV2Workspace()" />
 
     <app-household-shopping-list
       #shoppingListPanel

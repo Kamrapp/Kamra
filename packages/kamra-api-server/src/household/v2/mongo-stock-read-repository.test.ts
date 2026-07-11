@@ -24,5 +24,6 @@ describe("MongoStockReadRepository", () => {
     expect(result.targets[0]?.products.map((item) => item.id)).toEqual([product.id]);
     expect(result.targets[0]?.batches).toHaveLength(1);
     expect(result.unassignedBatches).toHaveLength(1);
+    expect(result.unassignedProducts).toEqual([]);
   });
 });

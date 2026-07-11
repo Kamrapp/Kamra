@@ -1,0 +1,6 @@
+:host { display: block; }
+.product-editor, form, .batch-fields { display: grid; gap: var(--space-3); }
+label { color: var(--color-text-muted); display: grid; font-size: .78rem; font-weight: 700; gap: var(--space-2); }
+.batch-toggle { align-items: center; display: flex; font-size: .9rem; }
+.batch-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.editor-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }

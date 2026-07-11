@@ -29,13 +29,10 @@
           @if (isTargetExpanded(group.target.id)) {
             @for (product of group.products; track product.id) {
               <div class="stock-grid stock-product-row">
-                <button class="row-name product-name" type="button" (click)="editProduct(product)"><strong>{{ product.displayName }}</strong><small>{{ product.identityKind }}</small></button>
+                <button class="row-name product-name" type="button" (click)="productSelected.emit(product)"><strong>{{ product.displayName }}</strong><small>{{ product.identityKind }}</small></button>
                 <span>{{ productQuantity(group, product.id) }} {{ group.target.trackingUnit }}</span><span>—</span><span class="ui-copy-muted">Product</span>
-                <button class="ui-button ui-button-quiet ui-button-sm" type="button" (click)="editProduct(product)">Edit</button>
+                <button class="ui-button ui-button-quiet ui-button-sm" type="button" (click)="productSelected.emit(product)">Edit</button>
               </div>
-              @if (editingProductId() === product.id) {
-                <form class="product-editor" (ngSubmit)="saveProduct(product)"><label>Product name<input class="ui-form-control" [(ngModel)]="draftProductName" name="productName" /></label><div class="editor-actions"><button class="ui-button ui-button-sm" type="submit">Save product</button><button class="ui-button ui-button-quiet ui-button-sm" type="button" (click)="cancelProductEdit()">Cancel</button></div></form>
-              }
               @for (batch of group.batches; track batch.id) {
                 @if (batch.householdProductId === product.id) {
                   <div class="stock-grid stock-batch-row"><span class="row-name batch-name">{{ batch.acquisitionSnapshot.displayName }}</span><span>{{ batch.remainingQuantity }} {{ batch.unit }}</span><span>—</span><span class="ui-copy-muted">Batch</span><button class="ui-button ui-button-quiet ui-button-sm" type="button" (click)="editBatch(batch.id)">Edit</button></div>
@@ -47,13 +44,17 @@
             }
           }
         }
-        <div class="stock-grid stock-target-row unassigned-row"><span class="row-name"><strong>Unassigned or unclassified</strong></span><span>{{ current.unassignedBatches.length }}</span><span>—</span><span class="ui-copy-muted">Needs allocation</span><span></span></div>
+        <div class="stock-grid stock-target-row unassigned-row"><span class="row-name"><strong>Unassigned or unclassified</strong></span><span>{{ current.unassignedBatches.length + current.unassignedProducts.length }}</span><span>—</span><span class="ui-copy-muted">Needs allocation</span><span></span></div>
+        @for (product of current.unassignedProducts; track product.id) {
+          <div class="stock-grid stock-product-row"><button class="row-name product-name" type="button" (click)="productSelected.emit(product)"><strong>{{ product.displayName }}</strong><small>Empty product</small></button><span>0</span><span>—</span><span class="ui-copy-muted">No batch yet</span><button class="ui-button ui-button-quiet ui-button-sm" type="button" (click)="productSelected.emit(product)">Edit</button></div>
+        }
         @for (batch of current.unassignedBatches; track batch.id) {
           <div class="stock-grid stock-batch-row"><span class="row-name batch-name">{{ batch.acquisitionSnapshot.displayName }}</span><span>{{ batch.remainingQuantity }} {{ batch.unit }}</span><span>—</span><span class="ui-copy-muted">Unassigned</span><button class="ui-button ui-button-quiet ui-button-sm" type="button" (click)="editBatch(batch.id)">Edit</button></div>
           @if (editingBatchId() === batch.id) {
             <div class="batch-editor"><label>Quantity<input class="ui-form-control" #quantity type="number" min="0" [value]="batch.remainingQuantity" /></label><label>Stocked at<input class="ui-form-control" #acquired type="date" [value]="batch.acquiredOn" /></label><label>Expiry<input class="ui-form-control" #expiry type="date" [value]="batch.expiryOn ?? ''" /></label><div class="editor-actions"><button class="ui-button ui-button-sm" type="button" (click)="correctBatch(batch, quantity.valueAsNumber, acquired.value, expiry.value)">Save batch</button><button class="ui-button ui-button-danger ui-button-sm" type="button" (click)="discardBatch(batch)">Discard</button><button class="ui-button ui-button-quiet ui-button-sm" type="button" (click)="cancelBatchEdit()">Close</button></div></div>
           }
         }
+        <button class="stock-grid add-stock-row" type="button" (click)="newProductRequested.emit()"><span class="row-name"><strong>＋ Click to add new product stock</strong></span><span>—</span><span>—</span><span class="ui-copy-muted">Creates a Product; first Batch is optional</span><span></span></button>
       </div>
     </div>
   }
