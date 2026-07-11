@@ -38,6 +38,7 @@
 - Item: Externalized the remaining developer-admin dashboard shell template/styles after its health, flags, alpha, and maintenance boundaries were extracted.
 - Item: Externalized the product-catalog page template/styles after the filter-bar boundary was extracted; virtualized table rows remain in the page by design.
 - Item: Externalized the ingestion-admin page template/styles after the snapshot-table boundary was extracted; selected detail/review rows remain in the page by design.
+- Item: Review fix: restored the original login draft behavior by clearing the shell password only after successful login or logout, not after failed attempts.
 
 ## Changed Files
 
@@ -189,7 +190,7 @@
 - Issue: The revised extraction may expose contracts that are too broad for a safe child component.
   - Impact: Stop and keep that block in the page until its state can be represented by a named view model and deliberate events.
 - Issue: Shell extraction can change login form timing, preference event handling, or radial menu reset behavior.
-  - Impact: Automated checks will catch compile regressions; final manual checks must cover login/logout, preferences, keyboard navigation, role visibility, route changes, and menu reset.
+  - Impact: The failed-login password regression was fixed with an explicit parent reset token; final manual checks must still cover login/logout, preferences, keyboard navigation, role visibility, route changes, and menu reset.
 - Issue: The parent no longer owns the extracted auth/radial CSS, but final visual comparison is still pending.
   - Impact: Verify that the inline child styles preserve the previous shell appearance before considering the shell boundary closed.
 - Issue: Final manual shell verification remains pending.

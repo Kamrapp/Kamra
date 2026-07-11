@@ -1,4 +1,4 @@
-import { Component, inject, input, output } from "@angular/core";
+import { Component, effect, inject, input, output } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 
 import type { AuthenticatedUser } from "../auth.service";
@@ -174,6 +174,7 @@ export class ShellAccountPanelComponent {
   readonly loginLoading = input(false);
   readonly theme = input.required<ThemePreference>();
   readonly language = input.required<LanguagePreference>();
+  readonly loginResetToken = input(0);
 
   readonly loginRequested = output<ShellLoginCredentials>();
   readonly logoutRequested = output<void>();
@@ -183,12 +184,16 @@ export class ShellAccountPanelComponent {
   loginEmail = "";
   loginPassword = "";
 
+  private readonly resetPassword = effect(() => {
+    this.loginResetToken();
+    this.loginPassword = "";
+  });
+
   submitLogin(): void {
     this.loginRequested.emit({
       email: this.loginEmail,
       password: this.loginPassword
     });
-    this.loginPassword = "";
   }
 
   setLanguage(value: string): void {

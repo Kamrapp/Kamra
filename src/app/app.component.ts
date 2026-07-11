@@ -67,6 +67,7 @@ interface ShellMenuItem extends RadialNavigationItem {
         <app-shell-account-panel
           [language]="loc.language()"
           [loginLoading]="loginState() === 'loading'"
+          [loginResetToken]="loginResetToken()"
           [theme]="theme.theme()"
           [user]="auth.user()"
           (languageChanged)="setLanguage($event)"
@@ -293,6 +294,7 @@ export class AppComponent implements OnInit {
   readonly toast = inject(ToastService);
   readonly currentPageTitle = signal("");
   readonly loginState = signal<"idle" | "loading">("idle");
+  readonly loginResetToken = signal(0);
   readonly railResetToken = signal(0);
   readonly menuItems = computed(() => {
     const isAdmin = this.auth.user()?.role === "admin";
@@ -370,6 +372,7 @@ export class AppComponent implements OnInit {
 
       this.theme.applyUserTheme(this.auth.user()?.profile.theme);
       this.loc.applyUserLanguage(this.auth.user()?.profile.language);
+      this.loginResetToken.update((token) => token + 1);
       this.toast.push(this.loc.t("app.signedIn", { email: this.auth.user()?.email ?? email }), "success");
     } catch {
       this.toast.push(this.loc.t("app.loginFailure"), "error");
@@ -380,6 +383,7 @@ export class AppComponent implements OnInit {
 
   async logout(): Promise<void> {
     await this.auth.logout();
+    this.loginResetToken.update((token) => token + 1);
     this.theme.applyUserTheme(undefined);
     this.loc.applyUserLanguage(undefined);
     await this.router.navigateByUrl("/");
