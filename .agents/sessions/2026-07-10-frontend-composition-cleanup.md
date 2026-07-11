@@ -173,6 +173,8 @@
 - Result: Passed; 31 test files and 153 tests passed.
 - Ran: Final companion-file phase validation: `npm run typecheck`, `npm run lint`, `npm run build`, `npm run test`, and `git diff --check`.
 - Result: Passed; 31 test files and 153 tests passed, with a clean diff check.
+- Ran: Post-Vercel-route-surface validation: `npm run typecheck`, `npm run lint`, `npm run build`, `npm run test`, and `git diff --check`.
+- Result: Passed; 31 test files and 153 tests passed. The catch-all adapter is included in the API typecheck/build.
 - Ran: Post-review validation after `Preserve failed login draft`: `npm run typecheck`, `npm run lint`, `npm run build`, `npm run test`, and `git diff --check`.
 - Result: Passed; 31 test files and 153 tests passed.
 
