@@ -287,6 +287,8 @@ Implementation ownership map:
 
 ## Testing Strategy
 
+Manual/browser acceptance is tracked centrally in `.agents/plans/stage8-10-manual-acceptance-checklist.md`, including the Stage 8 prerequisite and Stage 9 journey. This plan must not grow a competing checklist.
+
 - Pure tests: price applicability, package math, matching explanations/ties, Shopping Trip/Trip Item transition tables, correction semantics.
 - Contract/schema snapshots: Shop Market, Ingestion Source, Shop Product, Price Observation, Shopping Trip, Trip Item, Purchase, Ingestion Submission.
 - Repository/integration: history append, transaction rollback, idempotency, concurrent Trip Item processing, household isolation, admin boundaries, pagination/indexes.

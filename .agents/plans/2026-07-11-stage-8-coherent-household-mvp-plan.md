@@ -797,6 +797,8 @@ Execution rule for budget-focused implementation models: implement only the name
 
 ### End-to-end/manual
 
+The human verification list is maintained centrally in `.agents/plans/stage8-10-manual-acceptance-checklist.md`; keep this section aligned with that file rather than creating a second checklist.
+
 - Run a two-user create/invite/join flow.
 - Create `concept.pasta.spaghetti is_a concept.pasta`, then configure “10,000 g pasta; gluten-free; penne/spaghetti/tagliatelle” and verify matching/non-matching product explanations.
 - Sync the checked-in base pack from admin, create a Stock Target from a localized Stock Target Template, switch English/Hungarian labels, and confirm a missing custom translation falls back without changing Acceptance Criteria identity.

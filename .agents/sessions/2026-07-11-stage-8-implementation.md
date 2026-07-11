@@ -201,6 +201,9 @@
 
 ## Open Issues
 
+- Issue: Cross-stage manual verification is now centralized in `.agents/plans/stage8-10-manual-acceptance-checklist.md`.
+- Impact: Stage 8 is not closeable and Stage 9/10 cannot start until the relevant checklist sections and evidence are completed.
+
 - Issue: Mongo transaction support and the existing database abstraction still need an explicit Step 1/Step 4 integration check.
 - Impact: Do not implement atomic stock commands until the configured topology is proven transaction-capable; revise the plan if it is not.
 - Issue: The maintenance actions are wired, but configured-database smoke testing and production validator definitions remain outstanding.
