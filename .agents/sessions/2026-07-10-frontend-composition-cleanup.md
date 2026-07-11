@@ -264,6 +264,10 @@
   - Impact: Manually verify source filters, snapshot selection, scroll pagination, workspace resizing, parsed-row review buttons, review dialog actions, accepted-item toggle, empty/loading/auth states, and narrow overflow.
 - Issue: Existing working-tree/index state may include user-owned plan or backend changes.
   - Impact: Do not revert, stage, or mix unrelated files into cleanup changes.
+- Issue: Two companion HTML files retained the closing inline Angular template delimiter (``,``) as visible text.
+  - Cause: The earlier template extraction copied the string terminator and comma instead of stopping at the template body.
+  - Fix: Removed the stale delimiter from `household-shopping-list.component.html` and `product-catalog.component.html`; a repository-wide HTML scan found no remaining standalone delimiter lines.
+  - Impact: Manually verify the final closing content of both pages and confirm no literal backtick/comma text appears in the rendered view.
 
 ## Roadmap Or Plan Updates
 
@@ -272,7 +276,7 @@
 
 ## Next Step
 
-Companion-file phase is complete and validated. The Vercel route-surface fix is ready to commit; then hand off the full manual checklist before Stage 8. Do not split smaller components or externalize additional files without a concrete maintenance gain.
+Companion-file phase is complete and validated. The stale HTML delimiter cleanup is ready to commit; then hand off the full manual checklist before Stage 8. Do not split smaller components or externalize additional files without a concrete maintenance gain.
 
 ## Notes For Future Agent
 
