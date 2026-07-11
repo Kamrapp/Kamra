@@ -61,7 +61,17 @@ export class HouseholdV2Service {
 
   private async write(method: "PATCH" | "POST", path: string, body: Record<string, unknown>): Promise<{ status: "error" | "ok"; message?: string }> {
     const response = await fetch(buildApiUrl(path), { body: JSON.stringify(body), headers: this.headers(), method });
-    if (!response.ok) return { message: `Household update failed (${response.status}).`, status: "error" };
+    if (!response.ok) {
+      const payload = await response.json().catch(() => null) as { error?: string } | null;
+      const message = payload?.error === "household_membership_required"
+        ? "Only an active household member can update this household."
+        : payload?.error === "household_owner_required"
+          ? "Only the household owner can update household settings."
+          : payload?.error === "household_product_not_found" || payload?.error === "stock_target_not_found"
+            ? "This item no longer exists. Refresh and try again."
+            : `Household update failed (${response.status}).`;
+      return { message, status: "error" };
+    }
     return { status: "ok" };
   }
 }
