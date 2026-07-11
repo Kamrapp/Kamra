@@ -4,7 +4,7 @@ import { AuthService } from "../auth.service";
 
 export interface HouseholdV2Product { displayName: string; id: string; identityKind: "manual" | "catalogue"; identitySnapshot?: Record<string, unknown>; revision: number; }
 export interface HouseholdV2Batch { acquiredOn: string; acquisitionSnapshot: { displayName: string }; expiryOn?: string | null; householdProductId?: string | null; id: string; remainingQuantity: number; revision: number; unit: string; }
-export interface HouseholdV2TargetGroup { aggregate: { availableQuantity: number; batchCount: number; status: string }; batches: HouseholdV2Batch[]; products: HouseholdV2Product[]; target: { displayName: string; id: string; targetQuantity: number; trackingUnit: string }; }
+export interface HouseholdV2TargetGroup { aggregate: { availableQuantity: number; batchCount: number; status: string }; batches: HouseholdV2Batch[]; products: HouseholdV2Product[]; target: { displayName: string; id: string; minimumQuantity: number; revision: number; targetQuantity: number; trackingUnit: string }; }
 export interface HouseholdV2Workspace { allowExpiredItems: boolean; products: HouseholdV2Product[]; targets: HouseholdV2TargetGroup[]; unassignedBatches: HouseholdV2Batch[]; }
 
 @Injectable({ providedIn: "root" })
@@ -22,8 +22,11 @@ export class HouseholdV2Service {
   async updateProductIdentity(input: { displayName: string; householdId: string; productId: string; expectedRevision: number }): Promise<{ status: "error" | "ok"; message?: string }> {
     return await this.write("PATCH", `/api/households/${encodeURIComponent(input.householdId)}/products/${encodeURIComponent(input.productId)}`, { displayName: input.displayName, expectedRevision: input.expectedRevision });
   }
-  async updateExpiredItemsPolicy(householdId: string, allowExpiredItems: boolean): Promise<{ status: "error" | "ok"; message?: string }> {
-    return await this.write("PATCH", `/api/households/${encodeURIComponent(householdId)}/settings`, { allowExpiredItems });
+  async updateStockTarget(input: { displayName: string; expectedRevision: number; householdId: string; minimumQuantity: number; targetId: string; targetQuantity: number; trackingUnit: string }): Promise<{ status: "error" | "ok"; message?: string }> {
+    return await this.write("PATCH", `/api/households/${encodeURIComponent(input.householdId)}/stock-targets/${encodeURIComponent(input.targetId)}`, { expectedRevision: input.expectedRevision, patch: { displayName: input.displayName, minimumQuantity: input.minimumQuantity, targetQuantity: input.targetQuantity, trackingUnit: input.trackingUnit } });
+  }
+  async updateHouseholdSettings(input: { allowExpiredItems?: boolean; defaultCalculatedMaxLimitMultiplier?: number; householdId: string; name?: string }): Promise<{ status: "error" | "ok"; message?: string }> {
+    return await this.write("PATCH", `/api/households/${encodeURIComponent(input.householdId)}/settings`, input);
   }
 
   async correctBatch(input: { acquiredOn?: string; batchId: string; expiryOn?: string | null; householdId: string; expectedBatchRevision: number; resultingQuantity: number }): Promise<{ status: "error" | "ok"; message?: string }> {

@@ -1,14 +1,16 @@
 import { CommonModule } from "@angular/common";
 import { Component, inject, signal } from "@angular/core";
+import { FormsModule } from "@angular/forms";
 import { ActivatedRoute, RouterLink } from "@angular/router";
 
 import { HouseholdStockService, type HouseholdListItem } from "./household-stock.service";
+import { HouseholdV2Service } from "./household-v2.service";
 import { LocalizationService } from "../shared/localization.service";
 
 @Component({
   selector: "app-household-management",
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <section class="page-shell management-shell">
       <div class="ui-panel-card management-card">
@@ -34,19 +36,30 @@ import { LocalizationService } from "../shared/localization.service";
         <article class="ui-panel-card management-panel">
           <p class="ui-kicker">{{ loc.t("household.managementIdentityKicker") }}</p>
           <h2 class="ui-card-title">{{ loc.t("household.managementIdentityTitle") }}</h2>
-          <p>{{ loc.t("household.managementIdentityDescription") }}</p>
+          <p class="ui-copy-muted">{{ loc.t("household.managementIdentityDescription") }}</p>
+          @if (household()) {
+            <label><span>Household name</span><input class="ui-form-control" [(ngModel)]="nameDraft" /></label>
+            <button class="ui-button ui-button-sm" type="button" (click)="saveSettings()">Save household</button>
+          }
         </article>
 
         <article class="ui-panel-card management-panel">
           <p class="ui-kicker">{{ loc.t("household.managementInviteKicker") }}</p>
           <h2 class="ui-card-title">{{ loc.t("household.managementInviteTitle") }}</h2>
-          <p>{{ loc.t("household.managementInviteDescription") }}</p>
+          <p class="ui-copy-muted">{{ loc.t("household.managementInviteDescription") }}</p>
+          <p class="ui-copy-muted">Invitations will be added here after household membership management is implemented.</p>
         </article>
 
         <article class="ui-panel-card management-panel">
           <p class="ui-kicker">{{ loc.t("household.managementLimitsKicker") }}</p>
           <h2 class="ui-card-title">{{ loc.t("household.managementLimitsTitle") }}</h2>
-          <p>{{ loc.t("household.managementLimitsDescription") }}</p>
+          <p class="ui-copy-muted">{{ loc.t("household.managementLimitsDescription") }}</p>
+          @if (household()) {
+            <label><span>Default calculated max-limit multiplier</span><input class="ui-form-control" type="number" min="0" step="0.1" [(ngModel)]="maxLimitMultiplierDraft" /></label>
+            <label class="checkbox-row"><input type="checkbox" [(ngModel)]="allowExpiredItemsDraft" /> Allow expired items</label>
+            <button class="ui-button ui-button-sm" type="button" (click)="saveSettings()">Save settings</button>
+          }
+          @if (errorMessage()) { <p class="ui-copy-error">{{ errorMessage() }}</p> }
         </article>
       </div>
     </section>
@@ -72,6 +85,20 @@ import { LocalizationService } from "../shared/localization.service";
         margin: 0;
       }
 
+      .management-panel label {
+        color: var(--color-text-muted);
+        display: grid;
+        font-size: 0.78rem;
+        font-weight: 700;
+        gap: var(--space-2);
+      }
+
+      .checkbox-row {
+        align-items: center;
+        display: flex !important;
+        font-size: 0.9rem !important;
+      }
+
       .management-actions {
         display: flex;
         gap: var(--space-3);
@@ -88,9 +115,14 @@ import { LocalizationService } from "../shared/localization.service";
 export class HouseholdManagementComponent {
   readonly loc = inject(LocalizationService);
   private readonly householdService = inject(HouseholdStockService);
+  private readonly householdV2Service = inject(HouseholdV2Service);
   private readonly route = inject(ActivatedRoute);
 
   readonly household = signal<HouseholdListItem | null>(null);
+  readonly errorMessage = signal("");
+  allowExpiredItemsDraft = true;
+  maxLimitMultiplierDraft = 2;
+  nameDraft = "";
 
   constructor() {
     void this.loadHousehold();
@@ -110,5 +142,18 @@ export class HouseholdManagementComponent {
     }
 
     this.household.set(result.households.find((entry) => entry.id === householdId) ?? null);
+    const household = this.household();
+    this.allowExpiredItemsDraft = household?.allowExpiredItems ?? true;
+    this.maxLimitMultiplierDraft = household?.defaultCalculatedMaxLimitMultiplier ?? 2;
+    this.nameDraft = household?.name ?? "";
+  }
+
+  async saveSettings(): Promise<void> {
+    const household = this.household();
+    if (!household || !this.nameDraft.trim() || !Number.isFinite(this.maxLimitMultiplierDraft) || this.maxLimitMultiplierDraft < 0) return;
+    this.errorMessage.set("");
+    const result = await this.householdV2Service.updateHouseholdSettings({ allowExpiredItems: this.allowExpiredItemsDraft, defaultCalculatedMaxLimitMultiplier: this.maxLimitMultiplierDraft, householdId: household.id, name: this.nameDraft.trim() });
+    if (result.status === "error") { this.errorMessage.set(result.message ?? "Household settings could not be saved."); return; }
+    await this.loadHousehold();
   }
 }

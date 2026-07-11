@@ -247,6 +247,8 @@
 - Demo fixture: reseeding now adds two allocated milk Products under one Target, an expired-before-acquisition yogurt batch, and an unassigned no-expiry flour batch. Manual script: `scripts/stage8-demo-manual-test.md`.
 - Dark-mode fix: the Stage 8 grouped workspace now uses the repository's actual theme tokens instead of undefined light-only fallbacks; build passed.
 - CSS audit: the Stage 8 workspace stylesheet now keeps layout-only rules; global `ui-*` classes/tokens own panels, surfaces, text, controls, status tokens, errors, and form fields. No local color literals remain in app stylesheets.
+- Home rework boundary: compact grouped v2 table and Manage household settings are in scope; v2 shopping-list selection/generation must not call the legacy v1 row-id endpoint and remains pending its dedicated bridge.
+- Home compact-grid slice: the grouped v2 workspace now has a fixed header and aligned Target Current/Minimum/State columns, with collapsed Target/Batch editors; household name, multiplier, and expiry policy moved to owner-only Manage household settings.
 - Seed validator repair: adding `allowExpiredItems` changed an already-completed household validator, so `household-expired-item-policy-v1` now independently upgrades the validator and backfills the permissive default before demo reseeding.
 - API grouped workspace: GET `/api/households/{householdId}/stock-workspace`; verify target totals are derived from active allocations, allocated batches group under their Household Product, and unallocated batches remain visible.
 - Browser Home: sign in, select a household, confirm the grouped Stage 8 workspace appears above the legacy controls, refresh it, and verify target/product/batch/unassigned hierarchy.

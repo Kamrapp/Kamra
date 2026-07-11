@@ -874,6 +874,15 @@ Add a configured database smoke command for v2 transactions/migration/reconcilia
 
 ## Stage 8 Scope
 
+### Home workspace refinement (2026-07-11)
+
+- Replace the temporary side-by-side comparison with one compact, scrollable grouped Stock Target table. Keep a fixed header with **Name**, **Current**, **Minimum**, **State**, and a right-aligned edit action.
+- Render hierarchy through stable grid columns: Stock Target rows are the primary entries; concrete Household Products and their Stock Batches are indented child rows with a quieter token treatment. Do not use name-dependent flex placement for actions or variable-width quantity prefixes.
+- A Stock Target expands to its Products and Batches. Its row can open an inline Target editor for name, unit, minimum, target, warning days, and policy. Batch rows are read-only until their own Edit action opens an inline physical-stock editor with labelled Quantity, Stocked at, and Expiry fields.
+- Selecting a Product opens the dedicated right-side Product editor; do not overload Batch editing with reusable Product identity/classification editing. Product-specific minimum/target policies need a dedicated child-target/reservation model and are deferred until after MVP rather than being represented by ambiguous Batch fields. Drag-and-drop classification is also deferred post-MVP.
+- Household-level policy belongs in Manage household, not Home. Manage household owns editable household name, default calculated max-limit multiplier, and `allowExpiredItems`, plus a clearly marked invitation placeholder.
+- Shopping-list selection is a distinct two-step state: **Build shopping list** selects the scale-eligible rows, exposes checkboxes, and becomes **Generate shopping list**; changing scale resets the selection from eligibility, cancellation exits the mode, and generation exits it after persisting only checked rows. This requires v2 Shopping Need/Target-backed list creation; do not pass grouped v2 row ids to the legacy v1 list endpoint.
+
 - Household Stock Targets with combined minimum/target, reorder/expiry policy, and minimal flat typed Product Concept/Attribute Acceptance Criteria.
 - Global cycle-safe concept `is_a` relations, inherited concepts, legacy category-parent migration, qualified household concepts/attributes, and explainable matching.
 - Bounded checked-in JSON base classification/template pack with feature-local English/Hungarian translations, idempotent additive sync through both the seed runner and admin dashboard, and runtime localized-label fallback.

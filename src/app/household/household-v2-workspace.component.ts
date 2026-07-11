@@ -9,8 +9,11 @@ export class HouseholdV2WorkspaceComponent {
   readonly errorMessage = signal("");
   readonly loadState = signal<"idle" | "loading" | "ready" | "error">("idle");
   readonly editingProductId = signal<string | null>(null);
+  readonly editingTargetId = signal<string | null>(null);
+  readonly editingBatchId = signal<string | null>(null);
+  readonly expandedTargetIds = signal<ReadonlySet<string>>(new Set());
   draftProductName = "";
-  allowExpiredItems = true;
+  targetDraft = { displayName: "", minimumQuantity: 0, targetQuantity: 0, trackingUnit: "count" };
   private readonly service = inject(HouseholdV2Service);
   constructor() { effect(() => { const householdId = this.householdId(); if (householdId) void this.load(householdId); }); }
   async refresh(): Promise<void> { const householdId = this.householdId(); if (householdId) await this.load(householdId); }
@@ -18,8 +21,23 @@ export class HouseholdV2WorkspaceComponent {
     this.loadState.set("loading"); this.errorMessage.set("");
     const result = await this.service.loadWorkspace(householdId);
     if (result.status === "error") { this.loadState.set("error"); this.errorMessage.set(result.message ?? "The household workspace could not be loaded."); return; }
-    this.workspace.set(result.workspace ?? null); this.allowExpiredItems = result.workspace?.allowExpiredItems ?? true; this.loadState.set("ready");
+    this.workspace.set(result.workspace ?? null); this.loadState.set("ready");
   }
+  toggleTarget(targetId: string): void { this.expandedTargetIds.update((ids) => { const next = new Set(ids); if (next.has(targetId)) next.delete(targetId); else next.add(targetId); return next; }); }
+  isTargetExpanded(targetId: string): boolean { return this.expandedTargetIds().has(targetId); }
+  editTarget(target: { displayName: string; id: string; minimumQuantity: number; targetQuantity: number; trackingUnit: string }): void { this.editingTargetId.set(target.id); this.targetDraft = { displayName: target.displayName, minimumQuantity: target.minimumQuantity, targetQuantity: target.targetQuantity, trackingUnit: target.trackingUnit }; }
+  cancelTargetEdit(): void { this.editingTargetId.set(null); }
+  async saveTarget(target: { id: string; revision: number }): Promise<void> {
+    const draft = this.targetDraft;
+    if (!draft.displayName.trim() || !Number.isFinite(draft.minimumQuantity) || !Number.isFinite(draft.targetQuantity) || draft.minimumQuantity < 0 || draft.targetQuantity < draft.minimumQuantity || !draft.trackingUnit.trim()) { this.errorMessage.set("Target name, unit, and limits are invalid."); return; }
+    const result = await this.service.updateStockTarget({ displayName: draft.displayName.trim(), expectedRevision: target.revision, householdId: this.householdId(), minimumQuantity: draft.minimumQuantity, targetId: target.id, targetQuantity: draft.targetQuantity, trackingUnit: draft.trackingUnit.trim() });
+    if (result.status === "error") { this.errorMessage.set(result.message ?? "Stock Target could not be updated."); return; }
+    this.editingTargetId.set(null); await this.refresh();
+  }
+  editBatch(batchId: string): void { this.editingBatchId.set(batchId); }
+  cancelBatchEdit(): void { this.editingBatchId.set(null); }
+  productQuantity(group: HouseholdV2Workspace["targets"][number], productId: string): number { return group.batches.filter((batch) => batch.householdProductId === productId).reduce((total, batch) => total + batch.remainingQuantity, 0); }
+  stateLabel(state: string): string { return state.replaceAll("_", " "); }
   editProduct(product: { displayName: string; id: string }): void { this.editingProductId.set(product.id); this.draftProductName = product.displayName; }
   cancelProductEdit(): void { this.editingProductId.set(null); }
   async saveProduct(product: { id: string; revision: number }): Promise<void> {
@@ -38,5 +56,4 @@ export class HouseholdV2WorkspaceComponent {
     if (result.status === "error") { this.errorMessage.set(result.message ?? "Batch could not be discarded."); return; }
     await this.refresh();
   }
-  async saveExpiredItemsPolicy(): Promise<void> { const result = await this.service.updateExpiredItemsPolicy(this.householdId(), this.allowExpiredItems); if (result.status === "error") this.errorMessage.set(result.message ?? "Household setting could not be updated."); }
 }

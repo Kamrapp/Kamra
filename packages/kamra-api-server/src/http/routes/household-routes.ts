@@ -78,12 +78,16 @@ export const householdSettingsRoute: AppRoute = {
     if ("response" in repositoryResult) return repositoryResult.response;
     const householdId = request.path.match(/^\/api\/households\/([^/]+)\/settings$/)?.[1];
     const body = parseJsonObject(request.bodyText);
-    if (!householdId || !body || typeof body["allowExpiredItems"] !== "boolean") return json(400, { error: "invalid_household_settings_request" });
+    const allowExpiredItems = typeof body?.["allowExpiredItems"] === "boolean" ? body["allowExpiredItems"] : undefined;
+    const defaultCalculatedMaxLimitMultiplier = typeof body?.["defaultCalculatedMaxLimitMultiplier"] === "number" && Number.isFinite(body["defaultCalculatedMaxLimitMultiplier"]) && body["defaultCalculatedMaxLimitMultiplier"] >= 0 ? body["defaultCalculatedMaxLimitMultiplier"] : undefined;
+    const name = typeof body?.["name"] === "string" && body["name"].trim().length > 0 ? body["name"].trim() : undefined;
+    if (!householdId || !body || (allowExpiredItems === undefined && defaultCalculatedMaxLimitMultiplier === undefined && name === undefined)) return json(400, { error: "invalid_household_settings_request" });
     try {
-      const result = await repositoryResult.repository.updateExpiredItemsPolicy({ allowExpiredItems: body["allowExpiredItems"], householdId, updatedAt: new Date().toISOString() });
+      const result = await repositoryResult.repository.updateHouseholdSettings({ allowExpiredItems, defaultCalculatedMaxLimitMultiplier, householdId, name, updatedAt: new Date().toISOString(), userId: repositoryResult.user.email });
       return json(200, result);
     } catch (error) {
-      return json(error instanceof Error && error.message === "household_not_found" ? 404 : 500, { error: error instanceof Error ? error.message : "household_settings_update_failed" });
+      const code = error instanceof Error ? error.message : "household_settings_update_failed";
+      return json(code === "household_not_found" ? 404 : code === "household_owner_required" ? 403 : 500, { error: code });
     }
   }
 };

@@ -1,29 +1,60 @@
 <section class="v2-workspace ui-panel-card" aria-labelledby="v2-workspace-title">
-  <div class="workspace-heading"><div><p class="ui-kicker">Stage 8 stock model</p><h2 class="ui-card-title" id="v2-workspace-title">Household stock</h2></div><button class="ui-button ui-button-quiet ui-button-sm" type="button" (click)="refresh()" [disabled]="loadState() === 'loading'">Refresh</button></div>
+  <div class="workspace-heading">
+    <div><p class="ui-kicker">Household stocks</p><h2 class="ui-card-title" id="v2-workspace-title">Household stock</h2></div>
+    <button class="ui-button ui-button-quiet ui-button-sm" type="button" (click)="refresh()" [disabled]="loadState() === 'loading'">Refresh</button>
+  </div>
   @if (loadState() === 'loading') { <p class="ui-copy-muted state">Loading grouped stock…</p> }
   @if (errorMessage()) { <p class="ui-copy-error state">{{ errorMessage() }}</p> }
   @if (workspace(); as current) {
-    <div class="policy-row"><label><input class="ui-form-control" type="checkbox" [(ngModel)]="allowExpiredItems" /> Allow expired items</label><button class="ui-button ui-button-quiet ui-button-sm" type="button" (click)="saveExpiredItemsPolicy()">Save setting</button></div>
-    <div class="target-list">
-      @for (group of current.targets; track group.target.id) {
-        <article class="target-card ui-surface-soft">
-          <div class="target-heading"><div><h3 class="ui-card-title">{{ group.target.displayName }}</h3><p class="ui-copy-muted">{{ group.aggregate.availableQuantity }} / {{ group.target.targetQuantity }} {{ group.target.trackingUnit }}</p></div><span class="ui-token ui-token-muted">{{ group.aggregate.status }}</span></div>
-          @for (product of group.products; track product.id) {
-            <div class="product-row">
-              <div class="product-title"><strong>{{ product.displayName }}</strong><span class="ui-token ui-token-muted">{{ product.identityKind }}</span><button class="ui-button ui-button-quiet ui-button-sm" type="button" (click)="editProduct(product)">Edit Product</button></div>
-              @if (editingProductId() === product.id) { <div class="edit-row"><input class="ui-form-control" aria-label="Product name" [(ngModel)]="draftProductName" /><button class="ui-button ui-button-sm" type="button" (click)="saveProduct(product)">Save</button><button class="ui-button ui-button-quiet ui-button-sm" type="button" (click)="cancelProductEdit()">Cancel</button></div> }
+    <div class="stock-grid-shell">
+      <div class="stock-grid stock-grid-header" aria-hidden="true"><span>Name</span><span>Current</span><span>Minimum</span><span>State</span><span></span></div>
+      <div class="stock-grid-body">
+        @for (group of current.targets; track group.target.id) {
+          <div class="stock-grid stock-target-row">
+            <button class="row-name target-name" type="button" (click)="toggleTarget(group.target.id)" [attr.aria-expanded]="isTargetExpanded(group.target.id)"><span aria-hidden="true">{{ isTargetExpanded(group.target.id) ? '▾' : '▸' }}</span><strong>{{ group.target.displayName }}</strong></button>
+            <span>{{ group.aggregate.availableQuantity }} {{ group.target.trackingUnit }}</span>
+            <span>{{ group.target.minimumQuantity }} {{ group.target.trackingUnit }}</span>
+            <span class="ui-token ui-token-muted">{{ stateLabel(group.aggregate.status) }}</span>
+            <button class="ui-button ui-button-quiet ui-button-sm" type="button" (click)="editTarget(group.target)">Edit</button>
+          </div>
+          @if (editingTargetId() === group.target.id) {
+            <form class="target-editor" (ngSubmit)="saveTarget(group.target)">
+              <label>Name<input class="ui-form-control" [(ngModel)]="targetDraft.displayName" name="targetName" /></label>
+              <label>Minimum<input class="ui-form-control" type="number" min="0" [(ngModel)]="targetDraft.minimumQuantity" name="targetMinimum" /></label>
+              <label>Target<input class="ui-form-control" type="number" min="0" [(ngModel)]="targetDraft.targetQuantity" name="targetQuantity" /></label>
+              <label>Unit<input class="ui-form-control" [(ngModel)]="targetDraft.trackingUnit" name="targetUnit" /></label>
+              <div class="editor-actions"><button class="ui-button ui-button-sm" type="submit">Save group</button><button class="ui-button ui-button-quiet ui-button-sm" type="button" (click)="cancelTargetEdit()">Cancel</button></div>
+            </form>
+          }
+          @if (isTargetExpanded(group.target.id)) {
+            @for (product of group.products; track product.id) {
+              <div class="stock-grid stock-product-row">
+                <button class="row-name product-name" type="button" (click)="editProduct(product)"><strong>{{ product.displayName }}</strong><small>{{ product.identityKind }}</small></button>
+                <span>{{ productQuantity(group, product.id) }} {{ group.target.trackingUnit }}</span><span>—</span><span class="ui-copy-muted">Product</span>
+                <button class="ui-button ui-button-quiet ui-button-sm" type="button" (click)="editProduct(product)">Edit</button>
+              </div>
+              @if (editingProductId() === product.id) {
+                <form class="product-editor" (ngSubmit)="saveProduct(product)"><label>Product name<input class="ui-form-control" [(ngModel)]="draftProductName" name="productName" /></label><div class="editor-actions"><button class="ui-button ui-button-sm" type="submit">Save product</button><button class="ui-button ui-button-quiet ui-button-sm" type="button" (click)="cancelProductEdit()">Cancel</button></div></form>
+              }
               @for (batch of group.batches; track batch.id) {
                 @if (batch.householdProductId === product.id) {
-                  <div class="batch-row"><small class="ui-copy-muted">{{ batch.remainingQuantity }} {{ batch.unit }}</small><input class="ui-form-control" #quantity type="number" min="0" [value]="batch.remainingQuantity" aria-label="Correct batch quantity" /><input class="ui-form-control" #acquired type="date" [value]="batch.acquiredOn" aria-label="Acquisition date" /><input class="ui-form-control" #expiry type="date" [value]="batch.expiryOn ?? ''" aria-label="Expiry date" /><button class="ui-button ui-button-sm" type="button" (click)="correctBatch(batch, quantity.valueAsNumber, acquired.value, expiry.value)">Correct</button><button class="ui-button ui-button-danger ui-button-sm" type="button" (click)="discardBatch(batch)">Discard</button></div>
+                  <div class="stock-grid stock-batch-row"><span class="row-name batch-name">{{ batch.acquisitionSnapshot.displayName }}</span><span>{{ batch.remainingQuantity }} {{ batch.unit }}</span><span>—</span><span class="ui-copy-muted">Batch</span><button class="ui-button ui-button-quiet ui-button-sm" type="button" (click)="editBatch(batch.id)">Edit</button></div>
+                  @if (editingBatchId() === batch.id) {
+                    <div class="batch-editor"><label>Quantity<input class="ui-form-control" #quantity type="number" min="0" [value]="batch.remainingQuantity" /></label><label>Stocked at<input class="ui-form-control" #acquired type="date" [value]="batch.acquiredOn" /></label><label>Expiry<input class="ui-form-control" #expiry type="date" [value]="batch.expiryOn ?? ''" /></label><div class="editor-actions"><button class="ui-button ui-button-sm" type="button" (click)="correctBatch(batch, quantity.valueAsNumber, acquired.value, expiry.value)">Save batch</button><button class="ui-button ui-button-danger ui-button-sm" type="button" (click)="discardBatch(batch)">Discard</button><button class="ui-button ui-button-quiet ui-button-sm" type="button" (click)="cancelBatchEdit()">Close</button></div></div>
+                  }
                 }
               }
-            </div>
+            }
           }
-        </article>
-      }
-      <article class="target-card ui-surface-soft unassigned"><div class="target-heading"><div><h3 class="ui-card-title">Unassigned or unclassified</h3><p class="ui-copy-muted">Visible until a Product and Stock Target are chosen.</p></div><span class="ui-token ui-token-muted">{{ current.unassignedBatches.length }}</span></div>
-        @for (batch of current.unassignedBatches; track batch.id) { <div class="product-row"><strong>{{ batch.acquisitionSnapshot.displayName }}</strong><div class="batch-row"><small class="ui-copy-muted">{{ batch.remainingQuantity }} {{ batch.unit }}</small><input class="ui-form-control" #quantity type="number" min="0" [value]="batch.remainingQuantity" aria-label="Correct batch quantity" /><input class="ui-form-control" #acquired type="date" [value]="batch.acquiredOn" aria-label="Acquisition date" /><input class="ui-form-control" #expiry type="date" [value]="batch.expiryOn ?? ''" aria-label="Expiry date" /><button class="ui-button ui-button-sm" type="button" (click)="correctBatch(batch, quantity.valueAsNumber, acquired.value, expiry.value)">Correct</button><button class="ui-button ui-button-danger ui-button-sm" type="button" (click)="discardBatch(batch)">Discard</button></div></div> }
-      </article>
+        }
+        <div class="stock-grid stock-target-row unassigned-row"><span class="row-name"><strong>Unassigned or unclassified</strong></span><span>{{ current.unassignedBatches.length }}</span><span>—</span><span class="ui-copy-muted">Needs allocation</span><span></span></div>
+        @for (batch of current.unassignedBatches; track batch.id) {
+          <div class="stock-grid stock-batch-row"><span class="row-name batch-name">{{ batch.acquisitionSnapshot.displayName }}</span><span>{{ batch.remainingQuantity }} {{ batch.unit }}</span><span>—</span><span class="ui-copy-muted">Unassigned</span><button class="ui-button ui-button-quiet ui-button-sm" type="button" (click)="editBatch(batch.id)">Edit</button></div>
+          @if (editingBatchId() === batch.id) {
+            <div class="batch-editor"><label>Quantity<input class="ui-form-control" #quantity type="number" min="0" [value]="batch.remainingQuantity" /></label><label>Stocked at<input class="ui-form-control" #acquired type="date" [value]="batch.acquiredOn" /></label><label>Expiry<input class="ui-form-control" #expiry type="date" [value]="batch.expiryOn ?? ''" /></label><div class="editor-actions"><button class="ui-button ui-button-sm" type="button" (click)="correctBatch(batch, quantity.valueAsNumber, acquired.value, expiry.value)">Save batch</button><button class="ui-button ui-button-danger ui-button-sm" type="button" (click)="discardBatch(batch)">Discard</button><button class="ui-button ui-button-quiet ui-button-sm" type="button" (click)="cancelBatchEdit()">Close</button></div></div>
+          }
+        }
+      </div>
     </div>
   }
 </section>

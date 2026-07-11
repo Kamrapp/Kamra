@@ -7,7 +7,9 @@ import { LocalizationService, type TranslationKey } from "../shared/localization
 import { ToastService } from "../shared/toast.service";
 
 export interface HouseholdListItem {
+  allowExpiredItems?: boolean;
   createdAt: string;
+  defaultCalculatedMaxLimitMultiplier?: number | null;
   id: string;
   memberCount: number;
   membershipRole: "member" | "owner";

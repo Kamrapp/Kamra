@@ -399,11 +399,23 @@ export class MongoHouseholdRepository {
     return { updatedCount };
   }
 
-  async updateExpiredItemsPolicy(input: { allowExpiredItems: boolean; householdId: string; updatedAt: string }): Promise<{ allowExpiredItems: boolean }> {
+  async updateHouseholdSettings(input: { allowExpiredItems?: boolean; defaultCalculatedMaxLimitMultiplier?: number; householdId: string; name?: string; updatedAt: string; userId: string }): Promise<{ allowExpiredItems: boolean; defaultCalculatedMaxLimitMultiplier: number; name: string }> {
     const household = await this.householdsCollection.findOne({ id: input.householdId });
     if (!household) throw new Error("household_not_found");
-    await this.householdsCollection.updateOne({ id: input.householdId }, { $set: { allowExpiredItems: input.allowExpiredItems, updatedAt: input.updatedAt } });
-    return { allowExpiredItems: input.allowExpiredItems };
+    const membership = await this.householdMembershipsCollection.findOne({ householdId: input.householdId, role: "owner", status: "active", userId: input.userId });
+    if (!membership) throw new Error("household_owner_required");
+    const changes = {
+      ...(input.allowExpiredItems === undefined ? {} : { allowExpiredItems: input.allowExpiredItems }),
+      ...(input.defaultCalculatedMaxLimitMultiplier === undefined ? {} : { defaultCalculatedMaxLimitMultiplier: input.defaultCalculatedMaxLimitMultiplier }),
+      ...(input.name === undefined ? {} : { name: input.name }),
+      updatedAt: input.updatedAt
+    };
+    await this.householdsCollection.updateOne({ id: input.householdId }, { $set: changes });
+    return {
+      allowExpiredItems: input.allowExpiredItems ?? household.allowExpiredItems ?? true,
+      defaultCalculatedMaxLimitMultiplier: input.defaultCalculatedMaxLimitMultiplier ?? household.defaultCalculatedMaxLimitMultiplier ?? 2,
+      name: input.name ?? household.name
+    };
   }
 
   async listHouseholdsForUser(userId: string): Promise<HouseholdListItem[]> {
