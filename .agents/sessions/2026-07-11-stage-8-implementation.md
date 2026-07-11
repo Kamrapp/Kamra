@@ -33,6 +33,7 @@
 - Item: Added the v2 Stock Target consume route with expected-revision and quantity/selection validation.
 - Item: Added v2 correction and discard routes with shared membership checks, expected batch revisions, and stable command responses.
 - Item: Full repository validation passed after the v2 command/route work.
+- Item: Added pure Shopping Need generation, ad-hoc need creation, and revision-checked skip/restore transitions for the Stage 9 handoff.
 
 ## Changed Files
 
@@ -45,6 +46,8 @@
 - Path: `packages/kamra-api-server/src/http/routes/household-v2-routes.ts`
 - Path: `packages/kamra-api-server/src/http/app-handler.ts`
 - Path: `packages/kamra-api-server/src/http/app-handler.test.ts`
+- Path: `packages/kamra-api-server/src/household/v2/shopping-needs.ts`
+- Path: `packages/kamra-api-server/src/household/v2/shopping-needs.test.ts`
 - Path: `packages/kamra-api-server/src/household/v2/contracts.ts`
 - Path: `packages/kamra-api-server/src/household/v2/validation.ts`
 - Path: `packages/kamra-api-server/src/household/v2/mongo-stock-command-repository.ts`
@@ -96,6 +99,10 @@
 - Result: Passed.
 - Ran: `npm run build`
 - Result: Web and API builds passed; generated output remained ignored/unchanged in Git.
+- Ran: `npm test -- --run packages/kamra-api-server/src/household/v2/shopping-needs.test.ts`
+- Result: 2 tests passed.
+- Ran: `npx eslint packages/kamra-api-server/src/household/v2/shopping-needs.ts packages/kamra-api-server/src/household/v2/shopping-needs.test.ts`
+- Result: Passed.
 - Ran: `npm test -- --run packages/kamra-api-server/src/http/app-handler.test.ts`
 - Result: 48 tests passed.
 - Ran: `npx eslint packages/kamra-api-server/src/http/routes/household-v2-routes.ts packages/kamra-api-server/src/http/app-handler.ts packages/kamra-api-server/src/http/app-handler.test.ts`
@@ -217,6 +224,8 @@
 - Impact: Step 6 UI integration and manual desktop/mobile verification remain required before treating the household loop as usable.
 - Issue: Full validation has not replaced the required browser walkthrough; no Angular client has been switched to v2 yet.
 - Impact: Existing UI still exercises v1 behavior, while v2 routes/commands require a deliberate UI/service cutover.
+- Issue: Shopping Needs are currently pure domain records; persistence, active-list uniqueness, routes, and UI are still pending.
+- Impact: Stage 9 can consume the proposed snapshot shape, but users cannot yet manage persisted needs.
 - Issue: UI/API manual verification has not started.
 - Impact: Track the final browser checklist as implementation reaches the household workspace.
 
