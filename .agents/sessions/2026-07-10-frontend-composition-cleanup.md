@@ -39,6 +39,7 @@
 - Item: Externalized the product-catalog page template/styles after the filter-bar boundary was extracted; virtualized table rows remain in the page by design.
 - Item: Externalized the ingestion-admin page template/styles after the snapshot-table boundary was extracted; selected detail/review rows remain in the page by design.
 - Item: Review fix: restored the original login draft behavior by clearing the shell password only after successful login or logout, not after failed attempts.
+- Item: Reviewed the refact branch for additional contract, companion-file, CSS ownership, DI, transport, logging, and event-wiring regressions; no further concrete defects were found.
 
 ## Changed Files
 
@@ -169,6 +170,8 @@
 - Result: Passed; 31 test files and 153 tests passed.
 - Ran: Final companion-file phase validation: `npm run typecheck`, `npm run lint`, `npm run build`, `npm run test`, and `git diff --check`.
 - Result: Passed; 31 test files and 153 tests passed, with a clean diff check.
+- Ran: Post-review validation after `Preserve failed login draft`: `npm run typecheck`, `npm run lint`, `npm run build`, `npm run test`, and `git diff --check`.
+- Result: Passed; 31 test files and 153 tests passed.
 
 ## Decisions
 
@@ -229,6 +232,8 @@
   - Impact: Manually verify representative startup, catalog, ingestion, and admin events still reach the browser console and `/api/log`; confirm no tokens/passwords appear in payloads.
 - Issue: The compatibility function remains available for non-injected/bootstrap-safe callers.
   - Impact: Keep any future direct use rare and documented; feature code should use `BrowserLoggerService`.
+- Issue: The review did not include browser automation or live endpoint verification.
+  - Impact: Manual testing remains required for visual layout, focus behavior, responsive overflow, auth/error flows, and `/api/log` forwarding.
 - Issue: Shopping-list line markup/styles now render through a child component host.
   - Impact: Manually verify pending/purchased line layout, checkbox/amount/unit edits, detail disclosure, observed price fields, uncertainty text, read-only disabling, saving state, mobile stacking, and theme styling.
 - Issue: The parent still has a large inline template/style block after the line extraction.
