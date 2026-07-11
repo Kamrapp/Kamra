@@ -330,9 +330,12 @@ export class MongoHouseholdRepository {
     const households = await this.householdsCollection.find({}).toArray();
 
     for (const household of households) {
-      const fieldsToSet: Record<string, number | null> = {};
+      const fieldsToSet: Record<string, number | boolean | null> = {};
       if (household.defaultCalculatedMaxLimitMultiplier === undefined) {
         fieldsToSet["defaultCalculatedMaxLimitMultiplier"] = 2;
+      }
+      if (household.allowExpiredItems === undefined) {
+        fieldsToSet["allowExpiredItems"] = true;
       }
       if (household.favouriteShopId === undefined) {
         fieldsToSet["favouriteShopId"] = null;
@@ -361,6 +364,7 @@ export class MongoHouseholdRepository {
     const household: HouseholdRecord = {
       createdAt,
       createdByUserId: input.createdByUserId,
+      allowExpiredItems: true,
       id: input.id,
       name: input.name,
       status: "active",
@@ -382,6 +386,13 @@ export class MongoHouseholdRepository {
     return {
       household: this.toHouseholdListItem(household, 1, "owner")
     };
+  }
+
+  async updateExpiredItemsPolicy(input: { allowExpiredItems: boolean; householdId: string; updatedAt: string }): Promise<{ allowExpiredItems: boolean }> {
+    const household = await this.householdsCollection.findOne({ id: input.householdId });
+    if (!household) throw new Error("household_not_found");
+    await this.householdsCollection.updateOne({ id: input.householdId }, { $set: { allowExpiredItems: input.allowExpiredItems, updatedAt: input.updatedAt } });
+    return { allowExpiredItems: input.allowExpiredItems };
   }
 
   async listHouseholdsForUser(userId: string): Promise<HouseholdListItem[]> {
@@ -1046,6 +1057,7 @@ export class MongoHouseholdRepository {
   ): HouseholdListItem {
     return {
       createdAt: household.createdAt,
+      allowExpiredItems: household.allowExpiredItems ?? true,
       defaultCalculatedMaxLimitMultiplier: household.defaultCalculatedMaxLimitMultiplier ?? 2,
       favouriteShopId: household.favouriteShopId ?? null,
       id: household.id,

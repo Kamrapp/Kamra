@@ -485,7 +485,7 @@ API rules:
 - Introduce request/correlation ids in route context and pass them to logs/operations.
 - Do not accept server-owned snapshots or resulting totals blindly from the browser; resolve catalogue records server-side and build bounded snapshots there.
 - Do not auto-count every Product matching a filter. Stock Allocation commands validate the Acceptance Criteria and enforce the Stage 8 one-active-allocation invariant transactionally.
-- Validate dates as date-only strings and quantities as finite non-negative decimal values with a documented precision. Reject expiry before acquisition unless an explicit correction reason is supplied.
+- Validate dates as date-only strings and quantities as finite non-negative decimal values with a documented precision. Expiry may precede acquisition because the official date and later household acquisition are distinct facts; the household policy `allowExpiredItems` defaults to `true` and can exclude expired stock from consumption/derived availability when set to `false`.
 - Ensure at most one active Shopping Need set per household, or deliberately return the existing active set on idempotent create.
 - Replace direct catalogue hard delete in ordinary admin UI with archive. Keep purge behind dependency inspection and explicit maintenance/admin confirmation.
 - Keep route files as adapters; put selection, aggregation, notice, transition, and transaction logic in testable domain services/repositories.
@@ -818,7 +818,7 @@ Execution rule for budget-focused implementation models: implement only the name
 - Stable snapshots for every new Mongo record/API response.
 - Base-content manifest and per-locale translation parity, stable ids, parent existence/cycles, Stock Target Template criteria/unit compatibility, and embedded translation output.
 - Validators reject invalid/cross-household Product Concept edges, unqualified Product Concept/Attribute refs, cyclic application writes, duplicate active Stock Allocation, and unsupported nested Acceptance Criteria expressions.
-- Validators reject negative/NaN quantities, invalid dates, expiry-before-acquisition, missing snapshots on linked historical records, and illegal statuses.
+- Validators reject negative/NaN quantities, invalid dates, missing snapshots on linked historical records, and illegal statuses; expiry-before-acquisition is valid and remains an explicit historical state.
 - Frontend/server parity fixtures if shared browser-safe contracts are not introduced.
 
 ### Repository/migration tests

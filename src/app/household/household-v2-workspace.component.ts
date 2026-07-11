@@ -10,6 +10,7 @@ export class HouseholdV2WorkspaceComponent {
   readonly loadState = signal<"idle" | "loading" | "ready" | "error">("idle");
   readonly editingProductId = signal<string | null>(null);
   draftProductName = "";
+  allowExpiredItems = true;
   private readonly service = inject(HouseholdV2Service);
   constructor() { effect(() => { const householdId = this.householdId(); if (householdId) void this.load(householdId); }); }
   async refresh(): Promise<void> { const householdId = this.householdId(); if (householdId) await this.load(householdId); }
@@ -17,7 +18,7 @@ export class HouseholdV2WorkspaceComponent {
     this.loadState.set("loading"); this.errorMessage.set("");
     const result = await this.service.loadWorkspace(householdId);
     if (result.status === "error") { this.loadState.set("error"); this.errorMessage.set(result.message ?? "The household workspace could not be loaded."); return; }
-    this.workspace.set(result.workspace ?? null); this.loadState.set("ready");
+    this.workspace.set(result.workspace ?? null); this.allowExpiredItems = result.workspace?.allowExpiredItems ?? true; this.loadState.set("ready");
   }
   editProduct(product: { displayName: string; id: string }): void { this.editingProductId.set(product.id); this.draftProductName = product.displayName; }
   cancelProductEdit(): void { this.editingProductId.set(null); }
@@ -37,4 +38,5 @@ export class HouseholdV2WorkspaceComponent {
     if (result.status === "error") { this.errorMessage.set(result.message ?? "Batch could not be discarded."); return; }
     await this.refresh();
   }
+  async saveExpiredItemsPolicy(): Promise<void> { const result = await this.service.updateExpiredItemsPolicy(this.householdId(), this.allowExpiredItems); if (result.status === "error") this.errorMessage.set(result.message ?? "Household setting could not be updated."); }
 }

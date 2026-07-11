@@ -71,6 +71,23 @@ export const householdsRoute: AppRoute = {
   }
 };
 
+export const householdSettingsRoute: AppRoute = {
+  match: (request) => request.method === "PATCH" && /^\/api\/households\/[^/]+\/settings$/.test(request.path),
+  handle: async (request, context) => {
+    const repositoryResult = await createHouseholdRepositoryForUserRequest(request, context);
+    if ("response" in repositoryResult) return repositoryResult.response;
+    const householdId = request.path.match(/^\/api\/households\/([^/]+)\/settings$/)?.[1];
+    const body = parseJsonObject(request.bodyText);
+    if (!householdId || !body || typeof body["allowExpiredItems"] !== "boolean") return json(400, { error: "invalid_household_settings_request" });
+    try {
+      const result = await repositoryResult.repository.updateExpiredItemsPolicy({ allowExpiredItems: body["allowExpiredItems"], householdId, updatedAt: new Date().toISOString() });
+      return json(200, result);
+    } catch (error) {
+      return json(error instanceof Error && error.message === "household_not_found" ? 404 : 500, { error: error instanceof Error ? error.message : "household_settings_update_failed" });
+    }
+  }
+};
+
 export const householdStockRoute: AppRoute = {
   match: (request) =>
     (request.method === "DELETE" || request.method === "GET" || request.method === "PATCH" || request.method === "POST")

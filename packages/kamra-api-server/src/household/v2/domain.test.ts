@@ -52,7 +52,7 @@ describe("household v2 stock rules", () => {
     expect(() => assertStockTarget(target)).not.toThrow();
     expect(() => assertStockBatch(batch("a", "2026-07-20", 1))).not.toThrow();
     expect(() => assertStockAllocation(allocation("a", 1))).not.toThrow();
-    expect(() => assertStockBatch(batch("bad", "2026-06-01", 1))).toThrow("precede");
+    expect(() => assertStockBatch(batch("bad", "2026-06-01", 1))).not.toThrow();
     expect(() => assertStockTarget({ ...target, targetQuantity: 1 })).toThrow("below");
     expect(() => assertStockAllocation({ ...allocation("a", 1), allocatedQuantity: 1.0000001 })).toThrow("positive");
   });

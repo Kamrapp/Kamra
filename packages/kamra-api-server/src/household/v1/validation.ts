@@ -50,6 +50,9 @@ function assertOptionalString(value: unknown, label: string): void {
     throw new Error(`${label} must be a string when provided.`);
   }
 }
+function assertOptionalBoolean(value: unknown, label: string): void {
+  if (value !== undefined && value !== null && typeof value !== "boolean") throw new Error(`${label} must be a boolean when provided.`);
+}
 
 function assertOptionalNonEmptyString(value: unknown, label: string): void {
   if (value !== undefined && value !== null) {
@@ -105,6 +108,7 @@ export function assertHouseholdRecord(value: unknown, label = "household"): asse
   assertObject(value, label);
   assertIsoDateString(value["createdAt"], `${label}.createdAt`);
   assertNonEmptyString(value["createdByUserId"], `${label}.createdByUserId`);
+  assertOptionalBoolean(value["allowExpiredItems"], `${label}.allowExpiredItems`);
   assertOptionalNonNegativeNumber(
     value["defaultCalculatedMaxLimitMultiplier"],
     `${label}.defaultCalculatedMaxLimitMultiplier`

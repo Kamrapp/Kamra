@@ -3,6 +3,7 @@
   @if (loadState() === 'loading') { <p class="state">Loading grouped stock…</p> }
   @if (errorMessage()) { <p class="state error">{{ errorMessage() }}</p> }
   @if (workspace(); as current) {
+    <div class="policy-row"><label><input type="checkbox" [(ngModel)]="allowExpiredItems" /> Allow expired items</label><button type="button" (click)="saveExpiredItemsPolicy()">Save setting</button></div>
     <div class="target-list">
       @for (group of current.targets; track group.target.id) {
         <article class="target-card">

@@ -29,7 +29,8 @@ This is the single source of truth for manual/browser verification carried forwa
 - [ ] Sign in and manually verify the Stage 8 grouped workspace renders on Home, refreshes, and keeps target/product/batch/unassigned hierarchy visible.
 - [ ] Edit a Household Product identity and verify its existing batch acquisition/expiry/history remains unchanged; verify stale Product revisions are rejected.
 - [ ] Correct a batch quantity and discard a batch from grouped Home; verify the target aggregate refreshes and the batch remains in history/status rather than disappearing silently.
-- [ ] Edit a batch acquisition/expiry date from grouped Home; verify invalid expiry-before-acquisition is rejected and valid changes refresh without changing the Product identity.
+- [ ] Edit a batch acquisition/expiry date from grouped Home; verify an expiry-before-acquisition date is accepted and valid changes refresh without changing the Product identity.
+- [ ] Verify an expiry date before acquisition is accepted; toggle household `allowExpiredItems` off/on and confirm expired stock remains visible but is excluded/included in derived availability and consumption accordingly. Default must be permissive.
 - [ ] Verify the grouped workspace API/read model supplies the same hierarchy and does not count unallocated batches in Stock Target totals.
 - [ ] Check English/Hungarian labels, keyboard operation, narrow mobile layout, loading/empty/error/403/404/409 states, and light/dark themes.
 - [ ] Verify admin flags, audit history, maintenance actions, structured logs, redaction, and effective database name in diagnostics.

@@ -52,7 +52,6 @@ export function assertStockBatch(value: unknown, label = "stockBatch"): asserts 
   const batch = value as Record<string, unknown>;
   assertValue(isDate(batch["acquiredOn"]), `${label}.acquiredOn must be a date`);
   assertValue(batch["expiryOn"] === null || batch["expiryOn"] === undefined || isDate(batch["expiryOn"]), `${label}.expiryOn must be a date or null`);
-  if (typeof batch["expiryOn"] === "string") assertValue(batch["expiryOn"] >= (batch["acquiredOn"] as string), `${label}.expiryOn cannot precede acquiredOn`);
   assertValue(isQuantity(batch["originalQuantity"]) && isQuantity(batch["remainingQuantity"]) && (batch["remainingQuantity"] as number) <= (batch["originalQuantity"] as number), `${label} quantities are invalid`);
   assertTrackingUnit(batch["unit"], `${label}.unit`);
   assertValue(batch["status"] === "available" || batch["status"] === "depleted" || batch["status"] === "discarded" || batch["status"] === "voided", `${label}.status is invalid`);
@@ -78,7 +77,6 @@ export function assertCreateManualStockBatchRequest(value: unknown, label = "cre
   for (const key of ["acquiredOn", "displayName", "operationId", "requestFingerprint"]) assertValue(typeof request[key] === "string" && Boolean(request[key]), `${label}.${key} is required`);
   assertValue(isDate(request["acquiredOn"]), `${label}.acquiredOn must be a date`);
   assertValue(request["expiryOn"] === null || request["expiryOn"] === undefined || isDate(request["expiryOn"]), `${label}.expiryOn must be a date or null`);
-  if (typeof request["expiryOn"] === "string") assertValue(request["expiryOn"] >= (request["acquiredOn"] as string), `${label}.expiryOn cannot precede acquiredOn`);
   if (request["householdProductId"] !== undefined && request["householdProductId"] !== null) assertValue(typeof request["householdProductId"] === "string" && request["householdProductId"].length > 0, `${label}.householdProductId is invalid`);
   assertValue(isQuantity(request["originalQuantity"]) && (request["originalQuantity"] as number) > 0, `${label}.originalQuantity must be positive`);
   assertTrackingUnit(request["unit"], `${label}.unit`);

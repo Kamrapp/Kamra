@@ -17,6 +17,7 @@ export class MongoStockCommandRepository {
   private readonly operations: MongoCollectionLike<DomainOperation>;
   private readonly allocations: MongoCollectionLike<StockAllocation>;
   private readonly targets: MongoCollectionLike<StockTarget>;
+  private readonly households: MongoCollectionLike<{ id: string; allowExpiredItems?: boolean | null }>;
 
   constructor(private readonly database: MongoDatabaseLike, private readonly transactionClient: MongoTransactionClientLike) {
     this.batches = database.collection("household_stock_batches");
@@ -24,6 +25,7 @@ export class MongoStockCommandRepository {
     this.operations = database.collection("household_domain_operations");
     this.allocations = database.collection("household_stock_allocations");
     this.targets = database.collection("household_stock_targets");
+    this.households = database.collection("households");
   }
 
   async setupCollections(): Promise<void> {
@@ -74,7 +76,8 @@ export class MongoStockCommandRepository {
       if (target.revision !== input.expectedTargetRevision) throw new Error("stale_revision");
       const allocations = await this.allocations.find({ householdId: input.householdId, stockTargetId: target.id, status: "active" }, { session }).toArray();
       const batches = (await Promise.all(allocations.map((allocation) => this.batches.findOne({ householdId: input.householdId, id: allocation.stockBatchId }, { session })))).filter((batch): batch is StockBatch => Boolean(batch));
-      const plan = planConsumption(target, batches, allocations, input.requestedQuantity, input.selectedBatchIds);
+      const household = await this.households.findOne({ id: input.householdId }, { session });
+      const plan = planConsumption(target, batches, allocations, input.requestedQuantity, input.selectedBatchIds, household?.allowExpiredItems ?? true, input.occurredAt.slice(0, 10));
       await this.operations.insertOne({ actorUserId: input.actorUserId, createdAt: input.occurredAt, householdId: input.householdId, id: input.operationId, operationType: "stock_target.consume", requestFingerprint: input.requestFingerprint, status: "started", updatedAt: input.occurredAt }, { session });
       for (const line of plan) {
         const batch = batches.find((candidate) => candidate.id === line.batchId)!;

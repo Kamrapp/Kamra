@@ -126,10 +126,12 @@ export function planConsumption(
   batches: readonly StockBatch[],
   allocations: readonly StockAllocation[],
   requestedQuantity: number,
-  selectedBatchIds?: readonly string[]
+  selectedBatchIds?: readonly string[],
+  allowExpiredItems = true,
+  today = "9999-12-31"
 ): ConsumptionPlanLine[] {
   if (!Number.isFinite(requestedQuantity) || requestedQuantity <= 0) throw new Error("invalid_consumption_quantity");
-  const batchesById = new Map(batches.filter((batch) => batch.status === "available").map((batch) => [batch.id, batch]));
+  const batchesById = new Map(batches.filter((batch) => batch.status === "available" && (allowExpiredItems || batch.expiryOn === null || batch.expiryOn === undefined || batch.expiryOn >= today)).map((batch) => [batch.id, batch]));
   const activeAllocations = allocations.filter((allocation) => allocation.status === "active" && allocation.stockTargetId === target.id && batchesById.has(allocation.stockBatchId));
   const selected = selectedBatchIds?.length ? activeAllocations.filter((allocation) => selectedBatchIds.includes(allocation.stockBatchId)) : activeAllocations;
   const ordered = selectedBatchIds?.length ? selected.sort((a, b) => (selectedBatchIds.indexOf(a.stockBatchId) - selectedBatchIds.indexOf(b.stockBatchId))) : orderBatchesForConsumption(selected.map((allocation) => batchesById.get(allocation.stockBatchId)!), target.consumptionPolicy).flatMap((batch) => activeAllocations.filter((allocation) => allocation.stockBatchId === batch.id));
@@ -151,9 +153,11 @@ export function planConsumption(
 export function aggregateAvailableQuantity(
   target: StockTarget,
   batches: readonly StockBatch[],
-  allocations: readonly StockAllocation[]
+  allocations: readonly StockAllocation[],
+  allowExpiredItems = true,
+  today = "9999-12-31"
 ): number {
-  const batchesById = new Map(batches.filter((batch) => batch.status === "available").map((batch) => [batch.id, batch]));
+  const batchesById = new Map(batches.filter((batch) => batch.status === "available" && (allowExpiredItems || batch.expiryOn === null || batch.expiryOn === undefined || batch.expiryOn >= today)).map((batch) => [batch.id, batch]));
   return allocations.filter((allocation) => allocation.status === "active" && allocation.stockTargetId === target.id)
     .reduce((total, allocation) => {
       const batch = batchesById.get(allocation.stockBatchId);
@@ -170,9 +174,9 @@ export interface StockTargetAggregate {
   status: "below_minimum" | "at_target" | "between_minimum_and_target";
 }
 
-export function summarizeStockTarget(target: StockTarget, batches: readonly StockBatch[], allocations: readonly StockAllocation[], today: string): StockTargetAggregate {
+export function summarizeStockTarget(target: StockTarget, batches: readonly StockBatch[], allocations: readonly StockAllocation[], today: string, allowExpiredItems = true): StockTargetAggregate {
   const availableBatches = batches.filter((batch) => batch.status === "available");
-  const availableQuantity = aggregateAvailableQuantity(target, availableBatches, allocations);
+  const availableQuantity = aggregateAvailableQuantity(target, availableBatches, allocations, allowExpiredItems, today);
   const allocatedBatchIds = new Set(allocations.filter((allocation) => allocation.status === "active" && allocation.stockTargetId === target.id).map((allocation) => allocation.stockBatchId));
   const targetBatches = availableBatches.filter((batch) => allocatedBatchIds.has(batch.id));
   const expiringBatchCount = targetBatches.filter((batch) => batch.expiryOn !== null && batch.expiryOn !== undefined && batch.expiryOn >= today && batch.expiryOn <= addDays(today, target.expiryWarningDays)).length;

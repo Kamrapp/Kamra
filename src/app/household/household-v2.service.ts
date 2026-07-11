@@ -5,7 +5,7 @@ import { AuthService } from "../auth.service";
 export interface HouseholdV2Product { displayName: string; id: string; identityKind: "manual" | "catalogue"; identitySnapshot?: Record<string, unknown>; revision: number; }
 export interface HouseholdV2Batch { acquiredOn: string; acquisitionSnapshot: { displayName: string }; expiryOn?: string | null; householdProductId?: string | null; id: string; remainingQuantity: number; revision: number; unit: string; }
 export interface HouseholdV2TargetGroup { aggregate: { availableQuantity: number; batchCount: number; status: string }; batches: HouseholdV2Batch[]; products: HouseholdV2Product[]; target: { displayName: string; id: string; targetQuantity: number; trackingUnit: string }; }
-export interface HouseholdV2Workspace { products: HouseholdV2Product[]; targets: HouseholdV2TargetGroup[]; unassignedBatches: HouseholdV2Batch[]; }
+export interface HouseholdV2Workspace { allowExpiredItems: boolean; products: HouseholdV2Product[]; targets: HouseholdV2TargetGroup[]; unassignedBatches: HouseholdV2Batch[]; }
 
 @Injectable({ providedIn: "root" })
 export class HouseholdV2Service {
@@ -21,6 +21,9 @@ export class HouseholdV2Service {
 
   async updateProductIdentity(input: { displayName: string; householdId: string; productId: string; expectedRevision: number }): Promise<{ status: "error" | "ok"; message?: string }> {
     return await this.write("PATCH", `/api/households/${encodeURIComponent(input.householdId)}/products/${encodeURIComponent(input.productId)}`, { displayName: input.displayName, expectedRevision: input.expectedRevision });
+  }
+  async updateExpiredItemsPolicy(householdId: string, allowExpiredItems: boolean): Promise<{ status: "error" | "ok"; message?: string }> {
+    return await this.write("PATCH", `/api/households/${encodeURIComponent(householdId)}/settings`, { allowExpiredItems });
   }
 
   async correctBatch(input: { acquiredOn?: string; batchId: string; expiryOn?: string | null; householdId: string; expectedBatchRevision: number; resultingQuantity: number }): Promise<{ status: "error" | "ok"; message?: string }> {

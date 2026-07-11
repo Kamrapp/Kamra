@@ -69,6 +69,7 @@ export const householdFeatureFlagKeys = [
 export type HouseholdFeatureFlagKey = (typeof householdFeatureFlagKeys)[number];
 
 export interface HouseholdRecord {
+  allowExpiredItems?: boolean | null;
   createdAt: string;
   createdByUserId: string;
   defaultCalculatedMaxLimitMultiplier?: number | null;
@@ -143,6 +144,7 @@ export interface HouseholdStockItemRecord {
 }
 
 export interface HouseholdListItem {
+  allowExpiredItems?: boolean;
   createdAt: string;
   defaultCalculatedMaxLimitMultiplier?: number | null;
   favouriteShopId?: string | null;

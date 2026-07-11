@@ -15,6 +15,7 @@ This is the executable vocabulary for the Stage 8 household MVP. Stable ids, not
 - A **global Product** is catalogue identity. A **Household Product** is the household-owned reusable concrete identity for a manually entered, receipt-imported, or optionally catalogue-linked product. Its classification can be reused by future batches.
 - A **Stock Target** is a household demand policy: display name, unit, minimum/target, expiry warning, consumption policy, and flat Acceptance Criteria.
 - A **Stock Batch** is one physical acquisition with its own quantity, acquisition/expiry dates, immutable display/classification snapshots, lifecycle, and optional Household Product reference.
+- A batch's official expiry date may precede its household acquisition date; these dates describe different facts and are not ordered by validation. Each household defaults to `allowExpiredItems: true`; when disabled, expired stock remains visible/history but is excluded from consumption and derived available totals.
 - A **Stock Allocation** is the explicit counting boundary between a batch and a target. Stage 8 permits one active full-batch allocation; matching alone never counts stock.
 - A **Stock Movement** is the immutable quantity history. Corrections and discard are commands, not deletes.
 - A **Shopping Need** is a generic demand snapshot. It may be generated from a Stock Target or entered ad hoc and is the Stage 9 handoff; it is not a purchase.

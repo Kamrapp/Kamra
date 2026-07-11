@@ -166,6 +166,9 @@ export const householdV1CollectionSchemas: Record<HouseholdV1CollectionName, Jso
     {
       createdAt: isoDateStringSchema,
       createdByUserId: nonEmptyStringSchema,
+      allowExpiredItems: {
+        bsonType: "bool"
+      },
       defaultCalculatedMaxLimitMultiplier: optionalNonNegativeNumberSchema,
       favouriteShopId: optionalStringSchema,
       id: nonEmptyStringSchema,

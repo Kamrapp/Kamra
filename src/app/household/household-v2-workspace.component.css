@@ -2,6 +2,7 @@
 .v2-workspace { border: 1px solid var(--border-subtle, #d9d3c8); border-radius: 1rem; padding: 1rem; background: var(--surface-raised, #fffdf8); }
 .workspace-heading, .target-heading { align-items: center; display: flex; gap: 1rem; justify-content: space-between; }
 .workspace-heading { margin-bottom: 1rem; }
+.policy-row { align-items: center; display: flex; gap: .75rem; justify-content: space-between; margin-bottom: 1rem; }
 .eyebrow { color: var(--text-muted, #6c665c); font-size: .72rem; letter-spacing: .08em; margin: 0; text-transform: uppercase; }
 h2, h3, p { margin-block: .2rem; }
 .target-list { display: grid; gap: .75rem; }
