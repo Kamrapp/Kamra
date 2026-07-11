@@ -32,7 +32,7 @@ import {
   latestHouseholdShoppingListRoute,
   shopsRoute
 } from "./routes/household-routes.js";
-import { householdV2AllocateBatchRoute, householdV2ConsumeRoute, householdV2CorrectBatchRoute, householdV2DiscardBatchRoute, householdV2HouseholdProductClassificationRoute, householdV2HouseholdProductCollectionRoute, householdV2ManualBatchRoute, householdV2ShoppingNeedTransitionRoute, householdV2ShoppingNeedsRoute, householdV2StockTargetCollectionRoute, householdV2StockTargetMutationRoute, householdV2StockTargetRoute } from "./routes/household-v2-routes.js";
+import { householdV2AllocateBatchRoute, householdV2ConsumeRoute, householdV2CorrectBatchRoute, householdV2DiscardBatchRoute, householdV2HouseholdProductClassificationRoute, householdV2HouseholdProductCollectionRoute, householdV2ManualBatchRoute, householdV2ShoppingNeedTransitionRoute, householdV2ShoppingNeedsRoute, householdV2StockTargetCollectionRoute, householdV2StockTargetMutationRoute, householdV2StockTargetRoute, householdV2WorkspaceRoute } from "./routes/household-v2-routes.js";
 import {
   acceptProductReviewItemRoute,
   declineProductReviewItemRoute,
@@ -70,6 +70,7 @@ const appRoutes: AppRoute[] = [
   householdV2StockTargetMutationRoute,
   householdV2HouseholdProductCollectionRoute,
   householdV2HouseholdProductClassificationRoute,
+  householdV2WorkspaceRoute,
   householdV2ManualBatchRoute,
   householdV2AllocateBatchRoute,
   householdV2ConsumeRoute,

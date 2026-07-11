@@ -9,6 +9,17 @@ import { MongoHouseholdProductRepository } from "../../household/v2/mongo-househ
 import { schemaVersion, type CreateHouseholdProductRequest, type CreateManualStockBatchRequest, type CreateStockTargetRequest, type StockTarget, type TrackingUnit } from "../../household/v2/contracts.js";
 import { assertCreateHouseholdProductRequest, assertCreateManualStockBatchRequest, assertCreateStockTargetRequest, assertTrackingUnit } from "../../household/v2/validation.js";
 
+export const householdV2WorkspaceRoute: AppRoute = {
+  match: (request) => request.method === "GET" && /^\/api\/households\/[^/]+\/stock-workspace$/.test(request.path),
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request);
+    if (!user) return unauthorized("apiErrors.signInRequired");
+    const householdId = request.path.match(/^\/api\/households\/([^/]+)\/stock-workspace$/)?.[1];
+    if (!householdId) return json(400, { error: "invalid_household_path" });
+    return await withHouseholdDatabase(context, householdId, user.email, async (database) => json(200, { schemaVersion, workspace: await new MongoStockReadRepository(database).getWorkspace(householdId, new Date().toISOString().slice(0, 10)) }));
+  }
+};
+
 export const householdV2HouseholdProductCollectionRoute: AppRoute = {
   match: (request) => (request.method === "GET" || request.method === "POST") && /^\/api\/households\/[^/]+\/products$/.test(request.path),
   handle: async (request, context) => {

@@ -26,6 +26,7 @@ This is the single source of truth for manual/browser verification carried forwa
 - [ ] Archive/unpublish a linked catalogue Product; verify household snapshots, stock, and history remain usable.
 - [ ] Generate, edit, skip, restore, and regenerate Shopping Needs after stock changes; verify one active need list and no Shop/Product/Purchase side effects.
 - [ ] Verify Home top-level rows are grouped Stock Targets plus an Unassigned/Unclassified group; expand Product and Batch details; confirm target amount is derived/read-only and batch physical fields remain editable.
+- [ ] Verify the grouped workspace API/read model supplies the same hierarchy and does not count unallocated batches in Stock Target totals.
 - [ ] Check English/Hungarian labels, keyboard operation, narrow mobile layout, loading/empty/error/403/404/409 states, and light/dark themes.
 - [ ] Verify admin flags, audit history, maintenance actions, structured logs, redaction, and effective database name in diagnostics.
 - [ ] Run `npm run smoke:transactions` against `kamra_smoke` or another approved disposable database; record rollback `0`, commit `2`, cleanup, and effective database name.
@@ -58,3 +59,4 @@ Record date, environment/database name, tester, route/build commit, and any fail
 
 - 2026-07-11: Transaction smoke passed manually against `kamra_dev`; rollback count 0, committed count 2, temporary data cleaned up.
 - 2026-07-11: Household Product anchor repository/API implemented with revisioned classification and product-backed batch inheritance; automated validation passed. Browser grouping and end-to-end Product-first flow remain unchecked.
+- 2026-07-11: Grouped workspace read model implemented with server-derived target aggregates, Product grouping, and visible unassigned batches; automated repository tests passed.

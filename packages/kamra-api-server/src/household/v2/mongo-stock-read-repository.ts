@@ -1,5 +1,5 @@
 import type { MongoCollectionLike, MongoDatabaseLike } from "../../db/mongo-like.js";
-import type { StockAllocation, StockBatch, StockTarget } from "./contracts.js";
+import type { HouseholdProduct, StockAllocation, StockBatch, StockTarget } from "./contracts.js";
 import { summarizeStockTarget } from "./domain.js";
 
 export interface StockTargetReadModel {
@@ -8,12 +8,18 @@ export interface StockTargetReadModel {
   target: StockTarget;
 }
 
+export interface StockWorkspaceReadModel {
+  products: HouseholdProduct[];
+  targets: Array<StockTargetReadModel & { products: HouseholdProduct[] }>;
+  unassignedBatches: StockBatch[];
+}
+
 export class MongoStockReadRepository {
   private readonly allocations: MongoCollectionLike<StockAllocation>;
   private readonly batches: MongoCollectionLike<StockBatch>;
   private readonly targets: MongoCollectionLike<StockTarget>;
 
-  constructor(database: MongoDatabaseLike) {
+  constructor(private readonly database: MongoDatabaseLike) {
     this.allocations = database.collection("household_stock_allocations");
     this.batches = database.collection("household_stock_batches");
     this.targets = database.collection("household_stock_targets");
@@ -25,5 +31,24 @@ export class MongoStockReadRepository {
     const allocations = await this.allocations.find({ householdId, stockTargetId: targetId }).toArray();
     const batches = await this.batches.find({ householdId }).toArray();
     return { aggregate: summarizeStockTarget(target, batches, allocations, today), batches: batches.filter((batch) => allocations.some((allocation) => allocation.stockBatchId === batch.id)), target };
+  }
+
+  async getWorkspace(householdId: string, today: string): Promise<StockWorkspaceReadModel> {
+    const [targets, allocations, batches, products] = await Promise.all([
+      this.targets.find({ householdId, status: "active" }).sort({ displayName: 1 }).toArray(),
+      this.allocations.find({ householdId, status: "active" }).toArray(),
+      this.batches.find({ householdId }).toArray(),
+      this.database.collection<HouseholdProduct>("household_products").find({ householdId, status: "active" }).sort({ displayName: 1 }).toArray()
+    ]);
+    const batchesById = new Map(batches.map((batch) => [batch.id, batch]));
+    const productById = new Map(products.map((product) => [product.id, product]));
+    const allocatedBatchIds = new Set(allocations.map((allocation) => allocation.stockBatchId));
+    const targetModels = targets.map((target) => {
+      const targetAllocations = allocations.filter((allocation) => allocation.stockTargetId === target.id);
+      const targetBatches = targetAllocations.map((allocation) => batchesById.get(allocation.stockBatchId)).filter((batch): batch is StockBatch => Boolean(batch));
+      const targetProducts = [...new Map(targetBatches.map((batch) => batch.householdProductId ? [batch.householdProductId, productById.get(batch.householdProductId)] as const : null).filter((entry): entry is readonly [string, HouseholdProduct | undefined] => entry !== null && Boolean(entry[1]))).values()] as HouseholdProduct[];
+      return { aggregate: summarizeStockTarget(target, batches, targetAllocations, today), batches: targetBatches, products: targetProducts, target };
+    });
+    return { products, targets: targetModels, unassignedBatches: batches.filter((batch) => !allocatedBatchIds.has(batch.id)) };
   }
 }
