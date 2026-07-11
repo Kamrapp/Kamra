@@ -26,6 +26,11 @@ export const databaseMaintenanceEntries: readonly DatabaseMaintenanceEntry[] = [
     title: "Household stock targets and batches"
   },
   {
+    details: "Creates the reusable household product anchor collection used to group concrete products across batches, and links legacy household product rows to migrated stock batches without rewriting historical batch snapshots.",
+    id: "household-products-v1",
+    title: "Household product anchors"
+  },
+  {
     details: "Ensures the feature_flag_change_audits collection and its indexes for persisted old/new values, actor, reason, and revision. This is an audit-schema action; it does not change the current value of any feature flag.",
     id: "feature-flag-audit-v1",
     title: "Feature flag audit history"

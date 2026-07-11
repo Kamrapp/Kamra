@@ -217,10 +217,10 @@
 - Impact: Stage 8 is not closeable and Stage 9/10 cannot start until the relevant checklist sections and evidence are completed.
 - Issue: The connection logger reports the URI default database (`test`) while the smoke correctly targets configured `MONGODB_DB_NAME` (`kamra_dev`).
 - Impact: This is expected Mongo client behavior, but future operational logs should consistently include the effective application database to avoid confusion.
-- Issue: Stage 8 implementation is incomplete at product level: Stock Target CRUD, checked-in classification content sync, household-local classification management, invitation/join management, migration reconciliation, void/reversal policy, structured domain-event coverage, Angular v2 service/UI cutover, and generated Shopping Need synchronization remain.
+- Issue: Stage 8 implementation is incomplete at product level: checked-in classification content sync, household-local classification management, invitation/join management, migration reconciliation, void/reversal policy, structured domain-event coverage, Angular v2 service/UI cutover, and generated Shopping Need synchronization remain.
 - Impact: The v2 backend foundation and route slices are not yet a coherent browser workflow; do not mark Stage 8 complete or begin Stage 9 implementation.
-- Issue: Planning reassessment found that reusable Household Product identity was under-specified relative to batch-level snapshots.
-- Impact: The Stage 8 plan now requires a `household_products` anchor, product-first/need-first convergence rules, grouped Home hierarchy, and future-batch classification inheritance; runtime implementation is still pending.
+- Issue: Reusable Household Product identity is now represented by a `household_products` repository and API; product classification is revisioned and future product-backed batches inherit it while preserving batch snapshots.
+- Impact: Browser grouping, product editing, and full migration/reconciliation still need implementation and manual confirmation.
 - Issue: Transaction smoke is useful for Mongo topology/driver/transaction-path changes but not for unrelated PRs.
 - Impact: The plan/docs now recommend a separate narrowly triggered Smoke workflow, while unit transaction tests remain in secret-free App Checks.
 - Issue: Stock Target CRUD is now complete at the initial backend route boundary; classification content, household management, UI cutover, reconciliation, and generated-need synchronization remain.
@@ -237,6 +237,7 @@
 ## Manual actions currently testable
 
 - Product-first: create an unclassified concrete Household Product, add two batches, classify the Product later, and verify future batches inherit classification while prior snapshots stay unchanged.
+- API product anchor: create/list via `/api/households/{householdId}/products`, classify via `/classification` with `expectedRevision`, then create a batch with `householdProductId`; verify stale revisions are rejected.
 - Need-first: create a generic Stock Target and unanchored opening batch, then identify concrete Household Products and allocate later batches to the same target without rewriting opening history.
 - Verify grouped Home hierarchy: Stock Target groups first, Household Products beneath, individual Batches beneath Products, plus visible unassigned/unclassified groups; target current amount is derived/read-only.
 - Run `npm run smoke:transactions` against an approved disposable database and record rollback 0, commit 2, cleanup, and effective database name.
@@ -245,11 +246,11 @@
 ## Roadmap Or Plan Updates
 
 - Needed: No roadmap change.
-- Status: Stage 8 remains in implementation; transaction gate is cleared, but Product-anchor, product/browser acceptance, and the new plan alignment still need implementation/verification.
+- Status: Stage 8 remains in implementation; transaction gate is cleared, the Product anchor backend slice is committed after validation, and product/browser acceptance plus remaining classification, membership, reconciliation, and UI work remain.
 
 ## Next Step
 
-Continue Stage 8 with Household Product anchor implementation, classification sync/admin surfaces, then Angular v2 service/UI cutover.
+Continue Stage 8 with classification sync/admin surfaces, household-local classification/membership, reconciliation and command closure, then Angular v2 service/UI cutover.
 
 ## Notes For Future Agent
 

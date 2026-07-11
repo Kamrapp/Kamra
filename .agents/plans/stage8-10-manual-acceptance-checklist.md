@@ -4,7 +4,7 @@ This is the single source of truth for manual/browser verification carried forwa
 
 ## Current status
 
-- Stage 8: Not ready for manual closeout. The v2 backend foundation and initial Stock Target CRUD are implemented, but the reusable Household Product anchor, complete classification pack/admin sync, household-local classification management, household membership management, migration reconciliation, Angular cutover, generated Shopping Need synchronization, and the complete browser flow remain incomplete.
+- Stage 8: Not ready for manual closeout. The v2 backend foundation, initial Stock Target CRUD, and reusable Household Product anchor API are implemented, but complete classification pack/admin sync, household-local classification management, household membership management, migration reconciliation, Angular cutover, generated Shopping Need synchronization, and the complete browser flow remain incomplete.
 - Stage 9: Blocked until Stage 8 closeout and separate plan approval.
 - Stage 10: Blocked until Stage 9 closeout and separate plan approval.
 
@@ -57,3 +57,4 @@ This is the single source of truth for manual/browser verification carried forwa
 Record date, environment/database name, tester, route/build commit, and any failed or deferred item here. Never record credentials or private data.
 
 - 2026-07-11: Transaction smoke passed manually against `kamra_dev`; rollback count 0, committed count 2, temporary data cleaned up.
+- 2026-07-11: Household Product anchor repository/API implemented with revisioned classification and product-backed batch inheritance; automated validation passed. Browser grouping and end-to-end Product-first flow remain unchecked.

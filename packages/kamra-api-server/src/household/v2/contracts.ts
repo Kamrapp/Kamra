@@ -28,6 +28,36 @@ export interface ProductAttributeRef {
   scope: ProductConceptScope;
 }
 
+export const householdProductIdentityKinds = ["manual", "catalogue"] as const;
+export type HouseholdProductIdentityKind = (typeof householdProductIdentityKinds)[number];
+
+export interface HouseholdProductIdentitySnapshot {
+  brand?: string | null;
+  gtin?: string | null;
+  measurementLabel?: string | null;
+  sourceKey?: string | null;
+  sourceName?: string | null;
+  sourceUrl?: string | null;
+}
+
+export interface HouseholdProduct {
+  catalogProductId?: string | null;
+  classificationRevision: number;
+  createdAt: string;
+  createdByUserId: string;
+  directAttributes: ProductAttributeRef[];
+  directConcepts: ProductConceptRef[];
+  displayName: string;
+  householdId: string;
+  id: string;
+  identityKind: HouseholdProductIdentityKind;
+  identitySnapshot: HouseholdProductIdentitySnapshot;
+  revision: number;
+  status: "active" | "archived";
+  updatedAt: string;
+  updatedByUserId: string;
+}
+
 export const productConceptRelationKinds = ["is_a"] as const;
 export type ProductConceptRelationKind = (typeof productConceptRelationKinds)[number];
 
@@ -107,6 +137,7 @@ export interface StockBatch {
   discardedAt?: string | null;
   expiryOn?: string | null;
   householdId: string;
+  householdProductId?: string | null;
   id: string;
   originalQuantity: number;
   productId?: string | null;
@@ -235,6 +266,7 @@ export interface CreateManualStockBatchRequest {
   directConcepts?: ProductConceptRef[];
   displayName: string;
   expiryOn?: string | null;
+  householdProductId?: string | null;
   operationId: string;
   originalQuantity: number;
   requestFingerprint: string;
@@ -249,4 +281,13 @@ export interface CreateStockTargetRequest {
   minimumQuantity: number;
   targetQuantity: number;
   trackingUnit: TrackingUnit;
+}
+
+export interface CreateHouseholdProductRequest {
+  catalogProductId?: string | null;
+  directAttributes?: ProductAttributeRef[];
+  directConcepts?: ProductConceptRef[];
+  displayName: string;
+  identityKind: HouseholdProductIdentityKind;
+  identitySnapshot?: HouseholdProductIdentitySnapshot;
 }

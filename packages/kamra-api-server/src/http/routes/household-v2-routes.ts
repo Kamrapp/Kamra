@@ -5,8 +5,46 @@ import { MongoStockCommandRepository } from "../../household/v2/mongo-stock-comm
 import { MongoShoppingNeedRepository } from "../../household/v2/mongo-shopping-need-repository.js";
 import { createAdHocShoppingNeed } from "../../household/v2/shopping-needs.js";
 import { MongoStockTargetRepository } from "../../household/v2/mongo-stock-target-repository.js";
-import { schemaVersion, type CreateManualStockBatchRequest, type CreateStockTargetRequest, type StockTarget, type TrackingUnit } from "../../household/v2/contracts.js";
-import { assertCreateManualStockBatchRequest, assertCreateStockTargetRequest, assertTrackingUnit } from "../../household/v2/validation.js";
+import { MongoHouseholdProductRepository } from "../../household/v2/mongo-household-product-repository.js";
+import { schemaVersion, type CreateHouseholdProductRequest, type CreateManualStockBatchRequest, type CreateStockTargetRequest, type StockTarget, type TrackingUnit } from "../../household/v2/contracts.js";
+import { assertCreateHouseholdProductRequest, assertCreateManualStockBatchRequest, assertCreateStockTargetRequest, assertTrackingUnit } from "../../household/v2/validation.js";
+
+export const householdV2HouseholdProductCollectionRoute: AppRoute = {
+  match: (request) => (request.method === "GET" || request.method === "POST") && /^\/api\/households\/[^/]+\/products$/.test(request.path),
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request);
+    if (!user) return unauthorized("apiErrors.signInRequired");
+    const householdId = request.path.match(/^\/api\/households\/([^/]+)\/products$/)?.[1];
+    const body = request.method === "POST" ? parseJsonObject(request.bodyText) : null;
+    if (!householdId || (request.method === "POST" && !body)) return json(400, { error: "invalid_household_product_request" });
+    if (body) {
+      try { assertCreateHouseholdProductRequest(body); } catch (error) { return json(400, { error: "invalid_household_product_request", message: error instanceof Error ? error.message : "Household Product request is invalid." }); }
+    }
+    return await withHouseholdDatabase(context, householdId, user.email, async (database) => {
+      const repository = new MongoHouseholdProductRepository(database);
+      if (request.method === "GET") return json(200, { products: await repository.list(householdId), schemaVersion });
+      const input = body as CreateHouseholdProductRequest;
+      const now = new Date().toISOString();
+      const product = { ...input, classificationRevision: 0, createdAt: now, createdByUserId: user.email, directAttributes: input.directAttributes ?? [], directConcepts: input.directConcepts ?? [], householdId, id: `household-product:${householdId}:${slug(input.displayName)}`, identitySnapshot: input.identitySnapshot ?? {}, revision: 0, status: "active" as const, updatedAt: now, updatedByUserId: user.email };
+      try { return json(201, { product: await repository.create(product), schemaVersion }); } catch (error) { return commandError(error); }
+    });
+  }
+};
+
+export const householdV2HouseholdProductClassificationRoute: AppRoute = {
+  match: (request) => request.method === "PATCH" && /^\/api\/households\/[^/]+\/products\/[^/]+\/classification$/.test(request.path),
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request);
+    if (!user) return unauthorized("apiErrors.signInRequired");
+    const match = request.path.match(/^\/api\/households\/([^/]+)\/products\/([^/]+)\/classification$/);
+    const householdId = match?.[1]; const productId = match?.[2]; const body = parseJsonObject(request.bodyText);
+    if (!householdId || !productId || !body || !Number.isInteger(body["expectedRevision"]) || (body["expectedRevision"] as number) < 0) return json(400, { error: "invalid_household_product_classification_request" });
+    try { assertCreateHouseholdProductRequest({ displayName: "classification", identityKind: "manual", directConcepts: body["directConcepts"] ?? [], directAttributes: body["directAttributes"] ?? [] }); } catch (error) { return json(400, { error: "invalid_household_product_classification_request", message: error instanceof Error ? error.message : "Classification request is invalid." }); }
+    return await withHouseholdDatabase(context, householdId, user.email, async (database) => {
+      try { const product = await new MongoHouseholdProductRepository(database).updateClassification({ directAttributes: body["directAttributes"] as never[], directConcepts: body["directConcepts"] as never[], expectedRevision: body["expectedRevision"] as number, householdId, id: productId, updatedAt: new Date().toISOString(), updatedByUserId: user.email }); return json(200, { product, schemaVersion }); } catch (error) { return commandError(error); }
+    });
+  }
+};
 
 export const householdV2StockTargetRoute: AppRoute = {
   match: (request) => request.method === "GET" && /^\/api\/households\/[^/]+\/stock-targets\/[^/]+$/.test(request.path),
@@ -74,7 +112,11 @@ export const householdV2ManualBatchRoute: AppRoute = {
     const input = body as CreateManualStockBatchRequest;
     const batchId = `stock-batch:${input.operationId}`;
     try {
-      const result = await new MongoStockCommandRepository(database, client).acquireBatch({ batch: { acquiredOn: input.acquiredOn, acquisitionSnapshot: { displayName: input.displayName }, classificationSnapshot: { capturedAt: now, directAttributes: input.directAttributes ?? [], directConcepts: input.directConcepts ?? [], effectiveConcepts: input.directConcepts ?? [], source: "manual" }, createdAt: now, createdByUserId: user.email, expiryOn: input.expiryOn ?? null, householdId, id: batchId, originalQuantity: input.originalQuantity, remainingQuantity: input.originalQuantity, revision: 0, status: "available", unit: input.unit, updatedAt: now, updatedByUserId: user.email }, operationId: input.operationId, requestFingerprint: input.requestFingerprint });
+      const householdProduct = input.householdProductId ? await new MongoHouseholdProductRepository(database).get(householdId, input.householdProductId) : null;
+      if (input.householdProductId && !householdProduct) return json(404, { error: "household_product_not_found" });
+      const directAttributes = householdProduct?.directAttributes ?? input.directAttributes ?? [];
+      const directConcepts = householdProduct?.directConcepts ?? input.directConcepts ?? [];
+      const result = await new MongoStockCommandRepository(database, client).acquireBatch({ batch: { acquiredOn: input.acquiredOn, acquisitionSnapshot: { displayName: householdProduct?.displayName ?? input.displayName }, classificationSnapshot: { capturedAt: now, directAttributes, directConcepts, effectiveConcepts: directConcepts, source: householdProduct ? "household" : "manual" }, createdAt: now, createdByUserId: user.email, expiryOn: input.expiryOn ?? null, householdId, householdProductId: input.householdProductId ?? null, id: batchId, originalQuantity: input.originalQuantity, remainingQuantity: input.originalQuantity, revision: 0, status: "available", unit: input.unit, updatedAt: now, updatedByUserId: user.email }, operationId: input.operationId, requestFingerprint: input.requestFingerprint });
       return json(201, { result, schemaVersion });
     } catch (error) { return commandError(error); }
   }

@@ -1,4 +1,4 @@
-import { trackingUnits, type AcceptanceCriteria, type CreateManualStockBatchRequest, type CreateStockTargetRequest, type StockAllocation, type StockBatch, type StockTarget, type TrackingUnit } from "./contracts.js";
+import { householdProductIdentityKinds, trackingUnits, type AcceptanceCriteria, type CreateHouseholdProductRequest, type CreateManualStockBatchRequest, type CreateStockTargetRequest, type StockAllocation, type StockBatch, type StockTarget, type TrackingUnit } from "./contracts.js";
 
 function isDate(value: unknown): value is string {
   return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`));
@@ -79,6 +79,7 @@ export function assertCreateManualStockBatchRequest(value: unknown, label = "cre
   assertValue(isDate(request["acquiredOn"]), `${label}.acquiredOn must be a date`);
   assertValue(request["expiryOn"] === null || request["expiryOn"] === undefined || isDate(request["expiryOn"]), `${label}.expiryOn must be a date or null`);
   if (typeof request["expiryOn"] === "string") assertValue(request["expiryOn"] >= (request["acquiredOn"] as string), `${label}.expiryOn cannot precede acquiredOn`);
+  if (request["householdProductId"] !== undefined && request["householdProductId"] !== null) assertValue(typeof request["householdProductId"] === "string" && request["householdProductId"].length > 0, `${label}.householdProductId is invalid`);
   assertValue(isQuantity(request["originalQuantity"]) && (request["originalQuantity"] as number) > 0, `${label}.originalQuantity must be positive`);
   assertTrackingUnit(request["unit"], `${label}.unit`);
   if (request["directConcepts"] !== undefined) assertRefs(request["directConcepts"], `${label}.directConcepts`);
@@ -95,4 +96,14 @@ export function assertCreateStockTargetRequest(value: unknown, label = "createSt
   assertValue(Number.isInteger(request["expiryWarningDays"]) && (request["expiryWarningDays"] as number) >= 0, `${label}.expiryWarningDays is invalid`);
   assertValue(request["consumptionPolicy"] === "earliest_expiry_first" || request["consumptionPolicy"] === "oldest_acquired_first", `${label}.consumptionPolicy is invalid`);
   assertAcceptanceCriteria(request["acceptanceCriteria"], `${label}.acceptanceCriteria`);
+}
+
+export function assertCreateHouseholdProductRequest(value: unknown, label = "createHouseholdProductRequest"): asserts value is CreateHouseholdProductRequest {
+  assertValue(!!value && typeof value === "object" && !Array.isArray(value), `${label} must be an object`);
+  const request = value as Record<string, unknown>;
+  assertValue(typeof request["displayName"] === "string" && request["displayName"].trim().length > 0, `${label}.displayName is required`);
+  assertValue(typeof request["identityKind"] === "string" && householdProductIdentityKinds.includes(request["identityKind"] as never), `${label}.identityKind is invalid`);
+  if (request["catalogProductId"] !== undefined && request["catalogProductId"] !== null) assertValue(typeof request["catalogProductId"] === "string" && request["catalogProductId"].length > 0, `${label}.catalogProductId is invalid`);
+  if (request["directConcepts"] !== undefined) assertRefs(request["directConcepts"], `${label}.directConcepts`);
+  if (request["directAttributes"] !== undefined) assertRefs(request["directAttributes"], `${label}.directAttributes`);
 }
