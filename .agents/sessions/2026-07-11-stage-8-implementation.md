@@ -40,6 +40,7 @@
 - Item: Tightened the ad-hoc Shopping Need route to validate units explicitly without unsafe type assertions.
 - Item: Added Stock Target repository CRUD and v2 create/update/archive routes with criteria, quantity, unit, policy, revision, and membership validation.
 - Item: Added the bounded bilingual base classification pack and loader with cycle, parent, translation-parity, and template-criteria validation.
+- Item: Added non-destructive Mongo base-pack sync with seed provenance, repeat-safe unchanged reporting, and customized-record conflict reporting.
 
 ## Changed Files
 
@@ -57,6 +58,8 @@
 - Path: `packages/kamra-api-server/src/classification/base-content/i18n/hu.json`
 - Path: `packages/kamra-api-server/src/classification/base-content/loader.ts`
 - Path: `packages/kamra-api-server/src/classification/base-content/loader.test.ts`
+- Path: `packages/kamra-api-server/src/classification/base-content/sync.ts`
+- Path: `packages/kamra-api-server/src/classification/base-content/sync.test.ts`
 - Path: `packages/kamra-api-server/src/http/app-handler.ts`
 - Path: `packages/kamra-api-server/src/http/app-handler.test.ts`
 - Path: `packages/kamra-api-server/src/http/routes/household-v2-routes.ts`
@@ -220,6 +223,8 @@
 - Impact: Stage 8 is still not closeable, but the next backend dependency for the household workspace is now available.
 - Issue: Base pack validation is implemented, but shared sync/provenance persistence and admin preview/apply are still pending.
 - Impact: The pack is safe to consume in tests; it is not yet runtime classification authority.
+- Issue: Base-pack sync is implemented as a reusable service but not yet exposed through admin preview/apply routes or CLI/seed registration.
+- Impact: Operators cannot safely run the sync through the intended admin surface yet.
 - Issue: Stage 9 and Stage 10 plans remain proposed and require their stated approval checkpoints after Stage 8 and Stage 9 close respectively.
 - Impact: No Stage 9/10 code should be started in this session until those gates are genuinely reached.
 

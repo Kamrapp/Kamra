@@ -7,6 +7,9 @@ export interface ProductConceptRecord {
   key: string;
   label: string;
   origin: ProductTagRecord["origin"];
+  seedChecksum?: string;
+  seedPackId?: string;
+  translations?: Record<string, string>;
   status: "active" | "archived";
   updatedAt: string;
 }
