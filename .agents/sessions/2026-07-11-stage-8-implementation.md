@@ -26,6 +26,7 @@
 - Item: Added transactional Stock Target consumption with stale-revision checks, deterministic planning, partial depletion, allocation updates, and per-batch movement history.
 - Item: Added transactional batch correction and discard commands with revision checks, explicit movements, allocation reconciliation, and preserved history.
 - Item: Added the explainable Stock Target aggregate projection with allocation-only totals, status, next expiry, expiring count, and combined notice codes.
+- Item: Added a Mongo Stock Target read repository that returns the server-owned aggregate and allocated batch summaries.
 
 ## Changed Files
 
@@ -33,6 +34,8 @@
 - Path: `packages/kamra-api-server/src/household/v2/domain.ts`
 - Path: `packages/kamra-api-server/src/household/v2/validation.ts`
 - Path: `packages/kamra-api-server/src/household/v2/domain.test.ts`
+- Path: `packages/kamra-api-server/src/household/v2/mongo-stock-read-repository.ts`
+- Path: `packages/kamra-api-server/src/household/v2/mongo-stock-read-repository.test.ts`
 - Path: `packages/kamra-api-server/src/household/v2/mongo-stock-command-repository.ts`
 - Path: `packages/kamra-api-server/src/household/v2/mongo-stock-command-repository.test.ts`
 - Path: `packages/kamra-api-server/src/household/v2/domain.ts`
@@ -71,6 +74,10 @@
 ## Validation
 
 - Ran: `npm run typecheck`
+- Result: Passed.
+- Ran: `npm test -- --run packages/kamra-api-server/src/household/v2/mongo-stock-read-repository.test.ts`
+- Result: Passed.
+- Ran: `npx eslint packages/kamra-api-server/src/household/v2/mongo-stock-read-repository.ts packages/kamra-api-server/src/household/v2/mongo-stock-read-repository.test.ts`
 - Result: Passed.
 - Ran: `npm test -- --run packages/kamra-api-server/src/household/v2/domain.test.ts`
 - Result: 7 tests passed.
@@ -159,6 +166,8 @@
 - Impact: Erroneous historical actions are not yet reversible through the command repository, and the UI/API still lacks explainable aggregate status output.
 - Issue: The aggregate projection is currently a pure helper and not yet exposed through a v2 read repository or route.
 - Impact: It is ready for API composition, but legacy household screens still use the v1 model until Step 5/6.
+- Issue: The v2 read model and commands are not yet exposed through household API routes.
+- Impact: Step 5 still needs route adapters, membership capabilities, stable error/status mapping, and v1 mutation cutover.
 - Issue: UI/API manual verification has not started.
 - Impact: Track the final browser checklist as implementation reaches the household workspace.
 
