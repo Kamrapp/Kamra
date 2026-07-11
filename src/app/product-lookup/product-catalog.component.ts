@@ -14,6 +14,7 @@ import { PageRailService, type PageRailSection } from "../shared/page-rail.servi
 import { ProductEditorDialogComponent } from "../shared/product-editor-dialog.component";
 import { TableIconButtonComponent } from "../shared/table-icon-button.component";
 import { DebouncedFilterAction } from "../shared/filter-debounce";
+import { ProductCatalogFilterBarComponent } from "./product-catalog-filter-bar.component";
 import { LocalizationService } from "../shared/localization.service";
 import { ToastService } from "../shared/toast.service";
 
@@ -30,27 +31,18 @@ interface ProductCatalogFilters {
 const noOfferSourceKey = "__none__";
 
 @Component({
-  imports: [ProductEditorDialogComponent, ResizableTableComponent, TableIconButtonComponent],
+  imports: [ProductCatalogFilterBarComponent, ProductEditorDialogComponent, ResizableTableComponent, TableIconButtonComponent],
   selector: "app-product-catalog",
   standalone: true,
   template: `
     <section class="products-page" aria-labelledby="products-title">
       <main class="page-main">
-        <section class="product-filter-bar" [attr.aria-label]="loc.t('product.filters')">
-          <label class="filter-field">
-            <span>{{ loc.t("common.name") }}</span>
-            <input
-              type="search"
-              [value]="productFilterDrafts().nameIncludes"
-              [placeholder]="loc.t('product.filterContains')"
-              (input)="setNameFilter($any($event.target).value)"
-            />
-          </label>
-
-          @if (activeProductFilterCount()) {
-            <button class="filter-clear-button ui-button ui-button-quiet ui-button-sm" type="button" (click)="clearProductFilters()">{{ loc.t("common.clear") }}</button>
-          }
-        </section>
+        <app-product-catalog-filter-bar
+          [active]="activeProductFilterCount() > 0"
+          [name]="productFilterDrafts().nameIncludes"
+          (clearRequested)="clearProductFilters()"
+          (nameChanged)="setNameFilter($event)"
+        />
 
         <app-resizable-table #productTable [ariaLabel]="loc.t('product.productTable')" [columns]="tableColumns()">
           <div
@@ -170,46 +162,6 @@ const noOfferSourceKey = "__none__";
       .error-message,
       .row-muted {
         color: var(--color-text-muted);
-      }
-
-      .product-filter-bar {
-        align-items: end;
-        display: flex;
-        flex-wrap: wrap;
-        gap: var(--space-3);
-        margin-block-end: 0.45rem;
-        min-width: 0;
-      }
-
-      .filter-field {
-        color: var(--color-text-muted);
-        display: grid;
-        font-size: 0.75rem;
-        font-weight: 800;
-        gap: 0.25rem;
-        min-width: min(18rem, 100%);
-      }
-
-      .filter-field input {
-        background: var(--surface-shell-background);
-        border: 1px solid var(--line-subtle);
-        border-radius: var(--radius-ui);
-        color: var(--color-text);
-        font: inherit;
-        font-size: 0.88rem;
-        font-weight: 700;
-        min-height: 2.15rem;
-        min-width: 0;
-        padding: 0.35rem 0.55rem;
-      }
-
-      .filter-field input::placeholder {
-        color: var(--color-text-muted);
-        font-weight: 600;
-      }
-
-      .filter-clear-button {
-        font-size: 0.84rem;
       }
 
       .product-row {

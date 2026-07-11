@@ -23,6 +23,7 @@
 - Item: Extracted the developer-admin health report card into a single-file standalone component; dashboard transport, auth, localized errors, and toasts remain in the page.
 - Item: Extracted the developer-admin feature-flags card into a single-file standalone component with typed toggle/save events.
 - Item: Extracted the developer-admin alpha-access card into a single-file standalone component with typed form and action events.
+- Item: Extracted the product catalog filter bar into a single-file standalone component; catalog filtering/debounce and table virtualization remain in the page.
 
 ## Changed Files
 
@@ -58,6 +59,10 @@
   - Owns the auto-tick flag presentation, disabled/loading behavior, save action, and local flag-card styles.
 - Path: `src/app/dev-admin/admin-alpha-access-card.component.ts`
   - Owns controlled-alpha flag presentation, credential fields, save/create actions, and local form styles.
+- Path: `src/app/product-lookup/product-catalog-filter-bar.component.ts`
+  - Owns the catalog name-filter control, clear affordance, localization, and filter-bar styles.
+- Path: `src/app/product-lookup/product-catalog.component.ts`
+  - Composes the filter bar and retains filtering state, debounce, table projection, loading, and editor orchestration.
 
 ## Validation
 
@@ -77,6 +82,8 @@
 - Result: Passed; full tests remain the validation gate before closing Step 3.
 - Ran: `npm run typecheck`, `npm run lint`, `npm run build:web`, and `npm run test` after the alpha-access extraction.
 - Result: Passed; 31 test files and 153 tests passed.
+- Ran: `npm run typecheck`, `npm run lint`, and `npm run build:web` after the catalog filter extraction.
+- Result: Passed; the existing full test result remains green from the preceding admin slices.
 
 ## Decisions
 
@@ -121,6 +128,10 @@
   - Impact: Final manual checks should verify flag checkbox state, admin/read-only disabling, loading/save disabling, success/error message placement, and persistence after reload.
 - Issue: The admin alpha-access card now renders through a component host.
   - Impact: Final manual checks should verify controlled-access toggle state, credential input retention/clearing, save/create button disabling, create success/error messaging, and non-admin access behavior.
+- Issue: The catalog filter bar now renders through a component host.
+  - Impact: Final manual checks should verify typing/debounce, clear-button visibility and behavior, filter persistence while paging/refreshing, narrow-width wrapping, and theme/input styling.
+- Issue: Catalog rows remain intentionally in `ProductCatalogComponent`.
+  - Impact: Keep virtual-scroll offsets, resizable-table column templates, row grid sizing, and edit-button behavior under manual review; do not wrap individual projected rows.
 - Issue: Existing working-tree/index state may include user-owned plan or backend changes.
   - Impact: Do not revert, stage, or mix unrelated files into cleanup changes.
 
@@ -131,7 +142,7 @@
 
 ## Next Step
 
-The alpha-access slice is ready to commit. After the commit, review whether the remaining shopping-list overview contract is compact enough; if not, record it as intentionally retained and proceed to the catalog/ingestion table surfaces. Keep `HouseholdShoppingListComponent` as the lifecycle facade and avoid a low-value admin request wrapper.
+The catalog filter slice is ready to commit. After the commit, inspect whether a whole catalog-table contract is compact enough; preserve the current page if it would require a callback bag. Then proceed to ingestion table surfaces. Keep `HouseholdShoppingListComponent` as the lifecycle facade and avoid a low-value admin request wrapper.
 
 ## Notes For Future Agent
 
