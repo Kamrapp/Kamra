@@ -38,6 +38,7 @@
 - Item: Registered `household_shopping_needs-v1` with database maintenance setup and run-all coverage before route integration.
 - Item: Added v2 Shopping Need GET/POST and revision-checked skip/restore route adapters with membership enforcement.
 - Item: Tightened the ad-hoc Shopping Need route to validate units explicitly without unsafe type assertions.
+- Item: Added Stock Target repository CRUD and v2 create/update/archive routes with criteria, quantity, unit, policy, revision, and membership validation.
 
 ## Changed Files
 
@@ -48,6 +49,8 @@
 - Path: `packages/kamra-api-server/src/household/v2/mongo-stock-read-repository.ts`
 - Path: `packages/kamra-api-server/src/household/v2/mongo-stock-read-repository.test.ts`
 - Path: `packages/kamra-api-server/src/http/routes/household-v2-routes.ts`
+- Path: `packages/kamra-api-server/src/household/v2/mongo-stock-target-repository.ts`
+- Path: `packages/kamra-api-server/src/household/v2/mongo-stock-target-repository.test.ts`
 - Path: `packages/kamra-api-server/src/http/app-handler.ts`
 - Path: `packages/kamra-api-server/src/http/app-handler.test.ts`
 - Path: `packages/kamra-api-server/src/http/routes/household-v2-routes.ts`
@@ -207,6 +210,8 @@
 - Impact: This is expected Mongo client behavior, but future operational logs should consistently include the effective application database to avoid confusion.
 - Issue: Stage 8 implementation is incomplete at product level: Stock Target CRUD, checked-in classification content sync, household-local classification management, invitation/join management, migration reconciliation, void/reversal policy, structured domain-event coverage, Angular v2 service/UI cutover, and generated Shopping Need synchronization remain.
 - Impact: The v2 backend foundation and route slices are not yet a coherent browser workflow; do not mark Stage 8 complete or begin Stage 9 implementation.
+- Issue: Stock Target CRUD is now complete at the initial backend route boundary; classification content, household management, UI cutover, reconciliation, and generated-need synchronization remain.
+- Impact: Stage 8 is still not closeable, but the next backend dependency for the household workspace is now available.
 - Issue: Stage 9 and Stage 10 plans remain proposed and require their stated approval checkpoints after Stage 8 and Stage 9 close respectively.
 - Impact: No Stage 9/10 code should be started in this session until those gates are genuinely reached.
 
@@ -217,7 +222,7 @@
 
 ## Next Step
 
-Continue Stage 8 completion from the centralized manual checklist only after the user confirms the current state is ready for further implementation/manual walkthrough.
+Continue Stage 8 with classification base-content sync and the Angular v2 household service/UI cutover.
 
 ## Notes For Future Agent
 

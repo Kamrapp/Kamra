@@ -240,3 +240,13 @@ export interface CreateManualStockBatchRequest {
   requestFingerprint: string;
   unit: TrackingUnit;
 }
+
+export interface CreateStockTargetRequest {
+  acceptanceCriteria: AcceptanceCriteria;
+  consumptionPolicy: ConsumptionPolicy;
+  displayName: string;
+  expiryWarningDays: number;
+  minimumQuantity: number;
+  targetQuantity: number;
+  trackingUnit: TrackingUnit;
+}

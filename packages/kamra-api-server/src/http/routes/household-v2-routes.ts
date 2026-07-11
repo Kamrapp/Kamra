@@ -1,10 +1,12 @@
+import type { Db } from "mongodb";
 import { json, unauthorized, type AppRoute } from "../app-route-context.js";
 import { MongoStockReadRepository } from "../../household/v2/mongo-stock-read-repository.js";
 import { MongoStockCommandRepository } from "../../household/v2/mongo-stock-command-repository.js";
 import { MongoShoppingNeedRepository } from "../../household/v2/mongo-shopping-need-repository.js";
 import { createAdHocShoppingNeed } from "../../household/v2/shopping-needs.js";
-import { schemaVersion, type CreateManualStockBatchRequest, type TrackingUnit } from "../../household/v2/contracts.js";
-import { assertCreateManualStockBatchRequest, assertTrackingUnit } from "../../household/v2/validation.js";
+import { MongoStockTargetRepository } from "../../household/v2/mongo-stock-target-repository.js";
+import { schemaVersion, type CreateManualStockBatchRequest, type CreateStockTargetRequest, type StockTarget, type TrackingUnit } from "../../household/v2/contracts.js";
+import { assertCreateManualStockBatchRequest, assertCreateStockTargetRequest, assertTrackingUnit } from "../../household/v2/validation.js";
 
 export const householdV2StockTargetRoute: AppRoute = {
   match: (request) => request.method === "GET" && /^\/api\/households\/[^/]+\/stock-targets\/[^/]+$/.test(request.path),
@@ -22,6 +24,34 @@ export const householdV2StockTargetRoute: AppRoute = {
     if (!membership) return json(403, { error: "household_membership_required" });
     const result = await new MongoStockReadRepository(database).getTarget(householdId, targetId, new Date().toISOString().slice(0, 10));
     return result ? json(200, { schemaVersion, ...result }) : json(404, { error: "stock_target_not_found" });
+  }
+};
+
+export const householdV2StockTargetCollectionRoute: AppRoute = {
+  match: (request) => request.method === "POST" && /^\/api\/households\/[^/]+\/stock-targets$/.test(request.path),
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request);
+    if (!user) return unauthorized("apiErrors.signInRequired");
+    const householdId = request.path.match(/^\/api\/households\/([^/]+)\/stock-targets$/)?.[1];
+    const body = parseJsonObject(request.bodyText);
+    if (!householdId || !body) return json(400, { error: "invalid_stock_target_request" });
+    try { assertCreateStockTargetRequest(body); } catch (error) { return json(400, { error: "invalid_stock_target_request", message: error instanceof Error ? error.message : "Stock Target request is invalid." }); }
+    return await withHouseholdDatabase(context, householdId, user.email, async (database) => {
+      const input = body as CreateStockTargetRequest; const now = new Date().toISOString(); const id = `stock-target:${householdId}:${slug(input.displayName)}`;
+      try { const target = await new MongoStockTargetRepository(database).create({ ...input, createdAt: now, createdByUserId: user.email, householdId, id, revision: 0, status: "active", updatedAt: now, updatedByUserId: user.email }); return json(201, { schemaVersion, target }); } catch (error) { return commandError(error); }
+    });
+  }
+};
+
+export const householdV2StockTargetMutationRoute: AppRoute = {
+  match: (request) => (request.method === "PATCH" || request.method === "POST") && /^\/api\/households\/[^/]+\/stock-targets\/[^/]+(\/archive)?$/.test(request.path),
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request); if (!user) return unauthorized("apiErrors.signInRequired");
+    const match = request.path.match(/^\/api\/households\/([^/]+)\/stock-targets\/([^/]+)(\/archive)?$/); const householdId = match?.[1]; const id = match?.[2]; const isArchive = Boolean(match?.[3]); const body = parseJsonObject(request.bodyText);
+    if (!householdId || !id || !body || !Number.isInteger(body["expectedRevision"]) || (body["expectedRevision"] as number) < 0 || (!isArchive && (!body["patch"] || typeof body["patch"] !== "object" || Array.isArray(body["patch"])))) return json(400, { error: "invalid_stock_target_update_request" });
+    return await withHouseholdDatabase(context, householdId, user.email, async (database) => {
+      try { const repository = new MongoStockTargetRepository(database); const now = new Date().toISOString(); const target = isArchive ? await repository.archive({ expectedRevision: body["expectedRevision"] as number, householdId, id, updatedAt: now, updatedByUserId: user.email }) : await repository.update({ expectedRevision: body["expectedRevision"] as number, householdId, id, patch: body["patch"] as Partial<Pick<StockTarget, "acceptanceCriteria" | "consumptionPolicy" | "displayName" | "expiryWarningDays" | "minimumQuantity" | "preferredProductId" | "preferredProductNameSnapshot" | "status" | "targetQuantity" | "trackingUnit">>, updatedAt: now, updatedByUserId: user.email }); return json(200, { schemaVersion, target }); } catch (error) { return commandError(error); }
+    });
   }
 };
 
@@ -158,4 +188,9 @@ async function runBatchCommand(context: Parameters<AppRoute["handle"]>[1], userI
 }
 
 function parseJsonObject(bodyText: string | undefined): Record<string, unknown> | null { if (!bodyText) return null; try { const value: unknown = JSON.parse(bodyText); return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null; } catch { return null; } }
+async function withHouseholdDatabase(context: Parameters<AppRoute["handle"]>[1], householdId: string, userId: string, action: (database: Db) => Promise<ReturnType<typeof json>>): Promise<ReturnType<typeof json>> {
+  if (!context.config.mongodb.uri || !context.config.mongodb.databaseName) return json(503, { error: "household_not_configured" });
+  const client = await context.getMongoClient(context.config.mongodb.uri, context.config.mongodb.dnsServers); const database = client.db(context.config.mongodb.databaseName); const membership = await database.collection<{ householdId: string; status: string; userId: string }>("household_memberships").findOne({ householdId, status: "active", userId }); if (!membership) return json(403, { error: "household_membership_required" }); return await action(database);
+}
+function slug(value: string): string { return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "target"; }
 function commandError(error: unknown): ReturnType<typeof json> { const code = error instanceof Error ? error.message : "stock_command_failed"; const status = code === "idempotency_conflict" ? 409 : code === "operation_in_progress" ? 409 : 500; return json(status, { error: code }); }
