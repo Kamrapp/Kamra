@@ -34,6 +34,7 @@
 - Item: Externalized the remaining `HouseholdShoppingListComponent` template and styles into companion `.html`/`.css` files after the line extraction.
 - Item: Extracted `DatabaseMaintenanceEntryComponent` with local row actions, details disclosure, finished-state presentation, and responsive row styles.
 - Item: Externalized the remaining database-maintenance container template/styles and removed row-specific CSS from the parent.
+- Item: Externalized `HomeComponent` into companion files after the household block extractions and reduced its CSS to the actual page-container layout only.
 
 ## Changed Files
 
@@ -87,6 +88,10 @@
   - Composes entry children and retains auth gating, loading, transport, entry grouping, and run-all state.
 - Path: `src/app/dev-admin/database-maintenance.component.html`, `src/app/dev-admin/database-maintenance.component.css`
   - Hold the maintenance container markup and container/table framing styles after row extraction.
+- Path: `src/app/home.component.html`, `src/app/home.component.css`
+  - Hold the thin authenticated/anonymous composition template and the remaining workspace layout rules.
+- Path: `src/app/home.component.ts`
+  - Retains household loading, mutations, page-rail state, and child composition; removed stale stock/editor/list styling and the unused `FormsModule` import.
 - Path: `src/app/dev-admin/admin-feature-flags-card.component.ts`
   - Owns the auto-tick flag presentation, disabled/loading behavior, save action, and local flag-card styles.
 - Path: `src/app/dev-admin/admin-alpha-access-card.component.ts`
@@ -137,6 +142,8 @@
 - Ran: `npm run typecheck`, `npm run lint`, `npm run build:web`, and `npm run test` after externalizing the shopping-list parent.
 - Result: Passed; 31 test files and 153 tests passed. Angular companion template/style loading is verified by the production build.
 - Ran: `npm run typecheck`, `npm run lint`, `npm run build:web`, and `npm run test` after the maintenance-entry extraction and parent externalization.
+- Result: Passed; 31 test files and 153 tests passed.
+- Ran: `npm run typecheck`, `npm run lint`, `npm run build:web`, and `npm run test` after the home-container externalization.
 - Result: Passed; 31 test files and 153 tests passed.
 
 ## Decisions
@@ -206,6 +213,8 @@
   - Impact: Manual checks should verify pending/purchased rendering, completion panel placement, quick-add, empty/loading/error states, responsive layout, theme variables, and that no styles leaked across child boundaries.
 - Issue: Database maintenance rows now render through a child host and the parent uses companion files.
   - Impact: Manual checks should verify auth gating, active/finished grouping, validator/migration actions, mark-complete, run-all disabling, details hover/focus disclosure, mobile row stacking, and light/dark styling.
+- Issue: `HomeComponent` no longer carries the former stock/editor/list CSS and now loads companion files.
+  - Impact: Manually compare anonymous preview and authenticated household layouts at desktop/mobile and light/dark themes; verify stock panel/editor/list spacing, responsive columns, and page-rail alignment did not rely on the removed stale selectors.
 - Issue: Existing working-tree/index state may include user-owned plan or backend changes.
   - Impact: Do not revert, stage, or mix unrelated files into cleanup changes.
 
@@ -216,7 +225,7 @@
 
 ## Next Step
 
-Commit the database-maintenance entry/container extraction, then reassess `home.component.ts` or the remaining admin/catalog pages one at a time. Continue extracting minor ownership boundaries before companion-file externalization; do not mass-externalize every page automatically.
+Commit the home-container externalization, then reassess the remaining admin/catalog pages one at a time. Continue extracting minor ownership boundaries before companion-file externalization; do not mass-externalize every page automatically.
 
 ## Notes For Future Agent
 

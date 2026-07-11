@@ -1,0 +1,47 @@
+@if (!auth.isAuthenticated()) {
+  <app-household-preview-workspace
+    [previewStockItems]="previewStockItems()"
+    [previewEditorItem]="previewEditorItem()"
+    [demoShoppingList]="demoShoppingList()"
+    [shoppingScale]="apiShoppingScale()"
+  />
+} @else {
+  <section class="stock-workspace" aria-labelledby="home-title">
+    <app-household-stock-panel
+      [errorMessage]="errorMessage()"
+      [existingShoppingLineItemIds]="existingShoppingLineItemIds()"
+      [hasExistingShoppingList]="!!shoppingListPanel?.shoppingList()"
+      [hasHouseholdPage]="!!householdPage()"
+      [highlightedItemIds]="highlightedStockItemIds()"
+      [households]="households()"
+      [loadState]="loadState()"
+      [selectedHouseholdId]="selectedHouseholdId()"
+      [selectedItemId]="selectedItem()?.id ?? null"
+      [statusMessage]="statusMessage()"
+      [stockItems]="stockItemsByPriority()"
+      (createHouseholdRequested)="createHousehold($event)"
+      (householdSelected)="selectHousehold($event)"
+      (itemSelected)="openEditor($event)"
+      (refreshRequested)="refreshHome()"
+      (shoppingListAddRequested)="addStockItemToShoppingList($event, shoppingListPanel)"
+    />
+
+    <app-household-stock-editor
+      [draftInput]="editorDraftSeed"
+      [mode]="editorMode()"
+      [revision]="editorRevision()"
+      [saving]="mutationState() === 'saving'"
+      (archiveRequested)="archiveSelectedItem()"
+      (saveRequested)="saveEditor($event)"
+      (startCreateRequested)="startCreateItem()"
+    />
+
+    <app-household-shopping-list
+      #shoppingListPanel
+      class="shopping-bottom-row"
+      [householdId]="selectedHouseholdId()"
+      [shoppingScale]="apiShoppingScale()"
+      (stockPageUpdated)="applyShoppingListStockPage($event)"
+    />
+  </section>
+}

@@ -1,0 +1,23 @@
+:host {
+  display: grid;
+  gap: var(--space-7);
+  min-height: 100%;
+}
+
+.stock-workspace {
+  align-items: stretch;
+  display: grid;
+  gap: var(--space-5);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.shopping-bottom-row {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 900px) {
+  .stock-workspace {
+    grid-template-columns: minmax(26rem, 1.2fr) minmax(20rem, 0.8fr);
+    grid-template-rows: auto auto auto;
+  }
+}
