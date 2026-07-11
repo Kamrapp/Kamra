@@ -25,4 +25,15 @@ describe("MongoStockCommandRepository", () => {
     expect(await repository.allocateBatch({ allocation, operationId: "op-allocate", requestFingerprint: "allocate" })).toEqual({ allocationId: "allocation-1", operationId: "op-allocate" });
     await expect(repository.allocateBatch({ allocation: { ...allocation, id: "allocation-2" }, operationId: "op-allocate-2", requestFingerprint: "allocate-2" })).rejects.toThrow("active_allocation_exists");
   });
+
+  it("consumes across allocated batches and records movements", async () => {
+    const db = createFakeDb({ household_stock_targets: new FakeCollection<Record<string, unknown>>("household_stock_targets", [target as unknown as Record<string, unknown>]) }); const repository = new MongoStockCommandRepository(db, transactionClient);
+    await repository.acquireBatch({ batch, operationId: "op-acquire", requestFingerprint: "acquire" });
+    const allocation: StockAllocation = { acceptanceResult: "accepted", allocatedQuantity: 2, createdAt: batch.createdAt, createdByUserId: "u", householdId: "h", id: "allocation-1", revision: 0, status: "active", stockBatchId: batch.id, stockTargetId: target.id, unit: "l", updatedAt: batch.updatedAt, updatedByUserId: "u" };
+    await repository.allocateBatch({ allocation, operationId: "op-allocate", requestFingerprint: "allocate" });
+    expect(await repository.consume({ actorUserId: "u", expectedTargetRevision: 0, householdId: "h", occurredAt: batch.updatedAt, operationId: "op-consume", requestFingerprint: "consume", requestedQuantity: 1, stockTargetId: target.id })).toEqual({ consumedQuantity: 1, operationId: "op-consume" });
+    expect(db.__collections["household_stock_batches"]!.docs[0]).toMatchObject({ remainingQuantity: 1, status: "available", revision: 1 });
+    expect(db.__collections["household_stock_movements"]!.docs).toHaveLength(2);
+    await expect(repository.consume({ actorUserId: "u", expectedTargetRevision: 0, householdId: "h", occurredAt: batch.updatedAt, operationId: "op-stale", requestFingerprint: "stale", requestedQuantity: 1, stockTargetId: target.id })).rejects.toThrow("stale_revision");
+  });
 });

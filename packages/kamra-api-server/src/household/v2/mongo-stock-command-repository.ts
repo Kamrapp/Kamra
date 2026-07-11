@@ -1,7 +1,7 @@
 import type { MongoCollectionLike, MongoDatabaseLike, MongoTransactionClientLike } from "../../db/mongo-like.js";
 import { runMongoTransaction } from "../../db/mongo-transaction.js";
 import type { DomainOperation, StockAllocation, StockBatch, StockMovement, StockTarget } from "./contracts.js";
-import { areUnitsCompatible, matchAcceptanceCriteria } from "./domain.js";
+import { areUnitsCompatible, matchAcceptanceCriteria, planConsumption } from "./domain.js";
 
 interface BatchAcquisitionInput {
   batch: StockBatch;
@@ -58,6 +58,35 @@ export class MongoStockCommandRepository {
       await this.allocations.insertOne(allocation, { session });
       await this.operations.updateOne({ householdId: allocation.householdId, id: input.operationId }, { $set: { resultIdentifiers: { allocationId: allocation.id }, status: "completed", updatedAt: now } }, { session });
       return { allocationId: allocation.id, operationId: input.operationId };
+    });
+  }
+
+  async consume(input: { householdId: string; operationId: string; requestFingerprint: string; requestedQuantity: number; stockTargetId: string; expectedTargetRevision: number; selectedBatchIds?: readonly string[]; actorUserId: string; occurredAt: string }): Promise<{ operationId: string; consumedQuantity: number }> {
+    return await runMongoTransaction(this.transactionClient, async (session) => {
+      const existing = await this.operations.findOne({ householdId: input.householdId, id: input.operationId }, { session });
+      if (existing) {
+        if (existing.requestFingerprint !== input.requestFingerprint) throw new Error("idempotency_conflict");
+        if (existing.status === "completed") return { operationId: input.operationId, consumedQuantity: input.requestedQuantity };
+        throw new Error("operation_in_progress");
+      }
+      const target = await this.targets.findOne({ householdId: input.householdId, id: input.stockTargetId }, { session });
+      if (!target) throw new Error("stock_target_not_found");
+      if (target.revision !== input.expectedTargetRevision) throw new Error("stale_revision");
+      const allocations = await this.allocations.find({ householdId: input.householdId, stockTargetId: target.id, status: "active" }, { session }).toArray();
+      const batches = (await Promise.all(allocations.map((allocation) => this.batches.findOne({ householdId: input.householdId, id: allocation.stockBatchId }, { session })))).filter((batch): batch is StockBatch => Boolean(batch));
+      const plan = planConsumption(target, batches, allocations, input.requestedQuantity, input.selectedBatchIds);
+      await this.operations.insertOne({ actorUserId: input.actorUserId, createdAt: input.occurredAt, householdId: input.householdId, id: input.operationId, operationType: "stock_target.consume", requestFingerprint: input.requestFingerprint, status: "started", updatedAt: input.occurredAt }, { session });
+      for (const line of plan) {
+        const batch = batches.find((candidate) => candidate.id === line.batchId)!;
+        const remainingQuantity = batch.remainingQuantity - line.quantity;
+        await this.batches.updateOne({ householdId: input.householdId, id: batch.id, revision: batch.revision }, { $set: { remainingQuantity, revision: batch.revision + 1, status: remainingQuantity === 0 ? "depleted" : "available", updatedAt: input.occurredAt, updatedByUserId: input.actorUserId } }, { session });
+        const allocation = allocations.find((candidate) => candidate.stockBatchId === batch.id)!;
+        await this.allocations.updateOne({ householdId: input.householdId, id: allocation.id, revision: allocation.revision }, { $set: { allocatedQuantity: allocation.allocatedQuantity - line.quantity, revision: allocation.revision + 1, updatedAt: input.occurredAt, updatedByUserId: input.actorUserId } }, { session });
+        await this.movements.insertOne({ actorUserId: input.actorUserId, createdAt: input.occurredAt, householdId: input.householdId, id: `movement:${input.operationId}:${batch.id}`, kind: "consumption", occurrenceAt: input.occurredAt, operationId: input.operationId, quantityDelta: -line.quantity, resultingQuantity: remainingQuantity, stockBatchId: batch.id, stockTargetId: target.id, unit: line.unit }, { session });
+      }
+      await this.targets.updateOne({ householdId: input.householdId, id: target.id, revision: input.expectedTargetRevision }, { $set: { revision: target.revision + 1, updatedAt: input.occurredAt, updatedByUserId: input.actorUserId } }, { session });
+      await this.operations.updateOne({ householdId: input.householdId, id: input.operationId }, { $set: { resultIdentifiers: { stockTargetId: target.id }, status: "completed", updatedAt: input.occurredAt } }, { session });
+      return { consumedQuantity: input.requestedQuantity, operationId: input.operationId };
     });
   }
 
