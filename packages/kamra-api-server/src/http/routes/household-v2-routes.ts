@@ -1,6 +1,8 @@
 import { json, unauthorized, type AppRoute } from "../app-route-context.js";
 import { MongoStockReadRepository } from "../../household/v2/mongo-stock-read-repository.js";
 import { MongoStockCommandRepository } from "../../household/v2/mongo-stock-command-repository.js";
+import { MongoShoppingNeedRepository } from "../../household/v2/mongo-shopping-need-repository.js";
+import { createAdHocShoppingNeed } from "../../household/v2/shopping-needs.js";
 import { schemaVersion, type CreateManualStockBatchRequest } from "../../household/v2/contracts.js";
 import { assertCreateManualStockBatchRequest, assertTrackingUnit } from "../../household/v2/validation.js";
 
@@ -109,6 +111,34 @@ export const householdV2DiscardBatchRoute: AppRoute = {
     const match = request.path.match(/^\/api\/households\/([^/]+)\/batches\/([^/]+)\/discard$/); const householdId = match?.[1]; const batchId = match?.[2]; const body = parseJsonObject(request.bodyText);
     if (!householdId || !batchId || !body || typeof body["operationId"] !== "string" || typeof body["requestFingerprint"] !== "string" || !Number.isInteger(body["expectedBatchRevision"]) || (body["expectedBatchRevision"] as number) < 0) return json(400, { error: "invalid_stock_discard_request" });
     return await runBatchCommand(context, user.email, householdId, batchId, body, "discard");
+  }
+};
+
+export const householdV2ShoppingNeedsRoute: AppRoute = {
+  match: (request) => (request.method === "GET" || request.method === "POST") && /^\/api\/households\/[^/]+\/shopping-needs$/.test(request.path),
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request); if (!user) return unauthorized("apiErrors.signInRequired");
+    const householdId = request.path.match(/^\/api\/households\/([^/]+)\/shopping-needs$/)?.[1]; if (!householdId) return json(400, { error: "invalid_household_path" });
+    const body = request.method === "POST" ? parseJsonObject(request.bodyText) : null;
+    if (request.method === "POST" && (!body || typeof body["needId"] !== "string" || typeof body["plannedQuantity"] !== "number" || typeof body["unit"] !== "string")) return json(400, { error: "invalid_shopping_need_request" });
+    if (!context.config.mongodb.uri || !context.config.mongodb.databaseName) return json(503, { error: "household_not_configured" });
+    const client = await context.getMongoClient(context.config.mongodb.uri, context.config.mongodb.dnsServers); const database = client.db(context.config.mongodb.databaseName); const membership = await database.collection<{ householdId: string; status: string; userId: string }>("household_memberships").findOne({ householdId, status: "active", userId: user.email });
+    if (!membership) return json(403, { error: "household_membership_required" });
+    const repository = new MongoShoppingNeedRepository(database); const now = new Date().toISOString();
+    try {
+      const result = request.method === "GET" ? await repository.getOrCreateList(householdId, user.email, now) : await repository.upsertNeed({ actorUserId: user.email, householdId, need: createAdHocShoppingNeed({ id: body!["needId"] as string, plannedQuantity: body!["plannedQuantity"] as number, unit: body!["unit"] as never }), now });
+      return json(200, { result, schemaVersion });
+    } catch (error) { return commandError(error); }
+  }
+};
+
+export const householdV2ShoppingNeedTransitionRoute: AppRoute = {
+  match: (request) => request.method === "PATCH" && /^\/api\/households\/[^/]+\/shopping-needs\/[^/]+$/.test(request.path),
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request); if (!user) return unauthorized("apiErrors.signInRequired"); const match = request.path.match(/^\/api\/households\/([^/]+)\/shopping-needs\/([^/]+)$/); const householdId = match?.[1]; const needId = match?.[2]; const body = parseJsonObject(request.bodyText);
+    if (!householdId || !needId || !body || (body["state"] !== "open" && body["state"] !== "skipped") || !Number.isInteger(body["expectedRevision"])) return json(400, { error: "invalid_shopping_need_transition" });
+    if (!context.config.mongodb.uri || !context.config.mongodb.databaseName) return json(503, { error: "household_not_configured" }); const client = await context.getMongoClient(context.config.mongodb.uri, context.config.mongodb.dnsServers); const database = client.db(context.config.mongodb.databaseName); const membership = await database.collection<{ householdId: string; status: string; userId: string }>("household_memberships").findOne({ householdId, status: "active", userId: user.email }); if (!membership) return json(403, { error: "household_membership_required" });
+    try { const result = await new MongoShoppingNeedRepository(database).transitionNeed({ actorUserId: user.email, expectedRevision: body["expectedRevision"] as number, householdId, needId, now: new Date().toISOString(), state: body["state"] }); return json(200, { result, schemaVersion }); } catch (error) { return commandError(error); }
   }
 };
 

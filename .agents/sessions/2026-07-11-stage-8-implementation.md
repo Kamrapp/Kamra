@@ -36,6 +36,7 @@
 - Item: Added pure Shopping Need generation, ad-hoc need creation, and revision-checked skip/restore transitions for the Stage 9 handoff.
 - Item: Added Mongo Shopping Need persistence with one household list, idempotent creation, need upsert, and stale-revision transitions.
 - Item: Registered `household_shopping_needs-v1` with database maintenance setup and run-all coverage before route integration.
+- Item: Added v2 Shopping Need GET/POST and revision-checked skip/restore route adapters with membership enforcement.
 
 ## Changed Files
 
@@ -48,6 +49,8 @@
 - Path: `packages/kamra-api-server/src/http/routes/household-v2-routes.ts`
 - Path: `packages/kamra-api-server/src/http/app-handler.ts`
 - Path: `packages/kamra-api-server/src/http/app-handler.test.ts`
+- Path: `packages/kamra-api-server/src/http/routes/household-v2-routes.ts`
+- Path: `packages/kamra-api-server/src/http/app-handler.ts`
 - Path: `packages/kamra-api-server/src/household/v2/shopping-needs.ts`
 - Path: `packages/kamra-api-server/src/household/v2/shopping-needs.test.ts`
 - Path: `packages/kamra-api-server/src/household/v2/mongo-shopping-need-repository.ts`
@@ -237,6 +240,8 @@
 - Impact: The active-list database boundary is ready for integration, but operators and users cannot invoke it yet.
 - Issue: Shopping Need collection maintenance is registered; need list/transition routes are still pending.
 - Impact: Operators can prepare the collection, but users cannot yet generate, edit, skip, or restore needs through HTTP/UI.
+- Issue: Shopping Need routes currently expose ad-hoc persistence and state transitions; generated shortage synchronization and Angular consumption are still pending.
+- Impact: The generic demand API exists, but the household workspace still renders the legacy shopping-list model.
 - Issue: UI/API manual verification has not started.
 - Impact: Track the final browser checklist as implementation reaches the household workspace.
 
