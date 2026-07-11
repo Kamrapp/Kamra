@@ -27,6 +27,7 @@
 - Item: Added transactional batch correction and discard commands with revision checks, explicit movements, allocation reconciliation, and preserved history.
 - Item: Added the explainable Stock Target aggregate projection with allocation-only totals, status, next expiry, expiring count, and combined notice codes.
 - Item: Added a Mongo Stock Target read repository that returns the server-owned aggregate and allocated batch summaries.
+- Item: Added the first v2 household route adapter for Stock Target reads with active-membership enforcement and schema-versioned responses.
 
 ## Changed Files
 
@@ -36,6 +37,9 @@
 - Path: `packages/kamra-api-server/src/household/v2/domain.test.ts`
 - Path: `packages/kamra-api-server/src/household/v2/mongo-stock-read-repository.ts`
 - Path: `packages/kamra-api-server/src/household/v2/mongo-stock-read-repository.test.ts`
+- Path: `packages/kamra-api-server/src/http/routes/household-v2-routes.ts`
+- Path: `packages/kamra-api-server/src/http/app-handler.ts`
+- Path: `packages/kamra-api-server/src/http/app-handler.test.ts`
 - Path: `packages/kamra-api-server/src/household/v2/mongo-stock-command-repository.ts`
 - Path: `packages/kamra-api-server/src/household/v2/mongo-stock-command-repository.test.ts`
 - Path: `packages/kamra-api-server/src/household/v2/domain.ts`
@@ -74,6 +78,10 @@
 ## Validation
 
 - Ran: `npm run typecheck`
+- Result: Passed.
+- Ran: `npm test -- --run packages/kamra-api-server/src/http/app-handler.test.ts`
+- Result: 46 tests passed.
+- Ran: `npx eslint packages/kamra-api-server/src/http/routes/household-v2-routes.ts packages/kamra-api-server/src/http/app-handler.ts packages/kamra-api-server/src/http/app-handler.test.ts`
 - Result: Passed.
 - Ran: `npm test -- --run packages/kamra-api-server/src/household/v2/mongo-stock-read-repository.test.ts`
 - Result: Passed.
@@ -168,6 +176,8 @@
 - Impact: It is ready for API composition, but legacy household screens still use the v1 model until Step 5/6.
 - Issue: The v2 read model and commands are not yet exposed through household API routes.
 - Impact: Step 5 still needs route adapters, membership capabilities, stable error/status mapping, and v1 mutation cutover.
+- Issue: Only the v2 Stock Target read route exists; acquisition/allocation/consume/correct/discard HTTP commands are not exposed yet.
+- Impact: The new domain commands remain server-internal until request validation and stable error mapping are added.
 - Issue: UI/API manual verification has not started.
 - Impact: Track the final browser checklist as implementation reaches the household workspace.
 

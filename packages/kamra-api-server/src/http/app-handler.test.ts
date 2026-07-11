@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { UserDocument, UserRepository } from "../auth/user-auth.js";
 import { createUserToken } from "../auth/user-token.js";
 import { MongoHouseholdRepository } from "../household/current/mongo-household-repository.js";
-import { createFakeDb } from "../test-support/fake-mongo.js";
+import { createFakeDb, FakeCollection } from "../test-support/fake-mongo.js";
 import { handleAppRequest } from "./app-handler.js";
 
 afterEach(() => {
@@ -87,6 +87,20 @@ describe("handleAppRequest auth guards", () => {
         role: "user"
       }
     });
+  });
+
+  it("enforces active household membership on the v2 stock-target read route", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+    const token = createUserToken({ email: "member@kamra.test", maxAgeSeconds: 60, now: new Date(), role: "user", secret: "test-secret" });
+    const db = createFakeDb({ household_memberships: new FakeCollection<Record<string, unknown>>("household_memberships", [{ householdId: "household-1", status: "active", userId: "member@kamra.test" }]) });
+    const response = await handleAppRequest({ headers: { authorization: `Bearer ${token}` }, method: "GET", path: "/api/households/household-1/stock-targets/target-1" }, { getMongoClient: async () => ({ db: () => db }) as never });
+    expect(response.status).toBe(404);
+    expect(JSON.parse(response.body)).toEqual({ error: "stock_target_not_found" });
+    const nonMemberToken = createUserToken({ email: "other@kamra.test", maxAgeSeconds: 60, now: new Date(), role: "user", secret: "test-secret" });
+    const forbidden = await handleAppRequest({ headers: { authorization: `Bearer ${nonMemberToken}` }, method: "GET", path: "/api/households/household-1/stock-targets/target-1" }, { getMongoClient: async () => ({ db: () => db }) as never });
+    expect(forbidden.status).toBe(403);
   });
 
   it("lets admins read and update household feature flags from the dashboard route", async () => {
