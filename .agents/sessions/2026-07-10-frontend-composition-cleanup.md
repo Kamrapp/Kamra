@@ -111,6 +111,8 @@
 - Result: Passed; endpoint paths, methods, payloads, auth headers, status checks, and localized page messages remain behaviorally owned by the dashboard.
 - Ran: `npm run typecheck`, `npm run lint`, and `npm run build:web` after migrating browser logging to the injectable facade.
 - Result: Passed; console output, `/api/log` forwarding, keepalive, and non-fatal forwarding failures remain in the existing helper.
+- Ran: Final scope-extension validation: `npm run typecheck`, `npm run lint`, `npm run build`, `npm run test`, and `git diff --check`.
+- Result: Passed; 31 test files and 153 tests passed, with no diff whitespace errors.
 
 ## Decisions
 
@@ -181,7 +183,7 @@
 
 ## Next Step
 
-Run the complete validation pass for the scope extension, then hand off the manual admin/logging checks. Do not extract the remaining catalog table, ingestion detail table, or shopping-list overview unless a later review identifies a compact contract with clear value.
+Scope extension is complete and validated. Hand off the manual admin/logging checks. Do not extract the remaining catalog table, ingestion detail table, or shopping-list overview unless a later review identifies a compact contract with clear value.
 
 ## Notes For Future Agent
 
