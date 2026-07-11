@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aggregateAvailableQuantity, calculateEffectiveConcepts, classifyProduct, convertQuantity, matchAcceptanceCriteria, orderBatchesForConsumption, planConsumption, validateConceptRelations } from "./domain.js";
+import { aggregateAvailableQuantity, calculateEffectiveConcepts, classifyProduct, convertQuantity, matchAcceptanceCriteria, orderBatchesForConsumption, planConsumption, summarizeStockTarget, validateConceptRelations } from "./domain.js";
 import type { AcceptanceCriteria, ProductConceptRef, StockAllocation, StockBatch, StockTarget } from "./contracts.js";
 import { assertStockAllocation, assertStockBatch, assertStockTarget } from "./validation.js";
 
@@ -41,6 +41,11 @@ describe("household v2 stock rules", () => {
     const first = batch("first", "2026-07-20", 1000, "2026-07-01"); const second = batch("second", null, 1000, "2026-07-02");
     expect(planConsumption(target, [first, second], [allocation("first", 1000), allocation("second", 1000)], 1.5)).toEqual([{ batchId: "first", quantity: 1000, unit: "ml" }, { batchId: "second", quantity: 500, unit: "ml" }]);
     expect(() => planConsumption(target, [first], [allocation("first", 1000)], 2)).toThrow("insufficient_stock");
+  });
+
+  it("summarizes allocated quantity and combines shortage and expiry notices", () => {
+    const milk = batch("milk", "2026-07-13", 1500); const summary = summarizeStockTarget(target, [milk], [allocation("milk", 1500)], "2026-07-11");
+    expect(summary).toEqual({ availableQuantity: 1.5, batchCount: 1, expiringBatchCount: 1, nextExpiryOn: "2026-07-13", noticeCodes: ["below_minimum", "expiring_soon"], status: "below_minimum" });
   });
 
   it("validates target, batch, allocation, precision, and expiry invariants", () => {

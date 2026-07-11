@@ -161,6 +161,32 @@ export function aggregateAvailableQuantity(
     }, 0);
 }
 
+export interface StockTargetAggregate {
+  availableQuantity: number;
+  batchCount: number;
+  expiringBatchCount: number;
+  nextExpiryOn: string | null;
+  noticeCodes: Array<"below_minimum" | "expiring_soon">;
+  status: "below_minimum" | "at_target" | "between_minimum_and_target";
+}
+
+export function summarizeStockTarget(target: StockTarget, batches: readonly StockBatch[], allocations: readonly StockAllocation[], today: string): StockTargetAggregate {
+  const availableBatches = batches.filter((batch) => batch.status === "available");
+  const availableQuantity = aggregateAvailableQuantity(target, availableBatches, allocations);
+  const allocatedBatchIds = new Set(allocations.filter((allocation) => allocation.status === "active" && allocation.stockTargetId === target.id).map((allocation) => allocation.stockBatchId));
+  const targetBatches = availableBatches.filter((batch) => allocatedBatchIds.has(batch.id));
+  const expiringBatchCount = targetBatches.filter((batch) => batch.expiryOn !== null && batch.expiryOn !== undefined && batch.expiryOn >= today && batch.expiryOn <= addDays(today, target.expiryWarningDays)).length;
+  const datedExpiries = targetBatches.map((batch) => batch.expiryOn).filter((expiry): expiry is string => typeof expiry === "string" && expiry >= today).sort();
+  const status = availableQuantity < target.minimumQuantity ? "below_minimum" : availableQuantity >= target.targetQuantity ? "at_target" : "between_minimum_and_target";
+  return { availableQuantity, batchCount: targetBatches.length, expiringBatchCount, nextExpiryOn: datedExpiries[0] ?? null, noticeCodes: [status === "below_minimum" ? "below_minimum" : null, expiringBatchCount > 0 ? "expiring_soon" : null].filter((code): code is "below_minimum" | "expiring_soon" => code !== null), status };
+}
+
+function addDays(date: string, days: number): string {
+  const value = new Date(`${date}T00:00:00Z`);
+  value.setUTCDate(value.getUTCDate() + days);
+  return value.toISOString().slice(0, 10);
+}
+
 export function canUseHouseholdCapability(context: HouseholdCapabilityContext, capability: HouseholdCapability): boolean {
   if (!context.isMember) return false;
   return capability !== "manage_members" && capability !== "void_history" || context.role === "owner";

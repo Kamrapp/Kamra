@@ -25,6 +25,7 @@
 - Item: Added transactional Stock Batch allocation with criteria validation, unit compatibility, full-batch enforcement, and one-active-allocation protection.
 - Item: Added transactional Stock Target consumption with stale-revision checks, deterministic planning, partial depletion, allocation updates, and per-batch movement history.
 - Item: Added transactional batch correction and discard commands with revision checks, explicit movements, allocation reconciliation, and preserved history.
+- Item: Added the explainable Stock Target aggregate projection with allocation-only totals, status, next expiry, expiring count, and combined notice codes.
 
 ## Changed Files
 
@@ -34,6 +35,8 @@
 - Path: `packages/kamra-api-server/src/household/v2/domain.test.ts`
 - Path: `packages/kamra-api-server/src/household/v2/mongo-stock-command-repository.ts`
 - Path: `packages/kamra-api-server/src/household/v2/mongo-stock-command-repository.test.ts`
+- Path: `packages/kamra-api-server/src/household/v2/domain.ts`
+- Path: `packages/kamra-api-server/src/household/v2/domain.test.ts`
 - Path: `packages/kamra-api-server/src/test-support/fake-mongo.ts`
 - Path: `packages/kamra-api-server/src/household/README.md`
 - Path: `docs/domain-language.md`
@@ -68,6 +71,10 @@
 ## Validation
 
 - Ran: `npm run typecheck`
+- Result: Passed.
+- Ran: `npm test -- --run packages/kamra-api-server/src/household/v2/domain.test.ts`
+- Result: 7 tests passed.
+- Ran: `npx eslint packages/kamra-api-server/src/household/v2/domain.ts packages/kamra-api-server/src/household/v2/domain.test.ts`
 - Result: Passed.
 - Ran: `npm test -- --run packages/kamra-api-server/src/household/v2/mongo-stock-command-repository.test.ts`
 - Result: 4 tests passed.
@@ -150,6 +157,8 @@
 - Impact: Consumption is transactional, but history reversal and full stock-status explanations are not yet available.
 - Issue: Void/reversal authorization and aggregate read projections remain pending.
 - Impact: Erroneous historical actions are not yet reversible through the command repository, and the UI/API still lacks explainable aggregate status output.
+- Issue: The aggregate projection is currently a pure helper and not yet exposed through a v2 read repository or route.
+- Impact: It is ready for API composition, but legacy household screens still use the v1 model until Step 5/6.
 - Issue: UI/API manual verification has not started.
 - Impact: Track the final browser checklist as implementation reaches the household workspace.
 
