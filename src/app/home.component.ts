@@ -469,6 +469,7 @@ export class HomeComponent implements OnDestroy {
   }
 
   refreshV2Workspace(): void {
+    this.selectedV2Product.set(null);
     this.v2WorkspaceRevision.update((revision) => revision + 1);
   }
 
