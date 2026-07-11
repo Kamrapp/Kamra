@@ -79,7 +79,7 @@ export class FakeCollection<T extends PlainDoc = PlainDoc> implements MongoColle
     return new FakeCursor<T>(this.docs.filter((doc) => matchesFilter(doc, filter)) as T[]);
   }
 
-  async findOne(filter: MongoFilter<T> = {} as MongoFilter<T>): Promise<T | null> {
+  async findOne(filter: MongoFilter<T> = {} as MongoFilter<T>, _options?: Document): Promise<T | null> {
     return (this.docs.find((doc) => matchesFilter(doc, filter)) ?? null) as T | null;
   }
 

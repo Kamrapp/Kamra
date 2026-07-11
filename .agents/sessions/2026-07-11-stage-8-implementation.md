@@ -21,6 +21,7 @@
 - Item: Added `npm run smoke:transactions`, an isolated Mongo transaction check that verifies rollback and commit behavior and refuses production-named databases.
 - Item: Transaction smoke passed against `kamra_dev`: rollback count 0, committed count 2, temporary collection cleaned up.
 - Item: Started Step 4 with a reusable Mongo transaction runner and pure consumption planning for deterministic partial multi-batch commands.
+- Item: Added transactional Stock Batch acquisition with operation receipts, acquisition movements, idempotent retry replay, and fingerprint conflict detection.
 
 ## Changed Files
 
@@ -28,6 +29,9 @@
 - Path: `packages/kamra-api-server/src/household/v2/domain.ts`
 - Path: `packages/kamra-api-server/src/household/v2/validation.ts`
 - Path: `packages/kamra-api-server/src/household/v2/domain.test.ts`
+- Path: `packages/kamra-api-server/src/household/v2/mongo-stock-command-repository.ts`
+- Path: `packages/kamra-api-server/src/household/v2/mongo-stock-command-repository.test.ts`
+- Path: `packages/kamra-api-server/src/test-support/fake-mongo.ts`
 - Path: `packages/kamra-api-server/src/household/README.md`
 - Path: `docs/domain-language.md`
 - Path: `.agents/plans/2026-07-11-stage-8-coherent-household-mvp-plan.md`
@@ -61,6 +65,10 @@
 ## Validation
 
 - Ran: `npm run typecheck`
+- Result: Passed.
+- Ran: `npm test -- --run packages/kamra-api-server/src/household/v2/mongo-stock-command-repository.test.ts`
+- Result: Passed.
+- Ran: `npx eslint packages/kamra-api-server/src/household/v2/mongo-stock-command-repository.ts packages/kamra-api-server/src/household/v2/mongo-stock-command-repository.test.ts packages/kamra-api-server/src/db/mongo-like.ts packages/kamra-api-server/src/test-support/fake-mongo.ts`
 - Result: Passed.
 - Ran: `npm test -- --run packages/kamra-api-server/src/db/mongo-transaction.test.ts packages/kamra-api-server/src/household/v2/domain.test.ts`
 - Result: 8 tests passed.
@@ -119,6 +127,8 @@
 - Impact: This is expected Mongo client behavior, but future operational logs should consistently include the effective application database to avoid confusion.
 - Issue: Step 4 command persistence and idempotency receipts are not implemented yet.
 - Impact: The planner is write-free; no stock mutation is exposed until repository transactions enforce revisions, operation fingerprints, and one-active-allocation rules.
+- Issue: Allocation, consume, correction, discard, and void commands are still pending.
+- Impact: Batch acquisition is transactional, but the full household stock loop is not yet available.
 - Issue: UI/API manual verification has not started.
 - Impact: Track the final browser checklist as implementation reaches the household workspace.
 

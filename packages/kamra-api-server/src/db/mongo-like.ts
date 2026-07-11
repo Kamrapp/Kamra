@@ -27,7 +27,7 @@ export interface MongoCollectionLike<T extends Document = Document> {
   distinct(key: string, filter?: Filter<T>): Promise<unknown[]>;
   drop(): Promise<boolean>;
   find(filter?: Filter<T>, options?: Document): MongoCursorLike<T>;
-  findOne(filter?: Filter<T>): Promise<T | null>;
+  findOne(filter?: Filter<T>, options?: Document): Promise<T | null>;
   insertOne(doc: OptionalUnlessRequiredId<T>, options?: Document): Promise<unknown>;
   updateMany(filter: Filter<T>, update: Document, options?: Document): Promise<MongoWriteResult>;
   updateOne(filter: Filter<T>, update: Document, options?: Document): Promise<MongoWriteResult>;
