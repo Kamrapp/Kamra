@@ -158,6 +158,12 @@ Use `.agents/plan-template.md` as the default structure. Plans may be revised fr
 
 The default state is commit preparation, not autonomous commit creation.
 
+### Workspace Git permission boundary
+
+In managed workspaces, `.git/index` may be outside the writable sandbox even when project files are writable. If the user has explicitly requested commits and a commit is ready, proactively request the repository's approved elevated command path for the single additional commit operation instead of treating an index-lock permission error as a code blocker.
+
+The elevated path is narrowly limited to staging the intended files and creating a new commit. Do not use it for `git commit --amend`, `git push`, force operations, `git reset`, `git checkout`, branch deletion, history rewriting, or destructive cleanup unless the user separately and explicitly requests that exact operation. Do not request a broad reusable Git escalation rule; ask for approval for the specific commit command and explain the files/scope.
+
 When the user asks for commits:
 
 - create atomic commits
