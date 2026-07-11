@@ -16,15 +16,10 @@ import { PageRailService, type PageRailSection } from "../shared/page-rail.servi
 import { ProductEditorDialogComponent } from "../shared/product-editor-dialog.component";
 import { TableIconButtonComponent } from "../shared/table-icon-button.component";
 import { LocalizationService, type TranslationKey } from "../shared/localization.service";
-
-interface VisibleSnapshotRow {
-  index: number;
-  offset: number;
-  snapshot: IngestionSnapshotListItem;
-}
+import { IngestionSnapshotTableComponent } from "./ingestion-snapshot-table.component";
 
 @Component({
-  imports: [ProductEditorDialogComponent, ResizableTableComponent, TableIconButtonComponent],
+  imports: [IngestionSnapshotTableComponent, ProductEditorDialogComponent, ResizableTableComponent, TableIconButtonComponent],
   selector: "app-ingestion-admin",
   standalone: true,
   template: `
@@ -44,39 +39,16 @@ interface VisibleSnapshotRow {
         [style.--crawl-list-fr]="crawlListWidthPercent() + 'fr'"
         [style.--crawl-detail-fr]="100 - crawlListWidthPercent() + 'fr'"
       >
-          <app-resizable-table #snapshotTable class="snapshot-list" [ariaLabel]="loc.t('crawl.snapshotTable')" [columns]="snapshotColumns()">
-              <div
-                class="snapshot-body"
-                [style.--snapshot-row-height]="snapshotRowHeight + 'px'"
-                (scroll)="onSnapshotScroll($event)"
-              >
-                @if (!snapshots().length) {
-                  <p class="empty-list">{{ snapshotListPlaceholder() }}</p>
-                }
-
-                <div class="snapshot-spacer" [style.height.px]="snapshotListHeight()">
-                @for (row of visibleSnapshots(); track row.snapshot.id) {
-                  <button
-                    class="snapshot-row"
-                    type="button"
-                    role="row"
-                    [class.snapshot-row-selected]="selectedSnapshotId() === row.snapshot.id"
-                    (click)="selectSnapshot(row.snapshot.id)"
-                    [style.grid-template-columns]="snapshotTable.columnTemplate()"
-                    [style.transform]="'translateY(' + row.offset + 'px)'"
-                  >
-                    <span role="cell">
-                      <strong>{{ row.snapshot.sourceName }}</strong>
-                      <small>{{ row.snapshot.sourceRecordId }}</small>
-                    </span>
-                    <span role="cell">{{ formatDate(row.snapshot.capturedAt) }}</span>
-                    <span role="cell">{{ row.snapshot.parsedRowCount }}</span>
-                    <span role="cell">{{ processingStateLabel(row.snapshot) }}</span>
-                  </button>
-                }
-                </div>
-              </div>
-          </app-resizable-table>
+          <app-ingestion-snapshot-table
+            [auth]="!!auth.token()"
+            [columns]="snapshotColumns()"
+            [loadState]="loadState()"
+            [scrollTop]="snapshotListScrollTop()"
+            [selectedId]="selectedSnapshotId()"
+            [snapshots]="snapshots()"
+            (scrolled)="onSnapshotScroll($event)"
+            (snapshotSelected)="selectSnapshot($event)"
+          />
 
           @if (selectedSnapshot(); as snapshot) {
             <button
@@ -211,60 +183,20 @@ interface VisibleSnapshotRow {
         padding: 0;
       }
 
-      .snapshot-list,
       .row-table {
         min-height: 0;
         min-width: 0;
       }
 
-      .snapshot-row,
       .parsed-row {
         box-sizing: border-box;
         display: grid;
         gap: var(--space-3);
       }
-
-      .snapshot-row {
-        min-width: var(--table-width);
-      }
-
-      .snapshot-body,
       .row-body {
         overflow-x: hidden;
         overflow-y: auto;
         scrollbar-gutter: stable;
-      }
-
-      .snapshot-body {
-        height: 36rem;
-        min-width: var(--table-width);
-        position: relative;
-      }
-
-      .snapshot-spacer {
-        min-width: 100%;
-        position: relative;
-      }
-
-      .snapshot-row {
-        background: transparent;
-        border: 0;
-        border-bottom: 1px solid var(--line-subtle);
-        color: inherit;
-        cursor: pointer;
-        font: inherit;
-        min-height: 4.6rem;
-        padding: 0.7rem 1rem;
-        position: absolute;
-        right: 0;
-        text-align: left;
-        top: 0;
-        width: 100%;
-      }
-
-      .snapshot-row-selected,
-      .snapshot-row:hover {
-        background: var(--row-hover-background);
       }
 
       .workspace-resizer {
@@ -312,11 +244,6 @@ interface VisibleSnapshotRow {
       small {
         color: var(--color-text-muted);
         font-size: 0.78rem;
-      }
-
-      .empty-list {
-        color: var(--color-text-muted);
-        padding: 1rem;
       }
 
       .parsed-row {
@@ -374,8 +301,6 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
   readonly hasNextSnapshotPage = signal(true);
   readonly snapshotListScrollTop = signal(0);
   readonly snapshotPageSize = signal(25);
-  readonly snapshotRowHeight = 74;
-  readonly snapshotViewportHeight = 576;
   readonly showAcceptedItems = signal(false);
   readonly snapshots = signal<IngestionSnapshotListItem[]>([]);
   readonly statusMessage = signal("");
@@ -401,19 +326,6 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
       label: sourceName
     }))
   );
-  readonly snapshotListHeight = computed(() => this.snapshots().length * this.snapshotRowHeight);
-  readonly visibleSnapshots = computed<VisibleSnapshotRow[]>(() => {
-    const snapshots = this.snapshots();
-    const overscan = 5;
-    const start = Math.max(0, Math.floor(this.snapshotListScrollTop() / this.snapshotRowHeight) - overscan);
-    const visibleCount = Math.ceil(this.snapshotViewportHeight / this.snapshotRowHeight) + overscan * 2;
-
-    return snapshots.slice(start, start + visibleCount).map((snapshot, index) => ({
-      index: start + index,
-      offset: (start + index) * this.snapshotRowHeight,
-      snapshot
-    }));
-  });
   readonly pageRailSections = computed<PageRailSection[]>(() => {
     const sections: PageRailSection[] = [
       {
@@ -509,12 +421,13 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
     this.pageRail.clearSections();
   }
 
-  formatDate(value: string): string {
-    return value.slice(0, 10);
-  }
-
   formatDateTime(value: string): string {
     return value.replace("T", " ").slice(0, 19);
+  }
+
+  processingStateLabel(snapshot: IngestionSnapshotListItem): string {
+    const state = snapshot.processingState?.state ?? "pending";
+    return this.loc.t(`processingState.${state}` as TranslationKey);
   }
 
   formatPrice(row: IngestionRowPreview): string {
@@ -533,25 +446,8 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
     return this.loc.t("common.none");
   }
 
-  processingStateLabel(snapshot: IngestionSnapshotListItem): string {
-    const state = snapshot.processingState?.state ?? "pending";
-    return this.loc.t(`processingState.${state}` as TranslationKey);
-  }
-
   selectSnapshot(snapshotId: string): void {
     this.selectedSnapshotId.set(snapshotId);
-  }
-
-  snapshotListPlaceholder(): string {
-    if (!this.auth.token()) {
-      return this.loc.t("crawl.signInLoad");
-    }
-
-    if (this.loadState() === "loading") {
-      return this.loc.t("crawl.loadingSnapshots");
-    }
-
-    return this.loc.t("crawl.noSnapshots");
   }
 
   setShowAcceptedItems(showAccepted: boolean): void {
@@ -593,7 +489,7 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
       this.snapshotListScrollTop.set(target.scrollTop);
 
       const remainingDistance = target.scrollHeight - target.scrollTop - target.clientHeight;
-      if (remainingDistance < this.snapshotRowHeight * 6) {
+      if (remainingDistance < 74 * 6) {
         void this.loadNextSnapshotPage();
       }
     }

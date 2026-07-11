@@ -24,6 +24,7 @@
 - Item: Extracted the developer-admin feature-flags card into a single-file standalone component with typed toggle/save events.
 - Item: Extracted the developer-admin alpha-access card into a single-file standalone component with typed form and action events.
 - Item: Extracted the product catalog filter bar into a single-file standalone component; catalog filtering/debounce and table virtualization remain in the page.
+- Item: Extracted the ingestion snapshot table into a single-file standalone component with local virtualization, row formatting, selection output, and scroll output.
 
 ## Changed Files
 
@@ -63,6 +64,10 @@
   - Owns the catalog name-filter control, clear affordance, localization, and filter-bar styles.
 - Path: `src/app/product-lookup/product-catalog.component.ts`
   - Composes the filter bar and retains filtering state, debounce, table projection, loading, and editor orchestration.
+- Path: `src/app/site-admin/ingestion-snapshot-table.component.ts`
+  - Owns the resizable snapshot table, virtual row window, snapshot row formatting, empty-state text, selection event, and scroll event.
+- Path: `src/app/site-admin/ingestion-admin.component.ts`
+  - Composes the snapshot table and retains pagination/loading, page-rail orchestration, workspace resize, selected detail rows, and review actions.
 
 ## Validation
 
@@ -84,6 +89,8 @@
 - Result: Passed; 31 test files and 153 tests passed.
 - Ran: `npm run typecheck`, `npm run lint`, and `npm run build:web` after the catalog filter extraction.
 - Result: Passed; the existing full test result remains green from the preceding admin slices.
+- Ran: `npm run typecheck`, `npm run lint`, and `npm run build:web` after the snapshot-table extraction.
+- Result: Initial check caught the page-rail call to the moved processing-label helper; the helper was deliberately retained in the page, and the rerun passed.
 
 ## Decisions
 
@@ -132,6 +139,10 @@
   - Impact: Final manual checks should verify typing/debounce, clear-button visibility and behavior, filter persistence while paging/refreshing, narrow-width wrapping, and theme/input styling.
 - Issue: Catalog rows remain intentionally in `ProductCatalogComponent`.
   - Impact: Keep virtual-scroll offsets, resizable-table column templates, row grid sizing, and edit-button behavior under manual review; do not wrap individual projected rows.
+- Issue: The ingestion snapshot table now renders through a component host.
+  - Impact: Final manual checks should verify snapshot virtualization, row selection/highlight, empty/loading/auth text, scroll-triggered pagination, resizable columns, processing labels, and narrow-layout overflow.
+- Issue: The ingestion detail table remains in the page because review actions and selected-snapshot state are tightly coupled.
+  - Impact: Keep review-button routing, row formatting, and selected-snapshot/detail-panel behavior under manual review; do not force the detail extraction without a compact contract.
 - Issue: Existing working-tree/index state may include user-owned plan or backend changes.
   - Impact: Do not revert, stage, or mix unrelated files into cleanup changes.
 
@@ -142,7 +153,7 @@
 
 ## Next Step
 
-The catalog filter slice is ready to commit. After the commit, inspect whether a whole catalog-table contract is compact enough; preserve the current page if it would require a callback bag. Then proceed to ingestion table surfaces. Keep `HouseholdShoppingListComponent` as the lifecycle facade and avoid a low-value admin request wrapper.
+The snapshot-table slice is ready to commit. After the commit, inspect the catalog table and ingestion detail contracts; retain either page surface if extraction would require a callback bag. Then proceed to verified global CSS primitives. Keep `HouseholdShoppingListComponent` as the lifecycle facade and avoid a low-value admin request wrapper.
 
 ## Notes For Future Agent
 
