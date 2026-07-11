@@ -24,6 +24,7 @@
 - Item: Added transactional Stock Batch acquisition with operation receipts, acquisition movements, idempotent retry replay, and fingerprint conflict detection.
 - Item: Added transactional Stock Batch allocation with criteria validation, unit compatibility, full-batch enforcement, and one-active-allocation protection.
 - Item: Added transactional Stock Target consumption with stale-revision checks, deterministic planning, partial depletion, allocation updates, and per-batch movement history.
+- Item: Added transactional batch correction and discard commands with revision checks, explicit movements, allocation reconciliation, and preserved history.
 
 ## Changed Files
 
@@ -67,6 +68,10 @@
 ## Validation
 
 - Ran: `npm run typecheck`
+- Result: Passed.
+- Ran: `npm test -- --run packages/kamra-api-server/src/household/v2/mongo-stock-command-repository.test.ts`
+- Result: 4 tests passed.
+- Ran: `npx eslint packages/kamra-api-server/src/household/v2/mongo-stock-command-repository.ts packages/kamra-api-server/src/household/v2/mongo-stock-command-repository.test.ts`
 - Result: Passed.
 - Ran: `npm test -- --run packages/kamra-api-server/src/household/v2/mongo-stock-command-repository.test.ts`
 - Result: 3 tests passed.
@@ -143,6 +148,8 @@
 - Impact: Browser users cannot invoke the new command yet; route cutover remains intentionally deferred until the command set is coherent.
 - Issue: Correction/discard/void history commands and aggregate read projections are still pending.
 - Impact: Consumption is transactional, but history reversal and full stock-status explanations are not yet available.
+- Issue: Void/reversal authorization and aggregate read projections remain pending.
+- Impact: Erroneous historical actions are not yet reversible through the command repository, and the UI/API still lacks explainable aggregate status output.
 - Issue: UI/API manual verification has not started.
 - Impact: Track the final browser checklist as implementation reaches the household workspace.
 

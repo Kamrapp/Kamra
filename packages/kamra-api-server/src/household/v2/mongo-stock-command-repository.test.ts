@@ -36,4 +36,16 @@ describe("MongoStockCommandRepository", () => {
     expect(db.__collections["household_stock_movements"]!.docs).toHaveLength(2);
     await expect(repository.consume({ actorUserId: "u", expectedTargetRevision: 0, householdId: "h", occurredAt: batch.updatedAt, operationId: "op-stale", requestFingerprint: "stale", requestedQuantity: 1, stockTargetId: target.id })).rejects.toThrow("stale_revision");
   });
+
+  it("corrects and discards batches through explicit movement commands", async () => {
+    const db = createFakeDb({ household_stock_targets: new FakeCollection<Record<string, unknown>>("household_stock_targets", [target as unknown as Record<string, unknown>]) }); const repository = new MongoStockCommandRepository(db, transactionClient);
+    await repository.acquireBatch({ batch, operationId: "op-acquire", requestFingerprint: "acquire" });
+    const allocation: StockAllocation = { acceptanceResult: "accepted", allocatedQuantity: 2, createdAt: batch.createdAt, createdByUserId: "u", householdId: "h", id: "allocation-1", revision: 0, status: "active", stockBatchId: batch.id, stockTargetId: target.id, unit: "l", updatedAt: batch.updatedAt, updatedByUserId: "u" };
+    await repository.allocateBatch({ allocation, operationId: "op-allocate", requestFingerprint: "allocate" });
+    await repository.correctBatch({ actorUserId: "u", batchId: batch.id, householdId: "h", expectedBatchRevision: 0, occurredAt: batch.updatedAt, operationId: "op-correct", requestFingerprint: "correct", resultingQuantity: 1.5 });
+    expect(db.__collections["household_stock_batches"]!.docs[0]).toMatchObject({ remainingQuantity: 1.5, revision: 1 });
+    await repository.discardBatch({ actorUserId: "u", batchId: batch.id, householdId: "h", expectedBatchRevision: 1, occurredAt: batch.updatedAt, operationId: "op-discard", requestFingerprint: "discard" });
+    expect(db.__collections["household_stock_batches"]!.docs[0]).toMatchObject({ remainingQuantity: 0, status: "discarded", revision: 2 });
+    expect(db.__collections["household_stock_movements"]!.docs).toHaveLength(3);
+  });
 });
