@@ -7,6 +7,7 @@ Durable product and operations context lives in `docs/household.md`.
 ## Layout
 
 - `v1/` contains the versioned household collections, DTOs, and validation helpers.
+- `v2/` contains the Stage 8 final domain contracts, validators, classification, allocation, and aggregation helpers. Persistence and routes must use these contracts after the controlled cutover.
 - `current/` contains small deterministic domain helpers that should stay stable across route and UI work.
 
 ## Model Notes
@@ -19,3 +20,5 @@ Durable product and operations context lives in `docs/household.md`.
 - Stage 6 shopping-list generation lives in `current/shopping-list.ts` as a pure helper so the API and UI can reuse the same inclusion, ordering, and target-amount rules.
 - Shopping-list target amount uses `idealMaxLimit` when a stock row has one; otherwise it falls back to `minLimit * household.defaultCalculatedMaxLimitMultiplier`, with the household multiplier defaulting to `2`.
 - Missing catalog or source linkage should stay explicit in shopping-list output through uncertainty flags instead of hiding household-local items.
+
+Stage 8 uses `v2` vocabulary: Stock Targets are demand policies, Stock Batches are physical acquisitions, and Stock Allocations are the only source of aggregate stock. `v1` remains migration input only while the cutover is in progress.

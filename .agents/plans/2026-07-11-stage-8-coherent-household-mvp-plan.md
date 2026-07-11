@@ -1,6 +1,6 @@
 # Stage 8 Household-Domain Correctness Plan
 
-Status: Proposed final plan. No implementation is authorized until the user approves this plan or a named step.
+Status: In implementation. The user authorized Stage 8 implementation on 2026-07-11; proceed one approved commit-sized step at a time.
 
 ## Objective
 
