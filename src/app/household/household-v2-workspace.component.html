@@ -1,0 +1,15 @@
+<section class="v2-workspace" aria-labelledby="v2-workspace-title">
+  <div class="workspace-heading"><div><p class="eyebrow">Stage 8 stock model</p><h2 id="v2-workspace-title">Household stock</h2></div><button type="button" (click)="refresh()" [disabled]="loadState() === 'loading'">Refresh</button></div>
+  @if (loadState() === 'loading') { <p class="state">Loading grouped stock…</p> }
+  @if (errorMessage()) { <p class="state error">{{ errorMessage() }}</p> }
+  @if (workspace(); as current) {
+    <div class="target-list">
+      @for (group of current.targets; track group.target.id) {
+        <article class="target-card"><div class="target-heading"><div><h3>{{ group.target.displayName }}</h3><p>{{ group.aggregate.availableQuantity }} / {{ group.target.targetQuantity }} {{ group.target.trackingUnit }}</p></div><span class="status">{{ group.aggregate.status }}</span></div>
+          @for (product of group.products; track product.id) { <div class="product-row"><strong>{{ product.displayName }}</strong><span>{{ product.identityKind }}</span>@for (batch of group.batches; track batch.id) {@if (batch.householdProductId === product.id) { <small>{{ batch.remainingQuantity }} {{ batch.unit }} · acquired {{ batch.acquiredOn }}@if (batch.expiryOn) { · expires {{ batch.expiryOn }}}</small> }}</div> }
+        </article>
+      }
+      <article class="target-card unassigned"><div class="target-heading"><div><h3>Unassigned or unclassified</h3><p>Visible until a Product and Stock Target are chosen.</p></div><span class="status">{{ current.unassignedBatches.length }}</span></div>@for (batch of current.unassignedBatches; track batch.id) { <div class="product-row"><strong>{{ batch.acquisitionSnapshot.displayName }}</strong><small>{{ batch.remainingQuantity }} {{ batch.unit }} · acquired {{ batch.acquiredOn }}</small></div> }</article>
+    </div>
+  }
+</section>

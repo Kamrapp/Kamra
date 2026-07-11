@@ -219,8 +219,8 @@
 - Impact: This is expected Mongo client behavior, but future operational logs should consistently include the effective application database to avoid confusion.
 - Issue: Stage 8 implementation is incomplete at product level: checked-in classification content sync, household-local classification management, invitation/join management, migration reconciliation, void/reversal policy, structured domain-event coverage, Angular v2 service/UI cutover, and generated Shopping Need synchronization remain.
 - Impact: The v2 backend foundation and route slices are not yet a coherent browser workflow; do not mark Stage 8 complete or begin Stage 9 implementation.
-- Issue: Reusable Household Product identity is now represented by a `household_products` repository and API; product classification is revisioned and future product-backed batches inherit it while preserving batch snapshots. The grouped workspace read model now derives target aggregates server-side and exposes product/unassigned-batch hierarchy.
-- Impact: Browser grouping, product editing, and full migration/reconciliation still need implementation and manual confirmation.
+- Issue: Reusable Household Product identity is now represented by a `household_products` repository and API; product classification is revisioned and future product-backed batches inherit it while preserving batch snapshots. The grouped workspace read model now derives target aggregates server-side and exposes product/unassigned-batch hierarchy, and authenticated Home now renders that hierarchy read-only with refresh.
+- Impact: Browser grouping is implemented but needs manual confirmation; product/batch editing and full migration/reconciliation still need implementation.
 - Issue: Transaction smoke is useful for Mongo topology/driver/transaction-path changes but not for unrelated PRs.
 - Impact: The plan/docs now recommend a separate narrowly triggered Smoke workflow, while unit transaction tests remain in secret-free App Checks.
 - Issue: Stock Target CRUD is now complete at the initial backend route boundary; classification content, household management, UI cutover, reconciliation, and generated-need synchronization remain.
@@ -239,6 +239,7 @@
 - Product-first: create an unclassified concrete Household Product, add two batches, classify the Product later, and verify future batches inherit classification while prior snapshots stay unchanged.
 - API product anchor: create/list via `/api/households/{householdId}/products`, classify via `/classification` with `expectedRevision`, then create a batch with `householdProductId`; verify stale revisions are rejected.
 - API grouped workspace: GET `/api/households/{householdId}/stock-workspace`; verify target totals are derived from active allocations, allocated batches group under their Household Product, and unallocated batches remain visible.
+- Browser Home: sign in, select a household, confirm the grouped Stage 8 workspace appears above the legacy controls, refresh it, and verify target/product/batch/unassigned hierarchy.
 - Need-first: create a generic Stock Target and unanchored opening batch, then identify concrete Household Products and allocate later batches to the same target without rewriting opening history.
 - Verify grouped Home hierarchy: Stock Target groups first, Household Products beneath, individual Batches beneath Products, plus visible unassigned/unclassified groups; target current amount is derived/read-only.
 - Run `npm run smoke:transactions` against an approved disposable database and record rollback 0, commit 2, cleanup, and effective database name.
@@ -247,7 +248,7 @@
 ## Roadmap Or Plan Updates
 
 - Needed: No roadmap change.
-- Status: Stage 8 remains in implementation; transaction gate is cleared, Product anchors and the grouped workspace backend slice are committed after validation, and product/browser acceptance plus remaining classification, membership, reconciliation, and UI work remain.
+- Status: Stage 8 remains in implementation; transaction gate is cleared, Product anchors, grouped workspace backend, and initial Home rendering are committed after validation/build, while manual browser confirmation and remaining classification, membership, reconciliation, and editing work remain.
 
 ## Next Step
 

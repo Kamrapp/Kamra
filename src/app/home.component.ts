@@ -19,6 +19,7 @@ import {
 } from "./household/household-stock-editor.component";
 import { HouseholdStockPanelComponent } from "./household/household-stock-panel.component";
 import { HouseholdShoppingListComponent } from "./household/household-shopping-list.component";
+import { HouseholdV2WorkspaceComponent } from "./household/household-v2-workspace.component";
 import { LocalizationService, type TranslationKey } from "./shared/localization.service";
 import { PageRailService, type PageRailSection } from "./shared/page-rail.service";
 import { ToastService } from "./shared/toast.service";
@@ -70,7 +71,8 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
     HouseholdPreviewWorkspaceComponent,
     HouseholdShoppingListComponent,
     HouseholdStockEditorComponent,
-    HouseholdStockPanelComponent
+    HouseholdStockPanelComponent,
+    HouseholdV2WorkspaceComponent
   ],
   templateUrl: "./home.component.html",
   styleUrl: "./home.component.css"
