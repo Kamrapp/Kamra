@@ -241,6 +241,7 @@ describe("MongoHouseholdRepository", () => {
       schemaVersion: "shopping_list_v1",
       shopId: "shop_hu_lidl"
     });
+    expect(db.__collections["household_shopping_lists"]!.docs[0]).not.toHaveProperty("userId");
 
     const latestList = await repository.getLatestShoppingList({
       householdId: "household1",
