@@ -246,6 +246,7 @@
 - Expiry policy correction: expiry-before-acquisition is now valid; `allowExpiredItems` is stored per household, defaults to true during creation/migration, is editable from grouped Home, and when false excludes expired batches from derived available totals and consumption while preserving visibility/history.
 - Demo fixture: reseeding now adds two allocated milk Products under one Target, an expired-before-acquisition yogurt batch, and an unassigned no-expiry flour batch. Manual script: `scripts/stage8-demo-manual-test.md`.
 - Dark-mode fix: the Stage 8 grouped workspace now uses the repository's actual theme tokens instead of undefined light-only fallbacks; build passed.
+- Seed validator repair: adding `allowExpiredItems` changed an already-completed household validator, so `household-expired-item-policy-v1` now independently upgrades the validator and backfills the permissive default before demo reseeding.
 - API grouped workspace: GET `/api/households/{householdId}/stock-workspace`; verify target totals are derived from active allocations, allocated batches group under their Household Product, and unallocated batches remain visible.
 - Browser Home: sign in, select a household, confirm the grouped Stage 8 workspace appears above the legacy controls, refresh it, and verify target/product/batch/unassigned hierarchy.
 - Need-first: create a generic Stock Target and unanchored opening batch, then identify concrete Household Products and allocate later batches to the same target without rewriting opening history.

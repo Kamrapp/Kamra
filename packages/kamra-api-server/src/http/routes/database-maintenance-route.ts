@@ -217,6 +217,12 @@ async function runValidatorAction(
   if (entryId === "household-products-v1") {
     return await new MongoHouseholdProductRepository(database).setupCollections();
   }
+  if (entryId === "household-expired-item-policy-v1") {
+    const repository = context.dependencies.createHouseholdRepository
+      ? context.dependencies.createHouseholdRepository(database)
+      : createDefaultHouseholdRepository(database);
+    return await repository.upgradeHouseholdValidators();
+  }
   if (entryId === "catalog-product-validation") {
     const repository = context.dependencies.createCatalogRepository
       ? context.dependencies.createCatalogRepository(database)
@@ -252,6 +258,12 @@ async function runMigrationAction(
   }
   if (entryId === "household-products-v1") {
     return await new MongoHouseholdProductRepository(database).migrateLegacy();
+  }
+  if (entryId === "household-expired-item-policy-v1") {
+    const repository = context.dependencies.createHouseholdRepository
+      ? context.dependencies.createHouseholdRepository(database)
+      : createDefaultHouseholdRepository(database);
+    return await repository.migrateExpiredItemPolicy();
   }
   if (entryId === "catalog-product-validation") {
     const repository = context.dependencies.createCatalogRepository

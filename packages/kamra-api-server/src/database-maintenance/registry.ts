@@ -16,6 +16,11 @@ export const databaseMaintenanceEntries: readonly DatabaseMaintenanceEntry[] = [
     title: "Household default fields"
   },
   {
+    details: "Adds the allowExpiredItems household policy field to the household validator and backfills existing households with the permissive true default. This is separate from the original household default-field maintenance action because its completion may already be recorded.",
+    id: "household-expired-item-policy-v1",
+    title: "Household expired-item policy"
+  },
+  {
     details: "Creates the final Product Concept, Product Attribute, relation, and product-classification assignment collections and migrates legacy category/attribute tags without treating keyword hints as eligibility rules.",
     id: "catalog-classification-v1",
     title: "Catalog product classification"

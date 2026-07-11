@@ -1436,6 +1436,11 @@ describe("handleAppRequest auth guards", () => {
           validatorUpdated: false
         },
         {
+          id: "household-expired-item-policy-v1",
+          migrationCompleted: false,
+          validatorUpdated: false
+        },
+        {
           id: "catalog-classification-v1",
           migrationCompleted: false,
           validatorUpdated: false
@@ -1562,6 +1567,8 @@ describe("handleAppRequest auth guards", () => {
       "catalog-product-validation:migration",
       "household-fields:validator",
       "household-fields:migration",
+      "household-expired-item-policy-v1:validator",
+      "household-expired-item-policy-v1:migration",
       "catalog-classification-v1:validator",
       "catalog-classification-v1:migration",
       "household-stock-targets-v1:validator",

@@ -388,6 +388,17 @@ export class MongoHouseholdRepository {
     };
   }
 
+  async migrateExpiredItemPolicy(): Promise<HouseholdFieldsMigrationResult> {
+    let updatedCount = 0;
+    const households = await this.householdsCollection.find({}).toArray();
+    for (const household of households) {
+      if (household.allowExpiredItems !== undefined) continue;
+      await this.householdsCollection.updateOne({ id: household.id }, { $set: { allowExpiredItems: true, updatedAt: household.updatedAt } });
+      updatedCount += 1;
+    }
+    return { updatedCount };
+  }
+
   async updateExpiredItemsPolicy(input: { allowExpiredItems: boolean; householdId: string; updatedAt: string }): Promise<{ allowExpiredItems: boolean }> {
     const household = await this.householdsCollection.findOne({ id: input.householdId });
     if (!household) throw new Error("household_not_found");
