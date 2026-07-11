@@ -10,6 +10,10 @@ import {
   type HouseholdStockItemListItem,
   type HouseholdStockPage
 } from "./household-stock.service";
+import {
+  ShoppingListCompletionPanelComponent,
+  type ShoppingListCompletionMode
+} from "./shopping-list-completion-panel.component";
 import { LocalizationService } from "../shared/localization.service";
 import { ToastService } from "../shared/toast.service";
 
@@ -20,13 +24,13 @@ interface QuickAddDraft {
 }
 
 interface PendingConfirmation {
-  allowedModes: Array<"tick_all_and_update" | "update_ticked_only">;
+  allowedModes: ShoppingListCompletionMode[];
 }
 
 @Component({
   selector: "app-household-shopping-list",
   standalone: true,
-  imports: [FormsModule, NgTemplateOutlet],
+  imports: [FormsModule, NgTemplateOutlet, ShoppingListCompletionPanelComponent],
   template: `
     <section class="ui-panel-card shopping-card" [attr.aria-label]="loc.t('household.shoppingListPanelTitle')">
       <div class="shopping-layout">
@@ -171,36 +175,11 @@ interface PendingConfirmation {
             </button>
 
             @if (pendingConfirmation(); as confirmation) {
-              <section class="confirmation-panel">
-                <p>{{ loc.t("household.shoppingListConfirmationPrompt") }}</p>
-                <div class="confirmation-actions">
-                  @if (confirmation.allowedModes.includes("tick_all_and_update")) {
-                    <button
-                      class="ui-button ui-button-sm"
-                      [class.ui-button-primary]="isPrimaryConfirmationMode(confirmation, 'tick_all_and_update')"
-                      [class.ui-button-quiet]="!isPrimaryConfirmationMode(confirmation, 'tick_all_and_update')"
-                      type="button"
-                      (click)="applyPurchasedItems('tick_all_and_update')"
-                    >
-                      {{ loc.t("household.tickAllAndApply") }}
-                    </button>
-                  }
-                  @if (confirmation.allowedModes.includes("update_ticked_only")) {
-                    <button
-                      class="ui-button ui-button-sm"
-                      [class.ui-button-primary]="isPrimaryConfirmationMode(confirmation, 'update_ticked_only')"
-                      [class.ui-button-quiet]="!isPrimaryConfirmationMode(confirmation, 'update_ticked_only')"
-                      type="button"
-                      (click)="applyPurchasedItems('update_ticked_only')"
-                    >
-                      {{ loc.t("household.applyTickedOnly") }}
-                    </button>
-                  }
-                  <button class="ui-button ui-button-danger ui-button-sm" type="button" (click)="pendingConfirmation.set(null)">
-                    {{ loc.t("common.close") }}
-                  </button>
-                </div>
-              </section>
+              <app-shopping-list-completion-panel
+                [allowedModes]="confirmation.allowedModes"
+                (cancelRequested)="pendingConfirmation.set(null)"
+                (confirmRequested)="applyPurchasedItems($event)"
+              />
             }
 
             <button class="ui-button ui-button-quiet receipt-button" type="button" (click)="notifyReceiptUploadComingSoon()" [disabled]="isReadOnly()">
@@ -339,8 +318,7 @@ interface PendingConfirmation {
       .shopping-card-topline,
       .quick-add-row,
       .shopping-line-row,
-      .shopping-amounts,
-      .confirmation-actions {
+      .shopping-amounts {
         align-items: center;
         display: flex;
         gap: var(--space-3);
@@ -386,8 +364,7 @@ interface PendingConfirmation {
         padding: 1rem;
       }
 
-      .shopping-empty,
-      .confirmation-panel {
+      .shopping-empty {
         background: var(--surface-soft-background);
         border: 1px solid var(--line-subtle);
         border-radius: var(--radius-ui);
@@ -881,13 +858,6 @@ export class HouseholdShoppingListComponent implements OnChanges {
     } as const;
 
     return keys[reasonCode];
-  }
-
-  isPrimaryConfirmationMode(
-    confirmation: PendingConfirmation,
-    mode: "tick_all_and_update" | "update_ticked_only"
-  ): boolean {
-    return confirmation.allowedModes[0] === mode;
   }
 
   toggleExpanded(id: string): void {

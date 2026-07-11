@@ -19,6 +19,7 @@
 - Item: Completed Step 2 preview extraction and validated it.
 - Item: Extracted the authenticated household stock panel into a single-file standalone component; the page retains loading, mutation, and page-rail ownership.
 - Item: Extracted the authenticated household stock editor into a single-file standalone component with a normalized draft input/output contract; the page retains API calls and mutation state.
+- Item: Started Step 3 by extracting the shopping-list completion confirmation panel into a single-file standalone component with typed confirm/cancel outputs.
 
 ## Changed Files
 
@@ -42,6 +43,10 @@
   - Owns household selection, stock rendering, local create-household form state, row presentation, and add-to-list affordances.
 - Path: `src/app/household/household-stock-editor.component.ts`
   - Owns editor markup, inline styles, draft editing, additional-details disclosure, min-limit controls, and typed save/archive/create events.
+- Path: `src/app/household/shopping-list-completion-panel.component.ts`
+  - Owns confirmation prompt markup, mode-button presentation, localization, and primary-mode selection.
+- Path: `src/app/household/household-shopping-list.component.ts`
+  - Composes the completion panel while retaining shopping-list state, persistence, and lifecycle methods.
 
 ## Validation
 
@@ -53,6 +58,8 @@
 - Result: Passed; `git diff --check` reports only normal CRLF normalization warnings.
 - Result: Household composition step passed `npm run typecheck`, `npm run lint`, `npm run build`, and `npm run test` (31 files / 153 tests).
 - Result: The editor child uses an explicit normalized draft contract; no companion HTML/CSS files were added.
+- Ran: `npm run typecheck`, `npm run lint`, and `npm run build:web` after the completion-panel extraction.
+- Result: Passed; the full test suite remains the validation gate before closing Step 3.
 
 ## Decisions
 
@@ -89,6 +96,8 @@
   - Impact: Final manual checks should cover create/edit mode switching, save/create/archive actions, auto-generated stock-group keys, min-limit stepper behavior, additional-details reset, date persistence, validation warnings, and saving-state button disabling.
 - Issue: Preview and authenticated stock/editor components still have intentionally separate local style recipes.
   - Impact: Do not generalize them until a later visual comparison confirms exact equivalence; compare light/dark themes and narrow layouts for spacing, controls, and panel framing.
+- Issue: Shopping-list confirmation actions now render through a component host.
+  - Impact: Final manual checks should verify confirmation appearance, allowed-mode ordering, primary-button emphasis, confirm action execution, and close/cancel behavior in both light and dark themes.
 - Issue: Existing working-tree/index state may include user-owned plan or backend changes.
   - Impact: Do not revert, stage, or mix unrelated files into cleanup changes.
 
@@ -99,7 +108,7 @@
 
 ## Next Step
 
-Step 2 household composition is ready to commit. After the commit, begin Step 3 with the shopping-list presentation boundary, keeping `HouseholdShoppingListComponent` as the lifecycle facade.
+The completion-panel slice is ready to commit. After the commit, continue Step 3 with the shopping-list line overview only if its event contract remains compact; keep `HouseholdShoppingListComponent` as the lifecycle facade.
 
 ## Notes For Future Agent
 
