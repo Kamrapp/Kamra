@@ -1,0 +1,88 @@
+
+    <section class="products-page" aria-labelledby="products-title">
+      <main class="page-main">
+        <app-product-catalog-filter-bar
+          [active]="activeProductFilterCount() > 0"
+          [name]="productFilterDrafts().nameIncludes"
+          (clearRequested)="clearProductFilters()"
+          (nameChanged)="setNameFilter($event)"
+        />
+
+        <app-resizable-table #productTable [ariaLabel]="loc.t('product.productTable')" [columns]="tableColumns()">
+          <div
+            class="table-viewport"
+            [style.--row-height]="rowHeight + 'px'"
+            (scroll)="onTableScroll($event)"
+          >
+            @if (!visibleRows().length) {
+              <p class="table-empty-state">{{ productTablePlaceholder() }}</p>
+            }
+
+            <div class="table-spacer" [style.height.px]="tableHeight()">
+              @for (row of visibleRows(); track row.product.id) {
+                <article
+                  class="product-row"
+                  role="row"
+                  [style.grid-template-columns]="productTable.columnTemplate()"
+                  [style.transform]="'translateY(' + row.offset + 'px)'"
+                >
+                  <div class="action-cell" role="cell">
+                    <app-table-icon-button
+                      [titleText]="loc.t('common.editProduct')"
+                      [ariaLabel]="loc.t('common.editProduct')"
+                      (press)="openProductEditor(row.product)"
+                    >
+                      ✎
+                    </app-table-icon-button>
+                  </div>
+
+                  <div class="product-main" role="cell">
+                    <p class="row-title">{{ row.product.name }}</p>
+                    <p class="row-muted">
+                      {{ row.product.brandName || loc.t("common.unbranded") }} · {{ formatMeasurements(row.product.measurements) }}
+                    </p>
+                    <p class="row-muted">{{ row.product.primaryCategoryKey || loc.t("common.uncategorized") }}</p>
+                  </div>
+
+                  <div class="price-cell" role="cell">
+                    @for (price of priceChips(row.product); track price) {
+                      <span class="price-chip ui-token ui-token-tag">{{ price }}</span>
+                    } @empty {
+                      <span class="quiet-chip ui-token ui-token-muted">{{ loc.t("product.noPrice") }}</span>
+                    }
+                  </div>
+
+                  <div class="source-cell" role="cell">
+                    <p class="row-strong">{{ filteredOffers(row.product).length }} {{ loc.t("common.offers") }} · {{ filteredSourceNames(row.product).length }} {{ loc.t("common.sources") }}</p>
+                    <p class="row-muted">{{ formatSources(row.product) }}</p>
+                    <p class="row-muted">{{ formatOfferNames(row.product) }}</p>
+                  </div>
+
+                  <div class="identifier-cell" role="cell">
+                    <p class="row-muted">{{ formatIdentifiers(row.product) }}</p>
+                  </div>
+
+                  <div class="state-cell" role="cell">
+                    <p class="row-strong">{{ formatLatestObserved(row.product) }}</p>
+                    <p class="row-muted">{{ row.product.householdStockCount }} {{ loc.t("common.household") }} · {{ row.product.tagKeys.length }} {{ loc.t("common.tags") }}</p>
+                  </div>
+                </article>
+              }
+            </div>
+          </div>
+        </app-resizable-table>
+      </main>
+
+      <app-product-editor-dialog
+        mode="catalog"
+        [open]="editorOpen()"
+        [product]="editingProduct()"
+        (close)="closeProductEditor()"
+        (deleteProduct)="deleteProduct($event)"
+        (invalidateProduct)="invalidateProduct($event.id, $event.note)"
+        (saveProduct)="saveProduct($event)"
+        (validateProduct)="validateProduct($event.id, $event.note)"
+      />
+    </section>
+  `,
+

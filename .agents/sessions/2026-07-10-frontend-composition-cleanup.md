@@ -36,6 +36,7 @@
 - Item: Externalized the remaining database-maintenance container template/styles and removed row-specific CSS from the parent.
 - Item: Externalized `HomeComponent` into companion files after the household block extractions and reduced its CSS to the actual page-container layout only.
 - Item: Externalized the remaining developer-admin dashboard shell template/styles after its health, flags, alpha, and maintenance boundaries were extracted.
+- Item: Externalized the product-catalog page template/styles after the filter-bar boundary was extracted; virtualized table rows remain in the page by design.
 
 ## Changed Files
 
@@ -97,6 +98,10 @@
   - Hold the admin authorization shell, one-off reseed/maintenance composition, and page-level dashboard styles.
 - Path: `src/app/dev-admin/admin-dashboard.component.ts`
   - Retains admin state, transport calls, authorization policy, logging, and child-card composition.
+- Path: `src/app/product-lookup/product-catalog.component.html`, `src/app/product-lookup/product-catalog.component.css`
+  - Hold the catalog page composition, virtualized table markup, editor host, and catalog-scoped styles.
+- Path: `src/app/product-lookup/product-catalog.component.ts`
+  - Retains catalog loading/filter orchestration, virtual row calculation, page-rail state, and product editor actions.
 - Path: `src/app/dev-admin/admin-feature-flags-card.component.ts`
   - Owns the auto-tick flag presentation, disabled/loading behavior, save action, and local flag-card styles.
 - Path: `src/app/dev-admin/admin-alpha-access-card.component.ts`
@@ -151,6 +156,8 @@
 - Ran: `npm run typecheck`, `npm run lint`, `npm run build:web`, and `npm run test` after the home-container externalization.
 - Result: Passed; 31 test files and 153 tests passed.
 - Ran: `npm run typecheck`, `npm run lint`, `npm run build:web`, and `npm run test` after admin-dashboard externalization.
+- Result: Passed; 31 test files and 153 tests passed.
+- Ran: `npm run typecheck`, `npm run lint`, `npm run build:web`, and `npm run test` after catalog externalization.
 - Result: Passed; 31 test files and 153 tests passed.
 
 ## Decisions
@@ -224,6 +231,8 @@
   - Impact: Manually compare anonymous preview and authenticated household layouts at desktop/mobile and light/dark themes; verify stock panel/editor/list spacing, responsive columns, and page-rail alignment did not rely on the removed stale selectors.
 - Issue: The admin dashboard shell now loads companion files.
   - Impact: Manually verify signed-out/loading/non-admin/admin branches, reseed and maintenance card placement, child-card grid behavior, light/dark styling, and narrow admin layout.
+- Issue: The catalog page now loads companion files while keeping virtualized row markup in the external template.
+  - Impact: Manually verify filter-bar placement, virtual scrolling/row offsets, resizable table columns, edit actions, empty/loading states, page-rail summaries, and narrow horizontal behavior.
 - Issue: Existing working-tree/index state may include user-owned plan or backend changes.
   - Impact: Do not revert, stage, or mix unrelated files into cleanup changes.
 
@@ -234,7 +243,7 @@
 
 ## Next Step
 
-Commit the admin-dashboard externalization, then reassess the remaining catalog/ingestion pages one at a time. Continue extracting minor ownership boundaries before companion-file externalization; do not mass-externalize every page automatically.
+Commit the catalog externalization, then reassess ingestion. Continue extracting minor ownership boundaries before companion-file externalization; do not mass-externalize every page automatically.
 
 ## Notes For Future Agent
 
