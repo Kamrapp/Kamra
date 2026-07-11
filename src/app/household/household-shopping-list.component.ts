@@ -1,4 +1,3 @@
-import { NgTemplateOutlet } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { Component, EventEmitter, Input, Output, computed, inject, signal, type OnChanges, type SimpleChanges } from "@angular/core";
 
@@ -14,6 +13,7 @@ import {
   ShoppingListCompletionPanelComponent,
   type ShoppingListCompletionMode
 } from "./shopping-list-completion-panel.component";
+import { ShoppingListLineComponent, type ShoppingListLineChange } from "./shopping-list-line.component";
 import { LocalizationService } from "../shared/localization.service";
 import { ToastService } from "../shared/toast.service";
 
@@ -30,7 +30,7 @@ interface PendingConfirmation {
 @Component({
   selector: "app-household-shopping-list",
   standalone: true,
-  imports: [FormsModule, NgTemplateOutlet, ShoppingListCompletionPanelComponent],
+  imports: [FormsModule, ShoppingListCompletionPanelComponent, ShoppingListLineComponent],
   template: `
     <section class="ui-panel-card shopping-card" [attr.aria-label]="loc.t('household.shoppingListPanelTitle')">
       <div class="shopping-layout">
@@ -103,9 +103,15 @@ interface PendingConfirmation {
               <div class="shopping-list-shell">
                 @if (pendingItems().length) {
                   @for (item of pendingItems(); track item.id) {
-                    <article class="shopping-line">
-                      <ng-container [ngTemplateOutlet]="shoppingLineTemplate" [ngTemplateOutletContext]="{ $implicit: item }"></ng-container>
-                    </article>
+                      <article class="shopping-line">
+                        <app-shopping-list-line
+                          [defaultCurrencyCode]="defaultCurrencyCode"
+                          [item]="item"
+                          [readOnly]="isReadOnly()"
+                          [saving]="mutationState() === 'saving'"
+                          (changed)="handleLineChange(item, $event)"
+                        />
+                      </article>
                   }
                 } @else if (!purchasedItems().length) {
                   <p class="shopping-note">{{ loc.t("household.shoppingListNoItems") }}</p>
@@ -122,7 +128,13 @@ interface PendingConfirmation {
                       <div class="purchased-shell">
                         @for (item of purchasedItems(); track item.id) {
                           <article class="shopping-line shopping-line-ticked">
-                            <ng-container [ngTemplateOutlet]="shoppingLineTemplate" [ngTemplateOutletContext]="{ $implicit: item }"></ng-container>
+                            <app-shopping-list-line
+                              [defaultCurrencyCode]="defaultCurrencyCode"
+                              [item]="item"
+                              [readOnly]="isReadOnly()"
+                              [saving]="mutationState() === 'saving'"
+                              (changed)="handleLineChange(item, $event)"
+                            />
                           </article>
                         }
                       </div>
@@ -198,111 +210,6 @@ interface PendingConfirmation {
         <p class="shopping-note">{{ statusMessage() }}</p>
       }
 
-      <ng-template #shoppingLineTemplate let-item>
-        <div class="shopping-line-row">
-          <label class="shopping-check">
-            <input
-              type="checkbox"
-              [checked]="item.ticked"
-              (change)="toggleTicked(item.id, $any($event.target).checked)"
-              [disabled]="isReadOnly() || mutationState() === 'saving'"
-            />
-            <span>{{ item.displayName }}</span>
-          </label>
-
-          <div class="shopping-amounts">
-            <label>
-              <span>{{ loc.t("household.plannedShort") }}</span>
-              <input
-                type="number"
-                step="0.01"
-                [ngModel]="item.plannedAmount"
-                (ngModelChange)="updateLineNumber(item.id, 'plannedAmount', $event)"
-                [disabled]="isReadOnly()"
-              />
-            </label>
-            <label>
-              <span>{{ loc.t("household.purchasedShort") }}</span>
-              <input
-                type="number"
-                step="0.01"
-                [ngModel]="item.purchasedAmount"
-                (ngModelChange)="updateLineNumber(item.id, 'purchasedAmount', $event)"
-                [disabled]="isReadOnly()"
-              />
-            </label>
-            <label class="shopping-unit">
-              <span>{{ loc.t("household.unit") }}</span>
-              <input
-                type="text"
-                [ngModel]="item.unit"
-                (ngModelChange)="updateLineText(item.id, 'unit', $event)"
-                [disabled]="isReadOnly()"
-              />
-            </label>
-          </div>
-
-          <button
-            class="details-toggle icon-button"
-            type="button"
-            (click)="toggleExpanded(item.id)"
-            [disabled]="isReadOnly()"
-            [attr.aria-label]="expandedLineIds().includes(item.id) ? loc.t('household.hideAdditionalDetails') : loc.t('household.showAdditionalDetails')"
-            [attr.title]="expandedLineIds().includes(item.id) ? loc.t('household.hideAdditionalDetails') : loc.t('household.showAdditionalDetails')"
-          >
-            <svg aria-hidden="true" viewBox="0 0 24 24">
-              <path d="M10.5 4a6.5 6.5 0 0 1 5.18 10.43l3.45 3.44-1.42 1.42-3.44-3.45A6.5 6.5 0 1 1 10.5 4Zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Z"></path>
-              @if (expandedLineIds().includes(item.id)) {
-                <path d="M7.5 10h6v1.6h-6V10Z"></path>
-              } @else {
-                <path d="M9.7 7.8h1.6V10h2.2v1.6h-2.2v2.2H9.7v-2.2H7.5V10h2.2V7.8Z"></path>
-              }
-            </svg>
-          </button>
-        </div>
-
-        @if (expandedLineIds().includes(item.id)) {
-          <div class="shopping-line-details">
-            <div class="shopping-meta">
-              <p>{{ loc.t("household.shoppingListTargetAmount", { amount: item.targetAmount }) }}</p>
-              <p>{{ loc.t("household.shoppingListSuggestedAmount", { amount: item.suggestedBuyAmount }) }}</p>
-              @if (item.reasonCode) {
-                <p>{{ loc.t(reasonKey(item.reasonCode)) }}</p>
-              }
-            </div>
-
-            <div class="shopping-detail-fields">
-              <label>
-                <span>{{ loc.t("common.price") }}</span>
-                <input
-                  type="number"
-                  step="1"
-                  [ngModel]="item.observedPrice?.amount ?? ''"
-                  (ngModelChange)="updateObservedPriceAmount(item.id, $event)"
-                  [placeholder]="loc.t('household.observedPricePlaceholder')"
-                  [disabled]="isReadOnly()"
-                />
-              </label>
-              <label>
-                <span>{{ loc.t("household.currencyCode") }}</span>
-                <input
-                  type="text"
-                  [ngModel]="item.observedPrice?.currencyCode ?? defaultCurrencyCode"
-                  (ngModelChange)="updateObservedPriceCurrency(item.id, $event)"
-                  [disabled]="isReadOnly()"
-                />
-              </label>
-            </div>
-
-            @if (item.uncertaintyFlags.length) {
-              <p class="shopping-muted">
-                {{ loc.t("household.shoppingListUncertainty") }}:
-                {{ describeUncertainty(item) }}
-              </p>
-            }
-          </div>
-        }
-      </ng-template>
     </section>
   `,
   styles: [
@@ -606,7 +513,6 @@ export class HouseholdShoppingListComponent implements OnChanges {
 
   readonly defaultCurrencyCode = "HUF";
   readonly errorMessage = signal("");
-  readonly expandedLineIds = signal<string[]>([]);
   readonly loadState = signal<"idle" | "loading" | "ready" | "error">("idle");
   readonly mutationState = signal<"idle" | "saving">("idle");
   readonly pendingConfirmation = signal<PendingConfirmation | null>(null);
@@ -841,35 +747,27 @@ export class HouseholdShoppingListComponent implements OnChanges {
     await this.loadPanelState();
   }
 
-  describeUncertainty(item: HouseholdShoppingListLine): string {
-    return item.uncertaintyFlags
-      .map((flag) => this.loc.t(flag === "missing_catalog_product"
-        ? "household.uncertaintyMissingCatalogProduct"
-        : "household.uncertaintyMissingProductSource"))
-      .join(", ");
-  }
-
-  reasonKey(reasonCode: NonNullable<HouseholdShoppingListLine["reasonCode"]>): "household.reasonAtLimit" | "household.reasonBelowMinimum" | "household.reasonLowSoon" | "household.reasonStockUp" {
-    const keys = {
-      at_minimum: "household.reasonAtLimit",
-      below_minimum: "household.reasonBelowMinimum",
-      broad_restock: "household.reasonStockUp",
-      low_soon: "household.reasonLowSoon",
-    } as const;
-
-    return keys[reasonCode];
-  }
-
-  toggleExpanded(id: string): void {
-    if (this.isReadOnly()) {
-      return;
+  async handleLineChange(item: HouseholdShoppingListLine, change: ShoppingListLineChange): Promise<void> {
+    switch (change.kind) {
+      case "observedPriceAmount":
+        await this.updateObservedPriceAmount(item.id, change.value);
+        return;
+      case "observedPriceCurrency":
+        await this.updateObservedPriceCurrency(item.id, change.value);
+        return;
+      case "plannedAmount":
+        await this.updateLineNumber(item.id, "plannedAmount", change.value);
+        return;
+      case "purchasedAmount":
+        await this.updateLineNumber(item.id, "purchasedAmount", change.value);
+        return;
+      case "ticked":
+        await this.toggleTicked(item.id, change.value);
+        return;
+      case "unit":
+        await this.updateLineText(item.id, "unit", change.value);
+        return;
     }
-
-    this.expandedLineIds.update((ids) =>
-      ids.includes(id)
-        ? ids.filter((existingId) => existingId !== id)
-        : [...ids, id]
-    );
   }
 
   async toggleTicked(id: string, ticked: boolean): Promise<void> {

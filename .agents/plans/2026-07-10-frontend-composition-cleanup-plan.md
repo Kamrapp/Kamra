@@ -68,7 +68,7 @@ The initial version was intentionally broad. A second pass against the actual si
 1. Do not add a shared authenticated-request service. It would hide only a small amount of repeated `fetch` plumbing while adding a cross-cutting abstraction around otherwise clear domain services.
 2. Do not extract product-catalog or ingestion table rows into standalone components. Their markup is projected through `ResizableTableComponent`; a component host plus encapsulated styles would complicate the direct row structure, grid sizing, virtual-scroll layout, and accessibility for little reduction in page logic.
 3. Do not split every feature service's DTOs into separate model files. Create a feature-local model file only when a newly extracted child needs a shared type or a public contract becomes genuinely hard to scan.
-4. Keep each extracted component's logic, inline template, and inline styles together in its single `.component.ts` file. Do not create companion HTML/CSS files as part of this cleanup.
+4. Keep extracted minor components' logic, template, and styles together when that gives them a clear standalone ownership boundary. For the remaining page/container components that are still large after minor extraction, companion `.html` and `.css` files are now allowed when they reduce scanning and editing cost without inventing another ownership layer.
 5. Create a standalone component only for a complete UI responsibility with its own markup, styles, and local presentation logic. If an extraction needs a large callback bag or mutable parent draft, redesign the boundary or retain that block in the page container.
 
 These decisions take precedence over any earlier, broader wording in this plan.
@@ -345,6 +345,16 @@ Update `docs/logging.md` with the frontend convention: inject the facade, use st
 - manual admin authorization/error flows and representative browser log forwarding checks
 
 Commit separately as `Standardize admin transport boundary`, `Add injectable browser logger`, and `Document frontend logging conventions` where the changes remain independently reviewable.
+
+## Scope Extension: Companion Template And Style Files
+
+The user has explicitly expanded the cleanup rule to permit external `.html` and `.css` files after useful minor component extraction. Apply this in a staged order:
+
+1. Extract a meaningful minor component from a remaining monster first when the markup owns local state, presentation helpers, or a cohesive edit/display contract.
+2. Reassess the parent. Only move the parent's remaining template and styles to companion files when the parent remains a substantial container and the move improves scanning without changing ownership or behavior.
+3. Preserve Angular component-scoped CSS selectors and relative file names. Do not use companion files to hide a component that should have been split further.
+
+Initial target: `household-shopping-list.component.ts`. Extract the shopping-line editor/display unit first, then externalize the remaining list container template/styles. Record every new companion file and manual visual risk in the session handoff.
 
 ## Approval Checkpoint
 

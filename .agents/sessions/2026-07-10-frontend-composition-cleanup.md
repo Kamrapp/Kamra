@@ -29,6 +29,8 @@
 - Item: Extended scope with a feature-local admin transport service that centralizes authenticated URL construction, network failure handling, and response payload decoding while leaving page policy and UI state in the dashboard.
 - Item: Added a root-provided browser logger facade and migrated shell, admin, catalog, and ingestion callers to dependency injection while preserving existing forwarding behavior.
 - Item: Extended `docs/logging.md` with injectable frontend logging, event naming, bounded-context, secret-safety, and failure-isolation conventions.
+- Item: User explicitly expanded the cleanup rule to allow companion `.html`/`.css` files after useful minor component extraction.
+- Item: Extracted `ShoppingListLineComponent` with local disclosure state, line formatting helpers, inline styles, and a discriminated edit-intent output.
 
 ## Changed Files
 
@@ -68,6 +70,10 @@
   - Use the injected logger facade for structured operational events.
 - Path: `docs/logging.md`
   - Documents the frontend logger seam and payload-safety rules.
+- Path: `src/app/household/shopping-list-line.component.ts`
+  - Owns one shopping-list line's display/edit markup, local disclosure state, responsive line styles, uncertainty/reason localization, and typed change events.
+- Path: `src/app/household/household-shopping-list.component.ts`
+  - Composes the line child and retains list persistence, mutation rules, quick-add, completion, and lifecycle facade behavior.
 - Path: `src/app/dev-admin/admin-feature-flags-card.component.ts`
   - Owns the auto-tick flag presentation, disabled/loading behavior, save action, and local flag-card styles.
 - Path: `src/app/dev-admin/admin-alpha-access-card.component.ts`
@@ -113,6 +119,8 @@
 - Result: Passed; console output, `/api/log` forwarding, keepalive, and non-fatal forwarding failures remain in the existing helper.
 - Ran: Final scope-extension validation: `npm run typecheck`, `npm run lint`, `npm run build`, `npm run test`, and `git diff --check`.
 - Result: Passed; 31 test files and 153 tests passed, with no diff whitespace errors.
+- Ran: `npm run typecheck`, `npm run lint`, and `npm run build:web` after the shopping-line extraction.
+- Result: Passed; the parent now receives one typed line-change union and no longer owns line disclosure state or display helpers.
 
 ## Decisions
 
@@ -173,6 +181,10 @@
   - Impact: Manually verify representative startup, catalog, ingestion, and admin events still reach the browser console and `/api/log`; confirm no tokens/passwords appear in payloads.
 - Issue: The compatibility function remains available for non-injected/bootstrap-safe callers.
   - Impact: Keep any future direct use rare and documented; feature code should use `BrowserLoggerService`.
+- Issue: Shopping-list line markup/styles now render through a child component host.
+  - Impact: Manually verify pending/purchased line layout, checkbox/amount/unit edits, detail disclosure, observed price fields, uncertainty text, read-only disabling, saving state, mobile stacking, and theme styling.
+- Issue: The parent still has a large inline template/style block after the line extraction.
+  - Impact: The next step is companion-file externalization only after reviewing that remaining parent responsibility; confirm relative template/style loading and unchanged component-scoped selectors.
 - Issue: Existing working-tree/index state may include user-owned plan or backend changes.
   - Impact: Do not revert, stage, or mix unrelated files into cleanup changes.
 
@@ -183,7 +195,7 @@
 
 ## Next Step
 
-Scope extension is complete and validated. Hand off the manual admin/logging checks. Do not extract the remaining catalog table, ingestion detail table, or shopping-list overview unless a later review identifies a compact contract with clear value.
+Commit the shopping-line extraction, then externalize the remaining shopping-list container template/styles into companion files. Continue one component at a time and keep extracting minor ownership boundaries before externalization.
 
 ## Notes For Future Agent
 
