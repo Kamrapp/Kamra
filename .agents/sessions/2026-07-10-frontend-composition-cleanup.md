@@ -25,6 +25,7 @@
 - Item: Extracted the developer-admin alpha-access card into a single-file standalone component with typed form and action events.
 - Item: Extracted the product catalog filter bar into a single-file standalone component; catalog filtering/debounce and table virtualization remain in the page.
 - Item: Extracted the ingestion snapshot table into a single-file standalone component with local virtualization, row formatting, selection output, and scroll output.
+- Item: Reviewed the extracted CSS against `src/styles.css`; no new global primitive was promoted because the remaining recipes are domain-specific or have different responsive behavior.
 
 ## Changed Files
 
@@ -68,6 +69,8 @@
   - Owns the resizable snapshot table, virtual row window, snapshot row formatting, empty-state text, selection event, and scroll event.
 - Path: `src/app/site-admin/ingestion-admin.component.ts`
   - Composes the snapshot table and retains pagination/loading, page-rail orchestration, workspace resize, selected detail rows, and review actions.
+- Path: `src/styles.css`
+  - No changes in this phase; existing global surface/button primitives were sufficient, and new global form/state classes were not justified by exact reuse.
 
 ## Validation
 
@@ -91,6 +94,8 @@
 - Result: Passed; the existing full test result remains green from the preceding admin slices.
 - Ran: `npm run typecheck`, `npm run lint`, and `npm run build:web` after the snapshot-table extraction.
 - Result: Initial check caught the page-rail call to the moved processing-label helper; the helper was deliberately retained in the page, and the rerun passed.
+- CSS review: Compared repeated form, icon-button, state-panel, surface, and action-row recipes across extracted components.
+- Result: Keep them local for now; their selectors carry feature-specific layout, disclosure, table, or status semantics. Existing `src/styles.css` primitives remain the only generalized layer.
 
 ## Decisions
 
@@ -143,17 +148,19 @@
   - Impact: Final manual checks should verify snapshot virtualization, row selection/highlight, empty/loading/auth text, scroll-triggered pagination, resizable columns, processing labels, and narrow-layout overflow.
 - Issue: The ingestion detail table remains in the page because review actions and selected-snapshot state are tightly coupled.
   - Impact: Keep review-button routing, row formatting, and selected-snapshot/detail-panel behavior under manual review; do not force the detail extraction without a compact contract.
+- Issue: No component-level browser test harness exists for these new hosts.
+  - Impact: Final manual testing must cover every listed route/state and both themes/viewports; automated checks cannot catch all focus, overflow, style-encapsulation, or event-wiring regressions.
 - Issue: Existing working-tree/index state may include user-owned plan or backend changes.
   - Impact: Do not revert, stage, or mix unrelated files into cleanup changes.
 
 ## Roadmap Or Plan Updates
 
-- Needed: No roadmap change yet; Stage 8 remains next after cleanup and final manual verification.
-- Status: Cleanup plan approved for implementation by the user's latest request.
+- Needed: No roadmap change; Stage 8 remains next after cleanup and final manual verification.
+- Status: Structural implementation is complete for the selected safe boundaries; manual verification remains open.
 
 ## Next Step
 
-The snapshot-table slice is ready to commit. After the commit, inspect the catalog table and ingestion detail contracts; retain either page surface if extraction would require a callback bag. Then proceed to verified global CSS primitives. Keep `HouseholdShoppingListComponent` as the lifecycle facade and avoid a low-value admin request wrapper.
+Run the final full validation pass, inspect the clean diff, and hand the manual checklist to the user. Do not extract the remaining catalog table, ingestion detail table, or shopping-list overview unless a later review identifies a compact contract with clear value.
 
 ## Notes For Future Agent
 
