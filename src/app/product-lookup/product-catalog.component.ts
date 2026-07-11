@@ -1,7 +1,7 @@
 import { Component, computed, effect, inject, signal, type OnDestroy, type OnInit } from "@angular/core";
 
 import { AuthService } from "../auth.service";
-import { logBrowserEvent } from "../browser-logger";
+import { BrowserLoggerService } from "../browser-logger.service";
 import {
   ProductCatalogService,
   type CatalogProductListItem,
@@ -265,6 +265,7 @@ const noOfferSourceKey = "__none__";
 })
 export class ProductCatalogComponent implements OnInit, OnDestroy {
   readonly auth = inject(AuthService);
+  readonly logger = inject(BrowserLoggerService);
   readonly catalog = inject(ProductCatalogService);
   readonly loc = inject(LocalizationService);
   readonly pageRail = inject(PageRailService);
@@ -740,7 +741,7 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
         })
       );
 
-      logBrowserEvent("info", "Product catalog loaded", {
+      this.logger.log("info", "Product catalog loaded", {
         offerCount: this.totalOfferCount(),
         page: result.pagination.page,
         pageSize: result.pagination.pageSize,
@@ -756,7 +757,7 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
       this.statusMessage.set(this.loc.t("product.routeFailure"));
       this.errorMessage.set(this.loc.t("product.routeHint"));
 
-      logBrowserEvent("error", "Product catalog request failed", error);
+      this.logger.log("error", "Product catalog request failed", { error });
     }
   }
 

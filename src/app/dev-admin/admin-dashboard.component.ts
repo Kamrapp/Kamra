@@ -1,6 +1,6 @@
 import { Component, computed, inject, signal, type OnInit, type WritableSignal } from "@angular/core";
 
-import { logBrowserEvent } from "../browser-logger";
+import { BrowserLoggerService } from "../browser-logger.service";
 import { AuthService } from "../auth.service";
 import { DatabaseMaintenanceComponent } from "./database-maintenance.component";
 import { AdminDashboardService } from "./admin-dashboard.service";
@@ -235,6 +235,7 @@ type AsyncActionState = "idle" | "loading" | "error" | "success";
 export class AdminDashboardComponent implements OnInit {
   readonly auth = inject(AuthService);
   readonly adminDashboard = inject(AdminDashboardService);
+  readonly logger = inject(BrowserLoggerService);
   readonly isAdminUser = computed(() => this.auth.user()?.role === "admin");
   readonly loc = inject(LocalizationService);
   readonly toast = inject(ToastService);
@@ -316,7 +317,7 @@ export class AdminDashboardComponent implements OnInit {
     this.demoSeedState.set("loading");
     this.demoSeedMessage.set("");
 
-    logBrowserEvent("info", "Demo household reseed requested from admin dashboard", {
+    this.logger.log("info", "Demo household reseed requested from admin dashboard", {
       pathname: window.location.pathname
     });
 
@@ -358,7 +359,7 @@ export class AdminDashboardComponent implements OnInit {
         this.toast.push(payload.message ?? message, "error");
       }
 
-      logBrowserEvent("info", "Demo household reseed response received", {
+      this.logger.log("info", "Demo household reseed response received", {
         httpStatus: response.status,
         localProducts: payload.counts?.localProducts,
         stockItems: payload.counts?.stockItems,
@@ -369,7 +370,7 @@ export class AdminDashboardComponent implements OnInit {
       this.demoSeedMessage.set(this.loc.t("health.browserDemoSeedFailure"));
       this.toast.push(this.loc.t("health.browserDemoSeedFailure"), "error");
 
-      logBrowserEvent("error", "Demo household reseed request failed", error);
+      this.logger.log("error", "Demo household reseed request failed", { error });
     }
   }
 
@@ -382,7 +383,7 @@ export class AdminDashboardComponent implements OnInit {
     this.healthState.set("loading");
     this.healthMessage.set("");
 
-    logBrowserEvent("info", "Health check requested from admin dashboard", {
+    this.logger.log("info", "Health check requested from admin dashboard", {
       pathname: window.location.pathname
     });
 
@@ -422,7 +423,7 @@ export class AdminDashboardComponent implements OnInit {
         this.toast.push(message, "error");
       }
 
-      logBrowserEvent("info", "Health check response received", {
+      this.logger.log("info", "Health check response received", {
         httpStatus: response.status,
         databaseStatus: report.checks.database.status,
         status: report.status
@@ -433,7 +434,7 @@ export class AdminDashboardComponent implements OnInit {
       this.healthMessage.set(this.loc.t("health.browserHealthFailure"));
       this.toast.push(this.loc.t("health.browserHealthFailure"), "error");
 
-      logBrowserEvent("error", "Health check request failed", error);
+      this.logger.log("error", "Health check request failed", { error });
     }
   }
 
@@ -449,7 +450,7 @@ export class AdminDashboardComponent implements OnInit {
     this.validatorUpgradeState.set("loading");
     this.validatorUpgradeMessage.set("");
 
-    logBrowserEvent("info", "Catalog validator upgrade requested from admin dashboard", {
+    this.logger.log("info", "Catalog validator upgrade requested from admin dashboard", {
       pathname: window.location.pathname
     });
 
@@ -490,7 +491,7 @@ export class AdminDashboardComponent implements OnInit {
         this.toast.push(payload.message ?? message, "error");
       }
 
-      logBrowserEvent("info", "Catalog validator upgrade response received", {
+      this.logger.log("info", "Catalog validator upgrade response received", {
         createdCollectionCount: payload.createdCollections?.length,
         httpStatus: response.status,
         upgradedCollectionCount: payload.upgradedCollections?.length
@@ -500,7 +501,7 @@ export class AdminDashboardComponent implements OnInit {
       this.validatorUpgradeMessage.set(this.loc.t("health.browserValidatorFailure"));
       this.toast.push(this.loc.t("health.browserValidatorFailure"), "error");
 
-      logBrowserEvent("error", "Catalog validator upgrade request failed", error);
+      this.logger.log("error", "Catalog validator upgrade request failed", { error });
     }
   }
 
@@ -512,7 +513,7 @@ export class AdminDashboardComponent implements OnInit {
     this.invalidationState.set("loading");
     this.invalidationMessage.set("");
 
-    logBrowserEvent("info", "Legacy validation backfill requested from admin dashboard", {
+    this.logger.log("info", "Legacy validation backfill requested from admin dashboard", {
       pathname: window.location.pathname
     });
 
@@ -551,7 +552,7 @@ export class AdminDashboardComponent implements OnInit {
         this.toast.push(payload.message ?? message, "error");
       }
 
-      logBrowserEvent("info", "Legacy validation backfill response received", {
+      this.logger.log("info", "Legacy validation backfill response received", {
         httpStatus: response.status,
         skippedCount: payload.skippedCount,
         status: payload.status,
@@ -562,7 +563,7 @@ export class AdminDashboardComponent implements OnInit {
       this.invalidationMessage.set(this.loc.t("health.browserBackfillFailure"));
       this.toast.push(this.loc.t("health.browserBackfillFailure"), "error");
 
-      logBrowserEvent("error", "Legacy validation backfill request failed", error);
+      this.logger.log("error", "Legacy validation backfill request failed", { error });
     }
   }
 
@@ -608,7 +609,7 @@ export class AdminDashboardComponent implements OnInit {
       this.featureFlagsMessage.set(this.loc.t("health.browserFeatureFlagsFailure"));
       this.toast.push(this.loc.t("health.browserFeatureFlagsFailure"), "error");
 
-      logBrowserEvent("error", "Feature flag load request failed", error);
+      this.logger.log("error", "Feature flag load request failed", { error });
     }
   }
 
@@ -732,7 +733,7 @@ export class AdminDashboardComponent implements OnInit {
       this.featureFlagsMessage.set(this.loc.t("health.browserFeatureFlagsFailure"));
       this.toast.push(this.loc.t("health.browserFeatureFlagsFailure"), "error");
 
-      logBrowserEvent("error", "Feature flag save request failed", error);
+      this.logger.log("error", "Feature flag save request failed", { error });
     }
   }
 

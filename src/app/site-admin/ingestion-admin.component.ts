@@ -1,7 +1,7 @@
 import { Component, computed, effect, inject, signal, type OnDestroy, type OnInit } from "@angular/core";
 
 import { AuthService } from "../auth.service";
-import { logBrowserEvent } from "../browser-logger";
+import { BrowserLoggerService } from "../browser-logger.service";
 import {
   IngestionAdminService,
   productReviewDecisionReasons,
@@ -277,6 +277,7 @@ import { IngestionSnapshotTableComponent } from "./ingestion-snapshot-table.comp
 })
 export class IngestionAdminComponent implements OnInit, OnDestroy {
   readonly auth = inject(AuthService);
+  readonly logger = inject(BrowserLoggerService);
   readonly ingestion = inject(IngestionAdminService);
   readonly loc = inject(LocalizationService);
   readonly pageRail = inject(PageRailService);
@@ -603,7 +604,7 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
       this.loadState.set("success");
       this.statusMessage.set(this.loc.t("crawl.loadedCount", { count: this.snapshots().length }));
 
-      logBrowserEvent("info", "Ingestion snapshots loaded", {
+      this.logger.log("info", "Ingestion snapshots loaded", {
         page: result.pagination.page,
         pageSize: result.pagination.pageSize,
         processorName: result.processorName,
@@ -622,7 +623,7 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
       this.statusMessage.set(this.loc.t("crawl.routeFailure"));
       this.errorMessage.set(this.loc.t("crawl.routeHint"));
 
-      logBrowserEvent("error", "Ingestion snapshot request failed", error);
+      this.logger.log("error", "Ingestion snapshot request failed", { error });
     }
   }
 

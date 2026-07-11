@@ -7,7 +7,7 @@ import {
   RouterOutlet
 } from "@angular/router";
 
-import { logBrowserEvent } from "./browser-logger";
+import { BrowserLoggerService } from "./browser-logger.service";
 import { AuthService } from "./auth.service";
 import { PageRailService } from "./shared/page-rail.service";
 import { PageRailOutletComponent } from "./shared/page-rail-outlet.component";
@@ -286,6 +286,7 @@ interface ShellMenuItem extends RadialNavigationItem {
 })
 export class AppComponent implements OnInit {
   readonly auth = inject(AuthService);
+  readonly logger = inject(BrowserLoggerService);
   readonly loc = inject(LocalizationService);
   readonly pageRail = inject(PageRailService);
   readonly theme = inject(ThemePreferenceService);
@@ -350,7 +351,7 @@ export class AppComponent implements OnInit {
     void this.loadCurrentUserProfile();
     this.updateCurrentPageTitle(this.router.url);
 
-    logBrowserEvent("info", "Browser app ready", {
+    this.logger.log("info", "Browser app ready", {
       hostname: window.location.hostname,
       pathname: window.location.pathname
     });

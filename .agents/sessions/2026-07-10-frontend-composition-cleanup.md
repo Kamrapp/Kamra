@@ -27,6 +27,7 @@
 - Item: Extracted the ingestion snapshot table into a single-file standalone component with local virtualization, row formatting, selection output, and scroll output.
 - Item: Reviewed the extracted CSS against `src/styles.css`; no new global primitive was promoted because the remaining recipes are domain-specific or have different responsive behavior.
 - Item: Extended scope with a feature-local admin transport service that centralizes authenticated URL construction, network failure handling, and response payload decoding while leaving page policy and UI state in the dashboard.
+- Item: Added a root-provided browser logger facade and migrated shell, admin, catalog, and ingestion callers to dependency injection while preserving existing forwarding behavior.
 
 ## Changed Files
 
@@ -60,6 +61,10 @@
   - Composes the health card and retains all admin request and authorization logic.
 - Path: `src/app/dev-admin/admin-dashboard.service.ts`
   - Owns admin request URL/auth-header construction and shared API payload/error decoding.
+- Path: `src/app/browser-logger.service.ts`
+  - Provides the injectable browser logging seam and bounded environment metadata.
+- Path: `src/app/app.component.ts`, `src/app/dev-admin/admin-dashboard.component.ts`, `src/app/product-lookup/product-catalog.component.ts`, `src/app/site-admin/ingestion-admin.component.ts`
+  - Use the injected logger facade for structured operational events.
 - Path: `src/app/dev-admin/admin-feature-flags-card.component.ts`
   - Owns the auto-tick flag presentation, disabled/loading behavior, save action, and local flag-card styles.
 - Path: `src/app/dev-admin/admin-alpha-access-card.component.ts`
@@ -101,6 +106,8 @@
 - Result: Keep them local for now; their selectors carry feature-specific layout, disclosure, table, or status semantics. Existing `src/styles.css` primitives remain the only generalized layer.
 - Ran: `npm run typecheck`, `npm run lint`, and `npm run build:web` after adding the admin transport service.
 - Result: Passed; endpoint paths, methods, payloads, auth headers, status checks, and localized page messages remain behaviorally owned by the dashboard.
+- Ran: `npm run typecheck`, `npm run lint`, and `npm run build:web` after migrating browser logging to the injectable facade.
+- Result: Passed; console output, `/api/log` forwarding, keepalive, and non-fatal forwarding failures remain in the existing helper.
 
 ## Decisions
 
@@ -157,6 +164,8 @@
   - Impact: Final manual testing must cover every listed route/state and both themes/viewports; automated checks cannot catch all focus, overflow, style-encapsulation, or event-wiring regressions.
 - Issue: Admin transport is now behind a service seam, but endpoint-specific UI flows still need manual authorization/error verification.
   - Impact: Confirm unauthorized responses, network failures, malformed payloads, and successful health/reseed/validator/backfill/flag/alpha flows after the service change.
+- Issue: Browser logs now gain a shared injected metadata seam.
+  - Impact: Manually verify representative startup, catalog, ingestion, and admin events still reach the browser console and `/api/log`; confirm no tokens/passwords appear in payloads.
 - Issue: Existing working-tree/index state may include user-owned plan or backend changes.
   - Impact: Do not revert, stage, or mix unrelated files into cleanup changes.
 
@@ -167,7 +176,7 @@
 
 ## Next Step
 
-Commit the admin transport follow-up, then add the injectable browser logger and logging documentation. Do not extract the remaining catalog table, ingestion detail table, or shopping-list overview unless a later review identifies a compact contract with clear value.
+Commit the injectable browser logger, then commit the logging documentation. Do not extract the remaining catalog table, ingestion detail table, or shopping-list overview unless a later review identifies a compact contract with clear value.
 
 ## Notes For Future Agent
 
