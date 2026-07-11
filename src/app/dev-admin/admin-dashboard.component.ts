@@ -1,16 +1,15 @@
 import { Component, computed, inject, signal, type OnInit, type WritableSignal } from "@angular/core";
 
-import { buildApiUrl } from "../api-url";
 import { logBrowserEvent } from "../browser-logger";
 import { AuthService } from "../auth.service";
 import { DatabaseMaintenanceComponent } from "./database-maintenance.component";
+import { AdminDashboardService } from "./admin-dashboard.service";
 import {
   AdminHealthCardComponent,
   type HealthCheckItem
 } from "./admin-health-card.component";
 import { AdminFeatureFlagsCardComponent } from "./admin-feature-flags-card.component";
 import { AdminAlphaAccessCardComponent } from "./admin-alpha-access-card.component";
-import { readApiErrorMessage } from "../shared/api-errors";
 import { LocalizationService, type TranslationKey } from "../shared/localization.service";
 import { ToastService } from "../shared/toast.service";
 
@@ -235,6 +234,7 @@ type AsyncActionState = "idle" | "loading" | "error" | "success";
 })
 export class AdminDashboardComponent implements OnInit {
   readonly auth = inject(AuthService);
+  readonly adminDashboard = inject(AdminDashboardService);
   readonly isAdminUser = computed(() => this.auth.user()?.role === "admin");
   readonly loc = inject(LocalizationService);
   readonly toast = inject(ToastService);
@@ -321,7 +321,7 @@ export class AdminDashboardComponent implements OnInit {
     });
 
     try {
-      const response = await this.fetchAdminDashboardRoute("/api/admin/dashboard/reseed-demo-household", {
+      const response = await this.adminDashboard.request("/api/admin/dashboard/reseed-demo-household", {
         headers: {
           accept: "application/json",
           ...this.auth.getAuthorizationHeaders()
@@ -334,7 +334,7 @@ export class AdminDashboardComponent implements OnInit {
         return;
       }
 
-      const { message, payload } = await this.readRoutePayload<DemoHouseholdReseedResponse & { message?: string }>(
+      const { message, payload } = await this.adminDashboard.readPayload<DemoHouseholdReseedResponse & { message?: string }>(
         response,
         this.loc.t("health.demoSeedFailure")
       );
@@ -387,7 +387,7 @@ export class AdminDashboardComponent implements OnInit {
     });
 
     try {
-      const response = await this.fetchAdminDashboardRoute("/api/admin/dashboard/health", {
+      const response = await this.adminDashboard.request("/api/admin/dashboard/health", {
         headers: {
           accept: "application/json",
           ...this.auth.getAuthorizationHeaders()
@@ -401,7 +401,7 @@ export class AdminDashboardComponent implements OnInit {
         return;
       }
 
-      const { message, payload: report } = await this.readRoutePayload<HealthReport>(
+      const { message, payload: report } = await this.adminDashboard.readPayload<HealthReport>(
         response,
         this.loc.t("health.routeError")
       );
@@ -454,7 +454,7 @@ export class AdminDashboardComponent implements OnInit {
     });
 
     try {
-      const response = await this.fetchAdminDashboardRoute("/api/admin/dashboard/upgrade-catalog-validators", {
+      const response = await this.adminDashboard.request("/api/admin/dashboard/upgrade-catalog-validators", {
         headers: {
           accept: "application/json",
           ...this.auth.getAuthorizationHeaders()
@@ -467,7 +467,7 @@ export class AdminDashboardComponent implements OnInit {
         return;
       }
 
-      const { message, payload } = await this.readRoutePayload<{
+      const { message, payload } = await this.adminDashboard.readPayload<{
         createdCollections?: string[];
         message?: string;
         upgradedCollections?: string[];
@@ -517,7 +517,7 @@ export class AdminDashboardComponent implements OnInit {
     });
 
     try {
-      const response = await this.fetchAdminDashboardRoute("/api/admin/dashboard/backfill-unvalidated-products", {
+      const response = await this.adminDashboard.request("/api/admin/dashboard/backfill-unvalidated-products", {
         headers: {
           accept: "application/json",
           ...this.auth.getAuthorizationHeaders()
@@ -530,7 +530,7 @@ export class AdminDashboardComponent implements OnInit {
         return;
       }
 
-      const { message, payload } = await this.readRoutePayload<{
+      const { message, payload } = await this.adminDashboard.readPayload<{
         message?: string;
         skippedCount?: number;
         status?: "updated" | "validator_incompatible";
@@ -575,7 +575,7 @@ export class AdminDashboardComponent implements OnInit {
     this.featureFlagsMessage.set("");
 
     try {
-      const response = await this.fetchAdminDashboardRoute("/api/admin/dashboard/feature-flags", {
+      const response = await this.adminDashboard.request("/api/admin/dashboard/feature-flags", {
         headers: {
           accept: "application/json",
           ...this.auth.getAuthorizationHeaders()
@@ -588,7 +588,7 @@ export class AdminDashboardComponent implements OnInit {
         return;
       }
 
-      const { message, payload } = await this.readRoutePayload<{ featureFlags?: FeatureFlagListItem[] }>(
+      const { message, payload } = await this.adminDashboard.readPayload<{ featureFlags?: FeatureFlagListItem[] }>(
         response,
         this.loc.t("health.featureFlagsLoadFailure")
       );
@@ -637,7 +637,7 @@ export class AdminDashboardComponent implements OnInit {
     this.alphaUserMessage.set("");
 
     try {
-      const response = await this.fetchAdminDashboardRoute("/api/admin/alpha-users", {
+      const response = await this.adminDashboard.request("/api/admin/alpha-users", {
         body: JSON.stringify({
           email: this.alphaUserEmail(),
           password: this.alphaUserPassword()
@@ -649,7 +649,7 @@ export class AdminDashboardComponent implements OnInit {
         },
         method: "POST"
       });
-      const { message, payload } = await this.readRoutePayload<AlphaUserCreationResponse>(
+      const { message, payload } = await this.adminDashboard.readPayload<AlphaUserCreationResponse>(
         response,
         this.loc.t("health.alphaUserCreateFailure")
       );
@@ -693,7 +693,7 @@ export class AdminDashboardComponent implements OnInit {
     this.featureFlagsMessage.set("");
 
     try {
-      const response = await this.fetchAdminDashboardRoute("/api/admin/dashboard/feature-flags", {
+      const response = await this.adminDashboard.request("/api/admin/dashboard/feature-flags", {
         body: JSON.stringify({ enabled, key }),
         headers: {
           accept: "application/json",
@@ -708,7 +708,7 @@ export class AdminDashboardComponent implements OnInit {
         return;
       }
 
-      const { message, payload } = await this.readRoutePayload<{ featureFlags?: FeatureFlagListItem[] }>(
+      const { message, payload } = await this.adminDashboard.readPayload<{ featureFlags?: FeatureFlagListItem[] }>(
         response,
         this.loc.t("health.featureFlagsSaveFailure")
       );
@@ -768,35 +768,6 @@ export class AdminDashboardComponent implements OnInit {
       && candidate.checks.database
       && typeof candidate.status === "string"
     );
-  }
-
-  private async fetchAdminDashboardRoute(input: string, init: RequestInit): Promise<Response> {
-    try {
-      return await fetch(buildApiUrl(input), init);
-    } catch {
-      throw new Error(this.loc.t("health.browserHealthFailure"));
-    }
-  }
-
-  private async readRoutePayload<T>(
-    response: Response,
-    fallbackMessage: string
-  ): Promise<{ message: string; payload: T | null }> {
-    const message = await readApiErrorMessage(response.clone(), fallbackMessage, (messageKey) =>
-      this.loc.t(messageKey as TranslationKey)
-    );
-
-    try {
-      return {
-        message,
-        payload: (await response.json()) as T
-      };
-    } catch {
-      return {
-        message,
-        payload: null
-      };
-    }
   }
 
   private handleUnauthorizedResponse(

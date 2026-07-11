@@ -319,6 +319,33 @@ Manual browser checks are required because no component-level UI test harness cu
 - After this cleanup, use the resulting view boundaries as evidence for a separate framework evaluation only if a concrete need arises (accessible complex controls, data-grid functionality, or a component-maintenance burden). A framework should solve a measured problem, not become cleanup collateral.
 - Consider adding a small Playwright visual-smoke suite after Stage 8 if the same responsive/UI regressions recur. This is not included here because the current request is code cleanup, not test-infrastructure expansion.
 
+## Scope Extension: Standardization Follow-Up
+
+The first implementation pass exposed two bounded standardization opportunities that are now included before cleanup closeout:
+
+### Developer-Admin Transport Service
+
+Create `src/app/dev-admin/admin-dashboard.service.ts` to own the developer-admin request boundary. The page currently repeats authenticated request construction, API error parsing, JSON payload decoding, and network-failure handling across health, reseed, validator, backfill, feature-flag, and alpha-user actions. The service should expose typed endpoint methods or a deliberately typed request result, preserve URLs, HTTP methods, headers, payloads, and status semantics, and leave authorization policy, localized UI messages, toasts, and page state in the dashboard.
+
+Do not create a generic application-wide HTTP repository abstraction. This service is feature-local because the admin endpoint set and response contracts are specific and already large enough to justify one boundary.
+
+### Injectable Browser Logging Facade
+
+Add a root-provided `BrowserLoggerService` around the existing browser logging behavior. Preserve console output, `/api/log` forwarding, keepalive behavior, and failure isolation. Migrate feature callers to dependency injection so logging has one replaceable/testable seam. Keep payloads small and secret-free. The existing function may remain as a compatibility wrapper only if a bootstrap call requires it; otherwise remove it.
+
+Update `docs/logging.md` with the frontend convention: inject the facade, use structured event names, include bounded operational context, never include tokens/passwords, and treat forwarding failure as non-fatal.
+
+### Scope Extension Validation
+
+- `npm run test`
+- `npm run typecheck`
+- `npm run lint`
+- `npm run build`
+- targeted tests for the admin transport result handling and logger payload behavior where the existing test setup supports them
+- manual admin authorization/error flows and representative browser log forwarding checks
+
+Commit separately as `Standardize admin transport boundary`, `Add injectable browser logger`, and `Document frontend logging conventions` where the changes remain independently reviewable.
+
 ## Approval Checkpoint
 
 Implementation should not begin until the user approves this plan or explicitly selects a narrower first commit-sized step.

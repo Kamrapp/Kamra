@@ -26,6 +26,7 @@
 - Item: Extracted the product catalog filter bar into a single-file standalone component; catalog filtering/debounce and table virtualization remain in the page.
 - Item: Extracted the ingestion snapshot table into a single-file standalone component with local virtualization, row formatting, selection output, and scroll output.
 - Item: Reviewed the extracted CSS against `src/styles.css`; no new global primitive was promoted because the remaining recipes are domain-specific or have different responsive behavior.
+- Item: Extended scope with a feature-local admin transport service that centralizes authenticated URL construction, network failure handling, and response payload decoding while leaving page policy and UI state in the dashboard.
 
 ## Changed Files
 
@@ -57,6 +58,8 @@
   - Owns health summary/report rendering, check status styling, error detail display, and the run-health output.
 - Path: `src/app/dev-admin/admin-dashboard.component.ts`
   - Composes the health card and retains all admin request and authorization logic.
+- Path: `src/app/dev-admin/admin-dashboard.service.ts`
+  - Owns admin request URL/auth-header construction and shared API payload/error decoding.
 - Path: `src/app/dev-admin/admin-feature-flags-card.component.ts`
   - Owns the auto-tick flag presentation, disabled/loading behavior, save action, and local flag-card styles.
 - Path: `src/app/dev-admin/admin-alpha-access-card.component.ts`
@@ -96,6 +99,8 @@
 - Result: Initial check caught the page-rail call to the moved processing-label helper; the helper was deliberately retained in the page, and the rerun passed.
 - CSS review: Compared repeated form, icon-button, state-panel, surface, and action-row recipes across extracted components.
 - Result: Keep them local for now; their selectors carry feature-specific layout, disclosure, table, or status semantics. Existing `src/styles.css` primitives remain the only generalized layer.
+- Ran: `npm run typecheck`, `npm run lint`, and `npm run build:web` after adding the admin transport service.
+- Result: Passed; endpoint paths, methods, payloads, auth headers, status checks, and localized page messages remain behaviorally owned by the dashboard.
 
 ## Decisions
 
@@ -150,6 +155,8 @@
   - Impact: Keep review-button routing, row formatting, and selected-snapshot/detail-panel behavior under manual review; do not force the detail extraction without a compact contract.
 - Issue: No component-level browser test harness exists for these new hosts.
   - Impact: Final manual testing must cover every listed route/state and both themes/viewports; automated checks cannot catch all focus, overflow, style-encapsulation, or event-wiring regressions.
+- Issue: Admin transport is now behind a service seam, but endpoint-specific UI flows still need manual authorization/error verification.
+  - Impact: Confirm unauthorized responses, network failures, malformed payloads, and successful health/reseed/validator/backfill/flag/alpha flows after the service change.
 - Issue: Existing working-tree/index state may include user-owned plan or backend changes.
   - Impact: Do not revert, stage, or mix unrelated files into cleanup changes.
 
@@ -160,7 +167,7 @@
 
 ## Next Step
 
-Run the final full validation pass, inspect the clean diff, and hand the manual checklist to the user. Do not extract the remaining catalog table, ingestion detail table, or shopping-list overview unless a later review identifies a compact contract with clear value.
+Commit the admin transport follow-up, then add the injectable browser logger and logging documentation. Do not extract the remaining catalog table, ingestion detail table, or shopping-list overview unless a later review identifies a compact contract with clear value.
 
 ## Notes For Future Agent
 
