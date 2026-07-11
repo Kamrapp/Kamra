@@ -8,6 +8,7 @@ import {
   AdminHealthCardComponent,
   type HealthCheckItem
 } from "./admin-health-card.component";
+import { AdminFeatureFlagsCardComponent } from "./admin-feature-flags-card.component";
 import { readApiErrorMessage } from "../shared/api-errors";
 import { LocalizationService, type TranslationKey } from "../shared/localization.service";
 import { ToastService } from "../shared/toast.service";
@@ -54,7 +55,7 @@ type AsyncActionState = "idle" | "loading" | "error" | "success";
 @Component({
   selector: "app-admin-dashboard",
   standalone: true,
-  imports: [AdminHealthCardComponent, DatabaseMaintenanceComponent],
+  imports: [AdminFeatureFlagsCardComponent, AdminHealthCardComponent, DatabaseMaintenanceComponent],
   template: `
     <section class="page-shell admin-dashboard-page" aria-labelledby="admin-dashboard-title">
       <div class="page-intro admin-dashboard-copy">
@@ -124,38 +125,15 @@ type AsyncActionState = "idle" | "loading" | "error" | "success";
             (runRequested)="runHealthCheck()"
           />
 
-          <article class="ui-panel-card status-panel utility-card placeholder-card">
-            <div class="status-heading">
-              <p class="ui-kicker">{{ loc.t("health.featureFlagsKicker") }}</p>
-              <p class="status-summary">{{ loc.t("health.featureFlagsTitle") }}</p>
-            </div>
-            <p class="status-message">{{ loc.t("health.featureFlagsDescription") }}</p>
-            <div class="placeholder-list">
-              <label class="placeholder-row" for="shopping-list-auto-tick-flag">
-                <span>{{ loc.t("health.featureFlagAutoTickAllShoppingListEntries") }}</span>
-                <input
-                  id="shopping-list-auto-tick-flag"
-                  type="checkbox"
-                  [checked]="allowAutoTickingAllShoppingListEntriesEnabled()"
-                  [disabled]="featureFlagsState() === 'loading' || !isAdminUser()"
-                  (change)="setAllowAutoTickingAllShoppingListEntriesEnabled($any($event.target).checked)"
-                >
-              </label>
-            </div>
-            <div class="button-row">
-              <button
-                class="run-button ui-button"
-                type="button"
-                (click)="saveShoppingListFeatureFlags()"
-                [disabled]="isMaintenanceBusy() || featureFlagsState() === 'loading'"
-              >
-                {{ featureFlagsState() === "loading" ? loc.t("health.updating") : loc.t("common.save") }}
-              </button>
-            </div>
-            @if (featureFlagsMessage(); as message) {
-              <p class="maintenance-message">{{ message }}</p>
-            }
-          </article>
+          <app-admin-feature-flags-card
+            [admin]="isAdminUser()"
+            [autoTickEnabled]="allowAutoTickingAllShoppingListEntriesEnabled()"
+            [busy]="isMaintenanceBusy()"
+            [loading]="featureFlagsState() === 'loading'"
+            [message]="featureFlagsMessage()"
+            (autoTickChanged)="setAllowAutoTickingAllShoppingListEntriesEnabled($event)"
+            (saveRequested)="saveShoppingListFeatureFlags()"
+          />
 
           <article class="ui-panel-card status-panel utility-card alpha-access-card">
             <div class="status-heading">
@@ -281,17 +259,6 @@ type AsyncActionState = "idle" | "loading" | "error" | "success";
       .check-list {
         display: grid;
         gap: var(--space-3);
-      }
-
-      .placeholder-card {
-        background:
-          linear-gradient(180deg, color-mix(in srgb, var(--surface-panel-background) 92%, white 8%), var(--surface-panel-background)),
-          radial-gradient(circle at top right, color-mix(in srgb, var(--color-accent-sky) 16%, transparent), transparent 55%);
-      }
-
-      .placeholder-list {
-        display: grid;
-        gap: var(--space-2);
       }
 
       .placeholder-row {

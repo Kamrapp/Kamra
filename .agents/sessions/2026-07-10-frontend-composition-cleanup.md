@@ -21,6 +21,7 @@
 - Item: Extracted the authenticated household stock editor into a single-file standalone component with a normalized draft input/output contract; the page retains API calls and mutation state.
 - Item: Started Step 3 by extracting the shopping-list completion confirmation panel into a single-file standalone component with typed confirm/cancel outputs.
 - Item: Extracted the developer-admin health report card into a single-file standalone component; dashboard transport, auth, localized errors, and toasts remain in the page.
+- Item: Extracted the developer-admin feature-flags card into a single-file standalone component with typed toggle/save events.
 
 ## Changed Files
 
@@ -52,6 +53,8 @@
   - Owns health summary/report rendering, check status styling, error detail display, and the run-health output.
 - Path: `src/app/dev-admin/admin-dashboard.component.ts`
   - Composes the health card and retains all admin request and authorization logic.
+- Path: `src/app/dev-admin/admin-feature-flags-card.component.ts`
+  - Owns the auto-tick flag presentation, disabled/loading behavior, save action, and local flag-card styles.
 
 ## Validation
 
@@ -66,6 +69,8 @@
 - Ran: `npm run typecheck`, `npm run lint`, and `npm run build:web` after the completion-panel extraction.
 - Result: Passed; the full test suite remains the validation gate before closing Step 3.
 - Ran: `npm run typecheck`, `npm run lint`, and `npm run build:web` after the admin health-card extraction.
+- Result: Passed; full tests remain the validation gate before closing Step 3.
+- Ran: `npm run typecheck`, `npm run lint`, and `npm run build:web` after the feature-flags extraction.
 - Result: Passed; full tests remain the validation gate before closing Step 3.
 
 ## Decisions
@@ -107,6 +112,8 @@
   - Impact: Final manual checks should verify confirmation appearance, allowed-mode ordering, primary-button emphasis, confirm action execution, and close/cancel behavior in both light and dark themes.
 - Issue: The admin health report now renders through a component host.
   - Impact: Final manual checks should verify health loading/empty/success/degraded states, API/database status styling, database-name display, error code/details, run-button disabling, unauthorized behavior, and narrow-layout wrapping.
+- Issue: The admin feature-flags card now renders through a component host.
+  - Impact: Final manual checks should verify flag checkbox state, admin/read-only disabling, loading/save disabling, success/error message placement, and persistence after reload.
 - Issue: Existing working-tree/index state may include user-owned plan or backend changes.
   - Impact: Do not revert, stage, or mix unrelated files into cleanup changes.
 
@@ -117,7 +124,7 @@
 
 ## Next Step
 
-The health-card slice is ready to commit. After the commit, continue Step 3 with the next admin card only when its input/output contract is similarly compact; keep `HouseholdShoppingListComponent` as the lifecycle facade and avoid a low-value admin request wrapper.
+The feature-flags slice is ready to commit. After the commit, continue Step 3 with the alpha-access card only if its credential and flag event contract remains compact; keep `HouseholdShoppingListComponent` as the lifecycle facade and avoid a low-value admin request wrapper.
 
 ## Notes For Future Agent
 
