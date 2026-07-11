@@ -40,6 +40,7 @@
 - Item: Externalized the ingestion-admin page template/styles after the snapshot-table boundary was extracted; selected detail/review rows remain in the page by design.
 - Item: Review fix: restored the original login draft behavior by clearing the shell password only after successful login or logout, not after failed attempts.
 - Item: Reviewed the refact branch for additional contract, companion-file, CSS ownership, DI, transport, logging, and event-wiring regressions; no further concrete defects were found.
+- Item: Deployment review found missing Vercel wrappers for shared admin/domain routes; added `api/[...path].ts` as a thin catch-all adapter to keep the shared dispatcher reachable on Vercel.
 
 ## Changed Files
 
@@ -79,6 +80,8 @@
   - Use the injected logger facade for structured operational events.
 - Path: `docs/logging.md`
   - Documents the frontend logger seam and payload-safety rules.
+- Path: `api/[...path].ts`, `api/AGENTS.md`
+  - Expose and document the Vercel catch-all adapter for shared database-maintenance, alpha-access, ingestion, catalog, and household routes.
 - Path: `src/app/household/shopping-list-line.component.ts`
   - Owns one shopping-list line's display/edit markup, local disclosure state, responsive line styles, uncertainty/reason localization, and typed change events.
 - Path: `src/app/household/household-shopping-list.component.ts`
@@ -234,6 +237,8 @@
   - Impact: Keep any future direct use rare and documented; feature code should use `BrowserLoggerService`.
 - Issue: The review did not include browser automation or live endpoint verification.
   - Impact: Manual testing remains required for visual layout, focus behavior, responsive overflow, auth/error flows, and `/api/log` forwarding.
+- Issue: Vercel catch-all routing is now required for shared routes without dedicated wrappers.
+  - Impact: Verify a deployed or preview Vercel request reaches `/api/admin/database-maintenance`, `/api/admin/alpha-users`, `/api/admin/ingestion/snapshots`, and representative catalog/household routes; confirm dedicated wrappers still take precedence for login, logging, identity, preferences, and dashboard endpoints.
 - Issue: Shopping-list line markup/styles now render through a child component host.
   - Impact: Manually verify pending/purchased line layout, checkbox/amount/unit edits, detail disclosure, observed price fields, uncertainty text, read-only disabling, saving state, mobile stacking, and theme styling.
 - Issue: The parent still has a large inline template/style block after the line extraction.
@@ -260,7 +265,7 @@
 
 ## Next Step
 
-Companion-file phase is complete and validated. Hand off the full manual checklist before Stage 8. Do not split smaller components or externalize additional files without a concrete maintenance gain.
+Companion-file phase is complete and validated. The Vercel route-surface fix is ready to commit; then hand off the full manual checklist before Stage 8. Do not split smaller components or externalize additional files without a concrete maintenance gain.
 
 ## Notes For Future Agent
 
