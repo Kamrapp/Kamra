@@ -12,6 +12,14 @@ export class MongoFeatureFlagStore implements FeatureFlagStore {
     this.audits = database.collection<FeatureFlagAuditDocument>("feature_flag_change_audits");
   }
 
+  async setupCollections(): Promise<void> {
+    await Promise.all([
+      this.flags.createIndex({ key: 1 }, { name: "household_feature_flags_key_unique", unique: true }),
+      this.audits.createIndex({ id: 1 }, { name: "feature_flag_change_audits_id_unique", unique: true }),
+      this.audits.createIndex({ key: 1, changedAt: -1 }, { name: "feature_flag_change_audits_key_changed_at" })
+    ]);
+  }
+
   async read(key: FeatureFlagKey): Promise<FeatureFlagRecord | null> {
     return await this.flags.findOne({ key });
   }

@@ -16,6 +16,7 @@
 - Item: Wired the typed feature service to a Mongo-backed flag store and the admin dashboard route; persisted change audits through a registered maintenance entry.
 - Item: Added Step 3A classification migration contracts: legacy categories become Product Concepts/`is_a` edges, attributes become independent Product Attributes, and keyword/broken references are reported.
 - Item: Added the Mongo classification repository with stable-id upserts, indexes, and idempotent migration reporting.
+- Item: Registered classification/audit validator and migration execution in the database-maintenance routes; `Run all` can now invoke both new actions.
 
 ## Changed Files
 
@@ -41,6 +42,7 @@
 - Path: `packages/kamra-api-server/src/catalog/README.md`
 - Path: `packages/kamra-api-server/src/catalog/v2/mongo-classification-repository.ts`
 - Path: `packages/kamra-api-server/src/catalog/v2/mongo-classification-repository.test.ts`
+- Path: `packages/kamra-api-server/src/http/routes/database-maintenance-route.ts`
 
 ## Validation
 
@@ -64,6 +66,10 @@
 - Result: 3 tests passed.
 - Ran: `npx eslint packages/kamra-api-server/src/catalog/v2`
 - Result: Passed.
+- Ran: `npm test -- --run packages/kamra-api-server/src/http/app-handler.test.ts packages/kamra-api-server/src/catalog/v2`
+- Result: 48 tests passed.
+- Ran: `npx eslint packages/kamra-api-server/src/feature-toggles/mongo-store.ts packages/kamra-api-server/src/http/routes/database-maintenance-route.ts packages/kamra-api-server/src/catalog/v2`
+- Result: Passed.
 - Not run: Full test, lint, build, and Mongo transaction smoke; defer until the next meaningful integration unit or closeout.
 
 ## Decisions
@@ -77,10 +83,8 @@
 
 - Issue: Mongo transaction support and the existing database abstraction still need an explicit Step 1/Step 4 integration check.
 - Impact: Do not implement atomic stock commands until the configured topology is proven transaction-capable; revise the plan if it is not.
-- Issue: Feature-flag audit collection indexes/validator still need to be executed through the maintenance action implementation.
-- Impact: The route persists audit records, but operators must run the registered maintenance action before relying on production uniqueness/validation guarantees.
-- Issue: Classification persistence is now available as a repository, but no maintenance route invokes it yet and Mongo validators are still pending.
-- Impact: No operator action can run this migration yet; Step 3A still needs the maintenance action/route and cycle/reconciliation reporting before classification can be runtime truth.
+- Issue: The maintenance actions are wired, but configured-database smoke testing and production validator definitions remain outstanding.
+- Impact: Local/fake Mongo proves routing and idempotent writes; an operator must still run the actions against the configured topology before relying on live migration results.
 - Issue: UI/API manual verification has not started.
 - Impact: Track the final browser checklist as implementation reaches the household workspace.
 
@@ -91,7 +95,7 @@
 
 ## Next Step
 
-Commit the Step 3A Mongo persistence unit, then add its maintenance action/route and validator coverage.
+Commit the Step 3A maintenance integration, then begin Step 3B’s final household collections and migration mapping.
 
 ## Notes For Future Agent
 

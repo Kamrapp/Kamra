@@ -2,6 +2,9 @@ import { createDefaultCatalogRepository, createDefaultHouseholdRepository } from
 import { findDatabaseMaintenanceEntry, databaseMaintenanceEntries } from "../../database-maintenance/registry.js";
 import { MongoMaintenanceRunRepository } from "../../database-maintenance/mongo-maintenance-run-repository.js";
 import { writeServerLog } from "../../logging/kamra-logger.js";
+import { MongoFeatureFlagStore } from "../../feature-toggles/mongo-store.js";
+import { MongoClassificationRepository } from "../../catalog/v2/mongo-classification-repository.js";
+import type { ProductTagAssignmentRecord, ProductTagRecord } from "../../catalog/v1/contracts.js";
 import { describeRequest, json, unauthorized, type AppRoute } from "../app-route-context.js";
 
 export const databaseMaintenanceListRoute: AppRoute = {
@@ -200,6 +203,12 @@ async function runValidatorAction(
   database: Db,
   context: Parameters<AppRoute["handle"]>[1]
 ): Promise<unknown> {
+  if (entryId === "catalog-classification-v1") {
+    return await new MongoClassificationRepository(database).setupCollections();
+  }
+  if (entryId === "feature-flag-audit-v1") {
+    return await new MongoFeatureFlagStore(database).setupCollections();
+  }
   if (entryId === "catalog-product-validation") {
     const repository = context.dependencies.createCatalogRepository
       ? context.dependencies.createCatalogRepository(database)
@@ -221,6 +230,15 @@ async function runMigrationAction(
   database: Db,
   context: Parameters<AppRoute["handle"]>[1]
 ): Promise<unknown> {
+  if (entryId === "catalog-classification-v1") {
+    const repository = new MongoClassificationRepository(database);
+    const tags = await database.collection<ProductTagRecord>("product_tags").find({}).toArray();
+    const assignments = await database.collection<ProductTagAssignmentRecord>("product_tag_assignments").find({}).toArray();
+    return await repository.migrateLegacy(tags, assignments);
+  }
+  if (entryId === "feature-flag-audit-v1") {
+    return { status: "ready", migratedCount: 0 };
+  }
   if (entryId === "catalog-product-validation") {
     const repository = context.dependencies.createCatalogRepository
       ? context.dependencies.createCatalogRepository(database)
