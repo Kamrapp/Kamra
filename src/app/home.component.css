@@ -20,4 +20,12 @@
     grid-template-columns: minmax(26rem, 1.2fr) minmax(20rem, 0.8fr);
     grid-template-rows: auto auto auto;
   }
+
+  app-household-v2-workspace {
+    grid-row: span 2;
+  }
+
+  app-household-stock-editor {
+    grid-column: 2;
+  }
 }

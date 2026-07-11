@@ -38,7 +38,17 @@ Use this against the local/demo database only. Reseeding resets the stable demo 
 7. Discard the Mizo batch. Confirm the target amount falls to the remaining eligible quantity and the batch is not silently erased from history/status.
 8. Inspect the unassigned group. Confirm the flour batch remains visible and can be corrected without becoming an unrelated top-level household row.
 9. Create a second batch for the Pilos Product, then classify the Product. Confirm the new batch inherits Product classification while the earlier batch snapshot remains unchanged.
-10. Re-run `npm run seed` when finished to restore the fixture for the next tester.
+10. In the left rail, click **Build shopping list**. Confirm checkboxes appear in the temporary selection table and the scale-eligible rows start selected.
+11. Change the shopping scale. Confirm the checked selection resets to that scale's eligible rows; manually select or clear at least one row.
+12. Click **Generate shopping list**. Confirm only checked legacy stock rows are included, then confirm the selection checkboxes disappear. Start Build again and use Cancel; confirm the checkboxes disappear without changing the persisted list.
+13. Re-run `npm run seed` when finished to restore the fixture for the next tester.
+
+## Pending workspace refinements
+
+- Verify the compact fixed-header grouped table: Target rows expose Current, Minimum, and State; Product/Batch rows are visually indented and keep action columns aligned regardless of name or quantity length.
+- Verify Target and Batch inline editors are collapsed by default and label Stocked at versus Expiry explicitly.
+- Verify Manage household owns household name, default calculated max-limit multiplier, and Allow expired items; invitation remains a visible placeholder.
+- The temporary checkbox selector currently uses the legacy stock table because the grouped v2 workspace still needs its own Shopping Need-to-list bridge. Do not treat it as v2 Target/Batch list generation yet.
 
 ## Related automated checks
 

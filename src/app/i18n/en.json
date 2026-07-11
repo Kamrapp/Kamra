@@ -309,6 +309,7 @@
     "householdNameRequired": "Add a household name before continuing.",
     "increaseMinLimit": "Increase minimum limit",
     "generateShoppingList": "Generate shopping list",
+    "buildShoppingList": "Build shopping list",
     "gtinOptional": "GTIN (optional)",
     "hideAdditionalDetails": "Hide additional details",
     "idealMaxLimitOptional": "Ideal max limit (optional)",

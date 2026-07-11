@@ -81,10 +81,11 @@ import { LocalizationService, type TranslationKey } from "../shared/localization
             </button>
           </form>
         </section>
-      } @else {
+      } @else if (showStockTable()) {
         <div class="stock-table-shell">
           <div class="stock-table-header" aria-hidden="true">
-            <div class="stock-header-main">
+            <div class="stock-header-main" [class.selection-active]="shoppingSelectionMode()">
+              @if (shoppingSelectionMode()) { <span></span> }
               <span>{{ loc.t("common.product") }}</span>
               <span>{{ loc.t("household.currentShort") }}</span>
               <span aria-hidden="true"></span>
@@ -98,9 +99,10 @@ import { LocalizationService, type TranslationKey } from "../shared/localization
               <div
                 class="stock-table-row stock-table-grid"
                 [class.selected-row]="selectedItemId() === item.id"
-                [class.shopping-candidate-row]="highlightedItemIds().has(item.id)"
               >
-                <button class="stock-row-main" type="button" (click)="itemSelected.emit(item)">
+                <div class="stock-row-main" [class.selection-active]="shoppingSelectionMode()">
+                  @if (shoppingSelectionMode()) { <input class="stock-select" type="checkbox" [checked]="selectedShoppingItemIds().has(item.id)" (change)="shoppingSelectionToggled.emit(item.id)" [attr.aria-label]="'Select ' + item.displayName" /> }
+                  <button class="stock-row-content" type="button" (click)="itemSelected.emit(item)">
                   <span class="stock-name">{{ item.displayName }}</span>
                   <span>{{ formatAmount(item.currentAmount, item.unit) }}</span>
                   <span
@@ -119,7 +121,8 @@ import { LocalizationService, type TranslationKey } from "../shared/localization
                   >
                     {{ loc.t(stockStatusTranslationKey(item.stockStatus)) }}
                   </span>
-                </button>
+                  </button>
+                </div>
 
                 <button
                   class="stock-list-add"
@@ -301,6 +304,11 @@ import { LocalizationService, type TranslationKey } from "../shared/localization
         min-width: 0;
       }
 
+      .stock-header-main.selection-active,
+      .stock-row-main.selection-active {
+        grid-template-columns: 1.35rem minmax(0, 1fr);
+      }
+
       .stock-header-main span {
         line-height: 1.1;
         white-space: nowrap;
@@ -325,11 +333,11 @@ import { LocalizationService, type TranslationKey } from "../shared/localization
         background: var(--row-hover-background);
       }
 
-      .shopping-candidate-row {
-        background: color-mix(in srgb, var(--color-accent-leaf) 16%, var(--pulse-row-background));
+      .stock-row-main {
+        min-width: 0;
       }
 
-      .stock-row-main {
+      .stock-row-content {
         background: transparent;
         border: 0;
         color: inherit;
@@ -340,6 +348,13 @@ import { LocalizationService, type TranslationKey } from "../shared/localization
         padding: 0;
         text-align: left;
         width: 100%;
+      }
+
+      .stock-select {
+        accent-color: var(--color-accent-leaf-strong);
+        height: 1rem;
+        margin: 0;
+        width: 1rem;
       }
 
       .stock-list-add {
@@ -433,7 +448,7 @@ import { LocalizationService, type TranslationKey } from "../shared/localization
         }
 
         .stock-table-grid,
-        .stock-row-main,
+        .stock-row-content,
         .stock-header-main {
           min-width: 40rem;
         }
@@ -448,11 +463,13 @@ export class HouseholdStockPanelComponent {
   readonly existingShoppingLineItemIds = input.required<ReadonlySet<string>>();
   readonly hasExistingShoppingList = input.required<boolean>();
   readonly hasHouseholdPage = input.required<boolean>();
-  readonly highlightedItemIds = input.required<ReadonlySet<string>>();
   readonly households = input.required<readonly HouseholdListItem[]>();
   readonly loadState = input.required<"idle" | "loading" | "ready" | "error">();
   readonly selectedHouseholdId = input.required<string>();
   readonly selectedItemId = input.required<string | null>();
+  readonly selectedShoppingItemIds = input.required<ReadonlySet<string>>();
+  readonly showStockTable = input(false);
+  readonly shoppingSelectionMode = input.required<boolean>();
   readonly statusMessage = input.required<string>();
   readonly stockItems = input.required<readonly HouseholdStockItemListItem[]>();
 
@@ -461,6 +478,7 @@ export class HouseholdStockPanelComponent {
   readonly itemSelected = output<HouseholdStockItemListItem>();
   readonly refreshRequested = output<void>();
   readonly shoppingListAddRequested = output<HouseholdStockItemListItem>();
+  readonly shoppingSelectionToggled = output<string>();
 
   readonly createHouseholdName = signal("");
 

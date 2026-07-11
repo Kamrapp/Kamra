@@ -13,11 +13,13 @@
       [existingShoppingLineItemIds]="existingShoppingLineItemIds()"
       [hasExistingShoppingList]="!!shoppingListPanel?.shoppingList()"
       [hasHouseholdPage]="!!householdPage()"
-      [highlightedItemIds]="highlightedStockItemIds()"
       [households]="households()"
       [loadState]="loadState()"
       [selectedHouseholdId]="selectedHouseholdId()"
       [selectedItemId]="selectedItem()?.id ?? null"
+      [selectedShoppingItemIds]="selectedShoppingItemIds()"
+      [showStockTable]="shoppingSelectionMode()"
+      [shoppingSelectionMode]="shoppingSelectionMode()"
       [statusMessage]="statusMessage()"
       [stockItems]="stockItemsByPriority()"
       (createHouseholdRequested)="createHousehold($event)"
@@ -25,6 +27,7 @@
       (itemSelected)="openEditor($event)"
       (refreshRequested)="refreshHome()"
       (shoppingListAddRequested)="addStockItemToShoppingList($event, shoppingListPanel)"
+      (shoppingSelectionToggled)="toggleShoppingItem($event)"
     />
 
     <app-household-stock-editor
@@ -42,6 +45,7 @@
       class="shopping-bottom-row"
       [householdId]="selectedHouseholdId()"
       [shoppingScale]="apiShoppingScale()"
+      [selectedStockItemIds]="shoppingSelectionMode() ? selectedShoppingItemIdsArray() : null"
       (stockPageUpdated)="applyShoppingListStockPage($event)"
     />
   </section>

@@ -38,6 +38,7 @@ export class HouseholdShoppingListComponent implements OnChanges {
   @Input({ required: true }) householdId = "";
   @Input() demoShoppingList: HouseholdShoppingList | null = null;
   @Input() shoppingScale: HouseholdShoppingList["scale"] = "keep_it_chill";
+  @Input() selectedStockItemIds: readonly string[] | null = null;
   @Output() stockPageUpdated = new EventEmitter<HouseholdStockPage>();
 
   readonly loc = inject(LocalizationService);
@@ -226,6 +227,7 @@ export class HouseholdShoppingListComponent implements OnChanges {
     this.errorMessage.set("");
     const result = await this.household.createShoppingList({
       householdId: this.householdId,
+      selectedStockItemIds: this.selectedStockItemIds ? [...this.selectedStockItemIds] : undefined,
       scale: this.shoppingScaleValue(),
       shopId: this.shoppingList()?.shopId ?? null
     });

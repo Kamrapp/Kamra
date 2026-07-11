@@ -190,6 +190,7 @@ export interface HouseholdShoppingListPreview {
 
 export interface CreateHouseholdShoppingListInput {
   householdId: string;
+  selectedStockItemIds?: string[];
   scale: "business_as_usual" | "keep_it_chill" | "start_fresh" | "stock_em_up";
   shopId?: string | null;
 }

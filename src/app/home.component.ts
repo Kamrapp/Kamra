@@ -94,6 +94,8 @@ export class HomeComponent implements OnDestroy {
   readonly selectedHouseholdId = signal<string>("");
   readonly selectedItemId = signal<string | null>(null);
   readonly shoppingScale = signal<ShoppingScale>("chill");
+  readonly shoppingSelectionMode = signal(false);
+  readonly selectedShoppingItemIds = signal<ReadonlySet<string>>(new Set());
   readonly statusMessage = signal("");
   readonly shoppingScaleDisplayOptions = shoppingScaleDisplayOptions;
   readonly shoppingScaleOptions = shoppingScaleOptions;
@@ -193,9 +195,7 @@ export class HomeComponent implements OnDestroy {
   readonly shoppingItems = computed(() =>
     this.stockItemsByPriority().filter((item) => shouldBuyForScale(item.stockStatus, this.shoppingScale()))
   );
-  readonly highlightedStockItemIds = computed(() =>
-    new Set(this.shoppingItems().map((item) => item.id))
-  );
+  readonly selectedShoppingItemIdsArray = computed(() => [...this.selectedShoppingItemIds()]);
   readonly existingShoppingLineItemIds = computed(() => {
     const shoppingList = this.shoppingListPanel()?.shoppingList();
     return new Set(shoppingList?.items.map((item) => item.householdStockItemId).filter((id): id is string => !!id) ?? []);
@@ -218,14 +218,13 @@ export class HomeComponent implements OnDestroy {
         active: this.shoppingScale() === option.key
       })),
       onScaleIndexChange: (value) => this.setShoppingScaleIndex(value),
-      itemCount: this.railShoppingItemCount(),
-      itemCountLabel: this.loc.t("household.shoppingBandCount", { count: this.railShoppingItemCount() }),
-      actionLabel: this.shoppingListPanel()?.shoppingList()
-        ? this.loc.t("household.regenerateShoppingList")
-        : this.loc.t("household.generateShoppingList"),
+      itemCount: this.shoppingSelectionMode() ? this.selectedShoppingItemIds().size : this.railShoppingItemCount(),
+      itemCountLabel: this.loc.t("household.shoppingBandCount", { count: this.shoppingSelectionMode() ? this.selectedShoppingItemIds().size : this.railShoppingItemCount() }),
+      actionLabel: this.shoppingSelectionMode() ? this.loc.t("household.generateShoppingList") : this.loc.t("household.buildShoppingList"),
       actionDisabled: !this.auth.isAuthenticated() || !this.selectedHouseholdId(),
       onAction: () => {
-        void this.shoppingListPanel()?.generateShoppingList();
+        if (!this.shoppingSelectionMode()) { this.beginShoppingSelection(); return; }
+        void this.generateSelectedShoppingList();
       },
       reloadActionLabel: this.loc.t("common.refresh"),
       reloadActionDisabled: !this.auth.isAuthenticated() || !this.selectedHouseholdId(),
@@ -233,8 +232,9 @@ export class HomeComponent implements OnDestroy {
         void this.shoppingListPanel()?.reloadShoppingList();
       },
       cancelActionLabel: this.loc.t("household.cancelShoppingList"),
-      cancelActionDisabled: !this.auth.isAuthenticated() || !this.shoppingListPanel()?.shoppingList(),
+      cancelActionDisabled: !this.auth.isAuthenticated() || (!this.shoppingSelectionMode() && !this.shoppingListPanel()?.shoppingList()),
       onCancelAction: () => {
+        if (this.shoppingSelectionMode()) { this.cancelShoppingSelection(); return; }
         void this.shoppingListPanel()?.cancelShoppingList();
       }
     }
@@ -427,7 +427,24 @@ export class HomeComponent implements OnDestroy {
     const option = shoppingScaleOptions[index];
     if (option) {
       this.shoppingScale.set(option.key);
+      if (this.shoppingSelectionMode()) this.resetShoppingSelection();
     }
+  }
+
+  toggleShoppingItem(id: string): void {
+    this.selectedShoppingItemIds.update((selected) => {
+      const next = new Set(selected);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  private beginShoppingSelection(): void { this.shoppingSelectionMode.set(true); this.resetShoppingSelection(); }
+  private cancelShoppingSelection(): void { this.shoppingSelectionMode.set(false); this.selectedShoppingItemIds.set(new Set()); }
+  private resetShoppingSelection(): void { this.selectedShoppingItemIds.set(new Set(this.shoppingItems().map((item) => item.id))); }
+  private async generateSelectedShoppingList(): Promise<void> {
+    await this.shoppingListPanel()?.generateShoppingList();
+    this.cancelShoppingSelection();
   }
 
   startCreateItem(): void {

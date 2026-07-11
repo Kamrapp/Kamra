@@ -346,6 +346,7 @@ export interface HouseholdShoppingListRecord {
 
 export interface CreateHouseholdShoppingListRequest {
   householdId: string;
+  selectedStockItemIds?: string[];
   scale: HouseholdShoppingScale;
   shopId?: string | null;
 }

@@ -309,6 +309,7 @@
     "householdNameRequired": "Folytatás előtt adj meg háztartásnevet.",
     "increaseMinLimit": "Minimum szint növelése",
     "generateShoppingList": "Bevásárlólista generálása",
+    "buildShoppingList": "Bevásárlólista összeállítása",
     "gtinOptional": "GTIN (opcionális)",
     "hideAdditionalDetails": "Részletek elrejtése",
     "idealMaxLimitOptional": "Ideális maximum (opcionális)",

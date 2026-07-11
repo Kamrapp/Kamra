@@ -294,6 +294,10 @@ export const householdShoppingListsRoute: AppRoute = {
         scale: body.scale,
         stockItems: stockPage.stockItems
       });
+      const selectedStockItemIds = body.selectedStockItemIds ? new Set(body.selectedStockItemIds) : null;
+      const selectedPreviewItems = selectedStockItemIds
+        ? preview.items.filter((item) => typeof item.householdStockItemId === "string" && selectedStockItemIds.has(item.householdStockItemId))
+        : preview.items;
 
       const now = new Date().toISOString();
       const shoppingListId = createShoppingListId(body.householdId);
@@ -302,7 +306,7 @@ export const householdShoppingListsRoute: AppRoute = {
         createdByUserId: repositoryResult.user.email,
         householdId: body.householdId,
         id: shoppingListId,
-        items: preview.items.map((item, index) => ({
+        items: selectedPreviewItems.map((item, index) => ({
           ...item,
           id: createShoppingListLineId(shoppingListId, index, item.displayName),
           observedPrice: null,
