@@ -80,6 +80,18 @@ npm run smoke:catalog
 
 May create missing catalog collections and indexes in the configured database. Use Smoke/local databases unless intentionally validating another environment.
 
+### `transaction-smoke.ts`
+
+Proves that the configured MongoDB topology supports the transaction behavior required by Stage 8. It intentionally aborts one transaction to verify rollback, commits a second transaction, verifies both outcomes, and removes its temporary documents.
+
+Command:
+
+```powershell
+npm run smoke:transactions
+```
+
+The script refuses database names other than `kamra_dev`, `kamra_test`, or `kamra_smoke`. Use a disposable/local or smoke database; it does not run against production-named databases.
+
 ### `generate-catalog-schemas.ts`
 
 Regenerates catalog schema artifacts.

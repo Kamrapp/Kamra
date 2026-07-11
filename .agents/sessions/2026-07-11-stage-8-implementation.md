@@ -18,6 +18,7 @@
 - Item: Added the Mongo classification repository with stable-id upserts, indexes, and idempotent migration reporting.
 - Item: Registered classification/audit validator and migration execution in the database-maintenance routes; `Run all` can now invoke both new actions.
 - Item: Added Step 3B legacy household stock migration and maintenance integration: local products become unconstrained Stock Targets, rows become Stock Batches, positive balances get one full allocation, and opening movements preserve migrated quantity.
+- Item: Added `npm run smoke:transactions`, an isolated Mongo transaction check that verifies rollback and commit behavior and refuses production-named databases.
 
 ## Changed Files
 
@@ -46,6 +47,9 @@
 - Path: `packages/kamra-api-server/src/http/routes/database-maintenance-route.ts`
 - Path: `packages/kamra-api-server/src/household/v2/mongo-stock-migration.ts`
 - Path: `packages/kamra-api-server/src/household/v2/mongo-stock-migration.test.ts`
+- Path: `scripts/transaction-smoke.ts`
+- Path: `scripts/README.md`
+- Path: `package.json`
 
 ## Validation
 
@@ -78,6 +82,12 @@
 - Ran: `npx eslint packages/kamra-api-server/src/household/v2/mongo-stock-migration.ts packages/kamra-api-server/src/http/routes/database-maintenance-route.ts packages/kamra-api-server/src/database-maintenance/registry.ts packages/kamra-api-server/src/http/app-handler.test.ts`
 - Result: Passed.
 - Not run: Full test, lint, build, and Mongo transaction smoke; defer until the next meaningful integration unit or closeout.
+- Ran: `npm run typecheck`
+- Result: Passed with the transaction script included.
+- Ran: `npx eslint scripts/transaction-smoke.ts`
+- Result: Passed.
+- Ran: `npm run smoke:transactions`
+- Result: Not completed in the agent environment; the process stopped after the Mongo connecting log and requires a manual PowerShell run.
 
 ## Decisions
 
@@ -94,6 +104,8 @@
 - Impact: Local/fake Mongo proves routing and idempotent writes; an operator must still run the actions against the configured topology before relying on live migration results.
 - Issue: Mongo transactions are not yet supported by the abstraction and have not been proven against the configured topology.
 - Impact: Before Step 4 atomic stock commands, add the session/transaction seam and run the configured transaction smoke; if unsupported, pause for a plan revision as required by Stage 8.
+- Issue: The new transaction smoke script could not complete from the agent environment despite the user’s catalog smoke succeeding.
+- Impact: Step 4 remains gated until `npm run smoke:transactions` prints both rollback and commit verification successfully in the user’s configured shell.
 - Issue: UI/API manual verification has not started.
 - Impact: Track the final browser checklist as implementation reaches the household workspace.
 

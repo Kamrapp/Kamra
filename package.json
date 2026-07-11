@@ -26,6 +26,7 @@
     "synthetic:pdf:ingest": "node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/ingest-synthetic-pdf-source.ts",
     "synthetic:ingest": "node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/ingest-synthetic-source.ts",
     "smoke:catalog": "node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/catalog-smoke.ts",
+    "smoke:transactions": "node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/transaction-smoke.ts",
     "start:api": "node --env-file-if-exists=.env.local dist/api/scripts/local-api.js",
     "start:api:render": "node dist/api/scripts/local-api.js",
     "test": "vitest run",
