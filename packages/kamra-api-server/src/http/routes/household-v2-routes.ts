@@ -3,7 +3,7 @@ import { MongoStockReadRepository } from "../../household/v2/mongo-stock-read-re
 import { MongoStockCommandRepository } from "../../household/v2/mongo-stock-command-repository.js";
 import { MongoShoppingNeedRepository } from "../../household/v2/mongo-shopping-need-repository.js";
 import { createAdHocShoppingNeed } from "../../household/v2/shopping-needs.js";
-import { schemaVersion, type CreateManualStockBatchRequest } from "../../household/v2/contracts.js";
+import { schemaVersion, type CreateManualStockBatchRequest, type TrackingUnit } from "../../household/v2/contracts.js";
 import { assertCreateManualStockBatchRequest, assertTrackingUnit } from "../../household/v2/validation.js";
 
 export const householdV2StockTargetRoute: AppRoute = {
@@ -121,12 +121,14 @@ export const householdV2ShoppingNeedsRoute: AppRoute = {
     const householdId = request.path.match(/^\/api\/households\/([^/]+)\/shopping-needs$/)?.[1]; if (!householdId) return json(400, { error: "invalid_household_path" });
     const body = request.method === "POST" ? parseJsonObject(request.bodyText) : null;
     if (request.method === "POST" && (!body || typeof body["needId"] !== "string" || typeof body["plannedQuantity"] !== "number" || typeof body["unit"] !== "string")) return json(400, { error: "invalid_shopping_need_request" });
+    let adHocUnit: TrackingUnit | undefined;
+    if (request.method === "POST") { try { assertTrackingUnit(body!["unit"]); adHocUnit = body!["unit"]; } catch { return json(400, { error: "invalid_shopping_need_unit" }); } }
     if (!context.config.mongodb.uri || !context.config.mongodb.databaseName) return json(503, { error: "household_not_configured" });
     const client = await context.getMongoClient(context.config.mongodb.uri, context.config.mongodb.dnsServers); const database = client.db(context.config.mongodb.databaseName); const membership = await database.collection<{ householdId: string; status: string; userId: string }>("household_memberships").findOne({ householdId, status: "active", userId: user.email });
     if (!membership) return json(403, { error: "household_membership_required" });
     const repository = new MongoShoppingNeedRepository(database); const now = new Date().toISOString();
     try {
-      const result = request.method === "GET" ? await repository.getOrCreateList(householdId, user.email, now) : await repository.upsertNeed({ actorUserId: user.email, householdId, need: createAdHocShoppingNeed({ id: body!["needId"] as string, plannedQuantity: body!["plannedQuantity"] as number, unit: body!["unit"] as never }), now });
+      const result = request.method === "GET" ? await repository.getOrCreateList(householdId, user.email, now) : await repository.upsertNeed({ actorUserId: user.email, householdId, need: createAdHocShoppingNeed({ id: body!["needId"] as string, plannedQuantity: body!["plannedQuantity"] as number, unit: adHocUnit! }), now });
       return json(200, { result, schemaVersion });
     } catch (error) { return commandError(error); }
   }

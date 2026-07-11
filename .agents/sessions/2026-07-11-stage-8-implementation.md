@@ -37,6 +37,7 @@
 - Item: Added Mongo Shopping Need persistence with one household list, idempotent creation, need upsert, and stale-revision transitions.
 - Item: Registered `household_shopping_needs-v1` with database maintenance setup and run-all coverage before route integration.
 - Item: Added v2 Shopping Need GET/POST and revision-checked skip/restore route adapters with membership enforcement.
+- Item: Tightened the ad-hoc Shopping Need route to validate units explicitly without unsafe type assertions.
 
 ## Changed Files
 
