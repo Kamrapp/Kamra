@@ -1,0 +1,25 @@
+{
+  "packId": "kamra-base-classification",
+  "version": 1,
+  "concepts": [
+    { "key": "food", "parentKey": null },
+    { "key": "food.milk", "parentKey": "food" },
+    { "key": "food.pasta", "parentKey": "food" },
+    { "key": "food.pasta.penne", "parentKey": "food.pasta" },
+    { "key": "food.pasta.spaghetti", "parentKey": "food.pasta" },
+    { "key": "food.pasta.tagliatelle", "parentKey": "food.pasta" },
+    { "key": "food.bread", "parentKey": "food" },
+    { "key": "food.eggs", "parentKey": "food" },
+    { "key": "household.cleaning", "parentKey": null }
+  ],
+  "attributes": [
+    { "key": "diet.gluten_free" },
+    { "key": "fat.1_5_percent" },
+    { "key": "package.recyclable" }
+  ],
+  "stockTargetTemplates": [
+    { "key": "milk", "trackingUnit": "l", "minimumQuantity": 2, "targetQuantity": 4, "requiredConceptsAll": ["food.milk"] },
+    { "key": "gluten-free-pasta", "trackingUnit": "g", "minimumQuantity": 5000, "targetQuantity": 10000, "requiredConceptsAll": ["food.pasta"], "acceptedConceptsAny": ["food.pasta.penne", "food.pasta.spaghetti", "food.pasta.tagliatelle"], "requiredAttributesAll": ["diet.gluten_free"] },
+    { "key": "bread", "trackingUnit": "count", "minimumQuantity": 1, "targetQuantity": 2, "requiredConceptsAll": ["food.bread"] }
+  ]
+}

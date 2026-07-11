@@ -39,6 +39,7 @@
 - Item: Added v2 Shopping Need GET/POST and revision-checked skip/restore route adapters with membership enforcement.
 - Item: Tightened the ad-hoc Shopping Need route to validate units explicitly without unsafe type assertions.
 - Item: Added Stock Target repository CRUD and v2 create/update/archive routes with criteria, quantity, unit, policy, revision, and membership validation.
+- Item: Added the bounded bilingual base classification pack and loader with cycle, parent, translation-parity, and template-criteria validation.
 
 ## Changed Files
 
@@ -51,6 +52,11 @@
 - Path: `packages/kamra-api-server/src/http/routes/household-v2-routes.ts`
 - Path: `packages/kamra-api-server/src/household/v2/mongo-stock-target-repository.ts`
 - Path: `packages/kamra-api-server/src/household/v2/mongo-stock-target-repository.test.ts`
+- Path: `packages/kamra-api-server/src/classification/base-content/base-classification.v1.json`
+- Path: `packages/kamra-api-server/src/classification/base-content/i18n/en.json`
+- Path: `packages/kamra-api-server/src/classification/base-content/i18n/hu.json`
+- Path: `packages/kamra-api-server/src/classification/base-content/loader.ts`
+- Path: `packages/kamra-api-server/src/classification/base-content/loader.test.ts`
 - Path: `packages/kamra-api-server/src/http/app-handler.ts`
 - Path: `packages/kamra-api-server/src/http/app-handler.test.ts`
 - Path: `packages/kamra-api-server/src/http/routes/household-v2-routes.ts`
@@ -212,6 +218,8 @@
 - Impact: The v2 backend foundation and route slices are not yet a coherent browser workflow; do not mark Stage 8 complete or begin Stage 9 implementation.
 - Issue: Stock Target CRUD is now complete at the initial backend route boundary; classification content, household management, UI cutover, reconciliation, and generated-need synchronization remain.
 - Impact: Stage 8 is still not closeable, but the next backend dependency for the household workspace is now available.
+- Issue: Base pack validation is implemented, but shared sync/provenance persistence and admin preview/apply are still pending.
+- Impact: The pack is safe to consume in tests; it is not yet runtime classification authority.
 - Issue: Stage 9 and Stage 10 plans remain proposed and require their stated approval checkpoints after Stage 8 and Stage 9 close respectively.
 - Impact: No Stage 9/10 code should be started in this session until those gates are genuinely reached.
 
