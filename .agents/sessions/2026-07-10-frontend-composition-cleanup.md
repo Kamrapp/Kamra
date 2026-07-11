@@ -35,6 +35,7 @@
 - Item: Extracted `DatabaseMaintenanceEntryComponent` with local row actions, details disclosure, finished-state presentation, and responsive row styles.
 - Item: Externalized the remaining database-maintenance container template/styles and removed row-specific CSS from the parent.
 - Item: Externalized `HomeComponent` into companion files after the household block extractions and reduced its CSS to the actual page-container layout only.
+- Item: Externalized the remaining developer-admin dashboard shell template/styles after its health, flags, alpha, and maintenance boundaries were extracted.
 
 ## Changed Files
 
@@ -92,6 +93,10 @@
   - Hold the thin authenticated/anonymous composition template and the remaining workspace layout rules.
 - Path: `src/app/home.component.ts`
   - Retains household loading, mutations, page-rail state, and child composition; removed stale stock/editor/list styling and the unused `FormsModule` import.
+- Path: `src/app/dev-admin/admin-dashboard.component.html`, `src/app/dev-admin/admin-dashboard.component.css`
+  - Hold the admin authorization shell, one-off reseed/maintenance composition, and page-level dashboard styles.
+- Path: `src/app/dev-admin/admin-dashboard.component.ts`
+  - Retains admin state, transport calls, authorization policy, logging, and child-card composition.
 - Path: `src/app/dev-admin/admin-feature-flags-card.component.ts`
   - Owns the auto-tick flag presentation, disabled/loading behavior, save action, and local flag-card styles.
 - Path: `src/app/dev-admin/admin-alpha-access-card.component.ts`
@@ -144,6 +149,8 @@
 - Ran: `npm run typecheck`, `npm run lint`, `npm run build:web`, and `npm run test` after the maintenance-entry extraction and parent externalization.
 - Result: Passed; 31 test files and 153 tests passed.
 - Ran: `npm run typecheck`, `npm run lint`, `npm run build:web`, and `npm run test` after the home-container externalization.
+- Result: Passed; 31 test files and 153 tests passed.
+- Ran: `npm run typecheck`, `npm run lint`, `npm run build:web`, and `npm run test` after admin-dashboard externalization.
 - Result: Passed; 31 test files and 153 tests passed.
 
 ## Decisions
@@ -215,6 +222,8 @@
   - Impact: Manual checks should verify auth gating, active/finished grouping, validator/migration actions, mark-complete, run-all disabling, details hover/focus disclosure, mobile row stacking, and light/dark styling.
 - Issue: `HomeComponent` no longer carries the former stock/editor/list CSS and now loads companion files.
   - Impact: Manually compare anonymous preview and authenticated household layouts at desktop/mobile and light/dark themes; verify stock panel/editor/list spacing, responsive columns, and page-rail alignment did not rely on the removed stale selectors.
+- Issue: The admin dashboard shell now loads companion files.
+  - Impact: Manually verify signed-out/loading/non-admin/admin branches, reseed and maintenance card placement, child-card grid behavior, light/dark styling, and narrow admin layout.
 - Issue: Existing working-tree/index state may include user-owned plan or backend changes.
   - Impact: Do not revert, stage, or mix unrelated files into cleanup changes.
 
@@ -225,7 +234,7 @@
 
 ## Next Step
 
-Commit the home-container externalization, then reassess the remaining admin/catalog pages one at a time. Continue extracting minor ownership boundaries before companion-file externalization; do not mass-externalize every page automatically.
+Commit the admin-dashboard externalization, then reassess the remaining catalog/ingestion pages one at a time. Continue extracting minor ownership boundaries before companion-file externalization; do not mass-externalize every page automatically.
 
 ## Notes For Future Agent
 
