@@ -30,6 +30,7 @@
 - Item: Added the first v2 household route adapter for Stock Target reads with active-membership enforcement and schema-versioned responses.
 - Item: Added the v2 manual Stock Batch acquisition route with server-built snapshots, membership enforcement, request validation, and stable command-error mapping.
 - Item: Added the v2 batch allocation route with server-derived full quantity, membership/unit checks, and bounded override reasons.
+- Item: Added the v2 Stock Target consume route with expected-revision and quantity/selection validation.
 
 ## Changed Files
 
@@ -82,6 +83,10 @@
 ## Validation
 
 - Ran: `npm run typecheck`
+- Result: Passed.
+- Ran: `npm test -- --run packages/kamra-api-server/src/http/app-handler.test.ts`
+- Result: 48 tests passed.
+- Ran: `npx eslint packages/kamra-api-server/src/http/routes/household-v2-routes.ts packages/kamra-api-server/src/http/app-handler.ts packages/kamra-api-server/src/http/app-handler.test.ts`
 - Result: Passed.
 - Ran: `npm test -- --run packages/kamra-api-server/src/household/v2/domain.test.ts packages/kamra-api-server/src/http/app-handler.test.ts`
 - Result: 54 tests passed.
@@ -194,6 +199,8 @@
 - Impact: Manual acquisition can now be invoked through the v2 boundary, but the complete browser household loop is not exposed yet.
 - Issue: Consume/correct/discard HTTP adapters remain pending.
 - Impact: The domain commands are implemented and tested, but the route surface is not yet complete enough for browser use.
+- Issue: Correction and discard route adapters remain pending, as do browser service contracts and UI integration.
+- Impact: Consume is now exposed, but users still cannot complete the full correction/discard workflow through the v2 HTTP surface.
 - Issue: UI/API manual verification has not started.
 - Impact: Track the final browser checklist as implementation reaches the household workspace.
 

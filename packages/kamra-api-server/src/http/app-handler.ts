@@ -32,7 +32,7 @@ import {
   latestHouseholdShoppingListRoute,
   shopsRoute
 } from "./routes/household-routes.js";
-import { householdV2AllocateBatchRoute, householdV2ManualBatchRoute, householdV2StockTargetRoute } from "./routes/household-v2-routes.js";
+import { householdV2AllocateBatchRoute, householdV2ConsumeRoute, householdV2ManualBatchRoute, householdV2StockTargetRoute } from "./routes/household-v2-routes.js";
 import {
   acceptProductReviewItemRoute,
   declineProductReviewItemRoute,
@@ -68,6 +68,7 @@ const appRoutes: AppRoute[] = [
   householdV2StockTargetRoute,
   householdV2ManualBatchRoute,
   householdV2AllocateBatchRoute,
+  householdV2ConsumeRoute,
   householdShoppingListPreviewRoute,
   householdShoppingListsRoute,
   latestHouseholdShoppingListRoute,

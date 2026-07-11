@@ -73,5 +73,24 @@ export const householdV2AllocateBatchRoute: AppRoute = {
   }
 };
 
+export const householdV2ConsumeRoute: AppRoute = {
+  match: (request) => request.method === "POST" && /^\/api\/households\/[^/]+\/stock-targets\/[^/]+\/consume$/.test(request.path),
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request);
+    if (!user) return unauthorized("apiErrors.signInRequired");
+    const match = request.path.match(/^\/api\/households\/([^/]+)\/stock-targets\/([^/]+)\/consume$/); const householdId = match?.[1]; const stockTargetId = match?.[2]; const body = parseJsonObject(request.bodyText);
+    if (!householdId || !stockTargetId || !body || typeof body["operationId"] !== "string" || typeof body["requestFingerprint"] !== "string" || typeof body["requestedQuantity"] !== "number" || !Number.isFinite(body["requestedQuantity"]) || body["requestedQuantity"] <= 0 || !Number.isInteger(body["expectedTargetRevision"]) || (body["expectedTargetRevision"] as number) < 0) return json(400, { error: "invalid_stock_consumption_request" });
+    if (body["selectedBatchIds"] !== undefined && (!Array.isArray(body["selectedBatchIds"]) || !(body["selectedBatchIds"] as unknown[]).every((id) => typeof id === "string"))) return json(400, { error: "invalid_stock_consumption_request" });
+    if (!context.config.mongodb.uri || !context.config.mongodb.databaseName) return json(503, { error: "household_not_configured" });
+    const client = await context.getMongoClient(context.config.mongodb.uri, context.config.mongodb.dnsServers); const database = client.db(context.config.mongodb.databaseName);
+    const membership = await database.collection<{ householdId: string; status: string; userId: string }>("household_memberships").findOne({ householdId, status: "active", userId: user.email });
+    if (!membership) return json(403, { error: "household_membership_required" });
+    try {
+      const result = await new MongoStockCommandRepository(database, client).consume({ actorUserId: user.email, expectedTargetRevision: body["expectedTargetRevision"] as number, householdId, occurredAt: new Date().toISOString(), operationId: body["operationId"], requestFingerprint: body["requestFingerprint"], requestedQuantity: body["requestedQuantity"], selectedBatchIds: body["selectedBatchIds"] as string[] | undefined, stockTargetId });
+      return json(200, { result, schemaVersion });
+    } catch (error) { return commandError(error); }
+  }
+};
+
 function parseJsonObject(bodyText: string | undefined): Record<string, unknown> | null { if (!bodyText) return null; try { const value: unknown = JSON.parse(bodyText); return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null; } catch { return null; } }
 function commandError(error: unknown): ReturnType<typeof json> { const code = error instanceof Error ? error.message : "stock_command_failed"; const status = code === "idempotency_conflict" ? 409 : code === "operation_in_progress" ? 409 : 500; return json(status, { error: code }); }
