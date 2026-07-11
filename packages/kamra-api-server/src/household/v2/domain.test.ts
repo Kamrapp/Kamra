@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aggregateAvailableQuantity, calculateEffectiveConcepts, classifyProduct, convertQuantity, matchAcceptanceCriteria, orderBatchesForConsumption, validateConceptRelations } from "./domain.js";
+import { aggregateAvailableQuantity, calculateEffectiveConcepts, classifyProduct, convertQuantity, matchAcceptanceCriteria, orderBatchesForConsumption, planConsumption, validateConceptRelations } from "./domain.js";
 import type { AcceptanceCriteria, ProductConceptRef, StockAllocation, StockBatch, StockTarget } from "./contracts.js";
 import { assertStockAllocation, assertStockBatch, assertStockTarget } from "./validation.js";
 
@@ -35,6 +35,12 @@ describe("household v2 stock rules", () => {
 
   it("orders dated batches before no-expiry batches with deterministic ties", () => {
     expect(orderBatchesForConsumption([batch("b", null, 1), batch("a", "2026-07-20", 1), batch("c", "2026-07-20", 1)], "earliest_expiry_first").map((item) => item.id)).toEqual(["a", "c", "b"]);
+  });
+
+  it("plans partial multi-batch consumption and rejects insufficient stock", () => {
+    const first = batch("first", "2026-07-20", 1000, "2026-07-01"); const second = batch("second", null, 1000, "2026-07-02");
+    expect(planConsumption(target, [first, second], [allocation("first", 1000), allocation("second", 1000)], 1.5)).toEqual([{ batchId: "first", quantity: 1000, unit: "ml" }, { batchId: "second", quantity: 500, unit: "ml" }]);
+    expect(() => planConsumption(target, [first], [allocation("first", 1000)], 2)).toThrow("insufficient_stock");
   });
 
   it("validates target, batch, allocation, precision, and expiry invariants", () => {

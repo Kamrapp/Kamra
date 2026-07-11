@@ -19,6 +19,8 @@
 - Item: Registered classification/audit validator and migration execution in the database-maintenance routes; `Run all` can now invoke both new actions.
 - Item: Added Step 3B legacy household stock migration and maintenance integration: local products become unconstrained Stock Targets, rows become Stock Batches, positive balances get one full allocation, and opening movements preserve migrated quantity.
 - Item: Added `npm run smoke:transactions`, an isolated Mongo transaction check that verifies rollback and commit behavior and refuses production-named databases.
+- Item: Transaction smoke passed against `kamra_dev`: rollback count 0, committed count 2, temporary collection cleaned up.
+- Item: Started Step 4 with a reusable Mongo transaction runner and pure consumption planning for deterministic partial multi-batch commands.
 
 ## Changed Files
 
@@ -50,10 +52,19 @@
 - Path: `scripts/transaction-smoke.ts`
 - Path: `scripts/README.md`
 - Path: `package.json`
+- Path: `packages/kamra-api-server/src/db/mongo-like.ts`
+- Path: `packages/kamra-api-server/src/db/mongo-transaction.ts`
+- Path: `packages/kamra-api-server/src/db/mongo-transaction.test.ts`
+- Path: `packages/kamra-api-server/src/household/v2/domain.ts`
+- Path: `packages/kamra-api-server/src/household/v2/domain.test.ts`
 
 ## Validation
 
 - Ran: `npm run typecheck`
+- Result: Passed.
+- Ran: `npm test -- --run packages/kamra-api-server/src/db/mongo-transaction.test.ts packages/kamra-api-server/src/household/v2/domain.test.ts`
+- Result: 8 tests passed.
+- Ran: `npx eslint packages/kamra-api-server/src/db/mongo-transaction.ts packages/kamra-api-server/src/db/mongo-transaction.test.ts packages/kamra-api-server/src/household/v2/domain.ts packages/kamra-api-server/src/household/v2/domain.test.ts`
 - Result: Passed.
 - Ran: `npm test -- --run packages/kamra-api-server/src/household/v2/domain.test.ts`
 - Result: 5 tests passed.
@@ -87,7 +98,7 @@
 - Ran: `npx eslint scripts/transaction-smoke.ts`
 - Result: Passed.
 - Ran: `npm run smoke:transactions`
-- Result: Not completed in the agent environment; the process stopped after the Mongo connecting log and requires a manual PowerShell run.
+- Result: Passed manually against `kamra_dev`; rollback count 0 and committed count 2.
 
 ## Decisions
 
@@ -104,19 +115,21 @@
 - Impact: Local/fake Mongo proves routing and idempotent writes; an operator must still run the actions against the configured topology before relying on live migration results.
 - Issue: Mongo transactions are not yet supported by the abstraction and have not been proven against the configured topology.
 - Impact: Before Step 4 atomic stock commands, add the session/transaction seam and run the configured transaction smoke; if unsupported, pause for a plan revision as required by Stage 8.
-- Issue: The new transaction smoke script could not complete from the agent environment despite the user’s catalog smoke succeeding.
-- Impact: Step 4 remains gated until `npm run smoke:transactions` prints both rollback and commit verification successfully in the user’s configured shell.
+- Issue: The connection logger reports the URI default database (`test`) while the smoke correctly targets configured `MONGODB_DB_NAME` (`kamra_dev`).
+- Impact: This is expected Mongo client behavior, but future operational logs should consistently include the effective application database to avoid confusion.
+- Issue: Step 4 command persistence and idempotency receipts are not implemented yet.
+- Impact: The planner is write-free; no stock mutation is exposed until repository transactions enforce revisions, operation fingerprints, and one-active-allocation rules.
 - Issue: UI/API manual verification has not started.
 - Impact: Track the final browser checklist as implementation reaches the household workspace.
 
 ## Roadmap Or Plan Updates
 
 - Needed: No roadmap change.
-- Status: Stage 8 is in implementation; Step 1 is ready for review and commit.
+- Status: Stage 8 is in implementation; the Step 4 transaction gate is cleared by the manual smoke result.
 
 ## Next Step
 
-Commit the Step 3B migration integration, then prove the Mongo transaction seam before implementing atomic stock commands.
+Implement Step 4’s transaction-backed atomic stock command foundation.
 
 ## Notes For Future Agent
 

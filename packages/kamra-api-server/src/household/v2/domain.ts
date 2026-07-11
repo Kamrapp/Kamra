@@ -81,9 +81,7 @@ export function matchAcceptanceCriteria(
 ): ClassificationMatchExplanation {
   const concepts = new Set(classification.effectiveConcepts.map(refKey));
   const attributes = new Set(classification.directAttributes.map(refKey));
-  const matchedRequiredConcepts = criteria.requiredConceptsAll.filter((ref) => concepts.has(refKey(ref)));
   const matchedAcceptedConcepts = criteria.acceptedConceptsAny.filter((ref) => concepts.has(refKey(ref)));
-  const matchedRequiredAttributes = criteria.requiredAttributesAll.filter((ref) => attributes.has(refKey(ref)));
   const matchedAcceptedAttributes = criteria.acceptedAttributesAny.filter((ref) => attributes.has(refKey(ref)));
   const matchedExcludedAttributes = criteria.excludedAttributesAny.filter((ref) => attributes.has(refKey(ref)));
   const missingRequiredConcepts = criteria.requiredConceptsAll.filter((ref) => !concepts.has(refKey(ref)));
@@ -115,6 +113,39 @@ export function orderBatchesForConsumption(batches: readonly StockBatch[], polic
     }
     return a.acquiredOn.localeCompare(b.acquiredOn) || a.id.localeCompare(b.id);
   });
+}
+
+export interface ConsumptionPlanLine {
+  batchId: string;
+  quantity: number;
+  unit: TrackingUnit;
+}
+
+export function planConsumption(
+  target: StockTarget,
+  batches: readonly StockBatch[],
+  allocations: readonly StockAllocation[],
+  requestedQuantity: number,
+  selectedBatchIds?: readonly string[]
+): ConsumptionPlanLine[] {
+  if (!Number.isFinite(requestedQuantity) || requestedQuantity <= 0) throw new Error("invalid_consumption_quantity");
+  const batchesById = new Map(batches.filter((batch) => batch.status === "available").map((batch) => [batch.id, batch]));
+  const activeAllocations = allocations.filter((allocation) => allocation.status === "active" && allocation.stockTargetId === target.id && batchesById.has(allocation.stockBatchId));
+  const selected = selectedBatchIds?.length ? activeAllocations.filter((allocation) => selectedBatchIds.includes(allocation.stockBatchId)) : activeAllocations;
+  const ordered = selectedBatchIds?.length ? selected.sort((a, b) => (selectedBatchIds.indexOf(a.stockBatchId) - selectedBatchIds.indexOf(b.stockBatchId))) : orderBatchesForConsumption(selected.map((allocation) => batchesById.get(allocation.stockBatchId)!), target.consumptionPolicy).flatMap((batch) => activeAllocations.filter((allocation) => allocation.stockBatchId === batch.id));
+  let remaining = requestedQuantity;
+  const plan: ConsumptionPlanLine[] = [];
+  for (const allocation of ordered) {
+    const batch = batchesById.get(allocation.stockBatchId)!;
+    const available = Math.min(batch.remainingQuantity, allocation.allocatedQuantity);
+    const quantity = Math.min(available, convertQuantity(remaining, target.trackingUnit, allocation.unit));
+    if (quantity <= 0) continue;
+    plan.push({ batchId: batch.id, quantity, unit: allocation.unit });
+    remaining -= convertQuantity(quantity, allocation.unit, target.trackingUnit);
+    if (remaining <= 0) break;
+  }
+  if (remaining > 0) throw new Error("insufficient_stock");
+  return plan;
 }
 
 export function aggregateAvailableQuantity(

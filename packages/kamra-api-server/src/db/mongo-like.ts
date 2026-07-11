@@ -42,3 +42,14 @@ export interface MongoDatabaseLike {
     toArray(): Promise<Array<{ name: string }>>;
   };
 }
+
+export interface MongoSessionLike {
+  abortTransaction(): Promise<void>;
+  commitTransaction(): Promise<void>;
+  endSession(): Promise<void>;
+  startTransaction(): void;
+}
+
+export interface MongoTransactionClientLike {
+  startSession(): MongoSessionLike;
+}
