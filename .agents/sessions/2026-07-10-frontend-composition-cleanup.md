@@ -166,6 +166,8 @@
 - Result: Passed; 31 test files and 153 tests passed.
 - Ran: `npm run typecheck`, `npm run lint`, `npm run build:web`, and `npm run test` after ingestion externalization.
 - Result: Passed; 31 test files and 153 tests passed.
+- Ran: Final companion-file phase validation: `npm run typecheck`, `npm run lint`, `npm run build`, `npm run test`, and `git diff --check`.
+- Result: Passed; 31 test files and 153 tests passed, with a clean diff check.
 
 ## Decisions
 
@@ -248,11 +250,11 @@
 ## Roadmap Or Plan Updates
 
 - Needed: No roadmap change; Stage 8 remains next after cleanup and final manual verification.
-- Status: Structural implementation is complete for the selected safe boundaries; manual verification remains open.
+- Status: Structural implementation and the requested companion-file phase are complete for the selected safe boundaries; manual verification remains open.
 
 ## Next Step
 
-Commit the ingestion externalization, then run a final full validation/diff review. The remaining `HouseholdShoppingListComponent`, `HomeComponent`, admin, catalog, and ingestion monsters have now been reduced or externalized according to the expanded rule; do not mass-externalize smaller components without a concrete maintenance gain.
+Companion-file phase is complete and validated. Hand off the full manual checklist before Stage 8. Do not split smaller components or externalize additional files without a concrete maintenance gain.
 
 ## Notes For Future Agent
 
