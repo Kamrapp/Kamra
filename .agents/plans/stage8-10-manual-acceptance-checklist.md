@@ -31,6 +31,7 @@ This is the single source of truth for manual/browser verification carried forwa
 - [ ] Correct a batch quantity and discard a batch from grouped Home; verify the target aggregate refreshes and the batch remains in history/status rather than disappearing silently.
 - [ ] Edit a batch acquisition/expiry date from grouped Home; verify an expiry-before-acquisition date is accepted and valid changes refresh without changing the Product identity.
 - [ ] Verify an expiry date before acquisition is accepted; toggle household `allowExpiredItems` off/on and confirm expired stock remains visible but is excluded/included in derived availability and consumption accordingly. Default must be permissive.
+- [ ] Run the repeatable seeded demo flow in `scripts/stage8-demo-manual-test.md` and record any deviations from the expected grouped data, derived totals, policy behavior, or history behavior.
 - [ ] Verify the grouped workspace API/read model supplies the same hierarchy and does not count unallocated batches in Stock Target totals.
 - [ ] Check English/Hungarian labels, keyboard operation, narrow mobile layout, loading/empty/error/403/404/409 states, and light/dark themes.
 - [ ] Verify admin flags, audit history, maintenance actions, structured logs, redaction, and effective database name in diagnostics.

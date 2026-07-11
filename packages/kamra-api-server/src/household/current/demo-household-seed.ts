@@ -16,6 +16,7 @@ import type {
   HouseholdStockItemRecord
 } from "../v1/contracts.js";
 import { MongoHouseholdRepository } from "./mongo-household-repository.js";
+import type { HouseholdProduct, StockAllocation, StockBatch, StockMovement, StockTarget, TrackingUnit } from "../v2/contracts.js";
 
 export const demoHouseholdSeedName = "demo_household";
 export const seedDemoHouseholdPasswordEnvName = "SEED_DEMO_HOUSEHOLD_PASSWORD";
@@ -151,6 +152,14 @@ export class MongoHouseholdDemoSeedRepository implements DemoHouseholdSeedReposi
         { name: "seed_ledger_seed_completed_at" }
       )
     ]);
+    await Promise.all([
+      this.database.collection("household_products").createIndex({ id: 1 }, { name: "household_products_id_unique", unique: true }),
+      this.database.collection("household_stock_targets").createIndex({ id: 1 }, { name: "household_stock_targets_id_unique", unique: true }),
+      this.database.collection("household_stock_batches").createIndex({ id: 1 }, { name: "household_stock_batches_id_unique", unique: true }),
+      this.database.collection("household_stock_allocations").createIndex({ id: 1 }, { name: "household_stock_allocations_id_unique", unique: true }),
+      this.database.collection("household_stock_movements").createIndex({ id: 1 }, { name: "household_stock_movements_id_unique", unique: true }),
+      this.database.collection("household_domain_operations").createIndex({ id: 1 }, { name: "household_domain_operations_id_unique", unique: true })
+    ]);
 
     return {
       databaseName: householdSetup.databaseName,
@@ -172,6 +181,15 @@ export class MongoHouseholdDemoSeedRepository implements DemoHouseholdSeedReposi
     const deletedHouseholdData = await this.householdRepository.clearSeedHouseholdData({
       householdIds: [demoHouseholdId]
     });
+    await Promise.all([
+      "household_products",
+      "household_stock_targets",
+      "household_stock_batches",
+      "household_stock_allocations",
+      "household_stock_movements",
+      "household_domain_operations",
+      "household_shopping_need_lists"
+    ].map(async (collectionName) => await this.database.collection(collectionName).deleteMany({ householdId: demoHouseholdId })));
 
     await this.upsertDemoUsers(dataset.users);
     await this.householdRepository.upsertSeedDataset({
@@ -184,6 +202,7 @@ export class MongoHouseholdDemoSeedRepository implements DemoHouseholdSeedReposi
       householdShoppingLists: dataset.householdShoppingLists,
       householdStockItems: dataset.householdStockItems
     });
+    await seedDemoHouseholdV2Data(this.database, now);
 
     const counts: DemoHouseholdSeedCounts = {
       deletedHouseholds: deletedHouseholdData.deletedHouseholds,
@@ -265,6 +284,7 @@ export function createDemoHouseholdSeedDataset(
     updatedAt: now
   }));
   const household: HouseholdRecord = {
+    allowExpiredItems: true,
     createdAt,
     createdByUserId: demoHouseholdOwnerUserId,
     defaultCalculatedMaxLimitMultiplier: 2,
@@ -498,6 +518,35 @@ export function createDemoHouseholdSeedDataset(
     householdStockItems,
     users
   };
+}
+
+async function seedDemoHouseholdV2Data(database: MongoDatabaseLike, now: Date): Promise<void> {
+  const timestamp = now.toISOString();
+  const date = (days: number): string => offsetIsoDate(now, days).slice(0, 10);
+  const milkTarget: StockTarget = { acceptanceCriteria: { acceptedAttributesAny: [], acceptedConceptsAny: [], excludedAttributesAny: [], requiredAttributesAll: [], requiredConceptsAll: [] }, consumptionPolicy: "earliest_expiry_first", createdAt: timestamp, createdByUserId: demoHouseholdOwnerUserId, displayName: "Tej (bármelyik termék)", expiryWarningDays: 5, householdId: demoHouseholdId, id: "stock-target:household1:milk", minimumQuantity: 1, revision: 0, status: "active", targetQuantity: 3, trackingUnit: "l", updatedAt: timestamp, updatedByUserId: demoHouseholdOwnerUserId };
+  const products: HouseholdProduct[] = [
+    { classificationRevision: 0, createdAt: timestamp, createdByUserId: demoHouseholdOwnerUserId, directAttributes: [], directConcepts: [], displayName: "Pilos 1.5% tej", householdId: demoHouseholdId, id: "household-product:household1:pilos-milk", identityKind: "manual", identitySnapshot: { brand: "Pilos", measurementLabel: "1.5%" }, revision: 0, status: "active", updatedAt: timestamp, updatedByUserId: demoHouseholdOwnerUserId },
+    { classificationRevision: 0, createdAt: timestamp, createdByUserId: demoHouseholdOwnerUserId, directAttributes: [], directConcepts: [], displayName: "Mizo laktózmentes tej", householdId: demoHouseholdId, id: "household-product:household1:mizo-milk", identityKind: "manual", identitySnapshot: { brand: "Mizo" }, revision: 0, status: "active", updatedAt: timestamp, updatedByUserId: demoHouseholdOwnerUserId },
+    { classificationRevision: 0, createdAt: timestamp, createdByUserId: demoHouseholdOwnerUserId, directAttributes: [], directConcepts: [], displayName: "Kézzel felvitt joghurt", householdId: demoHouseholdId, id: "household-product:household1:yogurt", identityKind: "manual", identitySnapshot: {}, revision: 0, status: "active", updatedAt: timestamp, updatedByUserId: demoHouseholdOwnerUserId }
+  ];
+  const batch = (id: string, displayName: string, quantity: number, acquiredOn: string, expiryOn: string | null, householdProductId: string | null, unit: TrackingUnit): StockBatch => ({ acquiredOn, acquisitionSnapshot: { displayName }, classificationSnapshot: { capturedAt: timestamp, directAttributes: [], directConcepts: [], effectiveConcepts: [], source: "manual" }, createdAt: timestamp, createdByUserId: demoHouseholdOwnerUserId, expiryOn, householdId: demoHouseholdId, householdProductId, id, originalQuantity: quantity, remainingQuantity: quantity, revision: 0, status: "available", unit, updatedAt: timestamp, updatedByUserId: demoHouseholdOwnerUserId });
+  const batches: StockBatch[] = [
+    batch("stock-batch:demo-pilos-milk", "Pilos 1.5% tej", 1.5, date(-10), date(12), products[0]!.id, "l"),
+    batch("stock-batch:demo-mizo-milk", "Mizo laktózmentes tej", 1, date(-4), date(8), products[1]!.id, "l"),
+    batch("stock-batch:demo-expired-yogurt", "Kézzel felvitt joghurt", 4, date(-2), date(-12), products[2]!.id, "custom:db"),
+    batch("stock-batch:demo-unassigned-flour", "Liszt – még nincs besorolva", 2, date(-1), null, null, "custom:db")
+  ];
+  const allocations: StockAllocation[] = batches.slice(0, 2).map((item, index) => ({ acceptanceResult: "accepted", allocatedQuantity: item.remainingQuantity, createdAt: timestamp, createdByUserId: demoHouseholdOwnerUserId, householdId: demoHouseholdId, id: `stock-allocation:demo-milk-${index + 1}`, revision: 0, status: "active", stockBatchId: item.id, stockTargetId: milkTarget.id, unit: item.unit, updatedAt: timestamp, updatedByUserId: demoHouseholdOwnerUserId }));
+  const movements: StockMovement[] = batches.map((item) => ({ actorUserId: demoHouseholdOwnerUserId, createdAt: timestamp, householdId: demoHouseholdId, id: `stock-movement:${item.id}:opening`, kind: "migration_opening_balance", occurrenceAt: item.acquiredOn, operationId: `demo-seed:${item.id}`, quantityDelta: item.originalQuantity, resultingQuantity: item.remainingQuantity, stockBatchId: item.id, stockTargetId: allocations.find((allocation) => allocation.stockBatchId === item.id)?.stockTargetId, unit: item.unit }));
+  await insertSeedRecords(database.collection<HouseholdProduct>("household_products"), products);
+  await insertSeedRecords(database.collection<StockTarget>("household_stock_targets"), [milkTarget]);
+  await insertSeedRecords(database.collection<StockBatch>("household_stock_batches"), batches);
+  await insertSeedRecords(database.collection<StockAllocation>("household_stock_allocations"), allocations);
+  await insertSeedRecords(database.collection<StockMovement>("household_stock_movements"), movements);
+}
+
+async function insertSeedRecords<T extends { id: string }>(collection: MongoCollectionLike<T>, records: readonly T[]): Promise<void> {
+  for (const record of records) await collection.insertOne(record as never);
 }
 
 function createDemoHouseholdProductId(stockGroupKey: string): string {

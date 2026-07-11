@@ -92,6 +92,12 @@ npm run smoke:transactions
 
 The script refuses database names other than `kamra_dev`, `kamra_test`, or `kamra_smoke`. Use a disposable/local or smoke database; it does not run against production-named databases.
 
+### `stage8-demo-manual-test.md`
+
+Repeatable manual test script for the seeded `usera` demo household. It covers grouped Products and Stock Targets, unassigned batches, expiry-before-acquisition, the permissive/default expired-item policy, corrections, discard, and Product classification inheritance.
+
+Use it after `npm run seed` and only against a disposable local/demo database. Reseeding resets the demo household data.
+
 ### `generate-catalog-schemas.ts`
 
 Regenerates catalog schema artifacts.
