@@ -317,6 +317,27 @@ samp {
   margin: 0;
 }
 
+.ui-copy-error {
+  color: var(--color-status-danger-text);
+  margin: 0;
+}
+
+.ui-form-control {
+  background: var(--form-field-background);
+  border: 1px solid var(--line-subtle);
+  border-radius: var(--radius-ui);
+  color: var(--color-text);
+  font: inherit;
+  min-height: 2.15rem;
+  padding: 0.4rem 0.5rem;
+}
+
+.ui-form-control[type="checkbox"] {
+  accent-color: var(--color-accent-leaf-strong);
+  min-height: 0;
+  padding: 0;
+}
+
 .ui-button,
 .ui-action-button {
   background: var(--control-primary-background);
