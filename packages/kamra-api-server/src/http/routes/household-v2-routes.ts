@@ -57,6 +57,20 @@ export const householdV2HouseholdProductClassificationRoute: AppRoute = {
   }
 };
 
+export const householdV2HouseholdProductIdentityRoute: AppRoute = {
+  match: (request) => request.method === "PATCH" && /^\/api\/households\/[^/]+\/products\/[^/]+$/.test(request.path),
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request);
+    if (!user) return unauthorized("apiErrors.signInRequired");
+    const match = request.path.match(/^\/api\/households\/([^/]+)\/products\/([^/]+)$/); const householdId = match?.[1]; const productId = match?.[2]; const body = parseJsonObject(request.bodyText);
+    if (!householdId || !productId || !body || !Number.isInteger(body["expectedRevision"]) || (body["expectedRevision"] as number) < 0 || typeof body["displayName"] !== "string" || body["displayName"].trim().length === 0 || (!!body["identitySnapshot"] && (typeof body["identitySnapshot"] !== "object" || Array.isArray(body["identitySnapshot"])))) return json(400, { error: "invalid_household_product_identity_request" });
+    const displayName = body["displayName"] as string;
+    return await withHouseholdDatabase(context, householdId, user.email, async (database) => {
+      try { const product = await new MongoHouseholdProductRepository(database).updateIdentity({ catalogProductId: typeof body["catalogProductId"] === "string" ? body["catalogProductId"] : null, displayName: displayName.trim(), expectedRevision: body["expectedRevision"] as number, householdId, id: productId, identitySnapshot: (body["identitySnapshot"] ?? {}) as never, updatedAt: new Date().toISOString(), updatedByUserId: user.email }); return json(200, { product, schemaVersion }); } catch (error) { return commandError(error); }
+    });
+  }
+};
+
 export const householdV2StockTargetRoute: AppRoute = {
   match: (request) => request.method === "GET" && /^\/api\/households\/[^/]+\/stock-targets\/[^/]+$/.test(request.path),
   handle: async (request, context) => {

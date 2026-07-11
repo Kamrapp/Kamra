@@ -10,6 +10,8 @@ describe("MongoHouseholdProductRepository", () => {
     const db = createFakeDb(); const repository = new MongoHouseholdProductRepository(db); await repository.create(product);
     const updated = await repository.updateClassification({ directAttributes: [{ key: "fat.1_5_percent", scope: "catalog" }], directConcepts: [{ key: "food.milk", scope: "catalog" }], expectedRevision: 0, householdId: "h", id: "product-1", updatedAt: product.updatedAt, updatedByUserId: "u" });
     expect(updated.classificationRevision).toBe(1); expect(updated.directConcepts).toEqual([{ key: "food.milk", scope: "catalog" }]);
+    const renamed = await repository.updateIdentity({ displayName: "Pilos milk", expectedRevision: 1, householdId: "h", id: "product-1", identitySnapshot: { brand: "Pilos" }, updatedAt: product.updatedAt, updatedByUserId: "u" });
+    expect(renamed.displayName).toBe("Pilos milk");
     await expect(repository.updateClassification({ directAttributes: [], directConcepts: [], expectedRevision: 0, householdId: "h", id: "product-1", updatedAt: product.updatedAt, updatedByUserId: "u" })).rejects.toThrow("stale_revision");
   });
 });

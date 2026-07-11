@@ -238,6 +238,7 @@
 
 - Product-first: create an unclassified concrete Household Product, add two batches, classify the Product later, and verify future batches inherit classification while prior snapshots stay unchanged.
 - API product anchor: create/list via `/api/households/{householdId}/products`, classify via `/classification` with `expectedRevision`, then create a batch with `householdProductId`; verify stale revisions are rejected.
+- API Product identity edit: PATCH `/api/households/{householdId}/products/{productId}` with `expectedRevision`; verify display/identity changes increment Product revision without changing existing batches.
 - API grouped workspace: GET `/api/households/{householdId}/stock-workspace`; verify target totals are derived from active allocations, allocated batches group under their Household Product, and unallocated batches remain visible.
 - Browser Home: sign in, select a household, confirm the grouped Stage 8 workspace appears above the legacy controls, refresh it, and verify target/product/batch/unassigned hierarchy.
 - Need-first: create a generic Stock Target and unanchored opening batch, then identify concrete Household Products and allocate later batches to the same target without rewriting opening history.
