@@ -92,5 +92,38 @@ export const householdV2ConsumeRoute: AppRoute = {
   }
 };
 
+export const householdV2CorrectBatchRoute: AppRoute = {
+  match: (request) => request.method === "POST" && /^\/api\/households\/[^/]+\/batches\/[^/]+\/correct$/.test(request.path),
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request); if (!user) return unauthorized("apiErrors.signInRequired");
+    const match = request.path.match(/^\/api\/households\/([^/]+)\/batches\/([^/]+)\/correct$/); const householdId = match?.[1]; const batchId = match?.[2]; const body = parseJsonObject(request.bodyText);
+    if (!householdId || !batchId || !body || typeof body["operationId"] !== "string" || typeof body["requestFingerprint"] !== "string" || typeof body["resultingQuantity"] !== "number" || !Number.isFinite(body["resultingQuantity"]) || !Number.isInteger(body["expectedBatchRevision"]) || (body["expectedBatchRevision"] as number) < 0) return json(400, { error: "invalid_stock_correction_request" });
+    return await runBatchCommand(context, user.email, householdId, batchId, body, "correct");
+  }
+};
+
+export const householdV2DiscardBatchRoute: AppRoute = {
+  match: (request) => request.method === "POST" && /^\/api\/households\/[^/]+\/batches\/[^/]+\/discard$/.test(request.path),
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request); if (!user) return unauthorized("apiErrors.signInRequired");
+    const match = request.path.match(/^\/api\/households\/([^/]+)\/batches\/([^/]+)\/discard$/); const householdId = match?.[1]; const batchId = match?.[2]; const body = parseJsonObject(request.bodyText);
+    if (!householdId || !batchId || !body || typeof body["operationId"] !== "string" || typeof body["requestFingerprint"] !== "string" || !Number.isInteger(body["expectedBatchRevision"]) || (body["expectedBatchRevision"] as number) < 0) return json(400, { error: "invalid_stock_discard_request" });
+    return await runBatchCommand(context, user.email, householdId, batchId, body, "discard");
+  }
+};
+
+async function runBatchCommand(context: Parameters<AppRoute["handle"]>[1], userId: string, householdId: string, batchId: string, body: Record<string, unknown>, command: "correct" | "discard"): Promise<ReturnType<typeof json>> {
+  if (!context.config.mongodb.uri || !context.config.mongodb.databaseName) return json(503, { error: "household_not_configured" });
+  const client = await context.getMongoClient(context.config.mongodb.uri, context.config.mongodb.dnsServers); const database = client.db(context.config.mongodb.databaseName);
+  const membership = await database.collection<{ householdId: string; status: string; userId: string }>("household_memberships").findOne({ householdId, status: "active", userId: userId });
+  if (!membership) return json(403, { error: "household_membership_required" });
+  try {
+    const common = { actorUserId: userId, batchId, householdId, expectedBatchRevision: body["expectedBatchRevision"] as number, occurredAt: new Date().toISOString(), operationId: body["operationId"] as string, requestFingerprint: body["requestFingerprint"] as string };
+    const repository = new MongoStockCommandRepository(database, client);
+    const result = command === "correct" ? await repository.correctBatch({ ...common, resultingQuantity: body["resultingQuantity"] as number, reasonCode: typeof body["reasonCode"] === "string" ? body["reasonCode"] : undefined }) : await repository.discardBatch({ ...common, reasonCode: typeof body["reasonCode"] === "string" ? body["reasonCode"] : undefined });
+    return json(200, { result, schemaVersion });
+  } catch (error) { return commandError(error); }
+}
+
 function parseJsonObject(bodyText: string | undefined): Record<string, unknown> | null { if (!bodyText) return null; try { const value: unknown = JSON.parse(bodyText); return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null; } catch { return null; } }
 function commandError(error: unknown): ReturnType<typeof json> { const code = error instanceof Error ? error.message : "stock_command_failed"; const status = code === "idempotency_conflict" ? 409 : code === "operation_in_progress" ? 409 : 500; return json(status, { error: code }); }
