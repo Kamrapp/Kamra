@@ -13,6 +13,7 @@
 - Item: Added the durable domain dictionary at `docs/domain-language.md`.
 - Item: Added the typed feature-flag registry/evaluator with explicit defaults, storage-failure behavior, bounded cache, invalidation, revision checks, and audit payload contracts.
 - Item: Extended server logging with structured event metadata plus bounded sensitive-detail redaction.
+- Item: Wired the typed feature service to a Mongo-backed flag store and the admin dashboard route; persisted change audits through a registered maintenance entry.
 
 ## Changed Files
 
@@ -28,6 +29,11 @@
 - Path: `packages/kamra-api-server/src/feature-toggles/service.test.ts`
 - Path: `packages/kamra-api-server/src/logging/kamra-logger.ts`
 - Path: `packages/kamra-api-server/src/logging/kamra-logger.test.ts`
+- Path: `packages/kamra-api-server/src/feature-toggles/mongo-store.ts`
+- Path: `packages/kamra-api-server/src/feature-toggles/mongo-store.test.ts`
+- Path: `packages/kamra-api-server/src/database-maintenance/registry.ts`
+- Path: `packages/kamra-api-server/src/http/routes/admin-dashboard-route.ts`
+- Path: `packages/kamra-api-server/src/http/app-handler.test.ts`
 
 ## Validation
 
@@ -38,6 +44,10 @@
 - Ran: `npm test -- --run packages/kamra-api-server/src/feature-toggles/service.test.ts packages/kamra-api-server/src/logging/kamra-logger.test.ts`
 - Result: 5 tests passed.
 - Ran: `npx eslint packages/kamra-api-server/src/feature-toggles packages/kamra-api-server/src/logging/kamra-logger.ts`
+- Result: Passed.
+- Ran: `npm test -- --run packages/kamra-api-server/src/feature-toggles packages/kamra-api-server/src/http/app-handler.test.ts`
+- Result: 48 tests passed.
+- Ran: `npx eslint packages/kamra-api-server/src/feature-toggles packages/kamra-api-server/src/database-maintenance/registry.ts packages/kamra-api-server/src/http/routes/admin-dashboard-route.ts packages/kamra-api-server/src/http/app-handler.test.ts`
 - Result: Passed.
 - Not run: Full test, lint, build, and Mongo transaction smoke; defer until the next meaningful integration unit or closeout.
 
@@ -52,8 +62,8 @@
 
 - Issue: Mongo transaction support and the existing database abstraction still need an explicit Step 1/Step 4 integration check.
 - Impact: Do not implement atomic stock commands until the configured topology is proven transaction-capable; revise the plan if it is not.
-- Issue: The new feature evaluator/audit contracts are not yet wired into the existing Mongo repository/admin route.
-- Impact: Existing runtime behavior is unchanged; Step 2 must add persistence and route integration before the feature/log foundation is complete.
+- Issue: Feature-flag audit collection indexes/validator still need to be executed through the maintenance action implementation.
+- Impact: The route persists audit records, but operators must run the registered maintenance action before relying on production uniqueness/validation guarantees.
 - Issue: UI/API manual verification has not started.
 - Impact: Track the final browser checklist as implementation reaches the household workspace.
 
@@ -64,7 +74,7 @@
 
 ## Next Step
 
-Commit the Step 2 evaluator/logging foundation, then wire it into Mongo persistence and the admin route without changing flag behavior.
+Commit the Step 2 integration unit, then add Step 3A classification collection contracts, indexes, and idempotent migration scaffolding.
 
 ## Notes For Future Agent
 

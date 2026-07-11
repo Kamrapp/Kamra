@@ -14,6 +14,11 @@ export const databaseMaintenanceEntries: readonly DatabaseMaintenanceEntry[] = [
     details: "Updates the JSON Schema validators for all household collections to the current household contract. This changes future household writes; it does not rewrite existing households. Run the migration action afterwards to add missing defaultCalculatedMaxLimitMultiplier and favouriteShopId fields.",
     id: "household-fields",
     title: "Household default fields"
+  },
+  {
+    details: "Ensures the feature_flag_change_audits collection and its indexes for persisted old/new values, actor, reason, and revision. This is an audit-schema action; it does not change the current value of any feature flag.",
+    id: "feature-flag-audit-v1",
+    title: "Feature flag audit history"
   }
 ];
 

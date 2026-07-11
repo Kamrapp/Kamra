@@ -5,9 +5,11 @@ import {
   MongoHouseholdDemoSeedRepository,
   seedDemoHouseholdPasswordEnvName
 } from "../../household/current/demo-household-seed.js";
-import { createDefaultHouseholdRepository } from "../app-route-context.js";
 import { assertUpdateHouseholdFeatureFlagRequest } from "../../household/v1/validation.js";
 import { writeServerLog } from "../../logging/kamra-logger.js";
+import { FeatureFlagService } from "../../feature-toggles/service.js";
+import { MongoFeatureFlagStore } from "../../feature-toggles/mongo-store.js";
+import { featureFlagDefinitions, type FeatureFlagKey } from "../../feature-toggles/contracts.js";
 import { describeRequest, json, unauthorized, type AppRoute } from "../app-route-context.js";
 
 export const adminDashboardHealthRoute: AppRoute = {
@@ -261,16 +263,10 @@ export const adminDashboardFeatureFlagsRoute: AppRoute = {
       config.mongodb.dnsServers
     );
     const database = client.db(config.mongodb.databaseName);
-    const repository = context.dependencies.createHouseholdRepository
-      ? context.dependencies.createHouseholdRepository(database)
-      : createDefaultHouseholdRepository(database);
-
+    const featureFlags = new FeatureFlagService(new MongoFeatureFlagStore(database));
     if (request.method === "GET") {
       return json(200, {
-        featureFlags: [
-          await repository.readFeatureFlag("allowAutoTickingAllShoppingListEntries", true),
-          await repository.readFeatureFlag("allowControlledAlphaAccess", false)
-        ]
+        featureFlags: (await Promise.all((Object.keys(featureFlagDefinitions) as FeatureFlagKey[]).map((key) => featureFlags.evaluate(key)))).map(({ enabled, key }) => ({ enabled, key }))
       });
     }
 
@@ -281,6 +277,7 @@ export const adminDashboardFeatureFlagsRoute: AppRoute = {
 
     try {
       assertUpdateHouseholdFeatureFlagRequest(body);
+      if (body.key as string in featureFlagDefinitions === false) throw new Error("unknown feature flag");
     } catch (error: unknown) {
       return json(400, {
         error: "invalid_household_feature_flag_update_request",
@@ -288,11 +285,12 @@ export const adminDashboardFeatureFlagsRoute: AppRoute = {
       });
     }
 
-    const updatedFlag = await repository.updateFeatureFlag({
+    const updatedFlag = await featureFlags.update({
+      actorUserId: user.email,
       enabled: body.enabled,
-      key: body.key,
-      updatedAt: new Date().toISOString(),
-      updatedByUserId: user.email
+      key: body.key as FeatureFlagKey,
+      reason: typeof body["reason"] === "string" ? body["reason"] : "Admin dashboard update",
+      updatedAt: new Date().toISOString()
     });
 
     writeServerLog("info", "Admin dashboard feature flag updated", {

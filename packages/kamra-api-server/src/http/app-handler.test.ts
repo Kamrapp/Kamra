@@ -1404,6 +1404,11 @@ describe("handleAppRequest auth guards", () => {
           id: "household-fields",
           migrationCompleted: false,
           validatorUpdated: false
+        },
+        {
+          id: "feature-flag-audit-v1",
+          migrationCompleted: false,
+          validatorUpdated: false
         }
       ]
     });
@@ -1509,9 +1514,11 @@ describe("handleAppRequest auth guards", () => {
     expect(JSON.parse(response.body)).toMatchObject({
       completedActions: [
         "catalog-product-validation:validator",
-        "catalog-product-validation:migration",
-        "household-fields:validator",
-        "household-fields:migration"
+      "catalog-product-validation:migration",
+      "household-fields:validator",
+      "household-fields:migration",
+      "feature-flag-audit-v1:validator",
+      "feature-flag-audit-v1:migration"
       ]
     });
   });
