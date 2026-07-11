@@ -15,6 +15,7 @@
 - Item: Extended server logging with structured event metadata plus bounded sensitive-detail redaction.
 - Item: Wired the typed feature service to a Mongo-backed flag store and the admin dashboard route; persisted change audits through a registered maintenance entry.
 - Item: Added Step 3A classification migration contracts: legacy categories become Product Concepts/`is_a` edges, attributes become independent Product Attributes, and keyword/broken references are reported.
+- Item: Added the Mongo classification repository with stable-id upserts, indexes, and idempotent migration reporting.
 
 ## Changed Files
 
@@ -38,6 +39,8 @@
 - Path: `packages/kamra-api-server/src/catalog/v2/classification.ts`
 - Path: `packages/kamra-api-server/src/catalog/v2/classification.test.ts`
 - Path: `packages/kamra-api-server/src/catalog/README.md`
+- Path: `packages/kamra-api-server/src/catalog/v2/mongo-classification-repository.ts`
+- Path: `packages/kamra-api-server/src/catalog/v2/mongo-classification-repository.test.ts`
 
 ## Validation
 
@@ -57,6 +60,10 @@
 - Result: 47 tests passed.
 - Ran: `npx eslint packages/kamra-api-server/src/catalog/v2 packages/kamra-api-server/src/database-maintenance/registry.ts packages/kamra-api-server/src/http/app-handler.test.ts`
 - Result: Passed.
+- Ran: `npm test -- --run packages/kamra-api-server/src/catalog/v2`
+- Result: 3 tests passed.
+- Ran: `npx eslint packages/kamra-api-server/src/catalog/v2`
+- Result: Passed.
 - Not run: Full test, lint, build, and Mongo transaction smoke; defer until the next meaningful integration unit or closeout.
 
 ## Decisions
@@ -72,8 +79,8 @@
 - Impact: Do not implement atomic stock commands until the configured topology is proven transaction-capable; revise the plan if it is not.
 - Issue: Feature-flag audit collection indexes/validator still need to be executed through the maintenance action implementation.
 - Impact: The route persists audit records, but operators must run the registered maintenance action before relying on production uniqueness/validation guarantees.
-- Issue: Classification migration is currently a pure, tested translator; it is not yet connected to catalog Mongo collections or the maintenance action.
-- Impact: No live catalog records are changed by this unit. Step 3A must add idempotent persistence, indexes/validators, cycle handling, and operator reconciliation before classification can be runtime truth.
+- Issue: Classification persistence is now available as a repository, but no maintenance route invokes it yet and Mongo validators are still pending.
+- Impact: No operator action can run this migration yet; Step 3A still needs the maintenance action/route and cycle/reconciliation reporting before classification can be runtime truth.
 - Issue: UI/API manual verification has not started.
 - Impact: Track the final browser checklist as implementation reaches the household workspace.
 
@@ -84,7 +91,7 @@
 
 ## Next Step
 
-Commit the Step 3A classification translator, then add its idempotent Mongo migration/persistence and maintenance action.
+Commit the Step 3A Mongo persistence unit, then add its maintenance action/route and validator coverage.
 
 ## Notes For Future Agent
 
