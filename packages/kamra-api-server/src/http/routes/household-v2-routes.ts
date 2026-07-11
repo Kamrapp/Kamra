@@ -66,7 +66,7 @@ export const householdV2HouseholdProductIdentityRoute: AppRoute = {
     if (!householdId || !productId || !body || !Number.isInteger(body["expectedRevision"]) || (body["expectedRevision"] as number) < 0 || typeof body["displayName"] !== "string" || body["displayName"].trim().length === 0 || (!!body["identitySnapshot"] && (typeof body["identitySnapshot"] !== "object" || Array.isArray(body["identitySnapshot"])))) return json(400, { error: "invalid_household_product_identity_request" });
     const displayName = body["displayName"] as string;
     return await withHouseholdDatabase(context, householdId, user.email, async (database) => {
-      try { const product = await new MongoHouseholdProductRepository(database).updateIdentity({ catalogProductId: typeof body["catalogProductId"] === "string" ? body["catalogProductId"] : null, displayName: displayName.trim(), expectedRevision: body["expectedRevision"] as number, householdId, id: productId, identitySnapshot: (body["identitySnapshot"] ?? {}) as never, updatedAt: new Date().toISOString(), updatedByUserId: user.email }); return json(200, { product, schemaVersion }); } catch (error) { return commandError(error); }
+      try { const product = await new MongoHouseholdProductRepository(database).updateIdentity({ catalogProductId: typeof body["catalogProductId"] === "string" ? body["catalogProductId"] : undefined, displayName: displayName.trim(), expectedRevision: body["expectedRevision"] as number, householdId, id: productId, identitySnapshot: body["identitySnapshot"] as never, updatedAt: new Date().toISOString(), updatedByUserId: user.email }); return json(200, { product, schemaVersion }); } catch (error) { return commandError(error); }
     });
   }
 };

@@ -7,6 +7,7 @@ h2, h3, p { margin-block: .2rem; }
 .target-list { display: grid; gap: .75rem; }
 .target-card { border: 1px solid var(--border-subtle, #e5dfd4); border-radius: .75rem; padding: .8rem; }
 .product-row { border-top: 1px solid var(--border-subtle, #eee9df); display: grid; gap: .2rem; margin-top: .65rem; padding-top: .65rem; }
+.product-title, .batch-row, .edit-row { align-items: center; display: flex; flex-wrap: wrap; gap: .5rem; }
 .product-row span, .product-row small, .target-heading p, .state { color: var(--text-muted, #6c665c); font-size: .85rem; }
 .status { border-radius: 999px; background: #eef1e7; padding: .25rem .55rem; white-space: nowrap; }
 .unassigned { background: #fbf7ed; }

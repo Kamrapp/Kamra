@@ -28,6 +28,7 @@ This is the single source of truth for manual/browser verification carried forwa
 - [ ] Verify Home top-level rows are grouped Stock Targets plus an Unassigned/Unclassified group; expand Product and Batch details; confirm target amount is derived/read-only and batch physical fields remain editable.
 - [ ] Sign in and manually verify the Stage 8 grouped workspace renders on Home, refreshes, and keeps target/product/batch/unassigned hierarchy visible.
 - [ ] Edit a Household Product identity and verify its existing batch acquisition/expiry/history remains unchanged; verify stale Product revisions are rejected.
+- [ ] Correct a batch quantity and discard a batch from grouped Home; verify the target aggregate refreshes and the batch remains in history/status rather than disappearing silently.
 - [ ] Verify the grouped workspace API/read model supplies the same hierarchy and does not count unallocated batches in Stock Target totals.
 - [ ] Check English/Hungarian labels, keyboard operation, narrow mobile layout, loading/empty/error/403/404/409 states, and light/dark themes.
 - [ ] Verify admin flags, audit history, maintenance actions, structured logs, redaction, and effective database name in diagnostics.
