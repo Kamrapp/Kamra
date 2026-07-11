@@ -103,6 +103,14 @@ describe("handleAppRequest auth guards", () => {
     expect(forbidden.status).toBe(403);
   });
 
+  it("rejects malformed v2 manual batch requests before database access", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    const token = createUserToken({ email: "member@kamra.test", maxAgeSeconds: 60, now: new Date(), role: "user", secret: "test-secret" });
+    const response = await handleAppRequest({ bodyText: "{}", headers: { authorization: `Bearer ${token}` }, method: "POST", path: "/api/households/household-1/batches" });
+    expect(response.status).toBe(400);
+    expect(JSON.parse(response.body).error).toBe("invalid_stock_batch_request");
+  });
+
   it("lets admins read and update household feature flags from the dashboard route", async () => {
     vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
     vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");

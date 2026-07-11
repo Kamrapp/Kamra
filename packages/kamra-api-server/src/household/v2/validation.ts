@@ -1,4 +1,4 @@
-import { trackingUnits, type AcceptanceCriteria, type StockAllocation, type StockBatch, type StockTarget, type TrackingUnit } from "./contracts.js";
+import { trackingUnits, type AcceptanceCriteria, type CreateManualStockBatchRequest, type StockAllocation, type StockBatch, type StockTarget, type TrackingUnit } from "./contracts.js";
 
 function isDate(value: unknown): value is string {
   return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`));
@@ -69,4 +69,17 @@ export function assertStockAllocation(value: unknown, label = "stockAllocation")
   assertTrackingUnit(allocation["unit"], `${label}.unit`);
   assertValue(allocation["status"] === "active" || allocation["status"] === "released", `${label}.status is invalid`);
   assertValue(allocation["acceptanceResult"] === "accepted" || allocation["acceptanceResult"] === "overridden" || allocation["acceptanceResult"] === "criteria_changed", `${label}.acceptanceResult is invalid`);
+}
+
+export function assertCreateManualStockBatchRequest(value: unknown, label = "createManualStockBatchRequest"): asserts value is CreateManualStockBatchRequest {
+  assertValue(!!value && typeof value === "object" && !Array.isArray(value), `${label} must be an object`);
+  const request = value as Record<string, unknown>;
+  for (const key of ["acquiredOn", "displayName", "operationId", "requestFingerprint"]) assertValue(typeof request[key] === "string" && Boolean(request[key]), `${label}.${key} is required`);
+  assertValue(isDate(request["acquiredOn"]), `${label}.acquiredOn must be a date`);
+  assertValue(request["expiryOn"] === null || request["expiryOn"] === undefined || isDate(request["expiryOn"]), `${label}.expiryOn must be a date or null`);
+  if (typeof request["expiryOn"] === "string") assertValue(request["expiryOn"] >= (request["acquiredOn"] as string), `${label}.expiryOn cannot precede acquiredOn`);
+  assertValue(isQuantity(request["originalQuantity"]) && (request["originalQuantity"] as number) > 0, `${label}.originalQuantity must be positive`);
+  assertTrackingUnit(request["unit"], `${label}.unit`);
+  if (request["directConcepts"] !== undefined) assertRefs(request["directConcepts"], `${label}.directConcepts`);
+  if (request["directAttributes"] !== undefined) assertRefs(request["directAttributes"], `${label}.directAttributes`);
 }

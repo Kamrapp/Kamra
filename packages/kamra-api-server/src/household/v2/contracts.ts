@@ -227,3 +227,15 @@ export interface Stage9ShoppingNeedExtension {
   selectedProductId?: string | null;
   selectedShopProductId?: string | null;
 }
+
+export interface CreateManualStockBatchRequest {
+  acquiredOn: string;
+  directAttributes?: ProductAttributeRef[];
+  directConcepts?: ProductConceptRef[];
+  displayName: string;
+  expiryOn?: string | null;
+  operationId: string;
+  originalQuantity: number;
+  requestFingerprint: string;
+  unit: TrackingUnit;
+}

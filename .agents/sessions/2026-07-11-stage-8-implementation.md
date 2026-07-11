@@ -28,6 +28,7 @@
 - Item: Added the explainable Stock Target aggregate projection with allocation-only totals, status, next expiry, expiring count, and combined notice codes.
 - Item: Added a Mongo Stock Target read repository that returns the server-owned aggregate and allocated batch summaries.
 - Item: Added the first v2 household route adapter for Stock Target reads with active-membership enforcement and schema-versioned responses.
+- Item: Added the v2 manual Stock Batch acquisition route with server-built snapshots, membership enforcement, request validation, and stable command-error mapping.
 
 ## Changed Files
 
@@ -40,6 +41,8 @@
 - Path: `packages/kamra-api-server/src/http/routes/household-v2-routes.ts`
 - Path: `packages/kamra-api-server/src/http/app-handler.ts`
 - Path: `packages/kamra-api-server/src/http/app-handler.test.ts`
+- Path: `packages/kamra-api-server/src/household/v2/contracts.ts`
+- Path: `packages/kamra-api-server/src/household/v2/validation.ts`
 - Path: `packages/kamra-api-server/src/household/v2/mongo-stock-command-repository.ts`
 - Path: `packages/kamra-api-server/src/household/v2/mongo-stock-command-repository.test.ts`
 - Path: `packages/kamra-api-server/src/household/v2/domain.ts`
@@ -78,6 +81,10 @@
 ## Validation
 
 - Ran: `npm run typecheck`
+- Result: Passed.
+- Ran: `npm test -- --run packages/kamra-api-server/src/http/app-handler.test.ts`
+- Result: 47 tests passed.
+- Ran: `npx eslint packages/kamra-api-server/src/household/v2/validation.ts packages/kamra-api-server/src/http/routes/household-v2-routes.ts packages/kamra-api-server/src/http/app-handler.ts packages/kamra-api-server/src/http/app-handler.test.ts`
 - Result: Passed.
 - Ran: `npm test -- --run packages/kamra-api-server/src/http/app-handler.test.ts`
 - Result: 46 tests passed.
@@ -178,6 +185,8 @@
 - Impact: Step 5 still needs route adapters, membership capabilities, stable error/status mapping, and v1 mutation cutover.
 - Issue: Only the v2 Stock Target read route exists; acquisition/allocation/consume/correct/discard HTTP commands are not exposed yet.
 - Impact: The new domain commands remain server-internal until request validation and stable error mapping are added.
+- Issue: Allocation, consume, correction, and discard HTTP adapters are still pending.
+- Impact: Manual acquisition can now be invoked through the v2 boundary, but the complete browser household loop is not exposed yet.
 - Issue: UI/API manual verification has not started.
 - Impact: Track the final browser checklist as implementation reaches the household workspace.
 
