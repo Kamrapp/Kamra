@@ -1,6 +1,7 @@
 import type { MongoCollectionLike, MongoDatabaseLike, MongoTransactionClientLike } from "../../db/mongo-like.js";
 import { runMongoTransaction } from "../../db/mongo-transaction.js";
-import type { DomainOperation, StockBatch, StockMovement } from "./contracts.js";
+import type { DomainOperation, StockAllocation, StockBatch, StockMovement, StockTarget } from "./contracts.js";
+import { areUnitsCompatible, matchAcceptanceCriteria } from "./domain.js";
 
 interface BatchAcquisitionInput {
   batch: StockBatch;
@@ -14,11 +15,15 @@ export class MongoStockCommandRepository {
   private readonly batches: MongoCollectionLike<StockBatch>;
   private readonly movements: MongoCollectionLike<StockMovement>;
   private readonly operations: MongoCollectionLike<DomainOperation>;
+  private readonly allocations: MongoCollectionLike<StockAllocation>;
+  private readonly targets: MongoCollectionLike<StockTarget>;
 
   constructor(private readonly database: MongoDatabaseLike, private readonly transactionClient: MongoTransactionClientLike) {
     this.batches = database.collection("household_stock_batches");
     this.movements = database.collection("household_stock_movements");
     this.operations = database.collection("household_domain_operations");
+    this.allocations = database.collection("household_stock_allocations");
+    this.targets = database.collection("household_stock_targets");
   }
 
   async setupCollections(): Promise<void> {
@@ -27,6 +32,33 @@ export class MongoStockCommandRepository {
       this.operations.createIndex({ householdId: 1, requestFingerprint: 1 }, { name: "household_domain_operations_household_fingerprint" }),
       this.movements.createIndex({ operationId: 1 }, { name: "household_stock_movements_operation_unique", unique: true })
     ]);
+  }
+
+  async allocateBatch(input: { allocation: StockAllocation; operationId: string; requestFingerprint: string }): Promise<{ allocationId: string; operationId: string }> {
+    return await runMongoTransaction(this.transactionClient, async (session) => {
+      const { allocation } = input;
+      const existing = await this.operations.findOne({ householdId: allocation.householdId, id: input.operationId }, { session });
+      if (existing) {
+        if (existing.requestFingerprint !== input.requestFingerprint) throw new Error("idempotency_conflict");
+        if (existing.status === "completed" && existing.resultIdentifiers?.["allocationId"]) return { allocationId: existing.resultIdentifiers["allocationId"], operationId: input.operationId };
+        throw new Error("operation_in_progress");
+      }
+      const batch = await this.batches.findOne({ householdId: allocation.householdId, id: allocation.stockBatchId }, { session });
+      const target = await this.targets.findOne({ householdId: allocation.householdId, id: allocation.stockTargetId }, { session });
+      if (!batch || !target) throw new Error("stock_resource_not_found");
+      if (batch.status !== "available") throw new Error("stock_batch_not_available");
+      if (!areUnitsCompatible(batch.unit, target.trackingUnit) || !areUnitsCompatible(allocation.unit, target.trackingUnit)) throw new Error("incompatible_tracking_unit");
+      if (allocation.allocatedQuantity !== batch.remainingQuantity) throw new Error("allocation_must_cover_full_batch");
+      const activeAllocation = await this.allocations.findOne({ householdId: allocation.householdId, stockBatchId: allocation.stockBatchId, status: "active" }, { session });
+      if (activeAllocation) throw new Error("active_allocation_exists");
+      const match = matchAcceptanceCriteria(target.acceptanceCriteria, batch.classificationSnapshot);
+      if (!match.accepted && allocation.acceptanceResult !== "overridden") throw new Error("stock_batch_does_not_match_criteria");
+      const now = batch.updatedAt;
+      await this.operations.insertOne({ actorUserId: allocation.updatedByUserId, createdAt: now, householdId: allocation.householdId, id: input.operationId, operationType: "stock_batch.allocate", requestFingerprint: input.requestFingerprint, status: "started", updatedAt: now }, { session });
+      await this.allocations.insertOne(allocation, { session });
+      await this.operations.updateOne({ householdId: allocation.householdId, id: input.operationId }, { $set: { resultIdentifiers: { allocationId: allocation.id }, status: "completed", updatedAt: now } }, { session });
+      return { allocationId: allocation.id, operationId: input.operationId };
+    });
   }
 
   async acquireBatch(input: BatchAcquisitionInput): Promise<CommandResult> {

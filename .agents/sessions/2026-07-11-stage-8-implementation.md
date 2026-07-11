@@ -22,6 +22,7 @@
 - Item: Transaction smoke passed against `kamra_dev`: rollback count 0, committed count 2, temporary collection cleaned up.
 - Item: Started Step 4 with a reusable Mongo transaction runner and pure consumption planning for deterministic partial multi-batch commands.
 - Item: Added transactional Stock Batch acquisition with operation receipts, acquisition movements, idempotent retry replay, and fingerprint conflict detection.
+- Item: Added transactional Stock Batch allocation with criteria validation, unit compatibility, full-batch enforcement, and one-active-allocation protection.
 
 ## Changed Files
 
@@ -65,6 +66,10 @@
 ## Validation
 
 - Ran: `npm run typecheck`
+- Result: Passed.
+- Ran: `npm test -- --run packages/kamra-api-server/src/household/v2/mongo-stock-command-repository.test.ts`
+- Result: 2 tests passed.
+- Ran: `npx eslint packages/kamra-api-server/src/household/v2/mongo-stock-command-repository.ts packages/kamra-api-server/src/household/v2/mongo-stock-command-repository.test.ts`
 - Result: Passed.
 - Ran: `npm test -- --run packages/kamra-api-server/src/household/v2/mongo-stock-command-repository.test.ts`
 - Result: Passed.
@@ -129,6 +134,8 @@
 - Impact: The planner is write-free; no stock mutation is exposed until repository transactions enforce revisions, operation fingerprints, and one-active-allocation rules.
 - Issue: Allocation, consume, correction, discard, and void commands are still pending.
 - Impact: Batch acquisition is transactional, but the full household stock loop is not yet available.
+- Issue: Allocation currently has no public API route; it is an internal repository command until Step 5.
+- Impact: Browser users cannot invoke the new command yet; route cutover remains intentionally deferred until the command set is coherent.
 - Issue: UI/API manual verification has not started.
 - Impact: Track the final browser checklist as implementation reaches the household workspace.
 
