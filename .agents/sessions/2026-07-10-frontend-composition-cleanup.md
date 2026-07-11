@@ -37,6 +37,7 @@
 - Item: Externalized `HomeComponent` into companion files after the household block extractions and reduced its CSS to the actual page-container layout only.
 - Item: Externalized the remaining developer-admin dashboard shell template/styles after its health, flags, alpha, and maintenance boundaries were extracted.
 - Item: Externalized the product-catalog page template/styles after the filter-bar boundary was extracted; virtualized table rows remain in the page by design.
+- Item: Externalized the ingestion-admin page template/styles after the snapshot-table boundary was extracted; selected detail/review rows remain in the page by design.
 
 ## Changed Files
 
@@ -102,6 +103,10 @@
   - Hold the catalog page composition, virtualized table markup, editor host, and catalog-scoped styles.
 - Path: `src/app/product-lookup/product-catalog.component.ts`
   - Retains catalog loading/filter orchestration, virtual row calculation, page-rail state, and product editor actions.
+- Path: `src/app/site-admin/ingestion-admin.component.html`, `src/app/site-admin/ingestion-admin.component.css`
+  - Hold the ingestion workspace, selected detail table, review dialog host, and page-scoped layout styles.
+- Path: `src/app/site-admin/ingestion-admin.component.ts`
+  - Retains ingestion loading/pagination, source filters, selected-snapshot state, review actions, page rail, and workspace resizing.
 - Path: `src/app/dev-admin/admin-feature-flags-card.component.ts`
   - Owns the auto-tick flag presentation, disabled/loading behavior, save action, and local flag-card styles.
 - Path: `src/app/dev-admin/admin-alpha-access-card.component.ts`
@@ -158,6 +163,8 @@
 - Ran: `npm run typecheck`, `npm run lint`, `npm run build:web`, and `npm run test` after admin-dashboard externalization.
 - Result: Passed; 31 test files and 153 tests passed.
 - Ran: `npm run typecheck`, `npm run lint`, `npm run build:web`, and `npm run test` after catalog externalization.
+- Result: Passed; 31 test files and 153 tests passed.
+- Ran: `npm run typecheck`, `npm run lint`, `npm run build:web`, and `npm run test` after ingestion externalization.
 - Result: Passed; 31 test files and 153 tests passed.
 
 ## Decisions
@@ -233,6 +240,8 @@
   - Impact: Manually verify signed-out/loading/non-admin/admin branches, reseed and maintenance card placement, child-card grid behavior, light/dark styling, and narrow admin layout.
 - Issue: The catalog page now loads companion files while keeping virtualized row markup in the external template.
   - Impact: Manually verify filter-bar placement, virtual scrolling/row offsets, resizable table columns, edit actions, empty/loading states, page-rail summaries, and narrow horizontal behavior.
+- Issue: The ingestion page now loads companion files while keeping selected detail/review markup in the external template.
+  - Impact: Manually verify source filters, snapshot selection, scroll pagination, workspace resizing, parsed-row review buttons, review dialog actions, accepted-item toggle, empty/loading/auth states, and narrow overflow.
 - Issue: Existing working-tree/index state may include user-owned plan or backend changes.
   - Impact: Do not revert, stage, or mix unrelated files into cleanup changes.
 
@@ -243,7 +252,7 @@
 
 ## Next Step
 
-Commit the catalog externalization, then reassess ingestion. Continue extracting minor ownership boundaries before companion-file externalization; do not mass-externalize every page automatically.
+Commit the ingestion externalization, then run a final full validation/diff review. The remaining `HouseholdShoppingListComponent`, `HomeComponent`, admin, catalog, and ingestion monsters have now been reduced or externalized according to the expanded rule; do not mass-externalize smaller components without a concrete maintenance gain.
 
 ## Notes For Future Agent
 
