@@ -69,6 +69,7 @@ export function assertStockAllocation(value: unknown, label = "stockAllocation")
   assertTrackingUnit(allocation["unit"], `${label}.unit`);
   assertValue(allocation["status"] === "active" || allocation["status"] === "released", `${label}.status is invalid`);
   assertValue(allocation["acceptanceResult"] === "accepted" || allocation["acceptanceResult"] === "overridden" || allocation["acceptanceResult"] === "criteria_changed", `${label}.acceptanceResult is invalid`);
+  if (allocation["acceptanceResult"] === "overridden") assertValue(typeof allocation["overrideReason"] === "string" && allocation["overrideReason"].trim().length > 0 && allocation["overrideReason"].length <= 300, `${label}.overrideReason is required for an override`);
 }
 
 export function assertCreateManualStockBatchRequest(value: unknown, label = "createManualStockBatchRequest"): asserts value is CreateManualStockBatchRequest {

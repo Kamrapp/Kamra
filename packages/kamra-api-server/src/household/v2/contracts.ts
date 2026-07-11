@@ -134,6 +134,7 @@ export interface StockAllocation {
   createdByUserId: string;
   householdId: string;
   id: string;
+  overrideReason?: string | null;
   revision: number;
   status: StockAllocationStatus;
   stockBatchId: string;

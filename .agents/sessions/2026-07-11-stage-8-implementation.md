@@ -29,6 +29,7 @@
 - Item: Added a Mongo Stock Target read repository that returns the server-owned aggregate and allocated batch summaries.
 - Item: Added the first v2 household route adapter for Stock Target reads with active-membership enforcement and schema-versioned responses.
 - Item: Added the v2 manual Stock Batch acquisition route with server-built snapshots, membership enforcement, request validation, and stable command-error mapping.
+- Item: Added the v2 batch allocation route with server-derived full quantity, membership/unit checks, and bounded override reasons.
 
 ## Changed Files
 
@@ -81,6 +82,10 @@
 ## Validation
 
 - Ran: `npm run typecheck`
+- Result: Passed.
+- Ran: `npm test -- --run packages/kamra-api-server/src/household/v2/domain.test.ts packages/kamra-api-server/src/http/app-handler.test.ts`
+- Result: 54 tests passed.
+- Ran: `npx eslint packages/kamra-api-server/src/household/v2/validation.ts packages/kamra-api-server/src/http/routes/household-v2-routes.ts packages/kamra-api-server/src/http/app-handler.ts`
 - Result: Passed.
 - Ran: `npm test -- --run packages/kamra-api-server/src/http/app-handler.test.ts`
 - Result: 47 tests passed.
@@ -187,6 +192,8 @@
 - Impact: The new domain commands remain server-internal until request validation and stable error mapping are added.
 - Issue: Allocation, consume, correction, and discard HTTP adapters are still pending.
 - Impact: Manual acquisition can now be invoked through the v2 boundary, but the complete browser household loop is not exposed yet.
+- Issue: Consume/correct/discard HTTP adapters remain pending.
+- Impact: The domain commands are implemented and tested, but the route surface is not yet complete enough for browser use.
 - Issue: UI/API manual verification has not started.
 - Impact: Track the final browser checklist as implementation reaches the household workspace.
 
