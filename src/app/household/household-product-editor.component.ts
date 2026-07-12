@@ -2,6 +2,7 @@ import { Component, effect, inject, input, output, signal } from "@angular/core"
 import { FormsModule } from "@angular/forms";
 
 import { BrowserLoggerService } from "../browser-logger.service";
+import { LocalizationService } from "../shared/localization.service";
 import { HouseholdV2Service, type HouseholdV2Batch, type HouseholdV2Product, type HouseholdV2ProductGroup, type HouseholdV2TargetPolicy } from "./household-v2.service";
 
 interface GroupDraft { displayName: string; desiredQuantity: number; hasTarget: boolean; minimumQuantity: number; trackingUnit: string; }
@@ -36,6 +37,7 @@ export class HouseholdProductEditorComponent {
   batchDraft: BatchDraft = createBatchDraft();
   private readonly service = inject(HouseholdV2Service);
   private readonly logger = inject(BrowserLoggerService);
+  readonly loc = inject(LocalizationService);
 
   constructor() {
     effect(() => {
@@ -62,51 +64,51 @@ export class HouseholdProductEditorComponent {
 
   async saveGroup(): Promise<void> {
     const name = this.groupDraft.displayName.trim();
-    if (!name || !this.groupDraft.trackingUnit.trim() || !this.validLimits(this.groupDraft.hasTarget, this.groupDraft.minimumQuantity, this.groupDraft.desiredQuantity)) return this.fail("Enter a group name, unit, and valid target values.");
+    if (!name || !this.groupDraft.trackingUnit.trim() || !this.validLimits(this.groupDraft.hasTarget, this.groupDraft.minimumQuantity, this.groupDraft.desiredQuantity)) return this.fail(this.loc.t("household.groupSaveInvalid"));
     this.saving.set(true); this.errorMessage.set("");
     const policy = this.groupDraft.hasTarget ? this.policy(this.groupDraft.minimumQuantity, this.groupDraft.desiredQuantity, this.groupDraft.trackingUnit) : null;
     const result = this.selectedGroupId() ? await this.service.updateProductGroup({ displayName: name, expectedRevision: this.selectedGroupRevision(), groupId: this.selectedGroupId()!, householdId: this.householdId(), targetPolicy: policy, trackingUnit: this.groupDraft.trackingUnit.trim() }) : await this.service.createProductGroup({ displayName: name, householdId: this.householdId(), targetPolicy: policy, trackingUnit: this.groupDraft.trackingUnit.trim() });
     this.saving.set(false);
-    if (result.status === "error") return this.fail(result.message ?? "Product Group could not be saved.");
+    if (result.status === "error") return this.fail(result.message ?? this.loc.t("household.groupSaveFailure"));
     this.logger.log("info", `${this.selectedGroupId() ? "Product Group saved" : "Product Group created"}: ${name}`, { displayName: name, groupId: this.selectedGroupId() }); this.clearAll(); this.changed.emit(); await this.loadGroups();
   }
 
   async saveProduct(): Promise<void> {
     const name = this.productDraft.displayName.trim();
-    if (!name || !this.validLimits(this.productDraft.hasTarget, this.productDraft.minimumQuantity, this.productDraft.desiredQuantity)) return this.fail("Enter a Product name and valid target values.");
+    if (!name || !this.validLimits(this.productDraft.hasTarget, this.productDraft.minimumQuantity, this.productDraft.desiredQuantity)) return this.fail(this.loc.t("household.productSaveInvalid"));
     this.saving.set(true); this.errorMessage.set("");
     if (!this.product() && !this.productDraft.productGroupId && this.groupDraft.displayName.trim()) {
       const groupResult = await this.service.createProductGroup({ displayName: this.groupDraft.displayName.trim(), householdId: this.householdId(), targetPolicy: this.groupDraft.hasTarget ? this.policy(this.groupDraft.minimumQuantity, this.groupDraft.desiredQuantity, this.groupDraft.trackingUnit) : null, trackingUnit: this.groupDraft.trackingUnit.trim() });
-      if (groupResult.status === "error" || !groupResult.productGroup?.id) { this.saving.set(false); return this.fail(groupResult.message ?? "Product Group could not be created for the Product."); }
+      if (groupResult.status === "error" || !groupResult.productGroup?.id) { this.saving.set(false); return this.fail(groupResult.message ?? this.loc.t("household.groupCreateForProductFailure")); }
       this.productDraft.productGroupId = groupResult.productGroup.id;
     }
     const policy = this.productDraft.hasTarget ? this.policy(this.productDraft.minimumQuantity, this.productDraft.desiredQuantity, this.productDraft.trackingUnit.trim()) : null;
     const identitySnapshot = { gtin: this.productDraft.gtin || null };
     const result = this.product() ? await this.service.updateProductIdentity({ defaultTrackingUnit: this.productDraft.trackingUnit.trim(), displayName: name, expectedRevision: this.product()!.revision, householdId: this.householdId(), productId: this.product()!.id, productGroupId: this.productDraft.productGroupId, targetPolicy: policy, note: this.productDraft.note || null, catalogProductId: this.productDraft.catalogProductId || null, identitySnapshot }) : await this.service.createProduct({ defaultTrackingUnit: this.productDraft.trackingUnit.trim(), displayName: name, householdId: this.householdId(), productGroupId: this.productDraft.productGroupId, targetPolicy: policy, note: this.productDraft.note || null });
     this.saving.set(false);
-    if (result.status === "error") return this.fail(result.message ?? "Household Product could not be saved.");
+    if (result.status === "error") return this.fail(result.message ?? this.loc.t("household.productSaveFailure"));
     this.logger.log("info", `${this.product() ? "Household Product saved" : "Household Product created"}: ${name}`, { displayName: name, productGroupId: this.productDraft.productGroupId, productId: this.product()?.id }); this.clearAll(); this.changed.emit(); await this.loadGroups();
   }
 
   async saveBatch(): Promise<void> {
     const name = this.productDraft.displayName.trim();
-    if (!name || this.batchDraft.quantity <= 0 || !this.batchDraft.unit.trim()) return this.fail("Enter a Product and a positive stock quantity.");
+    if (!name || this.batchDraft.quantity <= 0 || !this.batchDraft.unit.trim()) return this.fail(this.loc.t("household.batchSaveInvalid"));
     this.saving.set(true); this.errorMessage.set("");
     if (this.batch()) {
       const result = await this.service.correctBatch({ acquiredOn: this.batchDraft.acquiredOn, batchId: this.batch()!.id, expiryOn: this.batchDraft.expiryOn || null, expectedBatchRevision: this.batch()!.revision, householdId: this.householdId(), resultingQuantity: this.batchDraft.quantity });
       this.saving.set(false);
-      if (result.status === "error") return this.fail(result.message ?? "Stock Batch could not be saved.");
+      if (result.status === "error") return this.fail(result.message ?? this.loc.t("household.batchSaveFailure"));
       this.logger.log("info", `Stock Batch saved for ${name}`, { batchId: this.batch()!.id, productId: this.product()?.id }); this.clearAll(); this.changed.emit(); return;
     }
     const productId = this.product()?.id;
     if (!productId) {
       const created = await this.service.createProductWithBatch({ batch: { acquiredOn: this.batchDraft.acquiredOn, displayName: name, expiryOn: this.batchDraft.expiryOn || null, originalQuantity: this.batchDraft.quantity, unit: this.batchDraft.unit.trim() }, group: this.productDraft.productGroupId ? null : (this.groupDraft.displayName.trim() ? { displayName: this.groupDraft.displayName.trim(), targetPolicy: this.groupDraft.hasTarget ? this.policy(this.groupDraft.minimumQuantity, this.groupDraft.desiredQuantity, this.groupDraft.trackingUnit) : null, trackingUnit: this.groupDraft.trackingUnit.trim() } : null), householdId: this.householdId(), product: { defaultTrackingUnit: this.productDraft.trackingUnit.trim(), displayName: name, note: this.productDraft.note || null, productGroupId: this.productDraft.productGroupId, targetPolicy: this.productDraft.hasTarget ? this.policy(this.productDraft.minimumQuantity, this.productDraft.desiredQuantity, this.productDraft.trackingUnit) : null } });
-      this.saving.set(false); if (created.status === "error") return this.fail(created.message ?? "Product and stock could not be created.");
+      this.saving.set(false); if (created.status === "error") return this.fail(created.message ?? this.loc.t("household.productAndBatchCreateFailure"));
       this.logger.log("info", `Product and Stock Batch created: ${name}`, { displayName: name, productGroupId: this.productDraft.productGroupId }); this.clearAll(); this.changed.emit(); return;
     }
     const result = await this.service.createBatch({ acquiredOn: this.batchDraft.acquiredOn, displayName: name, expiryOn: this.batchDraft.expiryOn || null, householdId: this.householdId(), householdProductId: productId, quantity: this.batchDraft.quantity, unit: this.batchDraft.unit.trim() });
     this.saving.set(false);
-    if (result.status === "error") return this.fail(result.message ?? "Stock Batch could not be saved.");
+    if (result.status === "error") return this.fail(result.message ?? this.loc.t("household.batchSaveFailure"));
     this.logger.log("info", `Stock Batch created for ${name}`, { productId }); this.clearAll(); this.changed.emit();
   }
 
