@@ -152,7 +152,7 @@ import { LocalizationService } from "../shared/localization.service";
 
       .hero-mark-card {
         align-content: center;
-        background: color-mix(in srgb, var(--color-card-tint) 78%, white 22%);
+        background: color-mix(in srgb, var(--color-card-tint) 18%, var(--surface-panel-background) 82%);
         border: 1px solid color-mix(in srgb, var(--line-panel) 72%, white 28%);
         border-radius: calc(var(--radius-ui) - 0.2rem);
         display: grid;
