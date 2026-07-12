@@ -280,6 +280,11 @@ interface ShellMenuItem extends RadialNavigationItem {
         scrollbar-gutter: stable both-edges;
       }
 
+      /* The outlet is an Angular insertion marker, not a page row of its own. */
+      .page-scroll > router-outlet {
+        display: contents;
+      }
+
       @media (max-width: 1180px) {
         .shell {
           grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
