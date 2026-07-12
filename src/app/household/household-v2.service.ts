@@ -67,8 +67,10 @@ export class HouseholdV2Service {
         ? "Only an active household member can update this household."
         : payload?.error === "household_owner_required"
           ? "Only the household owner can update household settings."
-          : payload?.error === "household_product_not_found" || payload?.error === "stock_target_not_found"
+        : payload?.error === "household_product_not_found" || payload?.error === "stock_target_not_found"
             ? "This item no longer exists. Refresh and try again."
+            : payload?.error === "household_concept_already_exists"
+              ? "A household concept with this name already exists."
             : `Household update failed (${response.status}).`;
       return { message, status: "error" };
     }

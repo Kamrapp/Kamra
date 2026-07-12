@@ -31,6 +31,7 @@ This is the single source of truth for manual/browser verification carried forwa
 - [ ] From a grouped Product row, click `Add stock`; verify the right editor switches to batch-only mode, keeps Product identity read-only, saves a separate batch, and leaves the Product in its existing group/unassigned state.
 - [ ] Create a Product with no initial batch; verify it appears under Unassigned/Unclassified, then use `Add stock` to add its first physical batch.
 - [ ] Create a Product while selecting a household Concept; reopen the Product editor and verify the checkbox remains selected and the Product’s direct concept reference is present.
+- [ ] Attempt to create a second household Concept with the same normalized name; verify it is rejected with a clear conflict and the existing Concept remains unchanged.
 - [ ] Correct a batch quantity and discard a batch from grouped Home; verify the target aggregate refreshes and the batch remains in history/status rather than disappearing silently.
 - [ ] Edit a batch acquisition/expiry date from grouped Home; verify an expiry-before-acquisition date is accepted and valid changes refresh without changing the Product identity.
 - [ ] Verify an expiry date before acquisition is accepted; toggle household `allowExpiredItems` off/on and confirm expired stock remains visible but is excluded/included in derived availability and consumption accordingly. Default must be permissive.

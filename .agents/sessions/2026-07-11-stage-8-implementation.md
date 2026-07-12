@@ -257,6 +257,7 @@
 - Validation: `npm test -- --run packages/kamra-api-server/src/household/v2/mongo-stock-read-repository.test.ts` passed (3 tests); `npm run typecheck` passed; `npm run build:web` passed.
 - Manual script: `scripts/stage8-demo-manual-test.md` now includes the explicit existing-Product `Add stock` flow and the revised sequence.
 - Classification fix: Product concept checkboxes now use standalone Angular form bindings with an explicit boolean setter; repository coverage confirms create-time direct concept references are retained.
+- Concept uniqueness: household-local Concept creation now rejects duplicate normalized keys with a `409` conflict, including database unique-index races, and the UI reports that the name already exists.
 - Seed validator repair: adding `allowExpiredItems` changed an already-completed household validator, so `household-expired-item-policy-v1` now independently upgrades the validator and backfills the permissive default before demo reseeding.
 - API grouped workspace: GET `/api/households/{householdId}/stock-workspace`; verify target totals are derived from active allocations, allocated batches group under their Household Product, and unallocated batches remain visible.
 - Browser Home: sign in, select a household, confirm the grouped Stage 8 workspace appears above the legacy controls, refresh it, and verify target/product/batch/unassigned hierarchy.

@@ -16,6 +16,8 @@ export class MongoHouseholdProductConceptRepository {
   }
 
   async create(concept: HouseholdProductConcept): Promise<HouseholdProductConcept> {
+    const existing = await this.concepts.findOne({ householdId: concept.householdId, key: concept.key, status: "active" });
+    if (existing) throw new Error("household_concept_already_exists");
     await this.concepts.insertOne(concept);
     return concept;
   }
