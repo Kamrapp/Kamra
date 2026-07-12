@@ -57,9 +57,7 @@ export async function runCatalogV1Seed(
   };
 }
 
-export function createCatalogV1Seed(
-  repository: CatalogV1SeedRepository
-): SeedDefinition {
+export function createCatalogV1Seed(repository: CatalogV1SeedRepository): SeedDefinition {
   return {
     configured: isCatalogV1SeedConfigured,
     label: "catalog v1 sample data",

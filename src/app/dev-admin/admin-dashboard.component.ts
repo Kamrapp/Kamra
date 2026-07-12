@@ -1,13 +1,17 @@
-import { Component, computed, inject, signal, type OnInit, type WritableSignal } from "@angular/core";
+import {
+  Component,
+  computed,
+  inject,
+  signal,
+  type OnInit,
+  type WritableSignal
+} from "@angular/core";
 
 import { BrowserLoggerService } from "../browser-logger.service";
 import { AuthService } from "../auth.service";
 import { DatabaseMaintenanceComponent } from "./database-maintenance.component";
 import { AdminDashboardService } from "./admin-dashboard.service";
-import {
-  AdminHealthCardComponent,
-  type HealthCheckItem
-} from "./admin-health-card.component";
+import { AdminHealthCardComponent, type HealthCheckItem } from "./admin-health-card.component";
 import { AdminFeatureFlagsCardComponent } from "./admin-feature-flags-card.component";
 import { AdminAlphaAccessCardComponent } from "./admin-alpha-access-card.component";
 import { LocalizationService, type TranslationKey } from "../shared/localization.service";
@@ -55,7 +59,12 @@ type AsyncActionState = "idle" | "loading" | "error" | "success";
 @Component({
   selector: "app-admin-dashboard",
   standalone: true,
-  imports: [AdminAlphaAccessCardComponent, AdminFeatureFlagsCardComponent, AdminHealthCardComponent, DatabaseMaintenanceComponent],
+  imports: [
+    AdminAlphaAccessCardComponent,
+    AdminFeatureFlagsCardComponent,
+    AdminHealthCardComponent,
+    DatabaseMaintenanceComponent
+  ],
   templateUrl: "./admin-dashboard.component.html",
   styleUrl: "./admin-dashboard.component.css"
 })
@@ -115,13 +124,14 @@ export class AdminDashboardComponent implements OnInit {
 
     return this.loc.t("health.noRun");
   });
-  readonly isMaintenanceBusy = computed(() =>
-    this.healthState() === "loading"
-      || this.demoSeedState() === "loading"
-      || this.featureFlagsState() === "loading"
-      || this.alphaUserState() === "loading"
-      || this.invalidationState() === "loading"
-      || this.validatorUpgradeState() === "loading"
+  readonly isMaintenanceBusy = computed(
+    () =>
+      this.healthState() === "loading" ||
+      this.demoSeedState() === "loading" ||
+      this.featureFlagsState() === "loading" ||
+      this.alphaUserState() === "loading" ||
+      this.invalidationState() === "loading" ||
+      this.validatorUpgradeState() === "loading"
   );
 
   ngOnInit(): void {
@@ -138,7 +148,13 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   async reseedDemoHousehold(): Promise<void> {
-    if (!this.requireAdminAccess(this.demoSeedState, this.demoSeedMessage, "health.signInBeforeDemoSeed")) {
+    if (
+      !this.requireAdminAccess(
+        this.demoSeedState,
+        this.demoSeedMessage,
+        "health.signInBeforeDemoSeed"
+      )
+    ) {
       return;
     }
 
@@ -150,23 +166,25 @@ export class AdminDashboardComponent implements OnInit {
     });
 
     try {
-      const response = await this.adminDashboard.request("/api/admin/dashboard/reseed-demo-household", {
-        headers: {
-          accept: "application/json",
-          ...this.auth.getAuthorizationHeaders()
-        },
-        method: "POST"
-      });
+      const response = await this.adminDashboard.request(
+        "/api/admin/dashboard/reseed-demo-household",
+        {
+          headers: {
+            accept: "application/json",
+            ...this.auth.getAuthorizationHeaders()
+          },
+          method: "POST"
+        }
+      );
 
       if (response.status === 401) {
         this.handleUnauthorizedResponse(this.demoSeedState, this.demoSeedMessage);
         return;
       }
 
-      const { message, payload } = await this.adminDashboard.readPayload<DemoHouseholdReseedResponse & { message?: string }>(
-        response,
-        this.loc.t("health.demoSeedFailure")
-      );
+      const { message, payload } = await this.adminDashboard.readPayload<
+        DemoHouseholdReseedResponse & { message?: string }
+      >(response, this.loc.t("health.demoSeedFailure"));
       if (!payload) {
         this.demoSeedState.set("error");
         this.demoSeedMessage.set(message);
@@ -175,13 +193,15 @@ export class AdminDashboardComponent implements OnInit {
       }
 
       this.demoSeedState.set(response.ok ? "success" : "error");
-      this.demoSeedMessage.set(response.ok
-        ? this.loc.t("health.demoSeedSuccess", {
-          products: payload.counts.localProducts,
-          stocks: payload.counts.stockItems,
-          users: payload.counts.users
-        })
-        : payload.message ?? message);
+      this.demoSeedMessage.set(
+        response.ok
+          ? this.loc.t("health.demoSeedSuccess", {
+              products: payload.counts.localProducts,
+              stocks: payload.counts.stockItems,
+              users: payload.counts.users
+            })
+          : (payload.message ?? message)
+      );
 
       if (!response.ok) {
         this.toast.push(payload.message ?? message, "error");
@@ -244,9 +264,9 @@ export class AdminDashboardComponent implements OnInit {
 
       this.healthReport.set(report);
       this.healthState.set(response.ok ? "success" : "error");
-      this.healthMessage.set(response.ok
-        ? this.loc.t("health.success")
-        : this.loc.t("health.degraded"));
+      this.healthMessage.set(
+        response.ok ? this.loc.t("health.success") : this.loc.t("health.degraded")
+      );
       if (!response.ok) {
         this.toast.push(message, "error");
       }
@@ -267,11 +287,13 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   async upgradeCatalogValidators(): Promise<void> {
-    if (!this.requireAdminAccess(
-      this.validatorUpgradeState,
-      this.validatorUpgradeMessage,
-      "health.signInBeforeValidator"
-    )) {
+    if (
+      !this.requireAdminAccess(
+        this.validatorUpgradeState,
+        this.validatorUpgradeMessage,
+        "health.signInBeforeValidator"
+      )
+    ) {
       return;
     }
 
@@ -283,13 +305,16 @@ export class AdminDashboardComponent implements OnInit {
     });
 
     try {
-      const response = await this.adminDashboard.request("/api/admin/dashboard/upgrade-catalog-validators", {
-        headers: {
-          accept: "application/json",
-          ...this.auth.getAuthorizationHeaders()
-        },
-        method: "POST"
-      });
+      const response = await this.adminDashboard.request(
+        "/api/admin/dashboard/upgrade-catalog-validators",
+        {
+          headers: {
+            accept: "application/json",
+            ...this.auth.getAuthorizationHeaders()
+          },
+          method: "POST"
+        }
+      );
 
       if (response.status === 401) {
         this.handleUnauthorizedResponse(this.validatorUpgradeState, this.validatorUpgradeMessage);
@@ -309,12 +334,14 @@ export class AdminDashboardComponent implements OnInit {
       }
 
       this.validatorUpgradeState.set(response.ok ? "success" : "error");
-      this.validatorUpgradeMessage.set(response.ok
-        ? this.loc.t("health.upgradeSuccess", {
-          created: payload.createdCollections?.length ?? 0,
-          upgraded: payload.upgradedCollections?.length ?? 0
-        })
-        : this.loc.t("health.upgradeFailure"));
+      this.validatorUpgradeMessage.set(
+        response.ok
+          ? this.loc.t("health.upgradeSuccess", {
+              created: payload.createdCollections?.length ?? 0,
+              upgraded: payload.upgradedCollections?.length ?? 0
+            })
+          : this.loc.t("health.upgradeFailure")
+      );
       if (!response.ok) {
         this.toast.push(payload.message ?? message, "error");
       }
@@ -334,7 +361,13 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   async backfillLegacyProductsAsUnvalidated(): Promise<void> {
-    if (!this.requireAdminAccess(this.invalidationState, this.invalidationMessage, "health.signInBeforeMaintenance")) {
+    if (
+      !this.requireAdminAccess(
+        this.invalidationState,
+        this.invalidationMessage,
+        "health.signInBeforeMaintenance"
+      )
+    ) {
       return;
     }
 
@@ -346,13 +379,16 @@ export class AdminDashboardComponent implements OnInit {
     });
 
     try {
-      const response = await this.adminDashboard.request("/api/admin/dashboard/backfill-unvalidated-products", {
-        headers: {
-          accept: "application/json",
-          ...this.auth.getAuthorizationHeaders()
-        },
-        method: "POST"
-      });
+      const response = await this.adminDashboard.request(
+        "/api/admin/dashboard/backfill-unvalidated-products",
+        {
+          headers: {
+            accept: "application/json",
+            ...this.auth.getAuthorizationHeaders()
+          },
+          method: "POST"
+        }
+      );
 
       if (response.status === 401) {
         this.handleUnauthorizedResponse(this.invalidationState, this.invalidationMessage);
@@ -373,9 +409,11 @@ export class AdminDashboardComponent implements OnInit {
       }
 
       this.invalidationState.set(response.ok ? "success" : "error");
-      this.invalidationMessage.set(response.ok
-        ? this.formatLegacyBackfillMessage(payload)
-        : this.loc.t("health.backfillFailure"));
+      this.invalidationMessage.set(
+        response.ok
+          ? this.formatLegacyBackfillMessage(payload)
+          : this.loc.t("health.backfillFailure")
+      );
       if (!response.ok) {
         this.toast.push(payload.message ?? message, "error");
       }
@@ -396,7 +434,13 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   async loadFeatureFlags(): Promise<void> {
-    if (!this.requireAdminAccess(this.featureFlagsState, this.featureFlagsMessage, "health.signInBeforeFeatureFlags")) {
+    if (
+      !this.requireAdminAccess(
+        this.featureFlagsState,
+        this.featureFlagsMessage,
+        "health.signInBeforeFeatureFlags"
+      )
+    ) {
       return;
     }
 
@@ -417,15 +461,15 @@ export class AdminDashboardComponent implements OnInit {
         return;
       }
 
-      const { message, payload } = await this.adminDashboard.readPayload<{ featureFlags?: FeatureFlagListItem[] }>(
-        response,
-        this.loc.t("health.featureFlagsLoadFailure")
-      );
+      const { message, payload } = await this.adminDashboard.readPayload<{
+        featureFlags?: FeatureFlagListItem[];
+      }>(response, this.loc.t("health.featureFlagsLoadFailure"));
       const featureFlags = payload?.featureFlags ?? [];
 
       this.featureFlags.set(featureFlags);
       this.allowAutoTickingAllShoppingListEntriesEnabled.set(
-        featureFlags.find((flag) => flag.key === "allowAutoTickingAllShoppingListEntries")?.enabled ?? true
+        featureFlags.find((flag) => flag.key === "allowAutoTickingAllShoppingListEntries")
+          ?.enabled ?? true
       );
       this.allowControlledAlphaAccessEnabled.set(
         featureFlags.find((flag) => flag.key === "allowControlledAlphaAccess")?.enabled ?? false
@@ -452,18 +496,35 @@ export class AdminDashboardComponent implements OnInit {
     this.allowControlledAlphaAccessEnabled.set(enabled);
   }
 
-  setUseAbbreviatedUiLabelsEnabled(enabled: boolean): void { this.useAbbreviatedUiLabelsEnabled.set(enabled); }
+  setUseAbbreviatedUiLabelsEnabled(enabled: boolean): void {
+    this.useAbbreviatedUiLabelsEnabled.set(enabled);
+  }
 
   async saveAlphaAccessFlag(): Promise<void> {
-    if (!this.requireAdminAccess(this.featureFlagsState, this.featureFlagsMessage, "health.signInBeforeFeatureFlags")) {
+    if (
+      !this.requireAdminAccess(
+        this.featureFlagsState,
+        this.featureFlagsMessage,
+        "health.signInBeforeFeatureFlags"
+      )
+    ) {
       return;
     }
 
-    await this.saveFeatureFlag("allowControlledAlphaAccess", this.allowControlledAlphaAccessEnabled());
+    await this.saveFeatureFlag(
+      "allowControlledAlphaAccess",
+      this.allowControlledAlphaAccessEnabled()
+    );
   }
 
   async createAlphaUser(): Promise<void> {
-    if (!this.requireAdminAccess(this.alphaUserState, this.alphaUserMessage, "health.signInBeforeFeatureFlags")) {
+    if (
+      !this.requireAdminAccess(
+        this.alphaUserState,
+        this.alphaUserMessage,
+        "health.signInBeforeFeatureFlags"
+      )
+    ) {
       return;
     }
 
@@ -497,10 +558,12 @@ export class AdminDashboardComponent implements OnInit {
 
       this.alphaUserPassword.set("");
       this.alphaUserState.set("success");
-      this.alphaUserMessage.set(this.loc.t("health.alphaUserCreateSuccess", {
-        email: payload.user.email,
-        household: payload.household?.name ?? ""
-      }));
+      this.alphaUserMessage.set(
+        this.loc.t("health.alphaUserCreateSuccess", {
+          email: payload.user.email,
+          household: payload.household?.name ?? ""
+        })
+      );
     } catch {
       this.alphaUserState.set("error");
       this.alphaUserMessage.set(this.loc.t("health.alphaUserCreateFailure"));
@@ -509,7 +572,13 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   async saveShoppingListFeatureFlags(): Promise<void> {
-    if (!this.requireAdminAccess(this.featureFlagsState, this.featureFlagsMessage, "health.signInBeforeFeatureFlags")) {
+    if (
+      !this.requireAdminAccess(
+        this.featureFlagsState,
+        this.featureFlagsMessage,
+        "health.signInBeforeFeatureFlags"
+      )
+    ) {
       return;
     }
 
@@ -543,10 +612,9 @@ export class AdminDashboardComponent implements OnInit {
         return;
       }
 
-      const { message, payload } = await this.adminDashboard.readPayload<{ featureFlags?: FeatureFlagListItem[] }>(
-        response,
-        this.loc.t("health.featureFlagsSaveFailure")
-      );
+      const { message, payload } = await this.adminDashboard.readPayload<{
+        featureFlags?: FeatureFlagListItem[];
+      }>(response, this.loc.t("health.featureFlagsSaveFailure"));
       const featureFlags = payload?.featureFlags ?? [];
       this.featureFlags.set(featureFlags);
       if (key === "allowControlledAlphaAccess") {
@@ -555,12 +623,14 @@ export class AdminDashboardComponent implements OnInit {
         );
       }
       if (key === "useAbbreviatedUiLabels") {
-        this.useAbbreviatedUiLabelsEnabled.set(featureFlags.find((flag) => flag.key === key)?.enabled ?? enabled);
+        this.useAbbreviatedUiLabelsEnabled.set(
+          featureFlags.find((flag) => flag.key === key)?.enabled ?? enabled
+        );
       }
       this.featureFlagsState.set(response.ok ? "success" : "error");
-      this.featureFlagsMessage.set(response.ok
-        ? this.loc.t("health.featureFlagsSaveSuccess")
-        : message);
+      this.featureFlagsMessage.set(
+        response.ok ? this.loc.t("health.featureFlagsSaveSuccess") : message
+      );
 
       if (!response.ok) {
         this.toast.push(message, "error");
@@ -601,10 +671,10 @@ export class AdminDashboardComponent implements OnInit {
     };
 
     return Boolean(
-      candidate.checks
-      && candidate.checks.api
-      && candidate.checks.database
-      && typeof candidate.status === "string"
+      candidate.checks &&
+      candidate.checks.api &&
+      candidate.checks.database &&
+      typeof candidate.status === "string"
     );
   }
 

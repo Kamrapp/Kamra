@@ -24,12 +24,12 @@ const server = createServer((request, response) => {
     if (!response.headersSent) {
       response.statusCode = 500;
       response.setHeader("content-type", "application/json; charset=utf-8");
-      response.end(JSON.stringify({
-        error: "internal_error",
-        message: error instanceof Error && error.message
-          ? error.message
-          : "Internal server error"
-      }));
+      response.end(
+        JSON.stringify({
+          error: "internal_error",
+          message: error instanceof Error && error.message ? error.message : "Internal server error"
+        })
+      );
       return;
     }
 
@@ -58,10 +58,7 @@ async function runStartupDatabaseCheck(): Promise<void> {
   }
 
   try {
-    const client = await getMongoClient(
-      config.mongodb.uri,
-      config.mongodb.dnsServers
-    );
+    const client = await getMongoClient(config.mongodb.uri, config.mongodb.dnsServers);
     await client.db(config.mongodb.databaseName).command({ ping: 1 });
 
     writeServerLog("info", "Startup database connection check succeeded", {

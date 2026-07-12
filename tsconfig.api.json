@@ -6,9 +6,5 @@
     "rootDir": ".",
     "types": ["node", "vitest/globals"]
   },
-  "include": [
-    "api/**/*.ts",
-    "packages/**/*.ts",
-    "scripts/**/*.ts"
-  ]
+  "include": ["api/**/*.ts", "packages/**/*.ts", "scripts/**/*.ts"]
 }

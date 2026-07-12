@@ -1,4 +1,12 @@
-import { Component, computed, effect, inject, signal, type OnDestroy, type OnInit } from "@angular/core";
+import {
+  Component,
+  computed,
+  effect,
+  inject,
+  signal,
+  type OnDestroy,
+  type OnInit
+} from "@angular/core";
 
 import { AuthService } from "../auth.service";
 import { BrowserLoggerService } from "../browser-logger.service";
@@ -9,7 +17,10 @@ import {
   type CatalogProductOfferPrice,
   type ProductMeasurement
 } from "./product-catalog.service";
-import { ResizableTableComponent, type ResizableTableColumn } from "../shared/resizable-table.component";
+import {
+  ResizableTableComponent,
+  type ResizableTableColumn
+} from "../shared/resizable-table.component";
 import { PageRailService, type PageRailSection } from "../shared/page-rail.service";
 import { ProductEditorDialogComponent } from "../shared/product-editor-dialog.component";
 import { TableIconButtonComponent } from "../shared/table-icon-button.component";
@@ -31,7 +42,12 @@ interface ProductCatalogFilters {
 const noOfferSourceKey = "__none__";
 
 @Component({
-  imports: [ProductCatalogFilterBarComponent, ProductEditorDialogComponent, ResizableTableComponent, TableIconButtonComponent],
+  imports: [
+    ProductCatalogFilterBarComponent,
+    ProductEditorDialogComponent,
+    ResizableTableComponent,
+    TableIconButtonComponent
+  ],
   selector: "app-product-catalog",
   standalone: true,
   templateUrl: "./product-catalog.component.html",
@@ -61,10 +77,28 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
   readonly productFilters = signal<ProductCatalogFilters>(createEmptyProductCatalogFilters());
   readonly tableColumns = computed<readonly ResizableTableColumn[]>(() => [
     { key: "actions", label: "", minWidth: 52, maxWidth: 72, width: 56 },
-    { key: "product", label: this.loc.t("common.product"), minWidth: 140, maxWidth: 640, width: 300 },
+    {
+      key: "product",
+      label: this.loc.t("common.product"),
+      minWidth: 140,
+      maxWidth: 640,
+      width: 300
+    },
     { key: "prices", label: this.loc.t("common.prices"), minWidth: 100, maxWidth: 640, width: 140 },
-    { key: "sources", label: this.loc.t("common.sources"), minWidth: 140, maxWidth: 640, width: 180 },
-    { key: "identifiers", label: this.loc.t("common.identifiers"), minWidth: 140, maxWidth: 640, width: 220 },
+    {
+      key: "sources",
+      label: this.loc.t("common.sources"),
+      minWidth: 140,
+      maxWidth: 640,
+      width: 180
+    },
+    {
+      key: "identifiers",
+      label: this.loc.t("common.identifiers"),
+      minWidth: 140,
+      maxWidth: 640,
+      width: 220
+    },
     { key: "state", label: this.loc.t("common.state"), minWidth: 120, maxWidth: 640, width: 160 }
   ]);
   readonly rowHeight = 92;
@@ -81,12 +115,16 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
       label: this.loc.t("common.none")
     }
   ]);
-  readonly activeProductFilterCount = computed(() => countActiveProductFilters(this.productFilterDrafts()));
+  readonly activeProductFilterCount = computed(() =>
+    countActiveProductFilters(this.productFilterDrafts())
+  );
   readonly filteredProducts = computed(() => {
     const productFilters = this.productFilters();
 
-    return this.products().filter((product) =>
-      this.productMatchesSelectedSources(product) && productMatchesFilters(product, productFilters)
+    return this.products().filter(
+      (product) =>
+        this.productMatchesSelectedSources(product) &&
+        productMatchesFilters(product, productFilters)
     );
   });
   readonly tableHeight = computed(() => this.filteredProducts().length * this.rowHeight);
@@ -94,10 +132,14 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
     this.products().reduce((total, product) => total + product.offers.length, 0)
   );
   readonly totalFilteredOfferCount = computed(() =>
-    this.filteredProducts().reduce((total, product) => total + this.filteredOffers(product).length, 0)
+    this.filteredProducts().reduce(
+      (total, product) => total + this.filteredOffers(product).length,
+      0
+    )
   );
-  readonly totalSourceCount = computed(() =>
-    new Set(this.filteredProducts().flatMap((product) => this.filteredSourceNames(product))).size
+  readonly totalSourceCount = computed(
+    () =>
+      new Set(this.filteredProducts().flatMap((product) => this.filteredSourceNames(product))).size
   );
   readonly hasNextPage = computed(() =>
     this.totalProductCount() === 0
@@ -124,12 +166,21 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
         kicker: this.loc.t("common.catalog"),
         title: this.loc.t("app.productOffers"),
         items: [
-          { label: this.loc.t("common.shown"), value: `${this.filteredProducts().length} / ${this.totalProductCount()}` },
+          {
+            label: this.loc.t("common.shown"),
+            value: `${this.filteredProducts().length} / ${this.totalProductCount()}`
+          },
           { label: this.loc.t("common.offers"), value: `${this.totalFilteredOfferCount()}` },
           { label: this.loc.t("common.sources"), value: `${this.totalSourceCount()}` },
-          { label: this.loc.t("common.page"), value: `${this.currentPage()} / ${this.totalPages() || "?"}` }
+          {
+            label: this.loc.t("common.page"),
+            value: `${this.currentPage()} / ${this.totalPages() || "?"}`
+          }
         ],
-        actionLabel: this.loadState() === "loading" ? this.loc.t("common.loading") : this.loc.t("common.refresh"),
+        actionLabel:
+          this.loadState() === "loading"
+            ? this.loc.t("common.loading")
+            : this.loc.t("common.refresh"),
         actionDisabled: this.loadState() === "loading",
         error: this.errorMessage() || undefined,
         onAction: () => {
@@ -149,7 +200,8 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
     }
 
     if (this.auth.token()) {
-      const allSourcesSelected = this.selectedOfferSources().size === this.offerSourceOptions().length;
+      const allSourcesSelected =
+        this.selectedOfferSources().size === this.offerSourceOptions().length;
       sections.push({
         key: "catalog-sources",
         kind: "filters",
@@ -157,9 +209,14 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
         title: this.loc.t("common.sources"),
         selectedCount: this.selectedOfferSources().size,
         optionCount: this.offerSourceOptions().length,
-        secondaryActionLabel: allSourcesSelected ? this.loc.t("common.deselectAll") : this.loc.t("common.selectAll"),
+        secondaryActionLabel: allSourcesSelected
+          ? this.loc.t("common.deselectAll")
+          : this.loc.t("common.selectAll"),
         onSecondaryAction: () => this.toggleAllOfferSources(),
-        note: this.loc.t("product.loadedProducts", { loaded: this.products().length, total: this.totalProductCount() }),
+        note: this.loc.t("product.loadedProducts", {
+          loaded: this.products().length,
+          total: this.totalProductCount()
+        }),
         options: this.offerSourceOptions().map((source) => ({
           key: source.key,
           label: source.label,
@@ -174,7 +231,10 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
           kind: "action",
           kicker: this.loc.t("common.more"),
           note: this.loc.t("product.loadMoreNote"),
-          actionLabel: this.loadState() === "loading" ? this.loc.t("common.loading") : this.loc.t("product.loadMore"),
+          actionLabel:
+            this.loadState() === "loading"
+              ? this.loc.t("common.loading")
+              : this.loc.t("product.loadMore"),
           actionDisabled: !this.hasNextPage() || this.loadState() === "loading",
           onAction: () => {
             void this.loadNextProductsPage();
@@ -240,7 +300,9 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
       return this.loc.t("common.unknown");
     }
 
-    return measurements.map((measurement) => `${measurement.value} ${measurement.unit}`).join(" | ");
+    return measurements
+      .map((measurement) => `${measurement.value} ${measurement.unit}`)
+      .join(" | ");
   }
 
   formatOfferNames(product: CatalogProductListItem): string {
@@ -415,9 +477,8 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
 
   toggleAllOfferSources(): void {
     const allSources = new Set(this.offerSourceOptions().map((source) => source.key));
-    const nextSources = this.selectedOfferSources().size === allSources.size
-      ? new Set<string>()
-      : allSources;
+    const nextSources =
+      this.selectedOfferSources().size === allSources.size ? new Set<string>() : allSources;
 
     this.sourceFilterTouched.set(true);
     this.selectedOfferSources.set(nextSources);
@@ -445,9 +506,11 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
     if (sourceResult.status !== "ok") {
       this.products.set([]);
       this.loadState.set("error");
-      this.statusMessage.set(sourceResult.status === "forbidden"
-        ? this.loc.t("product.catalogReviewAccess")
-        : this.loc.t("product.sourcesFailure"));
+      this.statusMessage.set(
+        sourceResult.status === "forbidden"
+          ? this.loc.t("product.catalogReviewAccess")
+          : this.loc.t("product.sourcesFailure")
+      );
       this.errorMessage.set(sourceResult.message);
       return;
     }
@@ -491,9 +554,11 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
 
       if (result.status !== "ok") {
         this.loadState.set("error");
-        this.statusMessage.set(result.status === "forbidden"
-          ? this.loc.t("product.catalogReviewAccess")
-          : this.loc.t("product.sourcesFailure"));
+        this.statusMessage.set(
+          result.status === "forbidden"
+            ? this.loc.t("product.catalogReviewAccess")
+            : this.loc.t("product.sourcesFailure")
+        );
         this.errorMessage.set(result.message);
         return;
       }
@@ -503,7 +568,9 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
       this.totalProductCount.set(result.pagination.totalCount);
       this.totalPages.set(result.pagination.totalPages);
       if (!this.sourceFilterTouched()) {
-        this.selectedOfferSources.set(new Set(this.offerSourceOptions().map((source) => source.key)));
+        this.selectedOfferSources.set(
+          new Set(this.offerSourceOptions().map((source) => source.key))
+        );
       }
       if (pageToLoad === 1) {
         this.scrollTop.set(0);
@@ -562,7 +629,9 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
 
   private selectedServerSourceNames(): string[] {
     const selectedSources = this.selectedOfferSources();
-    const selectedRealSources = this.offerSourceNames().filter((sourceName) => selectedSources.has(sourceName));
+    const selectedRealSources = this.offerSourceNames().filter((sourceName) =>
+      selectedSources.has(sourceName)
+    );
     const everyRealSourceSelected = selectedRealSources.length === this.offerSourceNames().length;
 
     return everyRealSourceSelected && selectedSources.has(noOfferSourceKey)
@@ -572,7 +641,7 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
 
   private replaceLoadedProduct(nextProduct: CatalogProductListItem): void {
     this.products.update((products) =>
-      products.map((product) => product.id === nextProduct.id ? nextProduct : product)
+      products.map((product) => (product.id === nextProduct.id ? nextProduct : product))
     );
   }
 
@@ -636,4 +705,3 @@ function normalizeFilterText(value: string): string {
 function formatPrice(price: CatalogProductOfferPrice): string {
   return `${price.amount.toLocaleString("hu-HU")} ${price.currencyCode}`;
 }
-

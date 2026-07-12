@@ -19,9 +19,14 @@ export interface HouseholdPreviewStockItem {
   imports: [HouseholdShoppingListComponent],
   template: `
     <section class="stock-workspace" aria-labelledby="preview-home-title">
-      <section class="stock-panel preview-surface" [attr.aria-label]="loc.t('household.stockPanelLabel')">
+      <section
+        class="stock-panel preview-surface"
+        [attr.aria-label]="loc.t('household.stockPanelLabel')"
+      >
         <div class="panel-topline">
-          <p class="panel-title" id="preview-home-title">{{ loc.t("household.stockPanelTitle") }}</p>
+          <p class="panel-title" id="preview-home-title">
+            {{ loc.t("household.stockPanelTitle") }}
+          </p>
         </div>
 
         <div class="household-bar">
@@ -33,7 +38,11 @@ export interface HouseholdPreviewStockItem {
               </select>
             </label>
 
-            <button class="ui-button ui-button-quiet ui-button-sm manage-household-button" type="button" disabled>
+            <button
+              class="ui-button ui-button-quiet ui-button-sm manage-household-button"
+              type="button"
+              disabled
+            >
               {{ loc.t("household.manageHousehold") }}
             </button>
           </div>
@@ -68,7 +77,9 @@ export interface HouseholdPreviewStockItem {
                   <span>{{ formatAmount(item.currentAmount, item.unit) }}</span>
                   <span
                     class="relation-symbol"
-                    [class.relation-below]="item.stockStatus === 'below_limit' || item.stockStatus === 'at_limit'"
+                    [class.relation-below]="
+                      item.stockStatus === 'below_limit' || item.stockStatus === 'at_limit'
+                    "
                     [class.relation-watch]="item.stockStatus === 'low_soon'"
                     [class.relation-steady]="item.stockStatus === 'steady'"
                   >
@@ -77,7 +88,9 @@ export interface HouseholdPreviewStockItem {
                   <span>{{ formatAmount(item.minLimit, item.unit) }}</span>
                   <span
                     class="status-badge"
-                    [class.status-danger]="item.stockStatus === 'below_limit' || item.stockStatus === 'at_limit'"
+                    [class.status-danger]="
+                      item.stockStatus === 'below_limit' || item.stockStatus === 'at_limit'
+                    "
                     [class.status-watch]="item.stockStatus === 'low_soon'"
                   >
                     {{ loc.t(stockStatusTranslationKey(item.stockStatus)) }}
@@ -102,7 +115,10 @@ export interface HouseholdPreviewStockItem {
         </button>
       </section>
 
-      <section class="editor-panel preview-surface" [attr.aria-label]="loc.t('household.selectedItem')">
+      <section
+        class="editor-panel preview-surface"
+        [attr.aria-label]="loc.t('household.selectedItem')"
+      >
         <p class="card-kicker">{{ loc.t("household.selectedItem") }}</p>
         <h2>{{ previewEditorItem().displayName }}</h2>
 
@@ -115,7 +131,12 @@ export interface HouseholdPreviewStockItem {
           <div class="split-fields">
             <label>
               <span>{{ loc.t("household.currentAmount") }}</span>
-              <input type="number" step="0.01" [value]="previewEditorItem().currentAmount" disabled />
+              <input
+                type="number"
+                step="0.01"
+                [value]="previewEditorItem().currentAmount"
+                disabled
+              />
             </label>
             <label>
               <span>{{ loc.t("household.minLimit") }}</span>
@@ -290,7 +311,9 @@ export interface HouseholdPreviewStockItem {
         align-items: center;
         display: grid;
         gap: 0.55rem;
-        grid-template-columns: minmax(8rem, 1.5fr) minmax(4.25rem, 0.72fr) 1.8rem minmax(4.25rem, 0.72fr) minmax(5.5rem, 0.9fr);
+        grid-template-columns:
+          minmax(8rem, 1.5fr) minmax(4.25rem, 0.72fr) 1.8rem minmax(4.25rem, 0.72fr)
+          minmax(5.5rem, 0.9fr);
         min-width: 0;
       }
 
@@ -379,7 +402,11 @@ export interface HouseholdPreviewStockItem {
 
       .status-badge {
         align-self: center;
-        background: color-mix(in srgb, var(--color-accent-leaf) 12%, var(--surface-soft-background));
+        background: color-mix(
+          in srgb,
+          var(--color-accent-leaf) 12%,
+          var(--surface-soft-background)
+        );
         border-radius: var(--radius-ui);
         color: var(--color-text);
         display: inline-flex;
@@ -396,11 +423,19 @@ export interface HouseholdPreviewStockItem {
       }
 
       .status-danger {
-        background: color-mix(in srgb, var(--color-status-danger) 14%, var(--surface-soft-background));
+        background: color-mix(
+          in srgb,
+          var(--color-status-danger) 14%,
+          var(--surface-soft-background)
+        );
       }
 
       .status-watch {
-        background: color-mix(in srgb, var(--color-status-warning) 22%, var(--surface-soft-background));
+        background: color-mix(
+          in srgb,
+          var(--color-status-warning) 22%,
+          var(--surface-soft-background)
+        );
       }
 
       .add-new-button {

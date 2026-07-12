@@ -4,12 +4,7 @@ import tseslint from "typescript-eslint";
 
 export default [
   {
-    ignores: [
-      ".angular/**",
-      "dist/**",
-      "coverage/**",
-      "node_modules/**"
-    ]
+    ignores: [".angular/**", "dist/**", "coverage/**", "node_modules/**"]
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,

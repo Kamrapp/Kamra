@@ -43,8 +43,9 @@ function signaturesMatch(actual: string, expected: string): boolean {
   const actualBuffer = Buffer.from(actual);
   const expectedBuffer = Buffer.from(expected);
 
-  return actualBuffer.length === expectedBuffer.length
-    && timingSafeEqual(actualBuffer, expectedBuffer);
+  return (
+    actualBuffer.length === expectedBuffer.length && timingSafeEqual(actualBuffer, expectedBuffer)
+  );
 }
 
 function isUserTokenPayload(value: unknown): value is UserTokenPayload {
@@ -54,11 +55,13 @@ function isUserTokenPayload(value: unknown): value is UserTokenPayload {
 
   const payload = value as Partial<UserTokenPayload>;
 
-  return typeof payload.email === "string"
-    && typeof payload.exp === "number"
-    && typeof payload.iat === "number"
-    && (payload.role === "admin" || payload.role === "user")
-    && typeof payload.sub === "string";
+  return (
+    typeof payload.email === "string" &&
+    typeof payload.exp === "number" &&
+    typeof payload.iat === "number" &&
+    (payload.role === "admin" || payload.role === "user") &&
+    typeof payload.sub === "string"
+  );
 }
 
 export function createUserToken(input: CreateUserTokenInput): string {

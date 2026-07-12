@@ -18,7 +18,10 @@ describe("buildShoppingListStockUpdatePlan", () => {
 
     expect(result.kind).toBe("confirmation_required");
     if (result.kind === "confirmation_required") {
-      expect(result.response.allowedConfirmationModes).toEqual(["tick_all_and_update", "update_ticked_only"]);
+      expect(result.response.allowedConfirmationModes).toEqual([
+        "tick_all_and_update",
+        "update_ticked_only"
+      ]);
     }
   });
 
@@ -28,14 +31,34 @@ describe("buildShoppingListStockUpdatePlan", () => {
       confirmationMode: "update_ticked_only",
       householdId: "household1",
       shoppingList: createShoppingList([
-        createLine({ householdStockItemId: "stock_milk", id: "line_1", purchasedAmount: 2, ticked: true }),
-        createLine({ householdStockItemId: "stock_flour", id: "line_2", purchasedAmount: 1, ticked: false })
+        createLine({
+          householdStockItemId: "stock_milk",
+          id: "line_1",
+          purchasedAmount: 2,
+          ticked: true
+        }),
+        createLine({
+          householdStockItemId: "stock_flour",
+          id: "line_2",
+          purchasedAmount: 1,
+          ticked: false
+        })
       ]),
       shop: null,
       stockAppliedAt: "2026-07-09",
       stockPage: createStockPage([
-        { currentAmount: 1, householdId: "household1", householdProductId: "product_milk", id: "stock_milk" },
-        { currentAmount: 3, householdId: "household1", householdProductId: "product_flour", id: "stock_flour" }
+        {
+          currentAmount: 1,
+          householdId: "household1",
+          householdProductId: "product_milk",
+          id: "stock_milk"
+        },
+        {
+          currentAmount: 3,
+          householdId: "household1",
+          householdProductId: "product_flour",
+          id: "stock_flour"
+        }
       ])
     });
 
@@ -118,7 +141,11 @@ describe("buildShoppingListStockUpdatePlan", () => {
           stockGroupKey: "paprika_cream"
         }
       ]);
-      expect(result.plan.updatedShoppingList.items.every((item) => item.status === "applied" && item.ticked)).toBe(true);
+      expect(
+        result.plan.updatedShoppingList.items.every(
+          (item) => item.status === "applied" && item.ticked
+        )
+      ).toBe(true);
     }
   });
 });

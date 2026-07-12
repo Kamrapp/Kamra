@@ -1,6 +1,9 @@
 import type { MongoSessionLike, MongoTransactionClientLike } from "./mongo-like.js";
 
-export async function runMongoTransaction<T>(client: MongoTransactionClientLike, operation: (session: MongoSessionLike) => Promise<T>): Promise<T> {
+export async function runMongoTransaction<T>(
+  client: MongoTransactionClientLike,
+  operation: (session: MongoSessionLike) => Promise<T>
+): Promise<T> {
   const session = client.startSession();
   try {
     session.startTransaction();

@@ -209,20 +209,20 @@ Seeded household:
 
 Seeded stock examples:
 
-| Product | Current | Minimum | Unit | Scenario |
-| --- | ---: | ---: | --- | --- |
-| Kenyer | 0.2 | 0.5 | kg | below limit |
-| Tej | 1.8 | 2 | l | below limit |
-| Vegyes lekvarok | 4 | 3 | uveg | steady |
-| Pelenka | 0 | 40 | db | below limit |
-| Alma | 1.2 | 0.4 | kg | steady |
-| Repa | 0.22 | 0.2 | kg | low soon |
-| Mososzer | 0.3 | 1 | l | below limit |
-| WC papir | 9 | 8 | tekercs | low soon |
-| Tojas | 5 | 6 | db | below limit |
-| Rizs | 0 | 1 | kg | below limit |
-| Cukor | 2.5 | 1 | kg | steady |
-| Tusfurdo | 1 | 1 | flakon | at limit |
+| Product         | Current | Minimum | Unit    | Scenario    |
+| --------------- | ------: | ------: | ------- | ----------- |
+| Kenyer          |     0.2 |     0.5 | kg      | below limit |
+| Tej             |     1.8 |       2 | l       | below limit |
+| Vegyes lekvarok |       4 |       3 | uveg    | steady      |
+| Pelenka         |       0 |      40 | db      | below limit |
+| Alma            |     1.2 |     0.4 | kg      | steady      |
+| Repa            |    0.22 |     0.2 | kg      | low soon    |
+| Mososzer        |     0.3 |       1 | l       | below limit |
+| WC papir        |       9 |       8 | tekercs | low soon    |
+| Tojas           |       5 |       6 | db      | below limit |
+| Rizs            |       0 |       1 | kg      | below limit |
+| Cukor           |     2.5 |       1 | kg      | steady      |
+| Tusfurdo        |       1 |       1 | flakon  | at limit    |
 
 The UI displays natural Hungarian labels with accents where the locale and font support them.
 

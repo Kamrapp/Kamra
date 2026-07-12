@@ -369,20 +369,23 @@ export class HouseholdStockService {
       };
     }
 
-    const response = await fetch(buildApiUrl(`/api/household/items?householdId=${encodeURIComponent(householdId)}`), {
-      headers: {
-        accept: "application/json",
-        ...this.auth.getAuthorizationHeaders()
-      },
-      method: "GET"
-    });
+    const response = await fetch(
+      buildApiUrl(`/api/household/items?householdId=${encodeURIComponent(householdId)}`),
+      {
+        headers: {
+          accept: "application/json",
+          ...this.auth.getAuthorizationHeaders()
+        },
+        method: "GET"
+      }
+    );
     const error = await this.readHouseholdError(response, this.loc.t("household.routeError"));
     if (error) {
       return this.withToast(error);
     }
 
     return {
-      page: await response.json() as HouseholdStockPage,
+      page: (await response.json()) as HouseholdStockPage,
       status: "ok"
     };
   }
@@ -404,7 +407,9 @@ export class HouseholdStockService {
     }
 
     const response = await fetch(
-      buildApiUrl(`/api/household/items?householdId=${encodeURIComponent(input.householdId)}&id=${encodeURIComponent(input.id)}`),
+      buildApiUrl(
+        `/api/household/items?householdId=${encodeURIComponent(input.householdId)}&id=${encodeURIComponent(input.id)}`
+      ),
       {
         headers: {
           accept: "application/json",
@@ -419,12 +424,14 @@ export class HouseholdStockService {
     }
 
     return {
-      page: await response.json() as HouseholdStockPage,
+      page: (await response.json()) as HouseholdStockPage,
       status: "ok"
     };
   }
 
-  async previewShoppingList(input: CreateHouseholdShoppingListInput): Promise<HouseholdShoppingListPreviewResult> {
+  async previewShoppingList(
+    input: CreateHouseholdShoppingListInput
+  ): Promise<HouseholdShoppingListPreviewResult> {
     if (!this.auth.token()) {
       return {
         message: this.loc.t("household.signInBeforeLoad"),
@@ -441,19 +448,28 @@ export class HouseholdStockService {
       },
       method: "POST"
     });
-    const error = await this.readHouseholdError(response, this.loc.t("household.shoppingListLoadFailure"));
+    const error = await this.readHouseholdError(
+      response,
+      this.loc.t("household.shoppingListLoadFailure")
+    );
     if (error) {
       return this.withToast(error);
     }
 
     return {
-      preview: await response.json() as HouseholdShoppingListPreviewResponse,
+      preview: (await response.json()) as HouseholdShoppingListPreviewResponse,
       status: "ok"
     };
   }
 
-  async createShoppingList(input: CreateHouseholdShoppingListInput): Promise<HouseholdShoppingListResult> {
-    return await this.writeShoppingList(buildApiUrl("/api/household/shopping-lists"), "POST", input);
+  async createShoppingList(
+    input: CreateHouseholdShoppingListInput
+  ): Promise<HouseholdShoppingListResult> {
+    return await this.writeShoppingList(
+      buildApiUrl("/api/household/shopping-lists"),
+      "POST",
+      input
+    );
   }
 
   async loadLatestShoppingList(householdId: string): Promise<HouseholdShoppingListResult> {
@@ -464,28 +480,40 @@ export class HouseholdStockService {
       };
     }
 
-    const response = await fetch(buildApiUrl(`/api/household/shopping-lists/latest?householdId=${encodeURIComponent(householdId)}`), {
-      headers: {
-        accept: "application/json",
-        ...this.auth.getAuthorizationHeaders()
-      },
-      method: "GET"
-    });
-    const error = await this.readHouseholdError(response, this.loc.t("household.shoppingListLoadFailure"));
+    const response = await fetch(
+      buildApiUrl(
+        `/api/household/shopping-lists/latest?householdId=${encodeURIComponent(householdId)}`
+      ),
+      {
+        headers: {
+          accept: "application/json",
+          ...this.auth.getAuthorizationHeaders()
+        },
+        method: "GET"
+      }
+    );
+    const error = await this.readHouseholdError(
+      response,
+      this.loc.t("household.shoppingListLoadFailure")
+    );
     if (error) {
-      return error.status === "not_found"
-        ? error
-        : this.withToast(error);
+      return error.status === "not_found" ? error : this.withToast(error);
     }
 
     return {
-      shoppingList: (await response.json() as HouseholdShoppingListResponse).shoppingList,
+      shoppingList: ((await response.json()) as HouseholdShoppingListResponse).shoppingList,
       status: "ok"
     };
   }
 
-  async updateShoppingList(input: UpdateHouseholdShoppingListInput): Promise<HouseholdShoppingListResult> {
-    return await this.writeShoppingList(buildApiUrl("/api/household/shopping-lists"), "PATCH", input);
+  async updateShoppingList(
+    input: UpdateHouseholdShoppingListInput
+  ): Promise<HouseholdShoppingListResult> {
+    return await this.writeShoppingList(
+      buildApiUrl("/api/household/shopping-lists"),
+      "PATCH",
+      input
+    );
   }
 
   async updateShoppingListStocks(
@@ -508,7 +536,7 @@ export class HouseholdStockService {
       method: "POST"
     });
     if (response.status === 409) {
-      const payload = await response.json() as HouseholdShoppingListStockUpdateResponse;
+      const payload = (await response.json()) as HouseholdShoppingListStockUpdateResponse;
       return {
         allowedConfirmationModes: payload.allowedConfirmationModes ?? [],
         shoppingList: payload.shoppingList,
@@ -516,12 +544,15 @@ export class HouseholdStockService {
       };
     }
 
-    const error = await this.readHouseholdError(response, this.loc.t("household.shoppingListApplyFailure"));
+    const error = await this.readHouseholdError(
+      response,
+      this.loc.t("household.shoppingListApplyFailure")
+    );
     if (error) {
       return this.withToast(error);
     }
 
-    const payload = await response.json() as HouseholdShoppingListStockUpdateResponse;
+    const payload = (await response.json()) as HouseholdShoppingListStockUpdateResponse;
     return {
       appliedLineCount: payload.appliedLineCount,
       householdStockPage: payload.householdStockPage as HouseholdStockPage,
@@ -545,13 +576,16 @@ export class HouseholdStockService {
       },
       method: "GET"
     });
-    const error = await this.readHouseholdError(response, this.loc.t("household.shoppingListLoadFailure"));
+    const error = await this.readHouseholdError(
+      response,
+      this.loc.t("household.shoppingListLoadFailure")
+    );
     if (error) {
       return this.withToast(error);
     }
 
     return {
-      shops: (await response.json() as HouseholdShopListResponse).shops,
+      shops: ((await response.json()) as HouseholdShopListResponse).shops,
       status: "ok"
     };
   }
@@ -583,7 +617,7 @@ export class HouseholdStockService {
     }
 
     return {
-      page: await response.json() as HouseholdStockPage,
+      page: (await response.json()) as HouseholdStockPage,
       status: "ok"
     };
   }
@@ -609,13 +643,16 @@ export class HouseholdStockService {
       },
       method
     });
-    const error = await this.readHouseholdError(response, this.loc.t("household.shoppingListSaveFailure"));
+    const error = await this.readHouseholdError(
+      response,
+      this.loc.t("household.shoppingListSaveFailure")
+    );
     if (error) {
       return this.withToast(error);
     }
 
     return {
-      shoppingList: (await response.json() as HouseholdShoppingListResponse).shoppingList,
+      shoppingList: ((await response.json()) as HouseholdShoppingListResponse).shoppingList,
       status: "ok"
     };
   }

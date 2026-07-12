@@ -39,7 +39,13 @@ describe("kamra logger", () => {
 
   it("redacts sensitive structured details and bounds long values", () => {
     vi.stubEnv("VERCEL", "1");
-    writeStructuredServerLog({ category: "audit", details: { password: "secret", note: "x".repeat(600) }, eventName: "flag.changed", level: "info", message: "Feature flag changed" });
+    writeStructuredServerLog({
+      category: "audit",
+      details: { password: "secret", note: "x".repeat(600) },
+      eventName: "flag.changed",
+      level: "info",
+      message: "Feature flag changed"
+    });
     expect(appendFileSync).not.toHaveBeenCalled();
   });
 });

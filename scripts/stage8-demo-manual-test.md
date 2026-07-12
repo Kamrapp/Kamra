@@ -11,6 +11,8 @@ npm run seed
 
 Sign in as `usera`, open `Hungarian nature household`, and use a desktop-width viewport.
 
+The refreshed demo fixture intentionally includes `Tej`, `Kenyér`, `Zöldségek`, `Gyümölcsök`, `Egészséges rágcsálnivalók`, and an empty `Ünnepi sütés` group; grouped and ungrouped Products cover multiple Batches, expiry ordering, target states, and Product-only rows.
+
 ## Recheck fixed behavior
 
 1. Expand and collapse the Household stock panel. Confirm the panel itself shrinks, not only its inner table. Expand and collapse the Shopping list panel even when it contains saved items; its content and table must disappear while collapsed.
@@ -25,6 +27,8 @@ Sign in as `usera`, open `Hungarian nature household`, and use a desktop-width v
 10. Edit a Batch quantity to a value both below and above its original quantity. Each save must refresh the Batch/Product/Group Current without a 500. Also set expiry before Stocked at and confirm it persists.
 11. Save the Batch from the right-side editor and confirm the table row leaves edit mode and the editor clears. Save from the inline row and confirm the right-side editor also clears and the refreshed values appear.
 12. Discard a Batch and confirm it completes without a 404.
+13. Confirm comparison symbols are visibly larger and the state badges use good/danger styling in both light and dark themes.
+14. In the Shopping list, add an impulse item, then submit the same name again with different casing or accents. Confirm no second line is created, the input remains filled, and the activity console reports that the item was already added.
 
 ## Remaining Stage 8 behavior
 
@@ -35,6 +39,7 @@ Sign in as `usera`, open `Hungarian nature household`, and use a desktop-width v
 5. Confirm the Unassigned Products area is a slim separator rather than a full warning-colored data row. Confirm the demo no longer contains a productless `Needs Product` batch.
 6. Confirm activity entries name the affected Group/Product where available and newest errors appear first.
 7. Verify Group/Product/Batch delete confirmations and outcomes.
+8. Use the demo fixture to inspect: two milk Products under one targeted Group, two bread Products under another targeted Group, no-target vegetable/fruit groups, a one-Product group, an empty group, ungrouped Products, multi-Batch Products, expired and future-expiry Batches, and a Product below its minimum.
 
 ## Deferred boundary
 

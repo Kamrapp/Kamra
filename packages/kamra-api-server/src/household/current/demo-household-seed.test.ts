@@ -25,6 +25,16 @@ describe("runDemoHouseholdSeed", () => {
     expect(db.__collections["household_shopping_lists"]!.docs).toHaveLength(0);
     expect(db.__collections["household_purchase_price_observations"]!.docs).toHaveLength(0);
     expect(db.__collections["household_stock_items"]!.docs).toHaveLength(12);
+    expect(db.__collections["household_product_groups"]!.docs).toHaveLength(6);
+    expect(db.__collections["household_products"]!.docs).toHaveLength(15);
+    expect(db.__collections["household_stock_batches"]!.docs).toHaveLength(18);
+    expect(
+      db.__collections["household_stock_batches"]!.docs.every(
+        (doc) => typeof doc.householdProductId === "string"
+      )
+    ).toBe(true);
+    expect(db.__collections["household_stock_targets"]!.docs).toHaveLength(1);
+    expect(db.__collections["household_stock_allocations"]!.docs).toHaveLength(3);
     expect(db.__collections["household_stock_items"]!.docs.map((doc) => doc.id)).toContain(
       "household_stock_household1_kenyer"
     );

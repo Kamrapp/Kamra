@@ -2,7 +2,12 @@ import { computed, inject, Injectable, signal } from "@angular/core";
 
 import { buildApiUrl } from "./api-url";
 import { readApiErrorMessage } from "./shared/api-errors";
-import { isLanguagePreference, LocalizationService, type LanguagePreference, type TranslationKey } from "./shared/localization.service";
+import {
+  isLanguagePreference,
+  LocalizationService,
+  type LanguagePreference,
+  type TranslationKey
+} from "./shared/localization.service";
 import { isThemePreference, type ThemePreference } from "./shared/theme-preference.service";
 
 export type UserRole = "admin" | "user";
@@ -52,9 +57,7 @@ export class AuthService {
 
   getAuthorizationHeaders(): Record<string, string> {
     const token = this.token();
-    return token
-      ? { authorization: `Bearer ${token}` }
-      : {};
+    return token ? { authorization: `Bearer ${token}` } : {};
   }
 
   async loadCurrentUser(): Promise<void> {
@@ -106,13 +109,14 @@ export class AuthService {
 
     if (!response.ok) {
       return {
-        message: response.status === 401
-          ? this.loc.t("app.loginInvalid")
-          : response.status === 503
-            ? this.loc.t("app.loginNotConfigured")
-          : await readApiErrorMessage(response, this.loc.t("app.loginFailure"), (messageKey) =>
-              this.loc.t(messageKey as TranslationKey)
-            ),
+        message:
+          response.status === 401
+            ? this.loc.t("app.loginInvalid")
+            : response.status === 503
+              ? this.loc.t("app.loginNotConfigured")
+              : await readApiErrorMessage(response, this.loc.t("app.loginFailure"), (messageKey) =>
+                  this.loc.t(messageKey as TranslationKey)
+                ),
         status: "error"
       };
     }
@@ -132,7 +136,10 @@ export class AuthService {
     this.clearToken();
   }
 
-  async updateUserPreferences(preferences: { language?: LanguagePreference; theme?: ThemePreference }): Promise<void> {
+  async updateUserPreferences(preferences: {
+    language?: LanguagePreference;
+    theme?: ThemePreference;
+  }): Promise<void> {
     let response: Response;
     try {
       response = await fetch(buildApiUrl("/api/admin/preferences"), {
@@ -179,12 +186,8 @@ export class AuthService {
     return {
       email: user.email,
       profile: {
-        language: isLanguagePreference(user.profile?.language)
-          ? user.profile.language
-          : undefined,
-        theme: isThemePreference(user.profile?.theme)
-          ? user.profile.theme
-          : undefined
+        language: isLanguagePreference(user.profile?.language) ? user.profile.language : undefined,
+        theme: isThemePreference(user.profile?.theme) ? user.profile.theme : undefined
       },
       role: user.role
     };

@@ -76,8 +76,9 @@ export function parseSimpleHtmlTableShop(html: string, observedAt: string): Pars
   return rows.map((rowMatch) => {
     const crawlContext = rowMatch[0]?.trim() ?? null;
     const rowHtml = requireRegexCapture(rowMatch, 1, "table row");
-    const cells = [...rowHtml.matchAll(/<td>\s*([\s\S]*?)\s*<\/td>/g)]
-      .map((cellMatch) => decodeHtmlText(requireRegexCapture(cellMatch, 1, "table cell")));
+    const cells = [...rowHtml.matchAll(/<td>\s*([\s\S]*?)\s*<\/td>/g)].map((cellMatch) =>
+      decodeHtmlText(requireRegexCapture(cellMatch, 1, "table cell"))
+    );
 
     if (cells.length !== 8) {
       throw new Error(`Expected 8 product table cells but found ${cells.length}.`);

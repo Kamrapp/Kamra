@@ -18,7 +18,11 @@ import { LocalizationService } from "../shared/localization.service";
       </label>
 
       @if (active()) {
-        <button class="filter-clear-button ui-button ui-button-quiet ui-button-sm" type="button" (click)="clearRequested.emit()">
+        <button
+          class="filter-clear-button ui-button ui-button-quiet ui-button-sm"
+          type="button"
+          (click)="clearRequested.emit()"
+        >
           {{ loc.t("common.clear") }}
         </button>
       }

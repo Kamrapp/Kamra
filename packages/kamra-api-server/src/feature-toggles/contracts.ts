@@ -47,7 +47,13 @@ export interface FeatureFlagChangeAudit {
 export interface FeatureFlagStore {
   appendAudit(audit: FeatureFlagChangeAudit): Promise<void>;
   read(key: FeatureFlagKey): Promise<FeatureFlagRecord | null>;
-  write(input: { expectedRevision?: number; key: FeatureFlagKey; updatedAt: string; updatedByUserId: string; enabled: boolean }): Promise<FeatureFlagRecord>;
+  write(input: {
+    expectedRevision?: number;
+    key: FeatureFlagKey;
+    updatedAt: string;
+    updatedByUserId: string;
+    enabled: boolean;
+  }): Promise<FeatureFlagRecord>;
 }
 
 export interface FeatureFlagEvaluationContext {
@@ -62,4 +68,5 @@ export interface FeatureFlagEvaluation {
   source: "stored" | "default" | "failure";
 }
 
-export type FeatureFlagErrorCode = "feature_flag_revision_conflict" | "feature_flag_storage_failure";
+export type FeatureFlagErrorCode =
+  "feature_flag_revision_conflict" | "feature_flag_storage_failure";

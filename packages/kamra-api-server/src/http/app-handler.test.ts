@@ -93,28 +93,80 @@ describe("handleAppRequest auth guards", () => {
     vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
     vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
     vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
-    const token = createUserToken({ email: "member@kamra.test", maxAgeSeconds: 60, now: new Date(), role: "user", secret: "test-secret" });
-    const db = createFakeDb({ household_memberships: new FakeCollection<Record<string, unknown>>("household_memberships", [{ householdId: "household-1", status: "active", userId: "member@kamra.test" }]) });
-    const response = await handleAppRequest({ headers: { authorization: `Bearer ${token}` }, method: "GET", path: "/api/households/household-1/stock-targets/target-1" }, { getMongoClient: async () => ({ db: () => db }) as never });
+    const token = createUserToken({
+      email: "member@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "user",
+      secret: "test-secret"
+    });
+    const db = createFakeDb({
+      household_memberships: new FakeCollection<Record<string, unknown>>("household_memberships", [
+        { householdId: "household-1", status: "active", userId: "member@kamra.test" }
+      ])
+    });
+    const response = await handleAppRequest(
+      {
+        headers: { authorization: `Bearer ${token}` },
+        method: "GET",
+        path: "/api/households/household-1/stock-targets/target-1"
+      },
+      { getMongoClient: async () => ({ db: () => db }) as never }
+    );
     expect(response.status).toBe(404);
     expect(JSON.parse(response.body)).toEqual({ error: "stock_target_not_found" });
-    const nonMemberToken = createUserToken({ email: "other@kamra.test", maxAgeSeconds: 60, now: new Date(), role: "user", secret: "test-secret" });
-    const forbidden = await handleAppRequest({ headers: { authorization: `Bearer ${nonMemberToken}` }, method: "GET", path: "/api/households/household-1/stock-targets/target-1" }, { getMongoClient: async () => ({ db: () => db }) as never });
+    const nonMemberToken = createUserToken({
+      email: "other@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "user",
+      secret: "test-secret"
+    });
+    const forbidden = await handleAppRequest(
+      {
+        headers: { authorization: `Bearer ${nonMemberToken}` },
+        method: "GET",
+        path: "/api/households/household-1/stock-targets/target-1"
+      },
+      { getMongoClient: async () => ({ db: () => db }) as never }
+    );
     expect(forbidden.status).toBe(403);
   });
 
   it("rejects malformed v2 manual batch requests before database access", async () => {
     vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
-    const token = createUserToken({ email: "member@kamra.test", maxAgeSeconds: 60, now: new Date(), role: "user", secret: "test-secret" });
-    const response = await handleAppRequest({ bodyText: "{}", headers: { authorization: `Bearer ${token}` }, method: "POST", path: "/api/households/household-1/batches" });
+    const token = createUserToken({
+      email: "member@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "user",
+      secret: "test-secret"
+    });
+    const response = await handleAppRequest({
+      bodyText: "{}",
+      headers: { authorization: `Bearer ${token}` },
+      method: "POST",
+      path: "/api/households/household-1/batches"
+    });
     expect(response.status).toBe(400);
     expect(JSON.parse(response.body).error).toBe("invalid_stock_batch_request");
   });
 
   it("rejects malformed v2 consumption requests before database access", async () => {
     vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
-    const token = createUserToken({ email: "member@kamra.test", maxAgeSeconds: 60, now: new Date(), role: "user", secret: "test-secret" });
-    const response = await handleAppRequest({ bodyText: JSON.stringify({ requestedQuantity: 1 }), headers: { authorization: `Bearer ${token}` }, method: "POST", path: "/api/households/household-1/stock-targets/target-1/consume" });
+    const token = createUserToken({
+      email: "member@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "user",
+      secret: "test-secret"
+    });
+    const response = await handleAppRequest({
+      bodyText: JSON.stringify({ requestedQuantity: 1 }),
+      headers: { authorization: `Bearer ${token}` },
+      method: "POST",
+      path: "/api/households/household-1/stock-targets/target-1/consume"
+    });
     expect(response.status).toBe(400);
     expect(JSON.parse(response.body).error).toBe("invalid_stock_consumption_request");
   });
@@ -145,9 +197,10 @@ describe("handleAppRequest auth guards", () => {
       },
       {
         createHouseholdRepository: repositoryFactory,
-        getMongoClient: async () => ({
-          db: () => db
-        }) as never
+        getMongoClient: async () =>
+          ({
+            db: () => db
+          }) as never
       }
     );
 
@@ -183,9 +236,10 @@ describe("handleAppRequest auth guards", () => {
       },
       {
         createHouseholdRepository: repositoryFactory,
-        getMongoClient: async () => ({
-          db: () => db
-        }) as never
+        getMongoClient: async () =>
+          ({
+            db: () => db
+          }) as never
       }
     );
 
@@ -201,14 +255,89 @@ describe("handleAppRequest auth guards", () => {
   });
 
   it("corrects and discards an encoded v2 Batch id through the HTTP routes", async () => {
-    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret"); vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra"); vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
-    const token = createUserToken({ email: "member@kamra.test", maxAgeSeconds: 60, now: new Date(), role: "user", secret: "test-secret" });
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
+    vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
+    vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+    const token = createUserToken({
+      email: "member@kamra.test",
+      maxAgeSeconds: 60,
+      now: new Date(),
+      role: "user",
+      secret: "test-secret"
+    });
     const batchId = "stock-batch:milk";
-    const db = createFakeDb({ household_memberships: new FakeCollection<Record<string, unknown>>("household_memberships", [{ householdId: "household-1", status: "active", userId: "member@kamra.test" }]), household_stock_batches: new FakeCollection<Record<string, unknown>>("household_stock_batches", [{ acquiredOn: "2026-07-12", acquisitionSnapshot: { displayName: "Milk" }, classificationSnapshot: { capturedAt: "2026-07-12T00:00:00.000Z", directAttributes: [], directConcepts: [], effectiveConcepts: [], source: "manual" }, createdAt: "2026-07-12T00:00:00.000Z", createdByUserId: "member@kamra.test", expiryOn: null, householdId: "household-1", id: batchId, originalQuantity: 1, remainingQuantity: 1, revision: 0, status: "available", unit: "l", updatedAt: "2026-07-12T00:00:00.000Z", updatedByUserId: "member@kamra.test" }]) });
-    const client = { db: () => db, startSession: () => ({ abortTransaction: async () => undefined, commitTransaction: async () => undefined, endSession: async () => undefined, startTransaction: () => undefined }) };
-    const corrected = await handleAppRequest({ bodyText: JSON.stringify({ acquiredOn: "2026-07-12", expectedBatchRevision: 0, expiryOn: "2026-07-10", operationId: "correct-1", requestFingerprint: "correct-1", resultingQuantity: 2 }), headers: { authorization: `Bearer ${token}` }, method: "POST", path: `/api/households/household-1/batches/${encodeURIComponent(batchId)}/correct` }, { getMongoClient: async () => client as never });
+    const db = createFakeDb({
+      household_memberships: new FakeCollection<Record<string, unknown>>("household_memberships", [
+        { householdId: "household-1", status: "active", userId: "member@kamra.test" }
+      ]),
+      household_stock_batches: new FakeCollection<Record<string, unknown>>(
+        "household_stock_batches",
+        [
+          {
+            acquiredOn: "2026-07-12",
+            acquisitionSnapshot: { displayName: "Milk" },
+            classificationSnapshot: {
+              capturedAt: "2026-07-12T00:00:00.000Z",
+              directAttributes: [],
+              directConcepts: [],
+              effectiveConcepts: [],
+              source: "manual"
+            },
+            createdAt: "2026-07-12T00:00:00.000Z",
+            createdByUserId: "member@kamra.test",
+            expiryOn: null,
+            householdId: "household-1",
+            id: batchId,
+            originalQuantity: 1,
+            remainingQuantity: 1,
+            revision: 0,
+            status: "available",
+            unit: "l",
+            updatedAt: "2026-07-12T00:00:00.000Z",
+            updatedByUserId: "member@kamra.test"
+          }
+        ]
+      )
+    });
+    const client = {
+      db: () => db,
+      startSession: () => ({
+        abortTransaction: async () => undefined,
+        commitTransaction: async () => undefined,
+        endSession: async () => undefined,
+        startTransaction: () => undefined
+      })
+    };
+    const corrected = await handleAppRequest(
+      {
+        bodyText: JSON.stringify({
+          acquiredOn: "2026-07-12",
+          expectedBatchRevision: 0,
+          expiryOn: "2026-07-10",
+          operationId: "correct-1",
+          requestFingerprint: "correct-1",
+          resultingQuantity: 2
+        }),
+        headers: { authorization: `Bearer ${token}` },
+        method: "POST",
+        path: `/api/households/household-1/batches/${encodeURIComponent(batchId)}/correct`
+      },
+      { getMongoClient: async () => client as never }
+    );
     expect(corrected.status).toBe(200);
-    const discarded = await handleAppRequest({ bodyText: JSON.stringify({ expectedBatchRevision: 1, operationId: "discard-1", requestFingerprint: "discard-1" }), headers: { authorization: `Bearer ${token}` }, method: "POST", path: `/api/households/household-1/batches/${encodeURIComponent(batchId)}/discard` }, { getMongoClient: async () => client as never });
+    const discarded = await handleAppRequest(
+      {
+        bodyText: JSON.stringify({
+          expectedBatchRevision: 1,
+          operationId: "discard-1",
+          requestFingerprint: "discard-1"
+        }),
+        headers: { authorization: `Bearer ${token}` },
+        method: "POST",
+        path: `/api/households/household-1/batches/${encodeURIComponent(batchId)}/discard`
+      },
+      { getMongoClient: async () => client as never }
+    );
     expect(discarded.status).toBe(200);
   });
 
@@ -251,9 +380,10 @@ describe("handleAppRequest auth guards", () => {
     const dependencies = {
       createHouseholdRepository: () => householdRepository,
       createUserRepository: () => userRepository,
-      getMongoClient: async () => ({
-        db: () => db
-      }) as never
+      getMongoClient: async () =>
+        ({
+          db: () => db
+        }) as never
     };
 
     await householdRepository.updateFeatureFlag({
@@ -290,7 +420,7 @@ describe("handleAppRequest auth guards", () => {
       }
     });
     expect(JSON.parse(createResponse.body)).not.toHaveProperty("password");
-    expect((await householdRepository.listHouseholdsForUser("alpha@kamra.test"))).toHaveLength(1);
+    expect(await householdRepository.listHouseholdsForUser("alpha@kamra.test")).toHaveLength(1);
 
     await householdRepository.updateFeatureFlag({
       enabled: false,
@@ -363,9 +493,10 @@ describe("handleAppRequest auth guards", () => {
       },
       {
         createHouseholdRepository: () => new MongoHouseholdRepository(db),
-        getMongoClient: async () => ({
-          db: () => db
-        }) as never
+        getMongoClient: async () =>
+          ({
+            db: () => db
+          }) as never
       }
     );
 
@@ -427,9 +558,10 @@ describe("handleAppRequest auth guards", () => {
       },
       {
         createHouseholdRepository: () => new MongoHouseholdRepository(db),
-        getMongoClient: async () => ({
-          db: () => db
-        }) as never
+        getMongoClient: async () =>
+          ({
+            db: () => db
+          }) as never
       }
     );
 
@@ -474,9 +606,10 @@ describe("handleAppRequest auth guards", () => {
       },
       {
         createHouseholdRepository: () => new MongoHouseholdRepository(db),
-        getMongoClient: async () => ({
-          db: () => db
-        }) as never
+        getMongoClient: async () =>
+          ({
+            db: () => db
+          }) as never
       }
     );
 
@@ -531,9 +664,10 @@ describe("handleAppRequest auth guards", () => {
       },
       {
         createHouseholdRepository: () => new MongoHouseholdRepository(db),
-        getMongoClient: async () => ({
-          db: () => db
-        }) as never
+        getMongoClient: async () =>
+          ({
+            db: () => db
+          }) as never
       }
     );
 
@@ -591,9 +725,10 @@ describe("handleAppRequest auth guards", () => {
       },
       {
         createHouseholdRepository: () => new MongoHouseholdRepository(db),
-        getMongoClient: async () => ({
-          db: () => db
-        }) as never
+        getMongoClient: async () =>
+          ({
+            db: () => db
+          }) as never
       }
     );
 
@@ -698,9 +833,10 @@ describe("handleAppRequest auth guards", () => {
       },
       {
         createHouseholdRepository: () => new MongoHouseholdRepository(db),
-        getMongoClient: async () => ({
-          db: () => db
-        }) as never
+        getMongoClient: async () =>
+          ({
+            db: () => db
+          }) as never
       }
     );
 
@@ -739,9 +875,10 @@ describe("handleAppRequest auth guards", () => {
       },
       {
         createHouseholdRepository: () => new MongoHouseholdRepository(db),
-        getMongoClient: async () => ({
-          db: () => db
-        }) as never
+        getMongoClient: async () =>
+          ({
+            db: () => db
+          }) as never
       }
     );
 
@@ -771,9 +908,10 @@ describe("handleAppRequest auth guards", () => {
       },
       {
         createHouseholdRepository: () => new MongoHouseholdRepository(db),
-        getMongoClient: async () => ({
-          db: () => db
-        }) as never
+        getMongoClient: async () =>
+          ({
+            db: () => db
+          }) as never
       }
     );
 
@@ -800,9 +938,10 @@ describe("handleAppRequest auth guards", () => {
       },
       {
         createHouseholdRepository: () => new MongoHouseholdRepository(db),
-        getMongoClient: async () => ({
-          db: () => db
-        }) as never
+        getMongoClient: async () =>
+          ({
+            db: () => db
+          }) as never
       }
     );
 
@@ -827,9 +966,10 @@ describe("handleAppRequest auth guards", () => {
       },
       {
         createHouseholdRepository: () => new MongoHouseholdRepository(db),
-        getMongoClient: async () => ({
-          db: () => db
-        }) as never
+        getMongoClient: async () =>
+          ({
+            db: () => db
+          }) as never
       }
     );
 
@@ -900,9 +1040,10 @@ describe("handleAppRequest auth guards", () => {
       },
       {
         createHouseholdRepository: () => new MongoHouseholdRepository(db),
-        getMongoClient: async () => ({
-          db: () => db
-        }) as never
+        getMongoClient: async () =>
+          ({
+            db: () => db
+          }) as never
       }
     );
 
@@ -1067,9 +1208,10 @@ describe("handleAppRequest auth guards", () => {
           upsertPriceObservations: async () => undefined
         }),
         createHouseholdRepository: () => new MongoHouseholdRepository(db),
-        getMongoClient: async () => ({
-          db: () => db
-        }) as never
+        getMongoClient: async () =>
+          ({
+            db: () => db
+          }) as never
       }
     );
 
@@ -1105,9 +1247,10 @@ describe("handleAppRequest auth guards", () => {
           }
         }),
         createHouseholdRepository: () => new MongoHouseholdRepository(db),
-        getMongoClient: async () => ({
-          db: () => db
-        }) as never
+        getMongoClient: async () =>
+          ({
+            db: () => db
+          }) as never
       }
     );
 
@@ -1166,9 +1309,10 @@ describe("handleAppRequest auth guards", () => {
           upsertPriceObservations: async () => undefined
         }),
         createHouseholdRepository: () => new MongoHouseholdRepository(db),
-        getMongoClient: async () => ({
-          db: () => db
-        }) as never
+        getMongoClient: async () =>
+          ({
+            db: () => db
+          }) as never
       }
     );
 
@@ -1241,9 +1385,10 @@ describe("handleAppRequest auth guards", () => {
       },
       {
         createHouseholdRepository: () => new MongoHouseholdRepository(db),
-        getMongoClient: async () => ({
-          db: () => db
-        }) as never
+        getMongoClient: async () =>
+          ({
+            db: () => db
+          }) as never
       }
     );
 
@@ -1302,16 +1447,17 @@ describe("handleAppRequest auth guards", () => {
               hash: "hash",
               keyLength: 64,
               parallelization: 1,
-              salt: "salt",
+              salt: "salt"
             },
             profile,
             role: "user" as const,
             status: "active" as const
           })
         }),
-        getMongoClient: async () => ({
-          db: () => ({})
-        }) as never
+        getMongoClient: async () =>
+          ({
+            db: () => ({})
+          }) as never
       }
     );
 
@@ -1388,9 +1534,10 @@ describe("handleAppRequest auth guards", () => {
             totalCount: 0
           })
         }),
-        getMongoClient: async () => ({
-          db: () => ({})
-        } as never)
+        getMongoClient: async () =>
+          ({
+            db: () => ({})
+          }) as never
       }
     );
 
@@ -1425,19 +1572,23 @@ describe("handleAppRequest auth guards", () => {
     });
     const dependencies = {
       createHouseholdRepository: () => repository,
-      getMongoClient: async () => ({
-        db: () => db
-      }) as never
+      getMongoClient: async () =>
+        ({
+          db: () => db
+        }) as never
     };
     const requestHeaders = {
       authorization: `Bearer ${token}`
     };
 
-    const initialResponse = await handleAppRequest({
-      headers: requestHeaders,
-      method: "GET",
-      path: "/api/admin/database-maintenance"
-    }, dependencies);
+    const initialResponse = await handleAppRequest(
+      {
+        headers: requestHeaders,
+        method: "GET",
+        path: "/api/admin/database-maintenance"
+      },
+      dependencies
+    );
     expect(initialResponse.status).toBe(200);
     expect(JSON.parse(initialResponse.body)).toMatchObject({
       entries: [
@@ -1494,12 +1645,15 @@ describe("handleAppRequest auth guards", () => {
       ]
     });
 
-    const manualCompletionResponse = await handleAppRequest({
-      bodyText: JSON.stringify({ entryId: "catalog-product-validation" }),
-      headers: requestHeaders,
-      method: "POST",
-      path: "/api/admin/database-maintenance/complete"
-    }, dependencies);
+    const manualCompletionResponse = await handleAppRequest(
+      {
+        bodyText: JSON.stringify({ entryId: "catalog-product-validation" }),
+        headers: requestHeaders,
+        method: "POST",
+        path: "/api/admin/database-maintenance/complete"
+      },
+      dependencies
+    );
     expect(manualCompletionResponse.status).toBe(200);
     expect(JSON.parse(manualCompletionResponse.body)).toMatchObject({
       manuallyMarkedComplete: true,
@@ -1510,20 +1664,26 @@ describe("handleAppRequest auth guards", () => {
       }
     });
 
-    const validatorResponse = await handleAppRequest({
-      bodyText: JSON.stringify({ entryId: "household-fields" }),
-      headers: requestHeaders,
-      method: "POST",
-      path: "/api/admin/database-maintenance/validators"
-    }, dependencies);
+    const validatorResponse = await handleAppRequest(
+      {
+        bodyText: JSON.stringify({ entryId: "household-fields" }),
+        headers: requestHeaders,
+        method: "POST",
+        path: "/api/admin/database-maintenance/validators"
+      },
+      dependencies
+    );
     expect(validatorResponse.status).toBe(200);
 
-    const migrationResponse = await handleAppRequest({
-      bodyText: JSON.stringify({ entryId: "household-fields" }),
-      headers: requestHeaders,
-      method: "POST",
-      path: "/api/admin/database-maintenance/migrations"
-    }, dependencies);
+    const migrationResponse = await handleAppRequest(
+      {
+        bodyText: JSON.stringify({ entryId: "household-fields" }),
+        headers: requestHeaders,
+        method: "POST",
+        path: "/api/admin/database-maintenance/migrations"
+      },
+      dependencies
+    );
     expect(migrationResponse.status).toBe(200);
     expect(JSON.parse(migrationResponse.body)).toMatchObject({
       result: {
@@ -1531,15 +1691,20 @@ describe("handleAppRequest auth guards", () => {
       }
     });
 
-    const finishedResponse = await handleAppRequest({
-      headers: requestHeaders,
-      method: "GET",
-      path: "/api/admin/database-maintenance"
-    }, dependencies);
+    const finishedResponse = await handleAppRequest(
+      {
+        headers: requestHeaders,
+        method: "GET",
+        path: "/api/admin/database-maintenance"
+      },
+      dependencies
+    );
     const finishedPayload = JSON.parse(finishedResponse.body) as {
       entries: Array<Record<string, unknown>>;
     };
-    expect(finishedPayload.entries.find((entry) => entry["id"] === "household-fields")).toMatchObject({
+    expect(
+      finishedPayload.entries.find((entry) => entry["id"] === "household-fields")
+    ).toMatchObject({
       migrationCompleted: true,
       validatorUpdated: true
     });
@@ -1574,46 +1739,47 @@ describe("handleAppRequest auth guards", () => {
         }
       }),
       createHouseholdRepository: () => householdRepository,
-      getMongoClient: async () => ({
-        db: () => db
-      }) as never
+      getMongoClient: async () =>
+        ({
+          db: () => db
+        }) as never
     };
 
-    const response = await handleAppRequest({
-      headers: {
-        authorization: `Bearer ${token}`
+    const response = await handleAppRequest(
+      {
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        method: "POST",
+        path: "/api/admin/database-maintenance/run-all"
       },
-      method: "POST",
-      path: "/api/admin/database-maintenance/run-all"
-    }, dependencies);
+      dependencies
+    );
 
     expect(response.status).toBe(200);
-    expect(actionOrder).toEqual([
-      "catalog:validator",
-      "catalog:migration"
-    ]);
+    expect(actionOrder).toEqual(["catalog:validator", "catalog:migration"]);
     expect(JSON.parse(response.body)).toMatchObject({
       completedActions: [
         "catalog-product-validation:validator",
-      "catalog-product-validation:migration",
-      "household-fields:validator",
-      "household-fields:migration",
-      "household-expired-item-policy-v1:validator",
-      "household-expired-item-policy-v1:migration",
-      "catalog-classification-v1:validator",
-      "catalog-classification-v1:migration",
-      "household-stock-targets-v1:validator",
-      "household-stock-targets-v1:migration",
-      "household-products-v1:validator",
-      "household-products-v1:migration",
-      "household-product-groups-v1:validator",
-      "household-product-groups-v1:migration",
-      "household-local-classification-v1:validator",
-      "household-local-classification-v1:migration",
-      "shopping-trip-foundation-v1:validator",
-      "shopping-trip-foundation-v1:migration",
-      "feature-flag-audit-v1:validator",
-      "feature-flag-audit-v1:migration"
+        "catalog-product-validation:migration",
+        "household-fields:validator",
+        "household-fields:migration",
+        "household-expired-item-policy-v1:validator",
+        "household-expired-item-policy-v1:migration",
+        "catalog-classification-v1:validator",
+        "catalog-classification-v1:migration",
+        "household-stock-targets-v1:validator",
+        "household-stock-targets-v1:migration",
+        "household-products-v1:validator",
+        "household-products-v1:migration",
+        "household-product-groups-v1:validator",
+        "household-product-groups-v1:migration",
+        "household-local-classification-v1:validator",
+        "household-local-classification-v1:migration",
+        "shopping-trip-foundation-v1:validator",
+        "shopping-trip-foundation-v1:migration",
+        "feature-flag-audit-v1:validator",
+        "feature-flag-audit-v1:migration"
       ]
     });
   });
@@ -1651,9 +1817,10 @@ describe("handleAppRequest auth guards", () => {
             upgradedCollections: ["products"]
           })
         }),
-        getMongoClient: async () => ({
-          db: () => ({})
-        } as never)
+        getMongoClient: async () =>
+          ({
+            db: () => ({})
+          }) as never
       }
     );
 
@@ -1696,9 +1863,10 @@ describe("handleAppRequest auth guards", () => {
             throw new Error("collMod denied");
           }
         }),
-        getMongoClient: async () => ({
-          db: () => ({})
-        } as never)
+        getMongoClient: async () =>
+          ({
+            db: () => ({})
+          }) as never
       }
     );
 
@@ -1742,9 +1910,10 @@ describe("handleAppRequest auth guards", () => {
             totalCount: 0
           })
         }),
-        getMongoClient: async () => ({
-          db: () => ({})
-        } as never)
+        getMongoClient: async () =>
+          ({
+            db: () => ({})
+          }) as never
       }
     );
 
@@ -1787,9 +1956,10 @@ describe("handleAppRequest auth guards", () => {
             totalCount: 0
           })
         }),
-        getMongoClient: async () => ({
-          db: () => ({})
-        } as never)
+        getMongoClient: async () =>
+          ({
+            db: () => ({})
+          }) as never
       }
     );
 
@@ -1901,9 +2071,10 @@ describe("handleAppRequest auth guards", () => {
         path: "/api/admin/dashboard/reseed-demo-household"
       },
       {
-        getMongoClient: async () => ({
-          db: () => db
-        }) as never
+        getMongoClient: async () =>
+          ({
+            db: () => db
+          }) as never
       }
     );
 
@@ -1929,9 +2100,10 @@ describe("handleAppRequest auth guards", () => {
         path: "/api/admin/dashboard/reseed-demo-household"
       },
       {
-        getMongoClient: async () => ({
-          db: () => db
-        }) as never
+        getMongoClient: async () =>
+          ({
+            db: () => db
+          }) as never
       }
     );
 
@@ -1983,9 +2155,10 @@ describe("handleAppRequest auth guards", () => {
             totalCount: 0
           })
         }),
-        getMongoClient: async () => ({
-          db: () => ({})
-        } as never)
+        getMongoClient: async () =>
+          ({
+            db: () => ({})
+          }) as never
       }
     );
 
@@ -2005,7 +2178,9 @@ describe("handleAppRequest auth guards", () => {
     vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret");
     vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra");
     vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
-    let requestedProductOptions: { limit?: number; nameIncludes?: string; offset?: number; sourceNames?: string[] } | undefined;
+    let requestedProductOptions:
+      | { limit?: number; nameIncludes?: string; offset?: number; sourceNames?: string[] }
+      | undefined;
 
     const token = createUserToken({
       email: "admin@kamra.test",
@@ -2069,9 +2244,10 @@ describe("handleAppRequest auth guards", () => {
             };
           }
         }),
-        getMongoClient: async () => ({
-          db: () => ({})
-        } as never)
+        getMongoClient: async () =>
+          ({
+            db: () => ({})
+          }) as never
       }
     );
 
@@ -2198,9 +2374,10 @@ describe("handleAppRequest auth guards", () => {
           listRawSnapshots: async () => [createIngestionSnapshot()],
           setupCollections: async () => undefined
         }),
-        getMongoClient: async () => ({
-          db: () => ({})
-        } as never)
+        getMongoClient: async () =>
+          ({
+            db: () => ({})
+          }) as never
       }
     );
 
@@ -2288,9 +2465,10 @@ describe("handleAppRequest auth guards", () => {
           listRawSnapshots: async () => [snapshot],
           setupCollections: async () => undefined
         }),
-        getMongoClient: async () => ({
-          db: () => ({})
-        } as never)
+        getMongoClient: async () =>
+          ({
+            db: () => ({})
+          }) as never
       }
     );
 
@@ -2368,9 +2546,10 @@ describe("handleAppRequest auth guards", () => {
           listRawSnapshots: async () => [snapshot],
           setupCollections: async () => undefined
         }),
-        getMongoClient: async () => ({
-          db: () => ({})
-        } as never)
+        getMongoClient: async () =>
+          ({
+            db: () => ({})
+          }) as never
       }
     );
 
@@ -2436,9 +2615,10 @@ describe("handleAppRequest auth guards", () => {
           listRawSnapshots: async () => [snapshot],
           setupCollections: async () => undefined
         }),
-        getMongoClient: async () => ({
-          db: () => ({})
-        } as never)
+        getMongoClient: async () =>
+          ({
+            db: () => ({})
+          }) as never
       }
     );
 
@@ -2487,9 +2667,10 @@ describe("handleAppRequest auth guards", () => {
             };
           }
         }),
-        getMongoClient: async () => ({
-          db: () => ({})
-        } as never)
+        getMongoClient: async () =>
+          ({
+            db: () => ({})
+          }) as never
       }
     );
 
@@ -2544,19 +2725,16 @@ describe("handleAppRequest auth guards", () => {
             totalCount: 0
           })
         }),
-        getMongoClient: async () => ({
-          db: () => ({})
-        } as never)
+        getMongoClient: async () =>
+          ({
+            db: () => ({})
+          }) as never
       }
     );
 
     expect(response.status).toBe(200);
     expect(JSON.parse(response.body)).toEqual({
-      sourceNames: [
-        "aldi-hu-offers",
-        "lidl-hu-brochure",
-        "penny_hu_offers"
-      ]
+      sourceNames: ["aldi-hu-offers", "lidl-hu-brochure", "penny_hu_offers"]
     });
   });
 
@@ -2608,9 +2786,10 @@ describe("handleAppRequest auth guards", () => {
             };
           }
         }),
-        getMongoClient: async () => ({
-          db: () => ({})
-        } as never)
+        getMongoClient: async () =>
+          ({
+            db: () => ({})
+          }) as never
       }
     );
 
@@ -2675,9 +2854,10 @@ describe("handleAppRequest auth guards", () => {
             };
           }
         }),
-        getMongoClient: async () => ({
-          db: () => ({})
-        } as never)
+        getMongoClient: async () =>
+          ({
+            db: () => ({})
+          }) as never
       }
     );
 
@@ -2735,9 +2915,10 @@ describe("handleAppRequest auth guards", () => {
             totalCount: 0
           })
         }),
-        getMongoClient: async () => ({
-          db: () => ({})
-        } as never)
+        getMongoClient: async () =>
+          ({
+            db: () => ({})
+          }) as never
       }
     );
 
@@ -2771,7 +2952,9 @@ describe("handleAppRequest auth guards", () => {
 
     const response = await handleAppRequest(
       {
-        bodyText: JSON.stringify({ snapshotId: "simple_html_table_shop:weekly-html-table:2026-07-02" }),
+        bodyText: JSON.stringify({
+          snapshotId: "simple_html_table_shop:weekly-html-table:2026-07-02"
+        }),
         headers: {
           authorization: `Bearer ${token}`
         },
@@ -2792,9 +2975,10 @@ describe("handleAppRequest auth guards", () => {
           prepareProductReviewItems: async () => [reviewItem],
           setupCollections: async () => undefined
         }),
-        getMongoClient: async () => ({
-          db: () => ({})
-        } as never)
+        getMongoClient: async () =>
+          ({
+            db: () => ({})
+          }) as never
       }
     );
 
@@ -2858,9 +3042,10 @@ describe("handleAppRequest auth guards", () => {
           listRawSnapshots: async () => [],
           setupCollections: async () => undefined
         }),
-        getMongoClient: async () => ({
-          db: () => ({})
-        } as never)
+        getMongoClient: async () =>
+          ({
+            db: () => ({})
+          }) as never
       }
     );
 
@@ -2941,9 +3126,10 @@ describe("handleAppRequest auth guards", () => {
             return true;
           }
         }),
-        getMongoClient: async () => ({
-          db: () => ({})
-        } as never)
+        getMongoClient: async () =>
+          ({
+            db: () => ({})
+          }) as never
       }
     );
 
@@ -3005,9 +3191,10 @@ describe("handleAppRequest auth guards", () => {
           },
           setupCollections: async () => undefined
         }),
-        getMongoClient: async () => ({
-          db: () => ({})
-        } as never)
+        getMongoClient: async () =>
+          ({
+            db: () => ({})
+          }) as never
       }
     );
 
@@ -3078,9 +3265,10 @@ describe("handleAppRequest auth guards", () => {
           },
           setupCollections: async () => undefined
         }),
-        getMongoClient: async () => ({
-          db: () => ({}),
-        } as never)
+        getMongoClient: async () =>
+          ({
+            db: () => ({})
+          }) as never
       }
     );
 
@@ -3144,9 +3332,10 @@ describe("handleAppRequest auth guards", () => {
           markProductReviewItemDecision: async () => true,
           setupCollections: async () => undefined
         }),
-        getMongoClient: async () => ({
-          db: () => ({})
-        } as never)
+        getMongoClient: async () =>
+          ({
+            db: () => ({})
+          }) as never
       }
     );
 
@@ -3196,9 +3385,10 @@ describe("handleAppRequest auth guards", () => {
           listRawSnapshots: async () => [],
           setupCollections: async () => undefined
         }),
-        getMongoClient: async () => ({
-          db: () => ({})
-        } as never)
+        getMongoClient: async () =>
+          ({
+            db: () => ({})
+          }) as never
       }
     );
 

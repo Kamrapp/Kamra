@@ -15,7 +15,13 @@ import {
   catalogProductValidationRoute,
   catalogSourcesRoute
 } from "./routes/catalog-routes.js";
-import { createAlphaUserRoute, currentUserRoute, loginRoute, logoutRoute, userPreferencesRoute } from "./routes/auth-routes.js";
+import {
+  createAlphaUserRoute,
+  currentUserRoute,
+  loginRoute,
+  logoutRoute,
+  userPreferencesRoute
+} from "./routes/auth-routes.js";
 import {
   adminDashboardHealthRoute,
   adminDashboardFeatureFlagsRoute,
@@ -33,7 +39,26 @@ import {
   latestHouseholdShoppingListRoute,
   shopsRoute
 } from "./routes/household-routes.js";
-import { householdV2AllocateBatchRoute, householdV2ConsumeRoute, householdV2CorrectBatchRoute, householdV2DiscardBatchRoute, householdV2HouseholdConceptsRoute, householdV2HouseholdProductClassificationRoute, householdV2HouseholdProductCollectionRoute, householdV2HouseholdProductIdentityRoute, householdV2ManualBatchRoute, householdV2ProductComposerRoute, householdV2ProductGroupCollectionRoute, householdV2ProductGroupMutationRoute, householdV2ShoppingNeedTransitionRoute, householdV2ShoppingNeedsRoute, householdV2StockTargetCollectionRoute, householdV2StockTargetMutationRoute, householdV2StockTargetRoute, householdV2WorkspaceRoute } from "./routes/household-v2-routes.js";
+import {
+  householdV2AllocateBatchRoute,
+  householdV2ConsumeRoute,
+  householdV2CorrectBatchRoute,
+  householdV2DiscardBatchRoute,
+  householdV2HouseholdConceptsRoute,
+  householdV2HouseholdProductClassificationRoute,
+  householdV2HouseholdProductCollectionRoute,
+  householdV2HouseholdProductIdentityRoute,
+  householdV2ManualBatchRoute,
+  householdV2ProductComposerRoute,
+  householdV2ProductGroupCollectionRoute,
+  householdV2ProductGroupMutationRoute,
+  householdV2ShoppingNeedTransitionRoute,
+  householdV2ShoppingNeedsRoute,
+  householdV2StockTargetCollectionRoute,
+  householdV2StockTargetMutationRoute,
+  householdV2StockTargetRoute,
+  householdV2WorkspaceRoute
+} from "./routes/household-v2-routes.js";
 import {
   acceptProductReviewItemRoute,
   declineProductReviewItemRoute,
@@ -127,9 +152,13 @@ export async function handleAppRequest(
   const route = appRoutes.find((candidate) => candidate.match(request));
 
   if (!route) {
-    return withCorsHeaders(request, context.config, json(404, {
-      error: "not_found"
-    }));
+    return withCorsHeaders(
+      request,
+      context.config,
+      json(404, {
+        error: "not_found"
+      })
+    );
   }
 
   try {
@@ -140,12 +169,14 @@ export async function handleAppRequest(
       ...describeRequest(request)
     });
 
-    return withCorsHeaders(request, context.config, json(500, {
-      error: "internal_error",
-      message: error instanceof Error && error.message
-        ? error.message
-        : "Internal server error"
-    }));
+    return withCorsHeaders(
+      request,
+      context.config,
+      json(500, {
+        error: "internal_error",
+        message: error instanceof Error && error.message ? error.message : "Internal server error"
+      })
+    );
   }
 }
 
@@ -188,9 +219,7 @@ function readAllowedCorsOrigin(
   config: ReturnType<typeof createRouteContext>["config"]
 ): string | null {
   const origin = getHeaderValue(request.headers, "origin");
-  return origin
-    ? findAllowedCorsOrigin(config, origin)
-    : null;
+  return origin ? findAllowedCorsOrigin(config, origin) : null;
 }
 
 function withCorsHeaders(
@@ -213,10 +242,7 @@ function withCorsHeaders(
   };
 }
 
-function getHeaderValue(
-  headers: AppRequest["headers"],
-  name: string
-): string | null {
+function getHeaderValue(headers: AppRequest["headers"], name: string): string | null {
   const normalizedName = name.toLowerCase();
 
   for (const [headerName, headerValue] of Object.entries(headers)) {
@@ -224,9 +250,7 @@ function getHeaderValue(
       continue;
     }
 
-    return Array.isArray(headerValue)
-      ? headerValue[0] ?? null
-      : headerValue ?? null;
+    return Array.isArray(headerValue) ? (headerValue[0] ?? null) : (headerValue ?? null);
   }
 
   return null;

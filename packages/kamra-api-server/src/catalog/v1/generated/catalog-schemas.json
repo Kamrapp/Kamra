@@ -14,10 +14,7 @@
           "description": "ISO date string"
         },
         "checksum": {
-          "bsonType": [
-            "null",
-            "string"
-          ]
+          "bsonType": ["null", "string"]
         },
         "description": {
           "bsonType": "string"
@@ -35,10 +32,7 @@
           "bsonType": "string"
         },
         "status": {
-          "enum": [
-            "applied",
-            "failed"
-          ]
+          "enum": ["applied", "failed"]
         }
       },
       "required": [
@@ -73,17 +67,10 @@
               "bsonType": "objectId"
             },
             "countryCode": {
-              "bsonType": [
-                "null",
-                "string"
-              ]
+              "bsonType": ["null", "string"]
             },
             "kind": {
-              "enum": [
-                "global_shop_availability",
-                "household",
-                "shop_site"
-              ]
+              "enum": ["global_shop_availability", "household", "shop_site"]
             },
             "label": {
               "bsonType": "string"
@@ -92,17 +79,10 @@
               "bsonType": "string"
             },
             "storeBrandKey": {
-              "bsonType": [
-                "null",
-                "string"
-              ]
+              "bsonType": ["null", "string"]
             }
           },
-          "required": [
-            "kind",
-            "label",
-            "locationKey"
-          ]
+          "required": ["kind", "label", "locationKey"]
         },
         "observedAt": {
           "bsonType": "string",
@@ -120,12 +100,7 @@
               "description": "ISO date string"
             },
             "kind": {
-              "enum": [
-                "crawler",
-                "manual",
-                "processor",
-                "seed"
-              ]
+              "enum": ["crawler", "manual", "processor", "seed"]
             },
             "producer": {
               "bsonType": "string"
@@ -134,24 +109,13 @@
               "bsonType": "string"
             },
             "sourceRecordId": {
-              "bsonType": [
-                "null",
-                "string"
-              ]
+              "bsonType": ["null", "string"]
             },
             "sourceUrl": {
-              "bsonType": [
-                "null",
-                "string"
-              ]
+              "bsonType": ["null", "string"]
             }
           },
-          "required": [
-            "capturedAt",
-            "kind",
-            "producer",
-            "sourceName"
-          ]
+          "required": ["capturedAt", "kind", "producer", "sourceName"]
         },
         "price": {
           "additionalProperties": false,
@@ -161,30 +125,16 @@
               "bsonType": "objectId"
             },
             "amount": {
-              "bsonType": [
-                "double",
-                "int",
-                "long",
-                "decimal"
-              ]
+              "bsonType": ["double", "int", "long", "decimal"]
             },
             "currencyCode": {
               "bsonType": "string"
             }
           },
-          "required": [
-            "amount",
-            "currencyCode"
-          ]
+          "required": ["amount", "currencyCode"]
         },
         "priceKind": {
-          "enum": [
-            "base",
-            "coupon",
-            "loyalty_card",
-            "offer",
-            "old"
-          ]
+          "enum": ["base", "coupon", "loyalty_card", "offer", "old"]
         },
         "productId": {
           "bsonType": "string"
@@ -193,10 +143,7 @@
           "bsonType": "string"
         },
         "programName": {
-          "bsonType": [
-            "null",
-            "string"
-          ]
+          "bsonType": ["null", "string"]
         },
         "sourceName": {
           "bsonType": "string"
@@ -205,26 +152,17 @@
           "bsonType": "string"
         },
         "unitPriceLabel": {
-          "bsonType": [
-            "null",
-            "string"
-          ]
+          "bsonType": ["null", "string"]
         },
         "updatedAt": {
           "bsonType": "string",
           "description": "ISO date string"
         },
         "validFrom": {
-          "bsonType": [
-            "null",
-            "string"
-          ]
+          "bsonType": ["null", "string"]
         },
         "validTo": {
-          "bsonType": [
-            "null",
-            "string"
-          ]
+          "bsonType": ["null", "string"]
         }
       },
       "required": [
@@ -277,12 +215,7 @@
               "description": "ISO date string"
             },
             "kind": {
-              "enum": [
-                "crawler",
-                "manual",
-                "processor",
-                "seed"
-              ]
+              "enum": ["crawler", "manual", "processor", "seed"]
             },
             "producer": {
               "bsonType": "string"
@@ -291,24 +224,13 @@
               "bsonType": "string"
             },
             "sourceRecordId": {
-              "bsonType": [
-                "null",
-                "string"
-              ]
+              "bsonType": ["null", "string"]
             },
             "sourceUrl": {
-              "bsonType": [
-                "null",
-                "string"
-              ]
+              "bsonType": ["null", "string"]
             }
           },
-          "required": [
-            "capturedAt",
-            "kind",
-            "producer",
-            "sourceName"
-          ]
+          "required": ["capturedAt", "kind", "producer", "sourceName"]
         },
         "productSourceId": {
           "bsonType": "string"
@@ -350,10 +272,7 @@
           "description": "ISO date string"
         },
         "currentCategoryLabel": {
-          "bsonType": [
-            "null",
-            "string"
-          ]
+          "bsonType": ["null", "string"]
         },
         "id": {
           "bsonType": "string"
@@ -370,12 +289,7 @@
               "description": "ISO date string"
             },
             "kind": {
-              "enum": [
-                "crawler",
-                "manual",
-                "processor",
-                "seed"
-              ]
+              "enum": ["crawler", "manual", "processor", "seed"]
             },
             "producer": {
               "bsonType": "string"
@@ -384,30 +298,16 @@
               "bsonType": "string"
             },
             "sourceRecordId": {
-              "bsonType": [
-                "null",
-                "string"
-              ]
+              "bsonType": ["null", "string"]
             },
             "sourceUrl": {
-              "bsonType": [
-                "null",
-                "string"
-              ]
+              "bsonType": ["null", "string"]
             }
           },
-          "required": [
-            "capturedAt",
-            "kind",
-            "producer",
-            "sourceName"
-          ]
+          "required": ["capturedAt", "kind", "producer", "sourceName"]
         },
         "priceLastCheckedAt": {
-          "bsonType": [
-            "null",
-            "string"
-          ]
+          "bsonType": ["null", "string"]
         },
         "productId": {
           "bsonType": "string"
@@ -458,11 +358,7 @@
           "description": "ISO date string"
         },
         "assignmentKind": {
-          "enum": [
-            "derived_keyword",
-            "manual",
-            "seed"
-          ]
+          "enum": ["derived_keyword", "manual", "seed"]
         },
         "id": {
           "bsonType": "string"
@@ -479,12 +375,7 @@
               "description": "ISO date string"
             },
             "kind": {
-              "enum": [
-                "crawler",
-                "manual",
-                "processor",
-                "seed"
-              ]
+              "enum": ["crawler", "manual", "processor", "seed"]
             },
             "producer": {
               "bsonType": "string"
@@ -493,49 +384,25 @@
               "bsonType": "string"
             },
             "sourceRecordId": {
-              "bsonType": [
-                "null",
-                "string"
-              ]
+              "bsonType": ["null", "string"]
             },
             "sourceUrl": {
-              "bsonType": [
-                "null",
-                "string"
-              ]
+              "bsonType": ["null", "string"]
             }
           },
-          "required": [
-            "capturedAt",
-            "kind",
-            "producer",
-            "sourceName"
-          ]
+          "required": ["capturedAt", "kind", "producer", "sourceName"]
         },
         "productId": {
           "bsonType": "string"
         },
         "score": {
-          "bsonType": [
-            "double",
-            "int",
-            "long",
-            "decimal"
-          ]
+          "bsonType": ["double", "int", "long", "decimal"]
         },
         "tagKey": {
           "bsonType": "string"
         }
       },
-      "required": [
-        "assignedAt",
-        "assignmentKind",
-        "id",
-        "origin",
-        "productId",
-        "score",
-        "tagKey"
-      ]
+      "required": ["assignedAt", "assignmentKind", "id", "origin", "productId", "score", "tagKey"]
     },
     "product_tags": {
       "additionalProperties": false,
@@ -555,11 +422,7 @@
           "bsonType": "string"
         },
         "kind": {
-          "enum": [
-            "attribute",
-            "category",
-            "keyword"
-          ]
+          "enum": ["attribute", "category", "keyword"]
         },
         "label": {
           "bsonType": "string"
@@ -582,12 +445,7 @@
               "description": "ISO date string"
             },
             "kind": {
-              "enum": [
-                "crawler",
-                "manual",
-                "processor",
-                "seed"
-              ]
+              "enum": ["crawler", "manual", "processor", "seed"]
             },
             "producer": {
               "bsonType": "string"
@@ -596,36 +454,19 @@
               "bsonType": "string"
             },
             "sourceRecordId": {
-              "bsonType": [
-                "null",
-                "string"
-              ]
+              "bsonType": ["null", "string"]
             },
             "sourceUrl": {
-              "bsonType": [
-                "null",
-                "string"
-              ]
+              "bsonType": ["null", "string"]
             }
           },
-          "required": [
-            "capturedAt",
-            "kind",
-            "producer",
-            "sourceName"
-          ]
+          "required": ["capturedAt", "kind", "producer", "sourceName"]
         },
         "parentKey": {
-          "bsonType": [
-            "null",
-            "string"
-          ]
+          "bsonType": ["null", "string"]
         },
         "status": {
-          "enum": [
-            "active",
-            "archived"
-          ]
+          "enum": ["active", "archived"]
         },
         "updatedAt": {
           "bsonType": "string",
@@ -652,10 +493,7 @@
           "bsonType": "objectId"
         },
         "brandName": {
-          "bsonType": [
-            "null",
-            "string"
-          ]
+          "bsonType": ["null", "string"]
         },
         "createdAt": {
           "bsonType": "string",
@@ -665,10 +503,7 @@
           "bsonType": "string"
         },
         "kind": {
-          "enum": [
-            "grocery",
-            "household_supply"
-          ]
+          "enum": ["grocery", "household_supply"]
         },
         "measurements": {
           "bsonType": "array",
@@ -680,36 +515,19 @@
                 "bsonType": "objectId"
               },
               "normalizedUnit": {
-                "bsonType": [
-                  "null",
-                  "string"
-                ]
+                "bsonType": ["null", "string"]
               },
               "normalizedValue": {
-                "bsonType": [
-                  "double",
-                  "int",
-                  "long",
-                  "decimal",
-                  "null"
-                ]
+                "bsonType": ["double", "int", "long", "decimal", "null"]
               },
               "unit": {
                 "bsonType": "string"
               },
               "value": {
-                "bsonType": [
-                  "double",
-                  "int",
-                  "long",
-                  "decimal"
-                ]
+                "bsonType": ["double", "int", "long", "decimal"]
               }
             },
-            "required": [
-              "unit",
-              "value"
-            ]
+            "required": ["unit", "value"]
           }
         },
         "name": {
@@ -732,12 +550,7 @@
                 "description": "ISO date string"
               },
               "kind": {
-                "enum": [
-                  "crawler",
-                  "manual",
-                  "processor",
-                  "seed"
-                ]
+                "enum": ["crawler", "manual", "processor", "seed"]
               },
               "producer": {
                 "bsonType": "string"
@@ -746,75 +559,39 @@
                 "bsonType": "string"
               },
               "sourceRecordId": {
-                "bsonType": [
-                  "null",
-                  "string"
-                ]
+                "bsonType": ["null", "string"]
               },
               "sourceUrl": {
-                "bsonType": [
-                  "null",
-                  "string"
-                ]
+                "bsonType": ["null", "string"]
               }
             },
-            "required": [
-              "capturedAt",
-              "kind",
-              "producer",
-              "sourceName"
-            ]
+            "required": ["capturedAt", "kind", "producer", "sourceName"]
           },
           "minItems": 1
         },
         "primaryCategoryKey": {
-          "bsonType": [
-            "null",
-            "string"
-          ]
+          "bsonType": ["null", "string"]
         },
         "validatedAt": {
-          "bsonType": [
-            "null",
-            "string"
-          ]
+          "bsonType": ["null", "string"]
         },
         "validatedBy": {
-          "bsonType": [
-            "null",
-            "string"
-          ]
+          "bsonType": ["null", "string"]
         },
         "invalidatedAt": {
-          "bsonType": [
-            "null",
-            "string"
-          ]
+          "bsonType": ["null", "string"]
         },
         "invalidatedBy": {
-          "bsonType": [
-            "null",
-            "string"
-          ]
+          "bsonType": ["null", "string"]
         },
         "validationNote": {
-          "bsonType": [
-            "null",
-            "string"
-          ]
+          "bsonType": ["null", "string"]
         },
         "validationStatus": {
-          "enum": [
-            "unvalidated",
-            "validated",
-            "invalid"
-          ]
+          "enum": ["unvalidated", "validated", "invalid"]
         },
         "status": {
-          "enum": [
-            "active",
-            "archived"
-          ]
+          "enum": ["active", "archived"]
         },
         "updatedAt": {
           "bsonType": "string",
@@ -842,10 +619,7 @@
           "bsonType": "objectId"
         },
         "attemptCount": {
-          "bsonType": [
-            "int",
-            "long"
-          ]
+          "bsonType": ["int", "long"]
         },
         "createdAt": {
           "bsonType": "string",
@@ -855,22 +629,13 @@
           "bsonType": "string"
         },
         "lastErrorCode": {
-          "bsonType": [
-            "null",
-            "string"
-          ]
+          "bsonType": ["null", "string"]
         },
         "lastErrorMessage": {
-          "bsonType": [
-            "null",
-            "string"
-          ]
+          "bsonType": ["null", "string"]
         },
         "lastProcessedAt": {
-          "bsonType": [
-            "null",
-            "string"
-          ]
+          "bsonType": ["null", "string"]
         },
         "processorName": {
           "bsonType": "string"
@@ -885,14 +650,7 @@
           "bsonType": "string"
         },
         "state": {
-          "enum": [
-            "failed",
-            "pending",
-            "processed",
-            "reset_requested",
-            "skipped",
-            "stale"
-          ]
+          "enum": ["failed", "pending", "processed", "reset_requested", "skipped", "stale"]
         },
         "updatedAt": {
           "bsonType": "string",
@@ -923,10 +681,7 @@
           "description": "ISO date string"
         },
         "expiryDate": {
-          "bsonType": [
-            "null",
-            "string"
-          ]
+          "bsonType": ["null", "string"]
         },
         "id": {
           "bsonType": "string"
@@ -939,17 +694,10 @@
               "bsonType": "objectId"
             },
             "countryCode": {
-              "bsonType": [
-                "null",
-                "string"
-              ]
+              "bsonType": ["null", "string"]
             },
             "kind": {
-              "enum": [
-                "global_shop_availability",
-                "household",
-                "shop_site"
-              ]
+              "enum": ["global_shop_availability", "household", "shop_site"]
             },
             "label": {
               "bsonType": "string"
@@ -958,17 +706,10 @@
               "bsonType": "string"
             },
             "storeBrandKey": {
-              "bsonType": [
-                "null",
-                "string"
-              ]
+              "bsonType": ["null", "string"]
             }
           },
-          "required": [
-            "kind",
-            "label",
-            "locationKey"
-          ]
+          "required": ["kind", "label", "locationKey"]
         },
         "origin": {
           "additionalProperties": false,
@@ -982,12 +723,7 @@
               "description": "ISO date string"
             },
             "kind": {
-              "enum": [
-                "crawler",
-                "manual",
-                "processor",
-                "seed"
-              ]
+              "enum": ["crawler", "manual", "processor", "seed"]
             },
             "producer": {
               "bsonType": "string"
@@ -996,30 +732,16 @@
               "bsonType": "string"
             },
             "sourceRecordId": {
-              "bsonType": [
-                "null",
-                "string"
-              ]
+              "bsonType": ["null", "string"]
             },
             "sourceUrl": {
-              "bsonType": [
-                "null",
-                "string"
-              ]
+              "bsonType": ["null", "string"]
             }
           },
-          "required": [
-            "capturedAt",
-            "kind",
-            "producer",
-            "sourceName"
-          ]
+          "required": ["capturedAt", "kind", "producer", "sourceName"]
         },
         "price": {
-          "bsonType": [
-            "null",
-            "object"
-          ],
+          "bsonType": ["null", "object"],
           "additionalProperties": false,
           "properties": {
             "observedAt": {
@@ -1034,69 +756,38 @@
                   "bsonType": "objectId"
                 },
                 "amount": {
-                  "bsonType": [
-                    "double",
-                    "int",
-                    "long",
-                    "decimal"
-                  ]
+                  "bsonType": ["double", "int", "long", "decimal"]
                 },
                 "currencyCode": {
                   "bsonType": "string"
                 }
               },
-              "required": [
-                "amount",
-                "currencyCode"
-              ]
+              "required": ["amount", "currencyCode"]
             },
             "unitPrice": {
-              "bsonType": [
-                "null",
-                "object"
-              ],
+              "bsonType": ["null", "object"],
               "additionalProperties": false,
               "properties": {
                 "_id": {
                   "bsonType": "objectId"
                 },
                 "normalizedUnit": {
-                  "bsonType": [
-                    "null",
-                    "string"
-                  ]
+                  "bsonType": ["null", "string"]
                 },
                 "normalizedValue": {
-                  "bsonType": [
-                    "double",
-                    "int",
-                    "long",
-                    "decimal",
-                    "null"
-                  ]
+                  "bsonType": ["double", "int", "long", "decimal", "null"]
                 },
                 "unit": {
                   "bsonType": "string"
                 },
                 "value": {
-                  "bsonType": [
-                    "double",
-                    "int",
-                    "long",
-                    "decimal"
-                  ]
+                  "bsonType": ["double", "int", "long", "decimal"]
                 }
               },
-              "required": [
-                "unit",
-                "value"
-              ]
+              "required": ["unit", "value"]
             }
           },
-          "required": [
-            "observedAt",
-            "price"
-          ]
+          "required": ["observedAt", "price"]
         },
         "productId": {
           "bsonType": "string"
@@ -1109,36 +800,19 @@
               "bsonType": "objectId"
             },
             "amount": {
-              "bsonType": [
-                "double",
-                "int",
-                "long",
-                "decimal"
-              ]
+              "bsonType": ["double", "int", "long", "decimal"]
             },
             "packageCount": {
-              "bsonType": [
-                "double",
-                "int",
-                "long",
-                "decimal",
-                "null"
-              ]
+              "bsonType": ["double", "int", "long", "decimal", "null"]
             },
             "unit": {
               "bsonType": "string"
             }
           },
-          "required": [
-            "amount",
-            "unit"
-          ]
+          "required": ["amount", "unit"]
         },
         "status": {
-          "enum": [
-            "active",
-            "inactive"
-          ]
+          "enum": ["active", "inactive"]
         },
         "updatedAt": {
           "bsonType": "string",

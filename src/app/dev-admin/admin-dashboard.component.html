@@ -8,72 +8,95 @@
   </div>
 
   @if (!auth.token()) {
-  <section class="ui-panel-card status-panel unauthorized-panel" aria-live="polite">
-    <div class="status-heading">
-      <p class="ui-kicker">{{ loc.t("common.adminOnly") }}</p>
-      <p class="status-summary">{{ loc.t("health.signIn") }}</p>
-    </div>
-    <p class="status-message">
-      {{ loc.t("health.intro") }}
-    </p>
-  </section>
-  } @else if (!auth.user()) {
-  <section class="ui-panel-card status-panel unauthorized-panel" aria-live="polite">
-    <div class="status-heading">
-      <p class="ui-kicker">{{ loc.t("common.adminOnly") }}</p>
-      <p class="status-summary">{{ loc.t("common.loading") }}</p>
-    </div>
-    <p class="status-message">
-      {{ loc.t("health.checkingAccess") }}
-    </p>
-  </section>
-  } @else if (!isAdminUser()) {
-  <section class="ui-panel-card status-panel unauthorized-panel" aria-live="polite">
-    <div class="status-heading">
-      <p class="ui-kicker">{{ loc.t("common.adminOnly") }}</p>
-      <p class="status-summary">{{ loc.t("common.devAdmin") }}</p>
-    </div>
-    <p class="status-message">
-      {{ loc.t("health.adminOnlyDescription") }}
-    </p>
-  </section>
-  } @else {
-  <section class="ui-card-grid admin-grid" aria-label="Admin utilities">
-    <article class="ui-panel-card status-panel utility-card" aria-live="polite">
+    <section class="ui-panel-card status-panel unauthorized-panel" aria-live="polite">
       <div class="status-heading">
-        <p class="ui-kicker">{{ loc.t("health.demoSeedKicker") }}</p>
-        <p class="status-summary">{{ loc.t("health.demoSeedTitle") }}</p>
+        <p class="ui-kicker">{{ loc.t("common.adminOnly") }}</p>
+        <p class="status-summary">{{ loc.t("health.signIn") }}</p>
       </div>
-      <p class="status-message">{{ loc.t("health.demoSeedDescription") }}</p>
-      <button class="run-button ui-button" type="button" (click)="reseedDemoHousehold()"
-        [disabled]="isMaintenanceBusy()">
-        {{ demoSeedState() === "loading" ? loc.t("health.updating") : loc.t("health.demoSeedRun") }}
-      </button>
-      @if (demoSeedMessage(); as message) {
-      <p class="maintenance-message">{{ message }}</p>
-      }
-    </article>
+      <p class="status-message">
+        {{ loc.t("health.intro") }}
+      </p>
+    </section>
+  } @else if (!auth.user()) {
+    <section class="ui-panel-card status-panel unauthorized-panel" aria-live="polite">
+      <div class="status-heading">
+        <p class="ui-kicker">{{ loc.t("common.adminOnly") }}</p>
+        <p class="status-summary">{{ loc.t("common.loading") }}</p>
+      </div>
+      <p class="status-message">
+        {{ loc.t("health.checkingAccess") }}
+      </p>
+    </section>
+  } @else if (!isAdminUser()) {
+    <section class="ui-panel-card status-panel unauthorized-panel" aria-live="polite">
+      <div class="status-heading">
+        <p class="ui-kicker">{{ loc.t("common.adminOnly") }}</p>
+        <p class="status-summary">{{ loc.t("common.devAdmin") }}</p>
+      </div>
+      <p class="status-message">
+        {{ loc.t("health.adminOnlyDescription") }}
+      </p>
+    </section>
+  } @else {
+    <section class="ui-card-grid admin-grid" aria-label="Admin utilities">
+      <article class="ui-panel-card status-panel utility-card" aria-live="polite">
+        <div class="status-heading">
+          <p class="ui-kicker">{{ loc.t("health.demoSeedKicker") }}</p>
+          <p class="status-summary">{{ loc.t("health.demoSeedTitle") }}</p>
+        </div>
+        <p class="status-message">{{ loc.t("health.demoSeedDescription") }}</p>
+        <button
+          class="run-button ui-button"
+          type="button"
+          (click)="reseedDemoHousehold()"
+          [disabled]="isMaintenanceBusy()"
+        >
+          {{
+            demoSeedState() === "loading" ? loc.t("health.updating") : loc.t("health.demoSeedRun")
+          }}
+        </button>
+        @if (demoSeedMessage(); as message) {
+          <p class="maintenance-message">{{ message }}</p>
+        }
+      </article>
 
-    <app-admin-health-card [checks]="healthChecks()" [loading]="healthState() === 'loading'" [message]="healthMessage()"
-      [summary]="healthSummary()" (runRequested)="runHealthCheck()" />
+      <app-admin-health-card
+        [checks]="healthChecks()"
+        [loading]="healthState() === 'loading'"
+        [message]="healthMessage()"
+        [summary]="healthSummary()"
+        (runRequested)="runHealthCheck()"
+      />
 
-    <app-admin-feature-flags-card [admin]="isAdminUser()"
-      [autoTickEnabled]="allowAutoTickingAllShoppingListEntriesEnabled()" [busy]="isMaintenanceBusy()"
-      [abbreviatedUiLabelsEnabled]="useAbbreviatedUiLabelsEnabled()"
-      [loading]="featureFlagsState() === 'loading'" [message]="featureFlagsMessage()"
-      (autoTickChanged)="setAllowAutoTickingAllShoppingListEntriesEnabled($event)"
-      (abbreviatedUiLabelsChanged)="setUseAbbreviatedUiLabelsEnabled($event)"
-      (saveRequested)="saveShoppingListFeatureFlags()" />
+      <app-admin-feature-flags-card
+        [admin]="isAdminUser()"
+        [autoTickEnabled]="allowAutoTickingAllShoppingListEntriesEnabled()"
+        [busy]="isMaintenanceBusy()"
+        [abbreviatedUiLabelsEnabled]="useAbbreviatedUiLabelsEnabled()"
+        [loading]="featureFlagsState() === 'loading'"
+        [message]="featureFlagsMessage()"
+        (autoTickChanged)="setAllowAutoTickingAllShoppingListEntriesEnabled($event)"
+        (abbreviatedUiLabelsChanged)="setUseAbbreviatedUiLabelsEnabled($event)"
+        (saveRequested)="saveShoppingListFeatureFlags()"
+      />
 
-    <app-admin-alpha-access-card [admin]="isAdminUser()" [busy]="isMaintenanceBusy()" [email]="alphaUserEmail()"
-      [enabled]="allowControlledAlphaAccessEnabled()" [featureFlagsLoading]="featureFlagsState() === 'loading'"
-      [message]="alphaUserMessage()" [password]="alphaUserPassword()" [userLoading]="alphaUserState() === 'loading'"
-      (createRequested)="createAlphaUser()" (emailChanged)="alphaUserEmail.set($event)"
-      (enabledChanged)="setAllowControlledAlphaAccessEnabled($event)" (passwordChanged)="alphaUserPassword.set($event)"
-      (saveRequested)="saveAlphaAccessFlag()" />
+      <app-admin-alpha-access-card
+        [admin]="isAdminUser()"
+        [busy]="isMaintenanceBusy()"
+        [email]="alphaUserEmail()"
+        [enabled]="allowControlledAlphaAccessEnabled()"
+        [featureFlagsLoading]="featureFlagsState() === 'loading'"
+        [message]="alphaUserMessage()"
+        [password]="alphaUserPassword()"
+        [userLoading]="alphaUserState() === 'loading'"
+        (createRequested)="createAlphaUser()"
+        (emailChanged)="alphaUserEmail.set($event)"
+        (enabledChanged)="setAllowControlledAlphaAccessEnabled($event)"
+        (passwordChanged)="alphaUserPassword.set($event)"
+        (saveRequested)="saveAlphaAccessFlag()"
+      />
 
-    <app-database-maintenance />
-
-  </section>
+      <app-database-maintenance />
+    </section>
   }
 </section>

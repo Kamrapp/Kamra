@@ -71,7 +71,11 @@ function normalizeDetails(details: unknown): unknown {
   if (!details || typeof details !== "object" || Array.isArray(details)) return details;
   const result: LogDetails = {};
   for (const [key, value] of Object.entries(details)) {
-    if (["password", "token", "authorization", "credential", "rawBody"].some((sensitive) => key.toLowerCase().includes(sensitive))) {
+    if (
+      ["password", "token", "authorization", "credential", "rawBody"].some((sensitive) =>
+        key.toLowerCase().includes(sensitive)
+      )
+    ) {
       result[key] = "[REDACTED]";
     } else if (typeof value === "string" && value.length > 500) {
       result[key] = `${value.slice(0, 500)}…`;
@@ -127,20 +131,12 @@ function writeRecord(record: LogRecord): void {
   } catch (error) {
     if (!logFileWriteWarningEmitted) {
       logFileWriteWarningEmitted = true;
-      console.warn(
-        `${new Date().toISOString()} [kamra:server] File logging disabled`,
-        error
-      );
+      console.warn(`${new Date().toISOString()} [kamra:server] File logging disabled`, error);
     }
   }
 }
 
-function logToConsole(
-  scope: LogScope,
-  level: LogLevel,
-  message: string,
-  details?: unknown
-): void {
+function logToConsole(scope: LogScope, level: LogLevel, message: string, details?: unknown): void {
   const prefix = `${new Date().toISOString()} [kamra:${scope}] ${message}`;
 
   if (level === "error") {
@@ -156,11 +152,7 @@ function logToConsole(
   console.log(prefix, details ?? "");
 }
 
-export function writeServerLog(
-  level: LogLevel,
-  message: string,
-  details?: unknown
-): void {
+export function writeServerLog(level: LogLevel, message: string, details?: unknown): void {
   const record: LogRecord = {
     details: normalizeDetails(details) as LogDetails | undefined,
     level,
@@ -188,11 +180,7 @@ export function writeStructuredServerLog(input: StructuredLogInput): void {
   logToConsole("server", input.level, input.message, record.details);
 }
 
-export function writeBrowserLog(
-  level: LogLevel,
-  message: string,
-  details?: unknown
-): void {
+export function writeBrowserLog(level: LogLevel, message: string, details?: unknown): void {
   const record: LogRecord = {
     details: normalizeDetails(details) as LogDetails | undefined,
     level,

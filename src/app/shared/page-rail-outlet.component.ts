@@ -19,7 +19,12 @@ import type { PageRailSection } from "./page-rail.service";
               </div>
 
               @if (section.actionLabel && section.onAction) {
-                <button class="ui-action-button rail-action" type="button" [disabled]="section.actionDisabled" (click)="section.onAction()">
+                <button
+                  class="ui-action-button rail-action"
+                  type="button"
+                  [disabled]="section.actionDisabled"
+                  (click)="section.onAction()"
+                >
                   {{ section.actionLabel }}
                 </button>
               }
@@ -55,7 +60,12 @@ import type { PageRailSection } from "./page-rail.service";
               </div>
 
               @if (section.actionLabel && section.onAction) {
-                <button class="ui-action-button rail-action" type="button" [disabled]="section.actionDisabled" (click)="section.onAction()">
+                <button
+                  class="ui-action-button rail-action"
+                  type="button"
+                  [disabled]="section.actionDisabled"
+                  (click)="section.onAction()"
+                >
                   {{ section.actionLabel }}
                 </button>
               }
@@ -84,7 +94,9 @@ import type { PageRailSection } from "./page-rail.service";
                     >
                       <span class="rail-title rail-section-title">{{ section.title }}</span>
                       <span class="rail-filter-count">
-                        {{ section.selectedCount ?? 0 }}/{{ section.optionCount ?? section.options?.length ?? 0 }}
+                        {{ section.selectedCount ?? 0 }}/{{
+                          section.optionCount ?? section.options?.length ?? 0
+                        }}
                       </span>
                       <svg aria-hidden="true" viewBox="0 0 24 24" class="rail-filter-icon">
                         <path d="M7 10.5 12 15.5 17 10.5H7Z"></path>
@@ -111,10 +123,17 @@ import type { PageRailSection } from "./page-rail.service";
             }
 
             @if (section.options?.length) {
-              <div class="rail-filter-popover" [class.rail-filter-popover-open]="openFilterKey() === section.key">
+              <div
+                class="rail-filter-popover"
+                [class.rail-filter-popover-open]="openFilterKey() === section.key"
+              >
                 @for (option of section.options; track option.key) {
                   <label class="rail-filter-option">
-                    <input type="checkbox" [checked]="option.checked" (change)="option.onToggle()" />
+                    <input
+                      type="checkbox"
+                      [checked]="option.checked"
+                      (change)="option.onToggle()"
+                    />
                     <span>{{ option.label }}</span>
                   </label>
                 }
@@ -147,7 +166,12 @@ import type { PageRailSection } from "./page-rail.service";
             }
 
             @if (section.actionLabel && section.onAction) {
-              <button class="ui-action-button rail-action" type="button" [disabled]="section.actionDisabled" (click)="section.onAction()">
+              <button
+                class="ui-action-button rail-action"
+                type="button"
+                [disabled]="section.actionDisabled"
+                (click)="section.onAction()"
+              >
                 {{ section.actionLabel }}
               </button>
             }
@@ -202,7 +226,12 @@ import type { PageRailSection } from "./page-rail.service";
             </div>
 
             @if (section.actionLabel && section.onAction) {
-              <button class="rail-cart-action" type="button" [disabled]="section.actionDisabled" (click)="section.onAction()">
+              <button
+                class="rail-cart-action"
+                type="button"
+                [disabled]="section.actionDisabled"
+                (click)="section.onAction()"
+              >
                 <span class="rail-cart-icon" aria-hidden="true">🛒</span>
                 <span class="rail-cart-label">{{ section.actionLabel }}</span>
               </button>
@@ -210,12 +239,22 @@ import type { PageRailSection } from "./page-rail.service";
 
             <div class="rail-shopping-actions">
               @if (section.reloadActionLabel && section.onReloadAction) {
-                <button class="ui-button ui-button-quiet ui-button-sm" type="button" [disabled]="section.reloadActionDisabled" (click)="section.onReloadAction()">
+                <button
+                  class="ui-button ui-button-quiet ui-button-sm"
+                  type="button"
+                  [disabled]="section.reloadActionDisabled"
+                  (click)="section.onReloadAction()"
+                >
                   {{ section.reloadActionLabel }}
                 </button>
               }
               @if (section.cancelActionLabel && section.onCancelAction) {
-                <button class="ui-button ui-button-danger ui-button-sm" type="button" [disabled]="section.cancelActionDisabled" (click)="section.onCancelAction()">
+                <button
+                  class="ui-button ui-button-danger ui-button-sm"
+                  type="button"
+                  [disabled]="section.cancelActionDisabled"
+                  (click)="section.onCancelAction()"
+                >
                   {{ section.cancelActionLabel }}
                 </button>
               }
@@ -454,7 +493,17 @@ import type { PageRailSection } from "./page-rail.service";
       }
 
       .rail-scale-slider::-webkit-slider-runnable-track {
-        background: linear-gradient(to top, #75a547 0%, #75a547 24%, #ffe6a3 24%, #ffe6a3 48%, #f3ad54 48%, #f3ad54 72%, #d94c3c 72%, #d94c3c 100%);
+        background: linear-gradient(
+          to top,
+          #75a547 0%,
+          #75a547 24%,
+          #ffe6a3 24%,
+          #ffe6a3 48%,
+          #f3ad54 48%,
+          #f3ad54 72%,
+          #d94c3c 72%,
+          #d94c3c 100%
+        );
         border: 1px solid color-mix(in srgb, var(--line-panel) 70%, transparent);
         border-radius: var(--radius-pill);
         box-shadow: inset 0 0.08rem 0.18rem rgb(40 31 21 / 18%);
@@ -463,7 +512,17 @@ import type { PageRailSection } from "./page-rail.service";
       }
 
       .rail-scale-slider::-moz-range-track {
-        background: linear-gradient(to top, #75a547 0%, #75a547 24%, #ffe6a3 24%, #ffe6a3 48%, #f3ad54 48%, #f3ad54 72%, #d94c3c 72%, #d94c3c 100%);
+        background: linear-gradient(
+          to top,
+          #75a547 0%,
+          #75a547 24%,
+          #ffe6a3 24%,
+          #ffe6a3 48%,
+          #f3ad54 48%,
+          #f3ad54 72%,
+          #d94c3c 72%,
+          #d94c3c 100%
+        );
         border: 1px solid color-mix(in srgb, var(--line-panel) 70%, transparent);
         border-radius: var(--radius-pill);
         box-shadow: inset 0 0.08rem 0.18rem rgb(40 31 21 / 18%);
@@ -473,7 +532,11 @@ import type { PageRailSection } from "./page-rail.service";
 
       .rail-scale-slider::-webkit-slider-thumb {
         appearance: none;
-        background: linear-gradient(180deg, #ffffff, color-mix(in srgb, var(--color-accent-leaf) 32%, #ffffff));
+        background: linear-gradient(
+          180deg,
+          #ffffff,
+          color-mix(in srgb, var(--color-accent-leaf) 32%, #ffffff)
+        );
         border: 2px solid var(--color-accent-leaf);
         border-radius: 0.32rem;
         box-shadow: 0 0.35rem 0.8rem rgb(40 31 21 / 22%);
@@ -483,7 +546,11 @@ import type { PageRailSection } from "./page-rail.service";
       }
 
       .rail-scale-slider::-moz-range-thumb {
-        background: linear-gradient(180deg, #ffffff, color-mix(in srgb, var(--color-accent-leaf) 32%, #ffffff));
+        background: linear-gradient(
+          180deg,
+          #ffffff,
+          color-mix(in srgb, var(--color-accent-leaf) 32%, #ffffff)
+        );
         border: 2px solid var(--color-accent-leaf);
         border-radius: 0.32rem;
         box-shadow: 0 0.35rem 0.8rem rgb(40 31 21 / 22%);

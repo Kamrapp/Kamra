@@ -212,7 +212,11 @@ export interface StockBatch {
 
 export const stockAllocationStatuses = ["active", "released"] as const;
 export type StockAllocationStatus = (typeof stockAllocationStatuses)[number];
-export const stockAllocationAcceptanceResults = ["accepted", "overridden", "criteria_changed"] as const;
+export const stockAllocationAcceptanceResults = [
+  "accepted",
+  "overridden",
+  "criteria_changed"
+] as const;
 export type StockAllocationAcceptanceResult = (typeof stockAllocationAcceptanceResults)[number];
 
 export interface StockAllocation {
@@ -233,7 +237,12 @@ export interface StockAllocation {
 }
 
 export const stockMovementKinds = [
-  "acquisition", "consumption", "correction", "discard", "migration_opening_balance", "reversal"
+  "acquisition",
+  "consumption",
+  "correction",
+  "discard",
+  "migration_opening_balance",
+  "reversal"
 ] as const;
 export type StockMovementKind = (typeof stockMovementKinds)[number];
 
@@ -271,7 +280,12 @@ export interface DomainOperation {
 
 export const shoppingNeedStates = ["open", "skipped"] as const;
 export type ShoppingNeedState = (typeof shoppingNeedStates)[number];
-export const shoppingNeedOwnerKinds = ["household_product", "manual", "product_group", "stock_target_legacy"] as const;
+export const shoppingNeedOwnerKinds = [
+  "household_product",
+  "manual",
+  "product_group",
+  "stock_target_legacy"
+] as const;
 export type ShoppingNeedOwnerKind = (typeof shoppingNeedOwnerKinds)[number];
 export interface ShoppingNeed {
   acceptanceCriteriaSnapshot: AcceptanceCriteria;
@@ -299,7 +313,13 @@ export interface ShoppingNeedList {
   updatedByUserId: string;
 }
 
-export const householdCapabilities = ["read", "manage_stock", "manage_list", "manage_members", "void_history"] as const;
+export const householdCapabilities = [
+  "read",
+  "manage_stock",
+  "manage_list",
+  "manage_members",
+  "void_history"
+] as const;
 export type HouseholdCapability = (typeof householdCapabilities)[number];
 
 export interface HouseholdCapabilityContext {

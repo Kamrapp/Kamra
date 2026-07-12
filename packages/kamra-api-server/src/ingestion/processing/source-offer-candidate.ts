@@ -1,8 +1,5 @@
 import type { ProductMeasurement } from "../../catalog/v1/contracts.js";
-import type {
-  IngestionRawSnapshotRecord,
-  ParsedShopProductRow
-} from "../v1/contracts.js";
+import type { IngestionRawSnapshotRecord, ParsedShopProductRow } from "../v1/contracts.js";
 import {
   createProductReviewCandidateFingerprint,
   type ProductReviewCandidateDraft,
@@ -42,7 +39,8 @@ export function buildSourceOfferReviewCandidate(
   rowIndex: number
 ): SourceOfferReviewCandidate {
   const sourceName = row.sourceName ?? snapshot.sourceName;
-  const sourceProductKey = row.sourceProductKey ?? createFallbackSourceProductKey(sourceName, row, rowIndex);
+  const sourceProductKey =
+    row.sourceProductKey ?? createFallbackSourceProductKey(sourceName, row, rowIndex);
   const displayName = row.displayName.trim();
 
   return {

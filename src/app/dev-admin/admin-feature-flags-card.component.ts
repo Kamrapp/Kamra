@@ -21,15 +21,26 @@ import { LocalizationService } from "../shared/localization.service";
             [checked]="autoTickEnabled()"
             [disabled]="loading() || !admin()"
             (change)="autoTickChanged.emit($any($event.target).checked)"
-          >
+          />
         </label>
         <label class="placeholder-row" for="abbreviated-ui-labels-flag">
           <span>Use abbreviated labels in compact UI</span>
-          <input id="abbreviated-ui-labels-flag" type="checkbox" [checked]="abbreviatedUiLabelsEnabled()" [disabled]="loading() || !admin()" (change)="abbreviatedUiLabelsChanged.emit($any($event.target).checked)">
+          <input
+            id="abbreviated-ui-labels-flag"
+            type="checkbox"
+            [checked]="abbreviatedUiLabelsEnabled()"
+            [disabled]="loading() || !admin()"
+            (change)="abbreviatedUiLabelsChanged.emit($any($event.target).checked)"
+          />
         </label>
       </div>
       <div class="button-row">
-        <button class="run-button ui-button" type="button" (click)="saveRequested.emit()" [disabled]="busy() || loading()">
+        <button
+          class="run-button ui-button"
+          type="button"
+          (click)="saveRequested.emit()"
+          [disabled]="busy() || loading()"
+        >
           {{ loading() ? loc.t("health.updating") : loc.t("common.save") }}
         </button>
       </div>
@@ -72,8 +83,16 @@ import { LocalizationService } from "../shared/localization.service";
 
       .placeholder-card {
         background:
-          linear-gradient(180deg, color-mix(in srgb, var(--surface-panel-background) 92%, white 8%), var(--surface-panel-background)),
-          radial-gradient(circle at top right, color-mix(in srgb, var(--color-accent-sky) 16%, transparent), transparent 55%);
+          linear-gradient(
+            180deg,
+            color-mix(in srgb, var(--surface-panel-background) 92%, white 8%),
+            var(--surface-panel-background)
+          ),
+          radial-gradient(
+            circle at top right,
+            color-mix(in srgb, var(--color-accent-sky) 16%, transparent),
+            transparent 55%
+          );
       }
 
       .placeholder-list {

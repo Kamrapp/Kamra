@@ -20,6 +20,9 @@ export class ClientActivityLogService {
     if (level === "error") console.error(prefix, details ?? "");
     else if (level === "warn") console.warn(prefix, details ?? "");
     else console.log(prefix, details ?? "");
-    this.entries.update((entries) => [...entries.slice(-79), { id: this.nextId++, level, message, timestamp }]);
+    this.entries.update((entries) => [
+      ...entries.slice(-79),
+      { id: this.nextId++, level, message, timestamp }
+    ]);
   }
 }

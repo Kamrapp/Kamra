@@ -12,7 +12,14 @@ export const logRoute: AppRoute = {
         message?: string;
       };
 
-      if (typeof payload.message !== "string" || typeof payload.level !== "string" || (payload.clientId !== undefined && (typeof payload.clientId !== "string" || payload.clientId.length === 0 || payload.clientId.length > 128))) {
+      if (
+        typeof payload.message !== "string" ||
+        typeof payload.level !== "string" ||
+        (payload.clientId !== undefined &&
+          (typeof payload.clientId !== "string" ||
+            payload.clientId.length === 0 ||
+            payload.clientId.length > 128))
+      ) {
         return json(400, { error: "invalid_log_payload" });
       }
 

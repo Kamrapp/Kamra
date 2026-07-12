@@ -20,7 +20,7 @@ import { LocalizationService } from "../shared/localization.service";
           [checked]="enabled()"
           [disabled]="featureFlagsLoading() || !admin()"
           (change)="enabledChanged.emit($any($event.target).checked)"
-        >
+        />
       </label>
       <div class="alpha-form">
         <label for="alpha-user-email">{{ loc.t("health.alphaUserEmail") }}</label>
@@ -30,7 +30,7 @@ import { LocalizationService } from "../shared/localization.service";
           autocomplete="off"
           [value]="email()"
           (input)="emailChanged.emit($any($event.target).value)"
-        >
+        />
         <label for="alpha-user-password">{{ loc.t("health.alphaUserPassword") }}</label>
         <input
           id="alpha-user-password"
@@ -38,13 +38,23 @@ import { LocalizationService } from "../shared/localization.service";
           autocomplete="new-password"
           [value]="password()"
           (input)="passwordChanged.emit($any($event.target).value)"
-        >
+        />
       </div>
       <div class="button-row">
-        <button class="run-button ui-button" type="button" (click)="saveRequested.emit()" [disabled]="busy()">
+        <button
+          class="run-button ui-button"
+          type="button"
+          (click)="saveRequested.emit()"
+          [disabled]="busy()"
+        >
           {{ featureFlagsLoading() ? loc.t("health.updating") : loc.t("health.saveAlphaAccess") }}
         </button>
-        <button class="run-button ui-button" type="button" (click)="createRequested.emit()" [disabled]="busy() || !enabled()">
+        <button
+          class="run-button ui-button"
+          type="button"
+          (click)="createRequested.emit()"
+          [disabled]="busy() || !enabled()"
+        >
           {{ userLoading() ? loc.t("health.creatingAlphaUser") : loc.t("health.createAlphaUser") }}
         </button>
       </div>

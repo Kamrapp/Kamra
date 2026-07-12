@@ -11,22 +11,30 @@ import { hashPassword } from "../../auth/password-hash.js";
 import { createUserToken } from "../../auth/user-token.js";
 import { createDefaultHouseholdRepository } from "../app-route-context.js";
 import { writeServerLog } from "../../logging/kamra-logger.js";
-import { describeRequest, empty, json, unauthorized, type AppRequest, type AppRoute } from "../app-route-context.js";
+import {
+  describeRequest,
+  empty,
+  json,
+  unauthorized,
+  type AppRequest,
+  type AppRoute
+} from "../app-route-context.js";
 
-function readLoginPayload(bodyText: string | undefined):
-  | { email: string; password: string }
-  | null {
+function readLoginPayload(
+  bodyText: string | undefined
+): { email: string; password: string } | null {
   try {
     const payload = JSON.parse(bodyText ?? "{}") as {
       email?: unknown;
       password?: unknown;
       username?: unknown;
     };
-    const email = typeof payload.email === "string"
-      ? payload.email
-      : typeof payload.username === "string"
-        ? payload.username
-        : null;
+    const email =
+      typeof payload.email === "string"
+        ? payload.email
+        : typeof payload.username === "string"
+          ? payload.username
+          : null;
 
     if (!email || typeof payload.password !== "string") {
       return null;
@@ -76,7 +84,9 @@ function readProfilePayload(bodyText: string | undefined): UserProfile | null {
   }
 }
 
-function readAlphaUserPayload(bodyText: string | undefined): { email: string; password: string } | null {
+function readAlphaUserPayload(
+  bodyText: string | undefined
+): { email: string; password: string } | null {
   try {
     const payload = JSON.parse(bodyText ?? "{}") as {
       email?: unknown;
@@ -87,9 +97,7 @@ function readAlphaUserPayload(bodyText: string | undefined): { email: string; pa
     }
 
     const email = payload.email.trim().toLowerCase();
-    return email && payload.password.length >= 8
-      ? { email, password: payload.password }
-      : null;
+    return email && payload.password.length >= 8 ? { email, password: payload.password } : null;
   } catch {
     return null;
   }
@@ -103,10 +111,7 @@ async function createUserRepository(
     return null;
   }
 
-  const client = await context.getMongoClient(
-    config.mongodb.uri,
-    config.mongodb.dnsServers
-  );
+  const client = await context.getMongoClient(config.mongodb.uri, config.mongodb.dnsServers);
 
   return context.dependencies.createUserRepository
     ? context.dependencies.createUserRepository(client.db(config.mongodb.databaseName))
@@ -121,10 +126,7 @@ async function createHouseholdRepository(
     return null;
   }
 
-  const client = await context.getMongoClient(
-    config.mongodb.uri,
-    config.mongodb.dnsServers
-  );
+  const client = await context.getMongoClient(config.mongodb.uri, config.mongodb.dnsServers);
   const database = client.db(config.mongodb.databaseName);
 
   return context.dependencies.createHouseholdRepository
@@ -206,10 +208,9 @@ export const createAlphaUserRoute: AppRoute = {
       return json(503, { error: "alpha_access_not_configured" });
     }
 
-    const alphaAccessEnabled = (await householdRepository.readFeatureFlag(
-      "allowControlledAlphaAccess",
-      false
-    )).enabled;
+    const alphaAccessEnabled = (
+      await householdRepository.readFeatureFlag("allowControlledAlphaAccess", false)
+    ).enabled;
     if (!alphaAccessEnabled) {
       return json(409, { error: "alpha_access_disabled" });
     }
@@ -220,7 +221,9 @@ export const createAlphaUserRoute: AppRoute = {
         return json(409, { error: "user_already_exists" });
       }
 
-      const existingHouseholds = await householdRepository.listHouseholdsForUser(existingUser.email);
+      const existingHouseholds = await householdRepository.listHouseholdsForUser(
+        existingUser.email
+      );
       if (existingHouseholds.length > 0) {
         return json(409, { error: "user_already_exists" });
       }
@@ -290,9 +293,7 @@ export const currentUserRoute: AppRoute = {
     const profileUser = await repository.findActiveUserByEmail(user.email);
 
     return json(200, {
-      user: profileUser
-        ? toAuthenticatedUser(profileUser)
-        : user
+      user: profileUser ? toAuthenticatedUser(profileUser) : user
     });
   }
 };

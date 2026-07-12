@@ -61,7 +61,9 @@ describe("handleAppRequest CORS", () => {
     });
 
     expect(response.status).toBe(204);
-    expect(response.headers["access-control-allow-origin"]).toBe("https://project-preview.vercel.app");
+    expect(response.headers["access-control-allow-origin"]).toBe(
+      "https://project-preview.vercel.app"
+    );
     expect(response.headers["access-control-allow-methods"]).toContain("GET");
     expect(response.headers["access-control-allow-headers"]).toContain("Authorization");
   });

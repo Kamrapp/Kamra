@@ -21,11 +21,7 @@ export type ProductValidationStatus = (typeof productValidationStatuses)[number]
 export const productKinds = ["grocery", "household_supply"] as const;
 export type ProductKind = (typeof productKinds)[number];
 
-export const stockLocationKinds = [
-  "global_shop_availability",
-  "household",
-  "shop_site"
-] as const;
+export const stockLocationKinds = ["global_shop_availability", "household", "shop_site"] as const;
 export type StockLocationKind = (typeof stockLocationKinds)[number];
 
 export const stockStatuses = ["active", "inactive"] as const;
@@ -278,4 +274,3 @@ export interface CatalogProductOfferListItem {
   sourceProductName: string;
   storeBrandKey: string;
 }
-

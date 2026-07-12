@@ -22,7 +22,8 @@ export class BrowserLoggerService {
       ...details
     };
     this.activity.add(level, message, context);
-    if (options?.sendToServer ?? (level === "warn" || level === "error")) logBrowserEvent({ clientId: this.clientId, details: context, level, message });
+    if (options?.sendToServer ?? (level === "warn" || level === "error"))
+      logBrowserEvent({ clientId: this.clientId, details: context, level, message });
   }
 }
 

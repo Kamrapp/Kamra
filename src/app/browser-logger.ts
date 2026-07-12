@@ -7,9 +7,7 @@ export interface BrowserLogPayload {
   message: string;
 }
 
-export function logBrowserEvent(
-  payload: BrowserLogPayload
-): void {
+export function logBrowserEvent(payload: BrowserLogPayload): void {
   void fetch(buildApiUrl("/api/log"), {
     body: JSON.stringify(payload),
     headers: {

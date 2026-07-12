@@ -1,5 +1,8 @@
 import { readAppConfig } from "../packages/kamra-api-server/src/config/app-config.js";
-import { closeMongoClient, getMongoClient } from "../packages/kamra-api-server/src/db/mongo-client.js";
+import {
+  closeMongoClient,
+  getMongoClient
+} from "../packages/kamra-api-server/src/db/mongo-client.js";
 import { writeServerLog } from "../packages/kamra-api-server/src/logging/kamra-logger.js";
 
 const collectionName = "stage8_transaction_smoke";
@@ -10,7 +13,9 @@ async function runTransactionSmoke(): Promise<void> {
     throw new Error("MongoDB configuration is required for transaction smoke validation.");
   }
   if (!/^kamra_(dev|test|smoke)$/.test(config.mongodb.databaseName)) {
-    throw new Error(`Refusing to run transaction smoke against database '${config.mongodb.databaseName}'. Use kamra_dev, kamra_test, or kamra_smoke.`);
+    throw new Error(
+      `Refusing to run transaction smoke against database '${config.mongodb.databaseName}'. Use kamra_dev, kamra_test, or kamra_smoke.`
+    );
   }
 
   const client = await getMongoClient(config.mongodb.uri, config.mongodb.dnsServers);
@@ -34,7 +39,9 @@ async function runTransactionSmoke(): Promise<void> {
 
   const rolledBackCount = await collection.countDocuments({ runId });
   if (rolledBackCount !== 0) {
-    throw new Error(`Mongo transaction rollback failed; found ${rolledBackCount} aborted documents.`);
+    throw new Error(
+      `Mongo transaction rollback failed; found ${rolledBackCount} aborted documents.`
+    );
   }
 
   await sessionTransaction(client, async (session) => {
@@ -44,7 +51,9 @@ async function runTransactionSmoke(): Promise<void> {
 
   const committedCount = await collection.countDocuments({ runId });
   if (committedCount !== 2) {
-    throw new Error(`Mongo transaction commit failed; found ${committedCount} committed documents.`);
+    throw new Error(
+      `Mongo transaction commit failed; found ${committedCount} committed documents.`
+    );
   }
 
   await collection.deleteMany({ runId });

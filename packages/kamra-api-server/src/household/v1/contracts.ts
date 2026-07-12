@@ -29,7 +29,12 @@ export type HouseholdStockItemStatus = (typeof householdStockItemStatuses)[numbe
 export const householdStockStatuses = ["below_limit", "at_limit", "low_soon", "steady"] as const;
 export type HouseholdStockStatus = (typeof householdStockStatuses)[number];
 
-export const householdShoppingScales = ["business_as_usual", "keep_it_chill", "stock_em_up", "start_fresh"] as const;
+export const householdShoppingScales = [
+  "business_as_usual",
+  "keep_it_chill",
+  "stock_em_up",
+  "start_fresh"
+] as const;
 export type HouseholdShoppingScale = (typeof householdShoppingScales)[number];
 
 export const householdShoppingListReasonCodes = [
@@ -44,10 +49,12 @@ export const householdShoppingListItemUncertaintyFlags = [
   "missing_catalog_product",
   "missing_product_source"
 ] as const;
-export type HouseholdShoppingListItemUncertaintyFlag = (typeof householdShoppingListItemUncertaintyFlags)[number];
+export type HouseholdShoppingListItemUncertaintyFlag =
+  (typeof householdShoppingListItemUncertaintyFlags)[number];
 
 export const householdShoppingListLineSourceKinds = ["generated", "manual"] as const;
-export type HouseholdShoppingListLineSourceKind = (typeof householdShoppingListLineSourceKinds)[number];
+export type HouseholdShoppingListLineSourceKind =
+  (typeof householdShoppingListLineSourceKinds)[number];
 
 export const householdShoppingListStatuses = ["active", "completed", "archived"] as const;
 export type HouseholdShoppingListStatus = (typeof householdShoppingListStatuses)[number];
@@ -59,7 +66,10 @@ export type HouseholdShoppingListStockApplicationStatus =
 export const householdShopStatuses = ["active", "archived"] as const;
 export type HouseholdShopStatus = (typeof householdShopStatuses)[number];
 
-export const householdShoppingListUpdateScopes = ["update_ticked_only", "tick_all_and_update"] as const;
+export const householdShoppingListUpdateScopes = [
+  "update_ticked_only",
+  "tick_all_and_update"
+] as const;
 export type HouseholdShoppingListUpdateScope = (typeof householdShoppingListUpdateScopes)[number];
 
 export const householdFeatureFlagKeys = [

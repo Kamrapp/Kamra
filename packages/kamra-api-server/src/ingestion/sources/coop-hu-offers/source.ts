@@ -75,7 +75,10 @@ export function serializeCoopHuOffersPayload(payload: CoopHuOffersPayload): stri
  * This parser intentionally treats COOP as a smaller/noisier source than PENNY or ALDI.
  * It keeps rawText in metadata so later normalization can inspect coupon and store-scope notes.
  */
-export function parseCoopHuOffersText(visibleText: string, observedAt: string): ParsedShopProductRow[] {
+export function parseCoopHuOffersText(
+  visibleText: string,
+  observedAt: string
+): ParsedShopProductRow[] {
   const lines = normalizeVisibleTextLines(visibleText);
   const rows: ParsedCoopHuOfferDraft[] = [];
   let activeSectionLabel: string | null = null;
@@ -166,13 +169,17 @@ export function parseCoopHuOffersText(visibleText: string, observedAt: string): 
 
             if (couponUnitPriceLine && isStandalonePriceLine(couponUnitPriceLine)) {
               const couponUnitPrice = parseSinglePriceLine(couponUnitPriceLine);
-              couponUnitPriceText = couponUnitPrice?.unit === "db" ? null : couponUnitPrice?.fullText ?? null;
+              couponUnitPriceText =
+                couponUnitPrice?.unit === "db" ? null : (couponUnitPrice?.fullText ?? null);
               rawLines.push(couponUnitPriceLine);
               cursor += 1;
             }
           }
         }
-      } else if (isLikelyCoopHuProductNameLine(current) && isStandalonePriceLine(lines[cursor + 1] ?? "")) {
+      } else if (
+        isLikelyCoopHuProductNameLine(current) &&
+        isStandalonePriceLine(lines[cursor + 1] ?? "")
+      ) {
         rawLines.pop();
         break;
       } else if (!isStandalonePriceLine(current)) {
@@ -263,7 +270,10 @@ function isSectionHeading(line: string): boolean {
   return /^#+\s+/.test(line) || /^[\p{Lu}\d\s!ŐŰÁÉÍÓÖÜÚ.-]{8,}$/u.test(line);
 }
 
-function parseValidityWindow(line: string, activeSectionLabel: string | null): CoopHuValidityWindow | null {
+function parseValidityWindow(
+  line: string,
+  activeSectionLabel: string | null
+): CoopHuValidityWindow | null {
   const match = line.match(
     /^Érvényes:\s*(?<fromYear>20\d{2})\.\s*(?<fromMonth>\d{1,2})\.\s*(?<fromDay>\d{1,2})\.\s*-\s*(?<toYear>20\d{2})\.\s*(?<toMonth>\d{1,2})\.\s*(?<toDay>\d{1,2})\./i
   );
@@ -340,7 +350,11 @@ function isLikelyCoopHuProductNameLine(line: string): boolean {
     return false;
   }
 
-  if (/^(Érvényes|KUPONOS ÁR!?|TÖRZSVÁSÁRLÓI|Ajánlatkereső|Üzletkereső|Belépés|Cégünkről)$/i.test(line)) {
+  if (
+    /^(Érvényes|KUPONOS ÁR!?|TÖRZSVÁSÁRLÓI|Ajánlatkereső|Üzletkereső|Belépés|Cégünkről)$/i.test(
+      line
+    )
+  ) {
     return false;
   }
 
@@ -376,7 +390,10 @@ function createSourceRecordId(
   validity: CoopHuValidityWindow | null
 ): string {
   const validityPart = validity?.validFrom ?? "no-valid-from";
-  const textHash = createHash("sha1").update(`${displayName}\n${rawText}`).digest("hex").slice(0, 16);
+  const textHash = createHash("sha1")
+    .update(`${displayName}\n${rawText}`)
+    .digest("hex")
+    .slice(0, 16);
 
   return `coop-hu-${validityPart}-${textHash}`;
 }

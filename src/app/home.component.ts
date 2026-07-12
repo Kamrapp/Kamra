@@ -1,4 +1,12 @@
-import { Component, ViewChild, computed, effect, inject, signal, type OnDestroy } from "@angular/core";
+import {
+  Component,
+  ViewChild,
+  computed,
+  effect,
+  inject,
+  signal,
+  type OnDestroy
+} from "@angular/core";
 
 import { AuthService } from "./auth.service";
 import {
@@ -20,7 +28,11 @@ import { HouseholdStockPanelComponent } from "./household/household-stock-panel.
 import { HouseholdShoppingListComponent } from "./household/household-shopping-list.component";
 import { HouseholdProductEditorComponent } from "./household/household-product-editor.component";
 import { HouseholdV2WorkspaceComponent } from "./household/household-v2-workspace.component";
-import type { HouseholdV2Batch, HouseholdV2Product, HouseholdV2ProductGroup } from "./household/household-v2.service";
+import type {
+  HouseholdV2Batch,
+  HouseholdV2Product,
+  HouseholdV2ProductGroup
+} from "./household/household-v2.service";
 import { LocalizationService, type TranslationKey } from "./shared/localization.service";
 import { PageRailService, type PageRailSection } from "./shared/page-rail.service";
 import { ToastService } from "./shared/toast.service";
@@ -56,7 +68,9 @@ const shoppingScaleOptions: readonly ShoppingScaleOption[] = [
   }
 ] as const;
 
-const shoppingScaleDisplayOptions: readonly ShoppingScaleOption[] = [...shoppingScaleOptions].reverse();
+const shoppingScaleDisplayOptions: readonly ShoppingScaleOption[] = [
+  ...shoppingScaleOptions
+].reverse();
 
 const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], number> = {
   below_limit: 0,
@@ -118,9 +132,13 @@ export class HomeComponent implements OnDestroy {
 
   readonly stockItems = computed(() => this.householdPage()?.stockItems ?? []);
   readonly stockItemsByPriority = computed(() =>
-    [...this.stockItems()].sort((left, right) =>
-      stockStatusPriority[left.stockStatus] - stockStatusPriority[right.stockStatus]
-      || left.displayName.localeCompare(right.displayName, this.loc.language() === "hu" ? "hu-HU" : "en-US")
+    [...this.stockItems()].sort(
+      (left, right) =>
+        stockStatusPriority[left.stockStatus] - stockStatusPriority[right.stockStatus] ||
+        left.displayName.localeCompare(
+          right.displayName,
+          this.loc.language() === "hu" ? "hu-HU" : "en-US"
+        )
     )
   );
   readonly previewStockItems = computed<HouseholdPreviewStockItem[]>(() => [
@@ -150,7 +168,9 @@ export class HomeComponent implements OnDestroy {
     }
   ]);
   readonly previewShoppingItems = computed(() =>
-    this.previewStockItems().filter((item) => shouldBuyForScale(item.stockStatus, this.shoppingScale()))
+    this.previewStockItems().filter((item) =>
+      shouldBuyForScale(item.stockStatus, this.shoppingScale())
+    )
   );
   readonly demoShoppingList = computed<HouseholdShoppingList>(() => ({
     createdAt: "2026-07-10T12:00:00.000Z",
@@ -190,23 +210,30 @@ export class HomeComponent implements OnDestroy {
     updatedAt: "2026-07-10T12:00:00.000Z",
     updatedByUserId: "preview_user"
   }));
-  readonly previewEditorItem = computed<HouseholdPreviewStockItem>(() =>
-    this.previewStockItems()[0] ?? {
-      currentAmount: 0,
-      displayName: this.loc.t("home.milk"),
-      id: "preview_fallback",
-      minLimit: 1,
-      stockStatus: "low_soon",
-      unit: "l"
-    }
+  readonly previewEditorItem = computed<HouseholdPreviewStockItem>(
+    () =>
+      this.previewStockItems()[0] ?? {
+        currentAmount: 0,
+        displayName: this.loc.t("home.milk"),
+        id: "preview_fallback",
+        minLimit: 1,
+        stockStatus: "low_soon",
+        unit: "l"
+      }
   );
   readonly shoppingItems = computed(() =>
-    this.stockItemsByPriority().filter((item) => shouldBuyForScale(item.stockStatus, this.shoppingScale()))
+    this.stockItemsByPriority().filter((item) =>
+      shouldBuyForScale(item.stockStatus, this.shoppingScale())
+    )
   );
   readonly selectedShoppingItemIdsArray = computed(() => [...this.selectedShoppingItemIds()]);
   readonly existingShoppingLineItemIds = computed(() => {
     const shoppingList = this.shoppingListPanel()?.shoppingList();
-    return new Set(shoppingList?.items.map((item) => item.householdStockItemId).filter((id): id is string => !!id) ?? []);
+    return new Set(
+      shoppingList?.items
+        .map((item) => item.householdStockItemId)
+        .filter((id): id is string => !!id) ?? []
+    );
   });
   readonly shoppingItemCount = computed(() => this.shoppingItems().length);
   readonly railShoppingItemCount = computed(() =>
@@ -226,12 +253,23 @@ export class HomeComponent implements OnDestroy {
         active: this.shoppingScale() === option.key
       })),
       onScaleIndexChange: (value) => this.setShoppingScaleIndex(value),
-      itemCount: this.shoppingSelectionMode() ? this.selectedShoppingItemIds().size : this.railShoppingItemCount(),
-      itemCountLabel: this.loc.t("household.shoppingBandCount", { count: this.shoppingSelectionMode() ? this.selectedShoppingItemIds().size : this.railShoppingItemCount() }),
-      actionLabel: this.shoppingSelectionMode() ? this.loc.t("household.generateShoppingList") : this.loc.t("household.buildShoppingList"),
+      itemCount: this.shoppingSelectionMode()
+        ? this.selectedShoppingItemIds().size
+        : this.railShoppingItemCount(),
+      itemCountLabel: this.loc.t("household.shoppingBandCount", {
+        count: this.shoppingSelectionMode()
+          ? this.selectedShoppingItemIds().size
+          : this.railShoppingItemCount()
+      }),
+      actionLabel: this.shoppingSelectionMode()
+        ? this.loc.t("household.generateShoppingList")
+        : this.loc.t("household.buildShoppingList"),
       actionDisabled: !this.auth.isAuthenticated() || !this.selectedHouseholdId(),
       onAction: () => {
-        if (!this.shoppingSelectionMode()) { this.beginShoppingSelection(); return; }
+        if (!this.shoppingSelectionMode()) {
+          this.beginShoppingSelection();
+          return;
+        }
         void this.generateSelectedShoppingList();
       },
       reloadActionLabel: this.loc.t("common.refresh"),
@@ -240,25 +278,33 @@ export class HomeComponent implements OnDestroy {
         void this.shoppingListPanel()?.reloadShoppingList();
       },
       cancelActionLabel: this.loc.t("household.cancelShoppingList"),
-      cancelActionDisabled: !this.auth.isAuthenticated() || (!this.shoppingSelectionMode() && !this.shoppingListPanel()?.shoppingList()),
+      cancelActionDisabled:
+        !this.auth.isAuthenticated() ||
+        (!this.shoppingSelectionMode() && !this.shoppingListPanel()?.shoppingList()),
       onCancelAction: () => {
-        if (this.shoppingSelectionMode()) { this.cancelShoppingSelection(); return; }
+        if (this.shoppingSelectionMode()) {
+          this.cancelShoppingSelection();
+          return;
+        }
         void this.shoppingListPanel()?.cancelShoppingList();
       }
     }
   ]);
   readonly shoppingScaleLabel = computed(() => {
-    const key = this.shoppingScale() === "start_fresh"
-      ? "household.shoppingScaleStartFresh"
-      : this.shoppingScale() === "usual"
-        ? "household.shoppingScaleUsual"
-        : this.shoppingScale() === "chill"
-          ? "household.shoppingScaleChill"
-          : "household.shoppingScaleStockUp";
+    const key =
+      this.shoppingScale() === "start_fresh"
+        ? "household.shoppingScaleStartFresh"
+        : this.shoppingScale() === "usual"
+          ? "household.shoppingScaleUsual"
+          : this.shoppingScale() === "chill"
+            ? "household.shoppingScaleChill"
+            : "household.shoppingScaleStockUp";
 
     return this.loc.t(key);
   });
-  readonly apiShoppingScale = computed<"business_as_usual" | "keep_it_chill" | "start_fresh" | "stock_em_up">(() =>
+  readonly apiShoppingScale = computed<
+    "business_as_usual" | "keep_it_chill" | "start_fresh" | "stock_em_up"
+  >(() =>
     this.shoppingScale() === "start_fresh"
       ? "start_fresh"
       : this.shoppingScale() === "usual"
@@ -267,8 +313,8 @@ export class HomeComponent implements OnDestroy {
           ? "keep_it_chill"
           : "stock_em_up"
   );
-  readonly selectedItem = computed(() =>
-    this.stockItems().find((item) => item.id === this.selectedItemId()) ?? null
+  readonly selectedItem = computed(
+    () => this.stockItems().find((item) => item.id === this.selectedItemId()) ?? null
   );
   readonly shoppingScaleIndex = computed(() =>
     shoppingScaleOptions.findIndex((option) => option.key === this.shoppingScale())
@@ -306,7 +352,9 @@ export class HomeComponent implements OnDestroy {
       return;
     }
 
-    this.statusMessage.set(this.loc.t("household.createdHousehold", { name: result.household.name }));
+    this.statusMessage.set(
+      this.loc.t("household.createdHousehold", { name: result.household.name })
+    );
     await this.loadHouseholdContext(result.household.id);
   }
 
@@ -363,40 +411,41 @@ export class HomeComponent implements OnDestroy {
     }
 
     this.mutationState.set("saving");
-    const result = this.editorMode() === "create"
-      ? await this.household.createStockItem({
-        currentAmount: draft.currentAmount,
-        displayName: draft.displayName.trim(),
-        gtin: nullableTrim(draft.gtin),
-        householdId,
-        idealMaxLimit: nullableNumber(draft.idealMaxLimit),
-        initialAmount: initialAmountForCreate(draft),
-        minLimit: draft.minLimit,
-        note: nullableTrim(draft.note),
-        productSourceId: nullableTrim(draft.productSourceId),
-        sourceName: nullableTrim(draft.sourceName),
-        sourceProductUrl: nullableTrim(draft.sourceProductUrl),
-        stockedAt: toIsoDateTime(draft.stockedAt),
-        stockGroupKey: normalizeStockGroupKey(draft.stockGroupKey || draft.displayName),
-        unit: draft.unit.trim()
-      })
-      : await this.household.updateStockItem({
-        currentAmount: draft.currentAmount,
-        displayName: draft.displayName.trim(),
-        gtin: nullableTrim(draft.gtin),
-        householdId,
-        id: draft.id,
-        idealMaxLimit: nullableNumber(draft.idealMaxLimit),
-        initialAmount: draft.initialAmount,
-        minLimit: draft.minLimit,
-        note: nullableTrim(draft.note),
-        productSourceId: nullableTrim(draft.productSourceId),
-        sourceName: nullableTrim(draft.sourceName),
-        sourceProductUrl: nullableTrim(draft.sourceProductUrl),
-        stockedAt: toIsoDateTime(draft.stockedAt),
-        stockGroupKey: normalizeStockGroupKey(draft.stockGroupKey || draft.displayName),
-        unit: draft.unit.trim()
-      });
+    const result =
+      this.editorMode() === "create"
+        ? await this.household.createStockItem({
+            currentAmount: draft.currentAmount,
+            displayName: draft.displayName.trim(),
+            gtin: nullableTrim(draft.gtin),
+            householdId,
+            idealMaxLimit: nullableNumber(draft.idealMaxLimit),
+            initialAmount: initialAmountForCreate(draft),
+            minLimit: draft.minLimit,
+            note: nullableTrim(draft.note),
+            productSourceId: nullableTrim(draft.productSourceId),
+            sourceName: nullableTrim(draft.sourceName),
+            sourceProductUrl: nullableTrim(draft.sourceProductUrl),
+            stockedAt: toIsoDateTime(draft.stockedAt),
+            stockGroupKey: normalizeStockGroupKey(draft.stockGroupKey || draft.displayName),
+            unit: draft.unit.trim()
+          })
+        : await this.household.updateStockItem({
+            currentAmount: draft.currentAmount,
+            displayName: draft.displayName.trim(),
+            gtin: nullableTrim(draft.gtin),
+            householdId,
+            id: draft.id,
+            idealMaxLimit: nullableNumber(draft.idealMaxLimit),
+            initialAmount: draft.initialAmount,
+            minLimit: draft.minLimit,
+            note: nullableTrim(draft.note),
+            productSourceId: nullableTrim(draft.productSourceId),
+            sourceName: nullableTrim(draft.sourceName),
+            sourceProductUrl: nullableTrim(draft.sourceProductUrl),
+            stockedAt: toIsoDateTime(draft.stockedAt),
+            stockGroupKey: normalizeStockGroupKey(draft.stockGroupKey || draft.displayName),
+            unit: draft.unit.trim()
+          });
     this.mutationState.set("idle");
 
     if (result.status !== "ok") {
@@ -442,14 +491,23 @@ export class HomeComponent implements OnDestroy {
   toggleShoppingItem(id: string): void {
     this.selectedShoppingItemIds.update((selected) => {
       const next = new Set(selected);
-      if (next.has(id)) next.delete(id); else next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   }
 
-  private beginShoppingSelection(): void { this.shoppingSelectionMode.set(true); this.resetShoppingSelection(); }
-  private cancelShoppingSelection(): void { this.shoppingSelectionMode.set(false); this.selectedShoppingItemIds.set(new Set()); }
-  private resetShoppingSelection(): void { this.selectedShoppingItemIds.set(new Set(this.shoppingItems().map((item) => item.id))); }
+  private beginShoppingSelection(): void {
+    this.shoppingSelectionMode.set(true);
+    this.resetShoppingSelection();
+  }
+  private cancelShoppingSelection(): void {
+    this.shoppingSelectionMode.set(false);
+    this.selectedShoppingItemIds.set(new Set());
+  }
+  private resetShoppingSelection(): void {
+    this.selectedShoppingItemIds.set(new Set(this.shoppingItems().map((item) => item.id)));
+  }
   private async generateSelectedShoppingList(): Promise<void> {
     await this.shoppingListPanel()?.generateShoppingList();
     this.cancelShoppingSelection();
@@ -497,7 +555,11 @@ export class HomeComponent implements OnDestroy {
     this.productEditorRevision.update((revision) => revision + 1);
   }
 
-  selectV2Batch(selection: { batch: HouseholdV2Batch; group: HouseholdV2ProductGroup | null; product: HouseholdV2Product }): void {
+  selectV2Batch(selection: {
+    batch: HouseholdV2Batch;
+    group: HouseholdV2ProductGroup | null;
+    product: HouseholdV2Product;
+  }): void {
     this.v2BatchEditorMode.set(true);
     this.v2ProductCreateMode.set(false);
     this.selectedV2Product.set(selection.product);
@@ -518,7 +580,10 @@ export class HomeComponent implements OnDestroy {
   private applyLoadedPage(page: HouseholdStockPage): void {
     this.householdPage.set(page);
     this.selectedHouseholdId.set(page.household.id);
-    if (this.selectedItemId() && !page.stockItems.some((item) => item.id === this.selectedItemId())) {
+    if (
+      this.selectedItemId() &&
+      !page.stockItems.some((item) => item.id === this.selectedItemId())
+    ) {
       this.startCreateItem();
     }
   }
@@ -548,13 +613,14 @@ export class HomeComponent implements OnDestroy {
       return;
     }
 
-    const nextHouseholdId = preferredHouseholdId
-      && listResult.households.some((household) => household.id === preferredHouseholdId)
-      ? preferredHouseholdId
-      : this.selectedHouseholdId()
-        && listResult.households.some((household) => household.id === this.selectedHouseholdId())
-        ? this.selectedHouseholdId()
-        : listResult.households[0]!.id;
+    const nextHouseholdId =
+      preferredHouseholdId &&
+      listResult.households.some((household) => household.id === preferredHouseholdId)
+        ? preferredHouseholdId
+        : this.selectedHouseholdId() &&
+            listResult.households.some((household) => household.id === this.selectedHouseholdId())
+          ? this.selectedHouseholdId()
+          : listResult.households[0]!.id;
 
     this.selectedHouseholdId.set(nextHouseholdId);
     await this.loadHouseholdPage(nextHouseholdId, currentLoad);
@@ -577,9 +643,11 @@ export class HomeComponent implements OnDestroy {
 
     this.applyLoadedPage(pageResult.page);
     this.loadState.set("ready");
-    this.statusMessage.set(this.loc.t("household.loadedHousehold", {
-      count: pageResult.page.stockItems.length
-    }));
+    this.statusMessage.set(
+      this.loc.t("household.loadedHousehold", {
+        count: pageResult.page.stockItems.length
+      })
+    );
   }
 
   private resetState(): void {
@@ -625,9 +693,7 @@ function nullableTrim(value: string): string | null {
 }
 
 function nullableNumber(value: number | null): number | null {
-  return typeof value === "number" && Number.isFinite(value)
-    ? value
-    : null;
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
 function normalizeStockGroupKey(value: string): string {
@@ -671,18 +737,21 @@ function createShoppingLinePlanning(item: HouseholdStockItemListItem): {
 
   return {
     plannedAmount: suggestedBuyAmount,
-    reasonCode: item.stockStatus === "below_limit"
-      ? "below_minimum"
-      : item.stockStatus === "at_limit"
-        ? "at_minimum"
-        : item.stockStatus === "low_soon"
-          ? "low_soon"
-          : "broad_restock",
+    reasonCode:
+      item.stockStatus === "below_limit"
+        ? "below_minimum"
+        : item.stockStatus === "at_limit"
+          ? "at_minimum"
+          : item.stockStatus === "low_soon"
+            ? "low_soon"
+            : "broad_restock",
     targetAmount
   };
 }
 
-function previewStockItemToHouseholdStockItem(item: HouseholdPreviewStockItem): HouseholdStockItemListItem {
+function previewStockItemToHouseholdStockItem(
+  item: HouseholdPreviewStockItem
+): HouseholdStockItemListItem {
   return {
     createdAt: "2026-07-10T12:00:00.000Z",
     currentAmount: item.currentAmount,
@@ -726,7 +795,5 @@ function todayDateInputValue(): string {
 
 function toIsoDateTime(dateInput: string): string {
   const trimmed = dateInput.trim();
-  return trimmed
-    ? new Date(`${trimmed}T12:00:00.000Z`).toISOString()
-    : new Date().toISOString();
+  return trimmed ? new Date(`${trimmed}T12:00:00.000Z`).toISOString() : new Date().toISOString();
 }

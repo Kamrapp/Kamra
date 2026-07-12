@@ -37,8 +37,14 @@ export interface MongoDatabaseLike {
   readonly databaseName: string;
   collection<T extends Document = Document>(name: string): MongoCollectionLike<T>;
   command(command: Document): Promise<Document>;
-  createCollection<T extends Document = Document>(name: string, options?: Document): Promise<MongoCollectionLike<T>>;
-  listCollections(filter?: Document, options?: Document): {
+  createCollection<T extends Document = Document>(
+    name: string,
+    options?: Document
+  ): Promise<MongoCollectionLike<T>>;
+  listCollections(
+    filter?: Document,
+    options?: Document
+  ): {
     toArray(): Promise<Array<{ name: string }>>;
   };
 }

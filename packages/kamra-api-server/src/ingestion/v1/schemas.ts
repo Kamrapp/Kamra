@@ -28,70 +28,64 @@ const optionalStringSchema: JsonSchema = {
   bsonType: ["null", "string"]
 };
 
-const parsedPriceObservationSchema = requiredObjectSchema(
-  ["currencyCode", "observedAt", "price"],
-  {
-    currencyCode: { enum: ["HUF"] },
-    observedAt: isoDateStringSchema,
-    price: { bsonType: ["double", "int", "long", "decimal"] },
-    priceKind: { enum: ["base", "coupon", "loyalty_card", "offer", "old"] },
-    programName: optionalStringSchema,
-    unitPriceLabel: optionalStringSchema,
-    validFrom: optionalStringSchema,
-    validTo: optionalStringSchema
-  }
-);
+const parsedPriceObservationSchema = requiredObjectSchema(["currencyCode", "observedAt", "price"], {
+  currencyCode: { enum: ["HUF"] },
+  observedAt: isoDateStringSchema,
+  price: { bsonType: ["double", "int", "long", "decimal"] },
+  priceKind: { enum: ["base", "coupon", "loyalty_card", "offer", "old"] },
+  programName: optionalStringSchema,
+  unitPriceLabel: optionalStringSchema,
+  validFrom: optionalStringSchema,
+  validTo: optionalStringSchema
+});
 
-const parsedProductIdentifierSchema = requiredObjectSchema(
-  ["kind", "value"],
-  {
-    issuer: optionalStringSchema,
-    kind: { enum: ["gtin", "national_code", "retailer_item_number", "retailer_product_id", "unknown"] },
-    value: { bsonType: "string" }
-  }
-);
+const parsedProductIdentifierSchema = requiredObjectSchema(["kind", "value"], {
+  issuer: optionalStringSchema,
+  kind: {
+    enum: ["gtin", "national_code", "retailer_item_number", "retailer_product_id", "unknown"]
+  },
+  value: { bsonType: "string" }
+});
 
 const productReviewCandidateSchema = requiredObjectSchema(
-  ["matchConfidence", "origin", "priceObservations", "product", "source", "sourceProductIdentifiers"],
+  [
+    "matchConfidence",
+    "origin",
+    "priceObservations",
+    "product",
+    "source",
+    "sourceProductIdentifiers"
+  ],
   {
     matchConfidence: {
       enum: ["name_only", "none", "source_scoped_name", "strong_identifier", "strong_source_key"]
     },
-    origin: requiredObjectSchema(
-      ["capturedAt", "sourceName", "sourceRecordId"],
-      {
-        capturedAt: isoDateStringSchema,
-        sourceName: { bsonType: "string" },
-        sourceRecordId: { bsonType: "string" },
-        sourceUrl: optionalStringSchema
-      }
-    ),
+    origin: requiredObjectSchema(["capturedAt", "sourceName", "sourceRecordId"], {
+      capturedAt: isoDateStringSchema,
+      sourceName: { bsonType: "string" },
+      sourceRecordId: { bsonType: "string" },
+      sourceUrl: optionalStringSchema
+    }),
     priceObservations: {
       bsonType: "array",
       items: parsedPriceObservationSchema
     },
-    product: requiredObjectSchema(
-      ["kind", "measurements", "name", "normalizedName"],
-      {
-        brandName: optionalStringSchema,
-        kind: { enum: ["grocery"] },
-        measurements: {
-          bsonType: "array",
-          items: requiredObjectSchema(
-            ["unit", "value"],
-            {
-              normalizedUnit: optionalStringSchema,
-              normalizedValue: { bsonType: ["double", "int", "long", "decimal", "null"] },
-              unit: { bsonType: "string" },
-              value: { bsonType: ["double", "int", "long", "decimal"] }
-            }
-          )
-        },
-        name: { bsonType: "string" },
-        normalizedName: { bsonType: "string" },
-        primaryCategoryKey: optionalStringSchema
-      }
-    ),
+    product: requiredObjectSchema(["kind", "measurements", "name", "normalizedName"], {
+      brandName: optionalStringSchema,
+      kind: { enum: ["grocery"] },
+      measurements: {
+        bsonType: "array",
+        items: requiredObjectSchema(["unit", "value"], {
+          normalizedUnit: optionalStringSchema,
+          normalizedValue: { bsonType: ["double", "int", "long", "decimal", "null"] },
+          unit: { bsonType: "string" },
+          value: { bsonType: ["double", "int", "long", "decimal"] }
+        })
+      },
+      name: { bsonType: "string" },
+      normalizedName: { bsonType: "string" },
+      primaryCategoryKey: optionalStringSchema
+    }),
     source: requiredObjectSchema(
       ["countryCode", "sourceName", "sourceProductKey", "sourceProductName", "storeBrandKey"],
       {
@@ -158,7 +152,15 @@ export const ingestionV1CollectionSchemas: Record<IngestionV1CollectionName, Jso
           _id: { bsonType: "objectId" },
           decidedAt: isoDateStringSchema,
           declineReason: {
-            enum: ["bad_name", "bad_price", "duplicate", "non_product", "online_only", "unsupported_layout", "other"]
+            enum: [
+              "bad_name",
+              "bad_price",
+              "duplicate",
+              "non_product",
+              "online_only",
+              "unsupported_layout",
+              "other"
+            ]
           },
           note: optionalStringSchema,
           reviewerId: { bsonType: "string" },

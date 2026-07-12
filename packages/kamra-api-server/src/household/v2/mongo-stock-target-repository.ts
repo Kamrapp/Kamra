@@ -13,17 +13,58 @@ export class MongoStockTargetRepository {
     return target;
   }
 
-  async update(input: { householdId: string; id: string; expectedRevision: number; patch: Partial<Pick<StockTarget, "acceptanceCriteria" | "consumptionPolicy" | "displayName" | "expiryWarningDays" | "minimumQuantity" | "preferredProductId" | "preferredProductNameSnapshot" | "status" | "targetQuantity" | "trackingUnit">>; updatedAt: string; updatedByUserId: string }): Promise<StockTarget> {
-    const current = await this.targets.findOne({ householdId: input.householdId, id: input.id, status: "active" });
+  async update(input: {
+    householdId: string;
+    id: string;
+    expectedRevision: number;
+    patch: Partial<
+      Pick<
+        StockTarget,
+        | "acceptanceCriteria"
+        | "consumptionPolicy"
+        | "displayName"
+        | "expiryWarningDays"
+        | "minimumQuantity"
+        | "preferredProductId"
+        | "preferredProductNameSnapshot"
+        | "status"
+        | "targetQuantity"
+        | "trackingUnit"
+      >
+    >;
+    updatedAt: string;
+    updatedByUserId: string;
+  }): Promise<StockTarget> {
+    const current = await this.targets.findOne({
+      householdId: input.householdId,
+      id: input.id,
+      status: "active"
+    });
     if (!current) throw new Error("stock_target_not_found");
     if (current.revision !== input.expectedRevision) throw new Error("stale_revision");
-    const next = { ...current, ...input.patch, revision: current.revision + 1, updatedAt: input.updatedAt, updatedByUserId: input.updatedByUserId };
-    if (next.targetQuantity < next.minimumQuantity) throw new Error("target_quantity_below_minimum");
-    await this.targets.updateOne({ householdId: input.householdId, id: input.id, revision: input.expectedRevision }, { $set: next });
+    const next = {
+      ...current,
+      ...input.patch,
+      revision: current.revision + 1,
+      updatedAt: input.updatedAt,
+      updatedByUserId: input.updatedByUserId
+    };
+    if (next.targetQuantity < next.minimumQuantity)
+      throw new Error("target_quantity_below_minimum");
+    await this.targets.updateOne(
+      { householdId: input.householdId, id: input.id, revision: input.expectedRevision },
+      { $set: next }
+    );
     return next;
   }
 
-  async archive(input: { householdId: string; id: string; expectedRevision: number; updatedAt: string; updatedByUserId: string }): Promise<StockTarget> {
+  async archive(input: {
+    householdId: string;
+    id: string;
+    expectedRevision: number;
+    updatedAt: string;
+    updatedByUserId: string;
+  }): Promise<StockTarget> {
     return await this.update({ ...input, patch: { status: "archived" } });
   }
 }

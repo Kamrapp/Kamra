@@ -7,10 +7,7 @@
       "request": "launch",
       "cwd": "${workspaceFolder}",
       "runtimeExecutable": "npm",
-      "runtimeArgs": [
-        "run",
-        "dev"
-      ],
+      "runtimeArgs": ["run", "dev"],
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
       "serverReadyAction": {

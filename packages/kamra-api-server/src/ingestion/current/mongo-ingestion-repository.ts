@@ -86,16 +86,21 @@ export class MongoIngestionRepository {
     this.productReviewItemsCollection = database.collection<IngestionProductReviewItemRecord>(
       "ingestion_product_review_items"
     );
-    this.rawSnapshotsCollection = database.collection<IngestionRawSnapshotRecord>("ingestion_raw_snapshots");
+    this.rawSnapshotsCollection =
+      database.collection<IngestionRawSnapshotRecord>("ingestion_raw_snapshots");
     this.runsCollection = database.collection<IngestionRunRecord>("ingestion_runs");
   }
 
   async setupCollections(): Promise<void> {
     const existingCollections = new Set(
-      (await this.database.listCollections({}, { nameOnly: true }).toArray()).map((entry) => entry.name)
+      (await this.database.listCollections({}, { nameOnly: true }).toArray()).map(
+        (entry) => entry.name
+      )
     );
 
-    for (const collectionName of Object.keys(ingestionV1CollectionSchemas) as IngestionV1CollectionName[]) {
+    for (const collectionName of Object.keys(
+      ingestionV1CollectionSchemas
+    ) as IngestionV1CollectionName[]) {
       if (!existingCollections.has(collectionName)) {
         await this.database.createCollection(
           collectionName,
@@ -136,7 +141,12 @@ export class MongoIngestionRepository {
     ]);
   }
 
-  async startRun(run: Omit<IngestionRunRecord, "completedAt" | "failedCount" | "insertedSnapshotCount" | "skippedSnapshotCount" | "status">): Promise<void> {
+  async startRun(
+    run: Omit<
+      IngestionRunRecord,
+      "completedAt" | "failedCount" | "insertedSnapshotCount" | "skippedSnapshotCount" | "status"
+    >
+  ): Promise<void> {
     const now = run.startedAt;
     await this.runsCollection.updateOne(
       { crawlRunId: run.crawlRunId },
@@ -214,18 +224,20 @@ export class MongoIngestionRepository {
     return this.rawSnapshotsCollection.countDocuments({ crawlRunId });
   }
 
-  async listRawSnapshots(options: ListRawSnapshotsOptions = {}): Promise<IngestionRawSnapshotRecord[]> {
-    const sourceNames = [...new Set([
-      ...(options.sourceNames ?? []),
-      ...(options.sourceName ? [options.sourceName] : [])
-    ])].filter((sourceName) => sourceName.length > 0);
+  async listRawSnapshots(
+    options: ListRawSnapshotsOptions = {}
+  ): Promise<IngestionRawSnapshotRecord[]> {
+    const sourceNames = [
+      ...new Set([
+        ...(options.sourceNames ?? []),
+        ...(options.sourceName ? [options.sourceName] : [])
+      ])
+    ].filter((sourceName) => sourceName.length > 0);
     const filter: Filter<IngestionRawSnapshotRecord> = sourceNames.length
       ? { sourceName: { $in: sourceNames } }
       : {};
 
-    let query = this.rawSnapshotsCollection
-      .find(filter)
-      .sort({ capturedAt: -1 });
+    let query = this.rawSnapshotsCollection.find(filter).sort({ capturedAt: -1 });
 
     if (typeof options.offset === "number" && options.offset > 0) {
       query = query.skip(options.offset);
@@ -246,7 +258,9 @@ export class MongoIngestionRepository {
     return sourceNames.sort((left, right) => left.localeCompare(right, "hu-HU"));
   }
 
-  async prepareProductReviewItems(snapshot: IngestionRawSnapshotRecord): Promise<IngestionProductReviewItemRecord[]> {
+  async prepareProductReviewItems(
+    snapshot: IngestionRawSnapshotRecord
+  ): Promise<IngestionProductReviewItemRecord[]> {
     const preparedAt = new Date().toISOString();
     const reviewItems = snapshot.parsedRows.map((row, rowIndex) => {
       const reviewCandidate = buildSourceOfferReviewCandidate(snapshot, row, rowIndex);
@@ -294,7 +308,9 @@ export class MongoIngestionRepository {
       filter.status = { $in: options.status };
     }
 
-    let query = this.productReviewItemsCollection.find(filter).sort({ capturedAt: -1, rowIndex: 1 });
+    let query = this.productReviewItemsCollection
+      .find(filter)
+      .sort({ capturedAt: -1, rowIndex: 1 });
     if (typeof options.offset === "number" && options.offset > 0) {
       query = query.skip(options.offset);
     }
@@ -309,7 +325,9 @@ export class MongoIngestionRepository {
     return this.productReviewItemsCollection.findOne({ id });
   }
 
-  async updateProductReviewItemCandidate(input: UpdateProductReviewItemCandidateInput): Promise<boolean> {
+  async updateProductReviewItemCandidate(
+    input: UpdateProductReviewItemCandidateInput
+  ): Promise<boolean> {
     const result = await this.productReviewItemsCollection.updateOne(
       { id: input.id },
       {
@@ -394,17 +412,16 @@ export class MongoIngestionRepository {
 
   private async incrementRun(
     crawlRunId: string,
-    increments: Partial<Pick<IngestionRunRecord, "failedCount" | "insertedSnapshotCount" | "skippedSnapshotCount">>
+    increments: Partial<
+      Pick<IngestionRunRecord, "failedCount" | "insertedSnapshotCount" | "skippedSnapshotCount">
+    >
   ): Promise<void> {
-    await this.runsCollection.updateOne(
-      { crawlRunId },
-      {
-        $inc: increments as Document,
-        $set: {
-          updatedAt: new Date().toISOString()
-        }
-      } as Filter<IngestionRunRecord>
-    );
+    await this.runsCollection.updateOne({ crawlRunId }, {
+      $inc: increments as Document,
+      $set: {
+        updatedAt: new Date().toISOString()
+      }
+    } as Filter<IngestionRunRecord>);
   }
 }
 

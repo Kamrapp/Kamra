@@ -39,8 +39,13 @@ import { ToastService } from "../shared/toast.service";
           <h2 class="ui-card-title">{{ loc.t("household.managementIdentityTitle") }}</h2>
           <p class="ui-copy-muted">{{ loc.t("household.managementIdentityDescription") }}</p>
           @if (household()) {
-            <label><span>{{ loc.t("household.householdName") }}</span><input class="ui-form-control" [(ngModel)]="nameDraft" /></label>
-            <button class="ui-button ui-button-sm" type="button" (click)="saveSettings()">{{ loc.t("household.saveHousehold") }}</button>
+            <label>
+              <span>{{ loc.t("household.householdName") }}</span>
+              <input class="ui-form-control" [(ngModel)]="nameDraft" />
+            </label>
+            <button class="ui-button ui-button-sm" type="button" (click)="saveSettings()">
+              {{ loc.t("household.saveHousehold") }}
+            </button>
           }
         </article>
 
@@ -56,11 +61,27 @@ import { ToastService } from "../shared/toast.service";
           <h2 class="ui-card-title">{{ loc.t("household.managementLimitsTitle") }}</h2>
           <p class="ui-copy-muted">{{ loc.t("household.managementLimitsDescription") }}</p>
           @if (household()) {
-            <label><span>{{ loc.t("household.defaultCalculatedMaxLimitMultiplier") }}</span><input class="ui-form-control" type="number" min="0" step="0.1" [(ngModel)]="maxLimitMultiplierDraft" /></label>
-            <label class="checkbox-row"><input type="checkbox" [(ngModel)]="allowExpiredItemsDraft" /> {{ loc.t("household.allowExpiredItems") }}</label>
-            <button class="ui-button ui-button-sm" type="button" (click)="saveSettings()">{{ loc.t("household.saveSettings") }}</button>
+            <label>
+              <span>{{ loc.t("household.defaultCalculatedMaxLimitMultiplier") }}</span>
+              <input
+                class="ui-form-control"
+                type="number"
+                min="0"
+                step="0.1"
+                [(ngModel)]="maxLimitMultiplierDraft"
+              />
+            </label>
+            <label class="checkbox-row">
+              <input type="checkbox" [(ngModel)]="allowExpiredItemsDraft" />
+              {{ loc.t("household.allowExpiredItems") }}
+            </label>
+            <button class="ui-button ui-button-sm" type="button" (click)="saveSettings()">
+              {{ loc.t("household.saveSettings") }}
+            </button>
           }
-          @if (errorMessage()) { <p class="ui-copy-error">{{ errorMessage() }}</p> }
+          @if (errorMessage()) {
+            <p class="ui-copy-error">{{ errorMessage() }}</p>
+          }
         </article>
       </div>
     </section>
@@ -152,10 +173,26 @@ export class HouseholdManagementComponent {
 
   async saveSettings(): Promise<void> {
     const household = this.household();
-    if (!household || !this.nameDraft.trim() || !Number.isFinite(this.maxLimitMultiplierDraft) || this.maxLimitMultiplierDraft < 0) return;
+    if (
+      !household ||
+      !this.nameDraft.trim() ||
+      !Number.isFinite(this.maxLimitMultiplierDraft) ||
+      this.maxLimitMultiplierDraft < 0
+    )
+      return;
     this.errorMessage.set("");
-    const result = await this.householdV2Service.updateHouseholdSettings({ allowExpiredItems: this.allowExpiredItemsDraft, defaultCalculatedMaxLimitMultiplier: this.maxLimitMultiplierDraft, householdId: household.id, name: this.nameDraft.trim() });
-    if (result.status === "error") { const message = result.message ?? this.loc.t("household.settingsSaveFailure"); this.errorMessage.set(message); this.toast.push(message, "error"); return; }
+    const result = await this.householdV2Service.updateHouseholdSettings({
+      allowExpiredItems: this.allowExpiredItemsDraft,
+      defaultCalculatedMaxLimitMultiplier: this.maxLimitMultiplierDraft,
+      householdId: household.id,
+      name: this.nameDraft.trim()
+    });
+    if (result.status === "error") {
+      const message = result.message ?? this.loc.t("household.settingsSaveFailure");
+      this.errorMessage.set(message);
+      this.toast.push(message, "error");
+      return;
+    }
     await this.loadHousehold();
     this.toast.push(this.loc.t("household.settingsSaved"), "success");
   }

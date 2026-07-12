@@ -24,8 +24,12 @@ export class DatabaseMaintenanceComponent implements OnInit {
   readonly loadState = signal<"idle" | "loading" | "error">("idle");
   readonly message = signal("");
   readonly busyKey = signal<string | null>(null);
-  readonly activeEntries = computed(() => this.entries().filter((entry) => !entry.validatorUpdated || !entry.migrationCompleted));
-  readonly finishedEntries = computed(() => this.entries().filter((entry) => entry.validatorUpdated && entry.migrationCompleted));
+  readonly activeEntries = computed(() =>
+    this.entries().filter((entry) => !entry.validatorUpdated || !entry.migrationCompleted)
+  );
+  readonly finishedEntries = computed(() =>
+    this.entries().filter((entry) => entry.validatorUpdated && entry.migrationCompleted)
+  );
 
   ngOnInit(): void {
     void this.loadEntries();
@@ -44,7 +48,9 @@ export class DatabaseMaintenanceComponent implements OnInit {
         method: "GET"
       });
       if (!response.ok) {
-        this.message.set(await readApiErrorMessage(response, this.loc.t("health.databaseMaintenanceLoadFailure")));
+        this.message.set(
+          await readApiErrorMessage(response, this.loc.t("health.databaseMaintenanceLoadFailure"))
+        );
         this.loadState.set("error");
         return;
       }
@@ -64,17 +70,24 @@ export class DatabaseMaintenanceComponent implements OnInit {
     this.message.set("");
 
     try {
-      const response = await fetch(buildApiUrl(`/api/admin/database-maintenance/${action === "validator" ? "validators" : "migrations"}`), {
-        body: JSON.stringify({ entryId: entry.id }),
-        headers: {
-          accept: "application/json",
-          "content-type": "application/json",
-          ...this.auth.getAuthorizationHeaders()
-        },
-        method: "POST"
-      });
+      const response = await fetch(
+        buildApiUrl(
+          `/api/admin/database-maintenance/${action === "validator" ? "validators" : "migrations"}`
+        ),
+        {
+          body: JSON.stringify({ entryId: entry.id }),
+          headers: {
+            accept: "application/json",
+            "content-type": "application/json",
+            ...this.auth.getAuthorizationHeaders()
+          },
+          method: "POST"
+        }
+      );
       if (!response.ok) {
-        this.message.set(await readApiErrorMessage(response, this.loc.t("health.databaseMaintenanceActionFailure")));
+        this.message.set(
+          await readApiErrorMessage(response, this.loc.t("health.databaseMaintenanceActionFailure"))
+        );
         return;
       }
 
@@ -101,7 +114,9 @@ export class DatabaseMaintenanceComponent implements OnInit {
         method: "POST"
       });
       if (!response.ok) {
-        this.message.set(await readApiErrorMessage(response, this.loc.t("health.databaseMaintenanceActionFailure")));
+        this.message.set(
+          await readApiErrorMessage(response, this.loc.t("health.databaseMaintenanceActionFailure"))
+        );
         return;
       }
 
@@ -126,7 +141,9 @@ export class DatabaseMaintenanceComponent implements OnInit {
         method: "POST"
       });
       if (!response.ok) {
-        this.message.set(await readApiErrorMessage(response, this.loc.t("health.databaseMaintenanceActionFailure")));
+        this.message.set(
+          await readApiErrorMessage(response, this.loc.t("health.databaseMaintenanceActionFailure"))
+        );
         await this.loadEntries();
         return;
       }

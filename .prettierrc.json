@@ -1,0 +1,8 @@
+{
+  "bracketSameLine": false,
+  "endOfLine": "lf",
+  "htmlWhitespaceSensitivity": "ignore",
+  "printWidth": 100,
+  "singleQuote": false,
+  "trailingComma": "none"
+}

@@ -66,7 +66,11 @@ const householdStockItemStatusSchema = {
 };
 
 const householdFeatureFlagKeySchema = {
-  enum: ["allowAutoTickingAllShoppingListEntries", "allowControlledAlphaAccess", "useAbbreviatedUiLabels"]
+  enum: [
+    "allowAutoTickingAllShoppingListEntries",
+    "allowControlledAlphaAccess",
+    "useAbbreviatedUiLabels"
+  ]
 };
 
 const householdShoppingListStatusSchema = {
@@ -333,7 +337,16 @@ export const householdV1CollectionSchemas: Record<HouseholdV1CollectionName, Jso
     }
   ),
   household_shops: requiredObjectSchema(
-    ["countryCode", "createdAt", "id", "label", "sourceNames", "status", "storeBrandKeys", "updatedAt"],
+    [
+      "countryCode",
+      "createdAt",
+      "id",
+      "label",
+      "sourceNames",
+      "status",
+      "storeBrandKeys",
+      "updatedAt"
+    ],
     {
       countryCode: nonEmptyStringSchema,
       createdAt: isoDateStringSchema,

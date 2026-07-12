@@ -1,25 +1,19 @@
 import { Component, computed, effect, inject, signal, type OnInit } from "@angular/core";
-import {
-  NavigationEnd,
-  Router,
-  RouterLink,
-  RouterLinkActive,
-  RouterOutlet
-} from "@angular/router";
+import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from "@angular/router";
 
 import { BrowserLoggerService } from "./browser-logger.service";
 import { AuthService } from "./auth.service";
 import { PageRailService } from "./shared/page-rail.service";
 import { PageRailOutletComponent } from "./shared/page-rail-outlet.component";
 import { ClientConsoleWindowComponent } from "./shared/client-console-window.component";
-import {
-  LocalizationService,
-  type LanguagePreference
-} from "./shared/localization.service";
+import { LocalizationService, type LanguagePreference } from "./shared/localization.service";
 import { ThemePreferenceService, type ThemePreference } from "./shared/theme-preference.service";
 import { ToastHostComponent } from "./shared/toast-host.component";
 import { ToastService } from "./shared/toast.service";
-import { RadialNavigationComponent, type RadialNavigationItem } from "./shared/radial-navigation.component";
+import {
+  RadialNavigationComponent,
+  type RadialNavigationItem
+} from "./shared/radial-navigation.component";
 import {
   ShellAccountPanelComponent,
   type ShellLoginCredentials
@@ -30,7 +24,16 @@ interface ShellMenuItem extends RadialNavigationItem {
 }
 
 @Component({
-  imports: [ClientConsoleWindowComponent, PageRailOutletComponent, RadialNavigationComponent, RouterLink, RouterLinkActive, RouterOutlet, ShellAccountPanelComponent, ToastHostComponent],
+  imports: [
+    ClientConsoleWindowComponent,
+    PageRailOutletComponent,
+    RadialNavigationComponent,
+    RouterLink,
+    RouterLinkActive,
+    RouterOutlet,
+    ShellAccountPanelComponent,
+    ToastHostComponent
+  ],
   selector: "app-root",
   standalone: true,
   template: `
@@ -38,13 +41,7 @@ interface ShellMenuItem extends RadialNavigationItem {
       <aside class="left-rail" [attr.aria-label]="loc.t('app.context')">
         <a class="brand-card" routerLink="/" [attr.aria-label]="loc.t('app.home')">
           <span class="brand-line">
-            <img
-              class="brand-mark"
-              src="/brand/kamra-basket.png"
-              alt=""
-              width="72"
-              height="72"
-            />
+            <img class="brand-mark" src="/brand/kamra-basket.png" alt="" width="72" height="72" />
             <span class="brand-name">Kamra</span>
           </span>
           <span class="brand-title">{{ loc.t("app.brandTitle") }}</span>
@@ -203,14 +200,19 @@ interface ShellMenuItem extends RadialNavigationItem {
       }
 
       .about-rail-card {
-        background:
-          linear-gradient(180deg, color-mix(in srgb, var(--color-accent-sky) 15%, var(--surface-shell-background)) 0%, var(--surface-shell-background) 100%);
+        background: linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--color-accent-sky) 15%, var(--surface-shell-background)) 0%,
+          var(--surface-shell-background) 100%
+        );
         color: inherit;
         display: grid;
         gap: 0.35rem;
         padding: 0.85rem 0.95rem;
         text-decoration: none;
-        transition: border-color 160ms ease, transform 180ms ease;
+        transition:
+          border-color 160ms ease,
+          transform 180ms ease;
       }
 
       .rail-reference-links {
@@ -344,7 +346,6 @@ interface ShellMenuItem extends RadialNavigationItem {
         .page-body {
           grid-row: 3;
         }
-
       }
     `
   ]
@@ -376,7 +377,8 @@ export class AppComponent implements OnInit {
     {
       angle: 195,
       exact: false,
-      iconPath: "M12 2 4 5v6c0 5 3.4 9.7 8 11 4.6-1.3 8-6 8-11V5l-8-3Zm0 2.1 6 2.25v4.53c0 3.9-2.44 7.54-6 8.88-3.56-1.34-6-4.98-6-8.88V6.35L12 4.1Zm-1 3.4h2v4h-2v-4Zm0 5h2v2h-2v-2Z",
+      iconPath:
+        "M12 2 4 5v6c0 5 3.4 9.7 8 11 4.6-1.3 8-6 8-11V5l-8-3Zm0 2.1 6 2.25v4.53c0 3.9-2.44 7.54-6 8.88-3.56-1.34-6-4.98-6-8.88V6.35L12 4.1Zm-1 3.4h2v4h-2v-4Zm0 5h2v2h-2v-2Z",
       labelKey: "common.devAdmin",
       path: "/dev-admin",
       requiresAdmin: true
@@ -437,7 +439,10 @@ export class AppComponent implements OnInit {
       this.theme.applyUserTheme(this.auth.user()?.profile.theme);
       this.loc.applyUserLanguage(this.auth.user()?.profile.language);
       this.loginResetToken.update((token) => token + 1);
-      this.toast.push(this.loc.t("app.signedIn", { email: this.auth.user()?.email ?? email }), "success");
+      this.toast.push(
+        this.loc.t("app.signedIn", { email: this.auth.user()?.email ?? email }),
+        "success"
+      );
     } catch {
       this.toast.push(this.loc.t("app.loginFailure"), "error");
     } finally {

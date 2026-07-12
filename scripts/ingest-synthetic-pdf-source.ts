@@ -1,5 +1,8 @@
 import { readAppConfig } from "../packages/kamra-api-server/src/config/app-config.js";
-import { closeMongoClient, getMongoClient } from "../packages/kamra-api-server/src/db/mongo-client.js";
+import {
+  closeMongoClient,
+  getMongoClient
+} from "../packages/kamra-api-server/src/db/mongo-client.js";
 import { MongoIngestionRepository } from "../packages/kamra-api-server/src/ingestion/current/mongo-ingestion-repository.js";
 import {
   extractPdfTextLines,
@@ -23,11 +26,7 @@ async function ingestSyntheticPdfSource(): Promise<void> {
 
   const now = new Date();
   const observedAt = now.toISOString();
-  const identity = createCrawlRunIdentity(
-    simplePdfShopSourceName,
-    simplePdfShopWorkflowName,
-    now
-  );
+  const identity = createCrawlRunIdentity(simplePdfShopSourceName, simplePdfShopWorkflowName, now);
   const pdfBytes = await generateSimplePdfShopFixturePdf();
   const payloadText = (await extractPdfTextLines(pdfBytes)).join("\n");
   const client = await getMongoClient(config.mongodb.uri, config.mongodb.dnsServers);

@@ -1,9 +1,7 @@
 import { FormsModule } from "@angular/forms";
 import { Component, inject, input, output, signal } from "@angular/core";
 
-import {
-  type HouseholdShoppingListLine
-} from "./household-stock.service";
+import { type HouseholdShoppingListLine } from "./household-stock.service";
 import { LocalizationService, type TranslationKey } from "../shared/localization.service";
 
 export type ShoppingListLineChange =
@@ -67,11 +65,21 @@ export type ShoppingListLineChange =
         type="button"
         (click)="toggleExpanded()"
         [disabled]="readOnly()"
-        [attr.aria-label]="expanded() ? loc.t('household.hideAdditionalDetails') : loc.t('household.showAdditionalDetails')"
-        [attr.title]="expanded() ? loc.t('household.hideAdditionalDetails') : loc.t('household.showAdditionalDetails')"
+        [attr.aria-label]="
+          expanded()
+            ? loc.t('household.hideAdditionalDetails')
+            : loc.t('household.showAdditionalDetails')
+        "
+        [attr.title]="
+          expanded()
+            ? loc.t('household.hideAdditionalDetails')
+            : loc.t('household.showAdditionalDetails')
+        "
       >
         <svg aria-hidden="true" viewBox="0 0 24 24">
-          <path d="M10.5 4a6.5 6.5 0 0 1 5.18 10.43l3.45 3.44-1.42 1.42-3.44-3.45A6.5 6.5 0 1 1 10.5 4Zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Z"></path>
+          <path
+            d="M10.5 4a6.5 6.5 0 0 1 5.18 10.43l3.45 3.44-1.42 1.42-3.44-3.45A6.5 6.5 0 1 1 10.5 4Zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Z"
+          ></path>
           @if (expanded()) {
             <path d="M7.5 10h6v1.6h-6V10Z"></path>
           } @else {
@@ -85,7 +93,11 @@ export type ShoppingListLineChange =
       <div class="shopping-line-details">
         <div class="shopping-meta">
           <p>{{ loc.t("household.shoppingListTargetAmount", { amount: item().targetAmount }) }}</p>
-          <p>{{ loc.t("household.shoppingListSuggestedAmount", { amount: item().suggestedBuyAmount }) }}</p>
+          <p>
+            {{
+              loc.t("household.shoppingListSuggestedAmount", { amount: item().suggestedBuyAmount })
+            }}
+          </p>
           @if (item().reasonCode) {
             <p>{{ loc.t(reasonKey(item().reasonCode!)) }}</p>
           }
@@ -133,7 +145,9 @@ export type ShoppingListLineChange =
         align-items: center;
         display: grid;
         gap: 0.55rem;
-        grid-template-columns: minmax(10rem, 1fr) minmax(4.8rem, 6.5rem) minmax(4.8rem, 6.5rem) minmax(3.8rem, 4.5rem) 2.2rem;
+        grid-template-columns:
+          minmax(10rem, 1fr) minmax(4.8rem, 6.5rem) minmax(4.8rem, 6.5rem)
+          minmax(3.8rem, 4.5rem) 2.2rem;
       }
 
       .shopping-check {
@@ -263,9 +277,13 @@ export class ShoppingListLineComponent {
 
   describeUncertainty(item: HouseholdShoppingListLine): string {
     return item.uncertaintyFlags
-      .map((flag) => this.loc.t(flag === "missing_catalog_product"
-        ? "household.uncertaintyMissingCatalogProduct"
-        : "household.uncertaintyMissingProductSource"))
+      .map((flag) =>
+        this.loc.t(
+          flag === "missing_catalog_product"
+            ? "household.uncertaintyMissingCatalogProduct"
+            : "household.uncertaintyMissingProductSource"
+        )
+      )
       .join(", ");
   }
 

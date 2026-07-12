@@ -19,14 +19,32 @@ type EditorMode = "catalog" | "review";
   template: `
     @if (open) {
       <section class="dialog-backdrop" role="presentation" (click)="close.emit()">
-        <article class="editor-dialog" role="dialog" aria-modal="true" [attr.aria-label]="title" (click)="$event.stopPropagation()">
+        <article
+          class="editor-dialog"
+          role="dialog"
+          aria-modal="true"
+          [attr.aria-label]="title"
+          (click)="$event.stopPropagation()"
+        >
           <header class="editor-header">
             <div>
-              <p class="kicker">{{ mode === "review" ? loc.t("common.crawlReview") : loc.t("common.catalogProduct") }}</p>
+              <p class="kicker">
+                {{
+                  mode === "review" ? loc.t("common.crawlReview") : loc.t("common.catalogProduct")
+                }}
+              </p>
               <h2>{{ title }}</h2>
               <p class="muted">{{ subtitle }}</p>
             </div>
-            <button class="icon-button" type="button" [title]="loc.t('common.close')" [attr.aria-label]="loc.t('common.closeEditor')" (click)="close.emit()">x</button>
+            <button
+              class="icon-button"
+              type="button"
+              [title]="loc.t('common.close')"
+              [attr.aria-label]="loc.t('common.closeEditor')"
+              (click)="close.emit()"
+            >
+              x
+            </button>
           </header>
 
           <div class="editor-body">
@@ -37,11 +55,19 @@ type EditorMode = "catalog" | "review";
               </label>
               <label>
                 {{ loc.t("editor.brand") }}
-                <input name="brand" [(ngModel)]="draftBrandName" [placeholder]="loc.t('common.unbranded')" />
+                <input
+                  name="brand"
+                  [(ngModel)]="draftBrandName"
+                  [placeholder]="loc.t('common.unbranded')"
+                />
               </label>
               <label>
                 {{ loc.t("editor.categoryKey") }}
-                <input name="category" [(ngModel)]="draftCategoryKey" [placeholder]="loc.t('common.uncategorized')" />
+                <input
+                  name="category"
+                  [(ngModel)]="draftCategoryKey"
+                  [placeholder]="loc.t('common.uncategorized')"
+                />
               </label>
               <label>
                 {{ loc.t("editor.note") }}
@@ -58,8 +84,14 @@ type EditorMode = "catalog" | "review";
               @if (mode === "catalog" && product) {
                 <section class="context-panel" [attr.aria-label]="loc.t('editor.catalogContext')">
                   <p class="kicker">{{ loc.t("editor.catalogContext") }}</p>
-                  <p class="muted">{{ validationStatusLabel(product.validationStatus) }} · {{ product.sourceNames.join(", ") || loc.t("common.noSource") }}</p>
-                  <p class="muted">{{ product.offers.length }} {{ loc.t("common.offers") }} · {{ product.tagKeys.length }} {{ loc.t("common.tags") }}</p>
+                  <p class="muted">
+                    {{ validationStatusLabel(product.validationStatus) }} ·
+                    {{ product.sourceNames.join(", ") || loc.t("common.noSource") }}
+                  </p>
+                  <p class="muted">
+                    {{ product.offers.length }} {{ loc.t("common.offers") }} ·
+                    {{ product.tagKeys.length }} {{ loc.t("common.tags") }}
+                  </p>
                 </section>
               }
             </form>
@@ -94,7 +126,9 @@ type EditorMode = "catalog" | "review";
               @if (jsonError()) {
                 <p class="error-text">{{ jsonError() }}</p>
               }
-              <button class="secondary-button" type="button" (click)="applyJson()">{{ loc.t("common.applyJson") }}</button>
+              <button class="secondary-button" type="button" (click)="applyJson()">
+                {{ loc.t("common.applyJson") }}
+              </button>
             </aside>
           </div>
 
@@ -105,14 +139,50 @@ type EditorMode = "catalog" | "review";
                   <option [ngValue]="reason">{{ declineReasonLabel(reason) }}</option>
                 }
               </select>
-              <button class="secondary-button" type="button" (click)="emitReviewPatch()">{{ loc.t("common.saveDraft") }}</button>
-              <button class="danger-button" type="button" (click)="declineReview.emit({ id: reviewItem.id, note: draftNote || null, reason: declineReason })">{{ loc.t("common.decline") }}</button>
-              <button class="primary-button" type="button" (click)="acceptReview.emit({ id: reviewItem.id, note: draftNote || null })">{{ loc.t("common.accept") }}</button>
+              <button class="secondary-button" type="button" (click)="emitReviewPatch()">
+                {{ loc.t("common.saveDraft") }}
+              </button>
+              <button
+                class="danger-button"
+                type="button"
+                (click)="
+                  declineReview.emit({
+                    id: reviewItem.id,
+                    note: draftNote || null,
+                    reason: declineReason
+                  })
+                "
+              >
+                {{ loc.t("common.decline") }}
+              </button>
+              <button
+                class="primary-button"
+                type="button"
+                (click)="acceptReview.emit({ id: reviewItem.id, note: draftNote || null })"
+              >
+                {{ loc.t("common.accept") }}
+              </button>
             } @else if (mode === "catalog" && product) {
-              <button class="danger-button" type="button" (click)="deleteProduct.emit(product.id)">{{ loc.t("common.delete") }}</button>
-              <button class="secondary-button" type="button" (click)="invalidateProduct.emit({ id: product.id, note: draftNote || null })">{{ loc.t("common.invalidate") }}</button>
-              <button class="secondary-button" type="button" (click)="validateProduct.emit({ id: product.id, note: draftNote || null })">{{ loc.t("common.validate") }}</button>
-              <button class="primary-button" type="button" (click)="emitProductSave()">{{ loc.t("common.save") }}</button>
+              <button class="danger-button" type="button" (click)="deleteProduct.emit(product.id)">
+                {{ loc.t("common.delete") }}
+              </button>
+              <button
+                class="secondary-button"
+                type="button"
+                (click)="invalidateProduct.emit({ id: product.id, note: draftNote || null })"
+              >
+                {{ loc.t("common.invalidate") }}
+              </button>
+              <button
+                class="secondary-button"
+                type="button"
+                (click)="validateProduct.emit({ id: product.id, note: draftNote || null })"
+              >
+                {{ loc.t("common.validate") }}
+              </button>
+              <button class="primary-button" type="button" (click)="emitProductSave()">
+                {{ loc.t("common.save") }}
+              </button>
             }
           </footer>
         </article>
@@ -309,11 +379,18 @@ export class ProductEditorDialogComponent {
   @Input() open = false;
   @Output() readonly acceptReview = new EventEmitter<{ id: string; note: string | null }>();
   @Output() readonly close = new EventEmitter<void>();
-  @Output() readonly declineReview = new EventEmitter<{ id: string; note: string | null; reason: ProductReviewDecisionReason }>();
+  @Output() readonly declineReview = new EventEmitter<{
+    id: string;
+    note: string | null;
+    reason: ProductReviewDecisionReason;
+  }>();
   @Output() readonly deleteProduct = new EventEmitter<string>();
   @Output() readonly invalidateProduct = new EventEmitter<{ id: string; note: string | null }>();
   @Output() readonly saveProduct = new EventEmitter<CatalogProductListItem>();
-  @Output() readonly updateReviewCandidate = new EventEmitter<{ candidate: ProductReviewCandidateDraft; id: string }>();
+  @Output() readonly updateReviewCandidate = new EventEmitter<{
+    candidate: ProductReviewCandidateDraft;
+    id: string;
+  }>();
   @Output() readonly validateProduct = new EventEmitter<{ id: string; note: string | null }>();
 
   readonly declineReasons = productReviewDecisionReasons;
@@ -359,7 +436,9 @@ export class ProductEditorDialogComponent {
   }
 
   get title(): string {
-    return this.mode === "review" ? this.draftName || this.loc.t("editor.reviewProduct") : this.draftName || this.loc.t("editor.editProduct");
+    return this.mode === "review"
+      ? this.draftName || this.loc.t("editor.reviewProduct")
+      : this.draftName || this.loc.t("editor.editProduct");
   }
 
   get subtitle(): string {
@@ -367,7 +446,9 @@ export class ProductEditorDialogComponent {
       return `${this.reviewItem.sourceName} · ${this.candidateMatchLabel(this.reviewItem.candidateMatch)} · ${this.reviewStatusLabel(this.reviewItem.status)}`;
     }
 
-    return this.product ? `${this.product.id} · ${this.validationStatusLabel(this.product.validationStatus)}` : "";
+    return this.product
+      ? `${this.product.id} · ${this.validationStatusLabel(this.product.validationStatus)}`
+      : "";
   }
 
   candidateMatchLabel(match: ProductReviewCandidateDraft["matchConfidence"]): string {
@@ -425,9 +506,10 @@ export class ProductEditorDialogComponent {
     const priceObservations = this.readArrayField(parsed, "priceObservations");
     priceObservations.push({
       currencyCode: "HUF",
-      observedAt: this.mode === "review"
-        ? this.reviewItem?.candidate.origin.capturedAt ?? ""
-        : new Date().toISOString(),
+      observedAt:
+        this.mode === "review"
+          ? (this.reviewItem?.candidate.origin.capturedAt ?? "")
+          : new Date().toISOString(),
       price: 0
     });
     parsed["priceObservations"] = priceObservations;
@@ -445,9 +527,10 @@ export class ProductEditorDialogComponent {
       return;
     }
 
-    const measurements = this.mode === "review"
-      ? this.readProductArrayField(parsed, "measurements")
-      : this.readArrayField(parsed, "measurements");
+    const measurements =
+      this.mode === "review"
+        ? this.readProductArrayField(parsed, "measurements")
+        : this.readArrayField(parsed, "measurements");
     measurements.push({
       unit: "",
       value: 0
@@ -520,7 +603,7 @@ export class ProductEditorDialogComponent {
     try {
       const parsed = JSON.parse(this.jsonText) as unknown;
       return parsed && typeof parsed === "object" && !Array.isArray(parsed)
-        ? parsed as Record<string, unknown>
+        ? (parsed as Record<string, unknown>)
         : null;
     } catch {
       return null;
@@ -532,10 +615,13 @@ export class ProductEditorDialogComponent {
     return Array.isArray(field) ? field : [];
   }
 
-  private readObjectField(value: Record<string, unknown> | null, key: string): Record<string, unknown> | null {
+  private readObjectField(
+    value: Record<string, unknown> | null,
+    key: string
+  ): Record<string, unknown> | null {
     const field = value?.[key];
     return field && typeof field === "object" && !Array.isArray(field)
-      ? field as Record<string, unknown>
+      ? (field as Record<string, unknown>)
       : null;
   }
 

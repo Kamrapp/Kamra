@@ -1,0 +1,7 @@
+.git
+.agents
+.angular
+coverage
+dist
+node_modules
+src/app/generated-public-config.ts

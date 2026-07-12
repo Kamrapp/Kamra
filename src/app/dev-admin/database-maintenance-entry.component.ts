@@ -16,7 +16,12 @@ export type MaintenanceAction = "migration" | "validator";
   selector: "app-database-maintenance-entry",
   standalone: true,
   template: `
-    <div class="maintenance-table-row" [class.finished-row]="finished()" role="row" (mouseleave)="detailsOpen.set(false)">
+    <div
+      class="maintenance-table-row"
+      [class.finished-row]="finished()"
+      role="row"
+      (mouseleave)="detailsOpen.set(false)"
+    >
       <strong role="cell">{{ entry().title }}</strong>
       @if (finished()) {
         <span class="completed-label">{{ loc.t("health.completed") }}</span>
@@ -28,7 +33,11 @@ export type MaintenanceAction = "migration" | "validator";
           [disabled]="entry().validatorUpdated || busyKey() !== null"
           (click)="actionRequested.emit('validator')"
         >
-          {{ busyKey() === entry().id + ':validator' ? loc.t("health.updating") : loc.t("health.updateValidators") }}
+          {{
+            busyKey() === entry().id + ":validator"
+              ? loc.t("health.updating")
+              : loc.t("health.updateValidators")
+          }}
         </button>
         <button
           class="ui-button ui-button-warm"
@@ -36,11 +45,19 @@ export type MaintenanceAction = "migration" | "validator";
           [disabled]="entry().migrationCompleted || busyKey() !== null"
           (click)="actionRequested.emit('migration')"
         >
-          {{ busyKey() === entry().id + ':migration' ? loc.t("health.updating") : loc.t("health.migrateExistingData") }}
+          {{
+            busyKey() === entry().id + ":migration"
+              ? loc.t("health.updating")
+              : loc.t("health.migrateExistingData")
+          }}
         </button>
       }
 
-      <span class="details-wrap" (mouseenter)="detailsOpen.set(true)" (focusin)="detailsOpen.set(true)">
+      <span
+        class="details-wrap"
+        (mouseenter)="detailsOpen.set(true)"
+        (focusin)="detailsOpen.set(true)"
+      >
         <button
           class="details-button"
           type="button"
@@ -54,7 +71,12 @@ export type MaintenanceAction = "migration" | "validator";
       @if (finished()) {
         <span class="completed-label">{{ loc.t("health.completed") }}</span>
       } @else {
-        <button class="ui-button ui-button-quiet" type="button" [disabled]="busyKey() !== null" (click)="completeRequested.emit()">
+        <button
+          class="ui-button ui-button-quiet"
+          type="button"
+          [disabled]="busyKey() !== null"
+          (click)="completeRequested.emit()"
+        >
           {{ loc.t("health.markAsComplete") }}
         </button>
       }

@@ -80,7 +80,7 @@ jobs:
 
           echo "ALDI ingestion failed after $max_attempts attempts"
           exit "$exit_code"
-          
+
       - name: Ingest ALDI offers
         if: false
         run: npm run aldi:ingest

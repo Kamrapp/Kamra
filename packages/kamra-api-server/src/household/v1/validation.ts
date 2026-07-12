@@ -51,7 +51,8 @@ function assertOptionalString(value: unknown, label: string): void {
   }
 }
 function assertOptionalBoolean(value: unknown, label: string): void {
-  if (value !== undefined && value !== null && typeof value !== "boolean") throw new Error(`${label} must be a boolean when provided.`);
+  if (value !== undefined && value !== null && typeof value !== "boolean")
+    throw new Error(`${label} must be a boolean when provided.`);
 }
 
 function assertOptionalNonEmptyString(value: unknown, label: string): void {
@@ -104,7 +105,10 @@ function assertArray(value: unknown, label: string): asserts value is unknown[] 
   }
 }
 
-export function assertHouseholdRecord(value: unknown, label = "household"): asserts value is HouseholdRecord {
+export function assertHouseholdRecord(
+  value: unknown,
+  label = "household"
+): asserts value is HouseholdRecord {
   assertObject(value, label);
   assertIsoDateString(value["createdAt"], `${label}.createdAt`);
   assertNonEmptyString(value["createdByUserId"], `${label}.createdByUserId`);
@@ -155,7 +159,10 @@ export function assertHouseholdLocalProductRecord(
 ): asserts value is HouseholdLocalProductRecord {
   assertObject(value, label);
   assertOptionalNonEmptyString(value["catalogProductId"], `${label}.catalogProductId`);
-  assertOptionalNonEmptyString(value["catalogProductNameSnapshot"], `${label}.catalogProductNameSnapshot`);
+  assertOptionalNonEmptyString(
+    value["catalogProductNameSnapshot"],
+    `${label}.catalogProductNameSnapshot`
+  );
   assertIsoDateString(value["createdAt"], `${label}.createdAt`);
   assertNonEmptyString(value["createdByUserId"], `${label}.createdByUserId`);
   assertNonEmptyString(value["displayName"], `${label}.displayName`);
@@ -177,7 +184,10 @@ export function assertHouseholdStockItemRecord(
 ): asserts value is HouseholdStockItemRecord {
   assertObject(value, label);
   assertOptionalNonEmptyString(value["catalogProductId"], `${label}.catalogProductId`);
-  assertOptionalNonEmptyString(value["catalogProductNameSnapshot"], `${label}.catalogProductNameSnapshot`);
+  assertOptionalNonEmptyString(
+    value["catalogProductNameSnapshot"],
+    `${label}.catalogProductNameSnapshot`
+  );
   assertIsoDateString(value["createdAt"], `${label}.createdAt`);
   assertNonEmptyString(value["createdByUserId"], `${label}.createdByUserId`);
   assertNonNegativeNumber(value["currentAmount"], `${label}.currentAmount`);
@@ -203,7 +213,10 @@ export function assertHouseholdStockItemRecord(
   assertNonEmptyString(value["updatedByUserId"], `${label}.updatedByUserId`);
 }
 
-function assertHouseholdIdPayload(value: unknown, label: string): asserts value is HouseholdStockPageRequest {
+function assertHouseholdIdPayload(
+  value: unknown,
+  label: string
+): asserts value is HouseholdStockPageRequest {
   assertObject(value, label);
   assertNonEmptyString(value["householdId"], `${label}.householdId`);
 }
@@ -229,7 +242,10 @@ export function assertCreateHouseholdStockItemRequest(
 ): asserts value is CreateHouseholdStockItemRequest {
   assertObject(value, label);
   assertOptionalNonEmptyString(value["catalogProductId"], `${label}.catalogProductId`);
-  assertOptionalNonEmptyString(value["catalogProductNameSnapshot"], `${label}.catalogProductNameSnapshot`);
+  assertOptionalNonEmptyString(
+    value["catalogProductNameSnapshot"],
+    `${label}.catalogProductNameSnapshot`
+  );
   assertNonNegativeNumber(value["currentAmount"], `${label}.currentAmount`);
   assertNonEmptyString(value["displayName"], `${label}.displayName`);
   assertOptionalNonEmptyString(value["gtin"], `${label}.gtin`);
@@ -255,7 +271,10 @@ export function assertUpdateHouseholdStockItemRequest(
 ): asserts value is UpdateHouseholdStockItemRequest {
   assertObject(value, label);
   assertOptionalNonEmptyString(value["catalogProductId"], `${label}.catalogProductId`);
-  assertOptionalNonEmptyString(value["catalogProductNameSnapshot"], `${label}.catalogProductNameSnapshot`);
+  assertOptionalNonEmptyString(
+    value["catalogProductNameSnapshot"],
+    `${label}.catalogProductNameSnapshot`
+  );
   if (value["currentAmount"] !== undefined) {
     assertNonNegativeNumber(value["currentAmount"], `${label}.currentAmount`);
   }
@@ -345,7 +364,10 @@ export function assertHouseholdShoppingListLineRecord(
 ): asserts value is HouseholdShoppingListLineRecord {
   assertObject(value, label);
   assertOptionalNonEmptyString(value["catalogProductId"], `${label}.catalogProductId`);
-  assertOptionalNonEmptyString(value["catalogProductNameSnapshot"], `${label}.catalogProductNameSnapshot`);
+  assertOptionalNonEmptyString(
+    value["catalogProductNameSnapshot"],
+    `${label}.catalogProductNameSnapshot`
+  );
   if (value["currentAmount"] !== undefined && value["currentAmount"] !== null) {
     assertNonNegativeNumber(value["currentAmount"], `${label}.currentAmount`);
   }
@@ -382,7 +404,11 @@ export function assertHouseholdShoppingListLineRecord(
   }
   assertArray(value["uncertaintyFlags"], `${label}.uncertaintyFlags`);
   for (const [index, flag] of value["uncertaintyFlags"].entries()) {
-    assertEnum(flag, householdShoppingListItemUncertaintyFlags, `${label}.uncertaintyFlags[${index}]`);
+    assertEnum(
+      flag,
+      householdShoppingListItemUncertaintyFlags,
+      `${label}.uncertaintyFlags[${index}]`
+    );
   }
   assertNonEmptyString(value["unit"], `${label}.unit`);
 }
@@ -397,7 +423,8 @@ export function assertCreateHouseholdShoppingListRequest(
   assertOptionalNonEmptyString(value["shopId"], `${label}.shopId`);
   if (value["selectedStockItemIds"] !== undefined) {
     assertArray(value["selectedStockItemIds"], `${label}.selectedStockItemIds`);
-    for (const [index, id] of value["selectedStockItemIds"].entries()) assertNonEmptyString(id, `${label}.selectedStockItemIds[${index}]`);
+    for (const [index, id] of value["selectedStockItemIds"].entries())
+      assertNonEmptyString(id, `${label}.selectedStockItemIds[${index}]`);
   }
 }
 
@@ -420,7 +447,11 @@ export function assertUpdateHouseholdShoppingListRequest(
     }
   }
 
-  if (value["items"] === undefined && value["shopId"] === undefined && value["status"] === undefined) {
+  if (
+    value["items"] === undefined &&
+    value["shopId"] === undefined &&
+    value["status"] === undefined
+  ) {
     throw new Error(`${label} must include items, shopId, or status.`);
   }
 }
@@ -431,7 +462,11 @@ export function assertUpdateHouseholdShoppingListStocksRequest(
 ): asserts value is UpdateHouseholdShoppingListStocksRequest {
   assertObject(value, label);
   if (value["confirmationMode"] !== undefined && value["confirmationMode"] !== null) {
-    assertEnum(value["confirmationMode"], householdShoppingListUpdateScopes, `${label}.confirmationMode`);
+    assertEnum(
+      value["confirmationMode"],
+      householdShoppingListUpdateScopes,
+      `${label}.confirmationMode`
+    );
   }
   assertNonEmptyString(value["householdId"], `${label}.householdId`);
   assertNonEmptyString(value["id"], `${label}.id`);

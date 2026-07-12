@@ -10,5 +10,10 @@ injectSpeedInsights({
 });
 
 void bootstrapApplication(AppComponent, appConfig).catch((error: unknown) => {
-  logBrowserEvent({ clientId: "bootstrap", details: error, level: "error", message: "Browser bootstrap failed" });
+  logBrowserEvent({
+    clientId: "bootstrap",
+    details: error,
+    level: "error",
+    message: "Browser bootstrap failed"
+  });
 });

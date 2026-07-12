@@ -77,7 +77,11 @@ import { LocalizationService, type TranslationKey } from "../shared/localization
                 [placeholder]="loc.t('household.householdNamePlaceholder')"
               />
             </label>
-            <button class="ui-button ui-button-primary" type="submit" [disabled]="loadState() === 'loading'">
+            <button
+              class="ui-button ui-button-primary"
+              type="submit"
+              [disabled]="loadState() === 'loading'"
+            >
               {{ loc.t("household.createHousehold") }}
             </button>
           </form>
@@ -86,7 +90,9 @@ import { LocalizationService, type TranslationKey } from "../shared/localization
         <div class="stock-table-shell">
           <div class="stock-table-header" aria-hidden="true">
             <div class="stock-header-main" [class.selection-active]="shoppingSelectionMode()">
-              @if (shoppingSelectionMode()) { <span></span> }
+              @if (shoppingSelectionMode()) {
+                <span></span>
+              }
               <span>{{ loc.t("common.product") }}</span>
               <span>{{ loc.t("household.currentShort") }}</span>
               <span aria-hidden="true"></span>
@@ -102,38 +108,54 @@ import { LocalizationService, type TranslationKey } from "../shared/localization
                 [class.selected-row]="selectedItemId() === item.id"
               >
                 <div class="stock-row-main" [class.selection-active]="shoppingSelectionMode()">
-                  @if (shoppingSelectionMode()) { <input class="stock-select" type="checkbox" [checked]="selectedShoppingItemIds().has(item.id)" (change)="shoppingSelectionToggled.emit(item.id)" [attr.aria-label]="'Select ' + item.displayName" /> }
+                  @if (shoppingSelectionMode()) {
+                    <input
+                      class="stock-select"
+                      type="checkbox"
+                      [checked]="selectedShoppingItemIds().has(item.id)"
+                      (change)="shoppingSelectionToggled.emit(item.id)"
+                      [attr.aria-label]="'Select ' + item.displayName"
+                    />
+                  }
                   <button class="stock-row-content" type="button" (click)="itemSelected.emit(item)">
-                  <span class="stock-name">{{ item.displayName }}</span>
-                  <span>{{ formatAmount(item.currentAmount, item.unit) }}</span>
-                  <span
-                    class="relation-symbol"
-                    [class.relation-below]="item.stockStatus === 'below_limit' || item.stockStatus === 'at_limit'"
-                    [class.relation-watch]="item.stockStatus === 'low_soon'"
-                    [class.relation-steady]="item.stockStatus === 'steady'"
-                  >
-                    {{ relationSymbol(item.stockStatus) }}
-                  </span>
-                  <span>{{ formatAmount(item.minLimit, item.unit) }}</span>
-                  <span
-                    class="status-badge"
-                    [class.status-danger]="item.stockStatus === 'below_limit' || item.stockStatus === 'at_limit'"
-                    [class.status-watch]="item.stockStatus === 'low_soon'"
-                  >
-                    {{ loc.t(stockStatusTranslationKey(item.stockStatus)) }}
-                  </span>
+                    <span class="stock-name">{{ item.displayName }}</span>
+                    <span>{{ formatAmount(item.currentAmount, item.unit) }}</span>
+                    <span
+                      class="relation-symbol"
+                      [class.relation-below]="
+                        item.stockStatus === 'below_limit' || item.stockStatus === 'at_limit'
+                      "
+                      [class.relation-watch]="item.stockStatus === 'low_soon'"
+                      [class.relation-steady]="item.stockStatus === 'steady'"
+                    >
+                      {{ relationSymbol(item.stockStatus) }}
+                    </span>
+                    <span>{{ formatAmount(item.minLimit, item.unit) }}</span>
+                    <span
+                      class="status-badge"
+                      [class.status-danger]="
+                        item.stockStatus === 'below_limit' || item.stockStatus === 'at_limit'
+                      "
+                      [class.status-watch]="item.stockStatus === 'low_soon'"
+                    >
+                      {{ loc.t(stockStatusTranslationKey(item.stockStatus)) }}
+                    </span>
                   </button>
                 </div>
 
                 <button
                   class="stock-list-add"
                   type="button"
-                  [disabled]="!hasExistingShoppingList() || existingShoppingLineItemIds().has(item.id)"
-                  [attr.title]="hasExistingShoppingList()
-                    ? (existingShoppingLineItemIds().has(item.id)
-                      ? loc.t('household.shoppingListAlreadyAdded')
-                      : loc.t('household.shoppingListAddItemAction'))
-                    : loc.t('household.shoppingListAddRequiresExisting')"
+                  [disabled]="
+                    !hasExistingShoppingList() || existingShoppingLineItemIds().has(item.id)
+                  "
+                  [attr.title]="
+                    hasExistingShoppingList()
+                      ? existingShoppingLineItemIds().has(item.id)
+                        ? loc.t('household.shoppingListAlreadyAdded')
+                        : loc.t('household.shoppingListAddItemAction')
+                      : loc.t('household.shoppingListAddRequiresExisting')
+                  "
                   (click)="shoppingListAddRequested.emit(item)"
                 >
                   <span aria-hidden="true">🛒+</span>
@@ -303,7 +325,9 @@ import { LocalizationService, type TranslationKey } from "../shared/localization
         align-items: center;
         display: grid;
         gap: 0.55rem;
-        grid-template-columns: minmax(8rem, 1.5fr) minmax(4.25rem, 0.72fr) 1.8rem minmax(4.25rem, 0.72fr) minmax(5.5rem, 0.9fr);
+        grid-template-columns:
+          minmax(8rem, 1.5fr) minmax(4.25rem, 0.72fr) 1.8rem minmax(4.25rem, 0.72fr)
+          minmax(5.5rem, 0.9fr);
         min-width: 0;
       }
 
@@ -414,7 +438,11 @@ import { LocalizationService, type TranslationKey } from "../shared/localization
 
       .status-badge {
         align-self: center;
-        background: color-mix(in srgb, var(--color-accent-leaf) 12%, var(--surface-soft-background));
+        background: color-mix(
+          in srgb,
+          var(--color-accent-leaf) 12%,
+          var(--surface-soft-background)
+        );
         border-radius: var(--radius-ui);
         color: var(--color-text);
         display: inline-flex;
@@ -431,11 +459,19 @@ import { LocalizationService, type TranslationKey } from "../shared/localization
       }
 
       .status-danger {
-        background: color-mix(in srgb, var(--color-status-danger) 14%, var(--surface-soft-background));
+        background: color-mix(
+          in srgb,
+          var(--color-status-danger) 14%,
+          var(--surface-soft-background)
+        );
       }
 
       .status-watch {
-        background: color-mix(in srgb, var(--color-status-warning) 22%, var(--surface-soft-background));
+        background: color-mix(
+          in srgb,
+          var(--color-status-warning) 22%,
+          var(--surface-soft-background)
+        );
       }
 
       @media (max-width: 740px) {

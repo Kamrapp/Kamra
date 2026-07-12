@@ -10,13 +10,23 @@ export class MongoHouseholdProductConceptRepository {
 
   async setupCollections(): Promise<void> {
     await Promise.all([
-      this.concepts.createIndex({ householdId: 1, key: 1 }, { name: "household_product_concepts_household_key_unique", unique: true }),
-      this.concepts.createIndex({ householdId: 1, status: 1, label: 1 }, { name: "household_product_concepts_household_status_label" })
+      this.concepts.createIndex(
+        { householdId: 1, key: 1 },
+        { name: "household_product_concepts_household_key_unique", unique: true }
+      ),
+      this.concepts.createIndex(
+        { householdId: 1, status: 1, label: 1 },
+        { name: "household_product_concepts_household_status_label" }
+      )
     ]);
   }
 
   async create(concept: HouseholdProductConcept): Promise<HouseholdProductConcept> {
-    const existing = await this.concepts.findOne({ householdId: concept.householdId, key: concept.key, status: "active" });
+    const existing = await this.concepts.findOne({
+      householdId: concept.householdId,
+      key: concept.key,
+      status: "active"
+    });
     if (existing) throw new Error("household_concept_already_exists");
     await this.concepts.insertOne(concept);
     return concept;

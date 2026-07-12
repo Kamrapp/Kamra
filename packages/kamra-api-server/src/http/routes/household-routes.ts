@@ -1,12 +1,8 @@
 import type { Db } from "mongodb";
 
 import type { PriceObservationRecord } from "../../catalog/v1/contracts.js";
-import {
-  buildShoppingListStockUpdatePlan
-} from "../../household/current/shopping-list-completion.js";
-import {
-  generateHouseholdShoppingListPreview
-} from "../../household/current/shopping-list.js";
+import { buildShoppingListStockUpdatePlan } from "../../household/current/shopping-list-completion.js";
+import { generateHouseholdShoppingListPreview } from "../../household/current/shopping-list.js";
 import {
   assertCreateHouseholdShoppingListRequest,
   assertCreateHouseholdStockItemRequest,
@@ -29,8 +25,7 @@ import {
 
 export const householdsRoute: AppRoute = {
   match: (request) =>
-    (request.method === "GET" || request.method === "POST")
-    && request.path === "/api/households",
+    (request.method === "GET" || request.method === "POST") && request.path === "/api/households",
   handle: async (request, context) => {
     const repositoryResult = await createHouseholdRepositoryForUserRequest(request, context);
     if ("response" in repositoryResult) {
@@ -38,7 +33,9 @@ export const householdsRoute: AppRoute = {
     }
 
     if (request.method === "GET") {
-      const households = await repositoryResult.repository.listHouseholdsForUser(repositoryResult.user.email);
+      const households = await repositoryResult.repository.listHouseholdsForUser(
+        repositoryResult.user.email
+      );
 
       return json(200, {
         households
@@ -72,30 +69,60 @@ export const householdsRoute: AppRoute = {
 };
 
 export const householdSettingsRoute: AppRoute = {
-  match: (request) => request.method === "PATCH" && /^\/api\/households\/[^/]+\/settings$/.test(request.path),
+  match: (request) =>
+    request.method === "PATCH" && /^\/api\/households\/[^/]+\/settings$/.test(request.path),
   handle: async (request, context) => {
     const repositoryResult = await createHouseholdRepositoryForUserRequest(request, context);
     if ("response" in repositoryResult) return repositoryResult.response;
     const householdId = request.path.match(/^\/api\/households\/([^/]+)\/settings$/)?.[1];
     const body = parseJsonObject(request.bodyText);
-    const allowExpiredItems = typeof body?.["allowExpiredItems"] === "boolean" ? body["allowExpiredItems"] : undefined;
-    const defaultCalculatedMaxLimitMultiplier = typeof body?.["defaultCalculatedMaxLimitMultiplier"] === "number" && Number.isFinite(body["defaultCalculatedMaxLimitMultiplier"]) && body["defaultCalculatedMaxLimitMultiplier"] >= 0 ? body["defaultCalculatedMaxLimitMultiplier"] : undefined;
-    const name = typeof body?.["name"] === "string" && body["name"].trim().length > 0 ? body["name"].trim() : undefined;
-    if (!householdId || !body || (allowExpiredItems === undefined && defaultCalculatedMaxLimitMultiplier === undefined && name === undefined)) return json(400, { error: "invalid_household_settings_request" });
+    const allowExpiredItems =
+      typeof body?.["allowExpiredItems"] === "boolean" ? body["allowExpiredItems"] : undefined;
+    const defaultCalculatedMaxLimitMultiplier =
+      typeof body?.["defaultCalculatedMaxLimitMultiplier"] === "number" &&
+      Number.isFinite(body["defaultCalculatedMaxLimitMultiplier"]) &&
+      body["defaultCalculatedMaxLimitMultiplier"] >= 0
+        ? body["defaultCalculatedMaxLimitMultiplier"]
+        : undefined;
+    const name =
+      typeof body?.["name"] === "string" && body["name"].trim().length > 0
+        ? body["name"].trim()
+        : undefined;
+    if (
+      !householdId ||
+      !body ||
+      (allowExpiredItems === undefined &&
+        defaultCalculatedMaxLimitMultiplier === undefined &&
+        name === undefined)
+    )
+      return json(400, { error: "invalid_household_settings_request" });
     try {
-      const result = await repositoryResult.repository.updateHouseholdSettings({ allowExpiredItems, defaultCalculatedMaxLimitMultiplier, householdId, name, updatedAt: new Date().toISOString(), userId: repositoryResult.user.email });
+      const result = await repositoryResult.repository.updateHouseholdSettings({
+        allowExpiredItems,
+        defaultCalculatedMaxLimitMultiplier,
+        householdId,
+        name,
+        updatedAt: new Date().toISOString(),
+        userId: repositoryResult.user.email
+      });
       return json(200, result);
     } catch (error) {
       const code = error instanceof Error ? error.message : "household_settings_update_failed";
-      return json(code === "household_not_found" ? 404 : code === "household_owner_required" ? 403 : 500, { error: code });
+      return json(
+        code === "household_not_found" ? 404 : code === "household_owner_required" ? 403 : 500,
+        { error: code }
+      );
     }
   }
 };
 
 export const householdStockRoute: AppRoute = {
   match: (request) =>
-    (request.method === "DELETE" || request.method === "GET" || request.method === "PATCH" || request.method === "POST")
-    && request.path === "/api/household/items",
+    (request.method === "DELETE" ||
+      request.method === "GET" ||
+      request.method === "PATCH" ||
+      request.method === "POST") &&
+    request.path === "/api/household/items",
   handle: async (request, context) => {
     const repositoryResult = await createHouseholdRepositoryForUserRequest(request, context);
     if ("response" in repositoryResult) {
@@ -121,9 +148,7 @@ export const householdStockRoute: AppRoute = {
         userId: repositoryResult.user.email
       });
 
-      return page
-        ? json(200, page)
-        : json(404, { error: "household_not_found" });
+      return page ? json(200, page) : json(404, { error: "household_not_found" });
     }
 
     if (request.method === "DELETE") {
@@ -137,7 +162,8 @@ export const householdStockRoute: AppRoute = {
       } catch (error: unknown) {
         return json(400, {
           error: "invalid_household_stock_delete_request",
-          message: error instanceof Error ? error.message : "Household stock delete request is invalid."
+          message:
+            error instanceof Error ? error.message : "Household stock delete request is invalid."
         });
       }
 
@@ -149,9 +175,7 @@ export const householdStockRoute: AppRoute = {
         userId: repositoryResult.user.email
       });
 
-      return page
-        ? json(200, page)
-        : json(404, { error: "household_stock_item_not_found" });
+      return page ? json(200, page) : json(404, { error: "household_stock_item_not_found" });
     }
 
     const body = parseJsonObject(request.bodyText);
@@ -165,7 +189,8 @@ export const householdStockRoute: AppRoute = {
       } catch (error: unknown) {
         return json(400, {
           error: "invalid_household_stock_create_request",
-          message: error instanceof Error ? error.message : "Household stock create request is invalid."
+          message:
+            error instanceof Error ? error.message : "Household stock create request is invalid."
         });
       }
 
@@ -176,9 +201,7 @@ export const householdStockRoute: AppRoute = {
         userId: repositoryResult.user.email
       });
 
-      return page
-        ? json(200, page)
-        : json(404, { error: "household_or_local_product_not_found" });
+      return page ? json(200, page) : json(404, { error: "household_or_local_product_not_found" });
     }
 
     try {
@@ -186,7 +209,8 @@ export const householdStockRoute: AppRoute = {
     } catch (error: unknown) {
       return json(400, {
         error: "invalid_household_stock_update_request",
-        message: error instanceof Error ? error.message : "Household stock update request is invalid."
+        message:
+          error instanceof Error ? error.message : "Household stock update request is invalid."
       });
     }
 
@@ -197,16 +221,13 @@ export const householdStockRoute: AppRoute = {
       userId: repositoryResult.user.email
     });
 
-    return page
-      ? json(200, page)
-      : json(404, { error: "household_stock_item_not_found" });
+    return page ? json(200, page) : json(404, { error: "household_stock_item_not_found" });
   }
 };
 
 export const householdShoppingListPreviewRoute: AppRoute = {
   match: (request) =>
-    request.method === "POST"
-    && request.path === "/api/household/shopping-list/preview",
+    request.method === "POST" && request.path === "/api/household/shopping-list/preview",
   handle: async (request, context) => {
     const repositoryResult = await createHouseholdRepositoryForUserRequest(request, context);
     if ("response" in repositoryResult) {
@@ -223,7 +244,8 @@ export const householdShoppingListPreviewRoute: AppRoute = {
     } catch (error: unknown) {
       return json(400, {
         error: "invalid_household_shopping_list_preview_request",
-        message: error instanceof Error ? error.message : "Shopping list preview request is invalid."
+        message:
+          error instanceof Error ? error.message : "Shopping list preview request is invalid."
       });
     }
 
@@ -235,21 +257,25 @@ export const householdShoppingListPreviewRoute: AppRoute = {
       return json(404, { error: "household_not_found" });
     }
 
-    return json(200, generateHouseholdShoppingListPreview({
-      household: {
-        defaultCalculatedMaxLimitMultiplier: stockPage.household.defaultCalculatedMaxLimitMultiplier ?? 2,
-        id: stockPage.household.id
-      },
-      scale: body.scale,
-      stockItems: stockPage.stockItems
-    }));
+    return json(
+      200,
+      generateHouseholdShoppingListPreview({
+        household: {
+          defaultCalculatedMaxLimitMultiplier:
+            stockPage.household.defaultCalculatedMaxLimitMultiplier ?? 2,
+          id: stockPage.household.id
+        },
+        scale: body.scale,
+        stockItems: stockPage.stockItems
+      })
+    );
   }
 };
 
 export const householdShoppingListsRoute: AppRoute = {
   match: (request) =>
-    (request.method === "PATCH" || request.method === "POST")
-    && request.path === "/api/household/shopping-lists",
+    (request.method === "PATCH" || request.method === "POST") &&
+    request.path === "/api/household/shopping-lists",
   handle: async (request, context) => {
     const repositoryResult = await createHouseholdRepositoryForUserRequest(request, context);
     if ("response" in repositoryResult) {
@@ -267,7 +293,8 @@ export const householdShoppingListsRoute: AppRoute = {
       } catch (error: unknown) {
         return json(400, {
           error: "invalid_household_shopping_list_create_request",
-          message: error instanceof Error ? error.message : "Shopping list create request is invalid."
+          message:
+            error instanceof Error ? error.message : "Shopping list create request is invalid."
         });
       }
 
@@ -288,15 +315,22 @@ export const householdShoppingListsRoute: AppRoute = {
 
       const preview = generateHouseholdShoppingListPreview({
         household: {
-          defaultCalculatedMaxLimitMultiplier: stockPage.household.defaultCalculatedMaxLimitMultiplier ?? 2,
+          defaultCalculatedMaxLimitMultiplier:
+            stockPage.household.defaultCalculatedMaxLimitMultiplier ?? 2,
           id: stockPage.household.id
         },
         scale: body.scale,
         stockItems: stockPage.stockItems
       });
-      const selectedStockItemIds = body.selectedStockItemIds ? new Set(body.selectedStockItemIds) : null;
+      const selectedStockItemIds = body.selectedStockItemIds
+        ? new Set(body.selectedStockItemIds)
+        : null;
       const selectedPreviewItems = selectedStockItemIds
-        ? preview.items.filter((item) => typeof item.householdStockItemId === "string" && selectedStockItemIds.has(item.householdStockItemId))
+        ? preview.items.filter(
+            (item) =>
+              typeof item.householdStockItemId === "string" &&
+              selectedStockItemIds.has(item.householdStockItemId)
+          )
         : preview.items;
 
       const now = new Date().toISOString();
@@ -365,8 +399,7 @@ export const householdShoppingListsRoute: AppRoute = {
 
 export const latestHouseholdShoppingListRoute: AppRoute = {
   match: (request) =>
-    request.method === "GET"
-    && request.path === "/api/household/shopping-lists/latest",
+    request.method === "GET" && request.path === "/api/household/shopping-lists/latest",
   handle: async (request, context) => {
     const repositoryResult = await createHouseholdRepositoryForUserRequest(request, context);
     if ("response" in repositoryResult) {
@@ -399,8 +432,7 @@ export const latestHouseholdShoppingListRoute: AppRoute = {
 
 export const householdShoppingListUpdateStocksRoute: AppRoute = {
   match: (request) =>
-    request.method === "POST"
-    && request.path === "/api/household/shopping-lists/update-stocks",
+    request.method === "POST" && request.path === "/api/household/shopping-lists/update-stocks",
   handle: async (request, context) => {
     const repositoryResult = await createHouseholdRepositoryForUserRequest(request, context);
     if ("response" in repositoryResult) {
@@ -417,7 +449,8 @@ export const householdShoppingListUpdateStocksRoute: AppRoute = {
     } catch (error: unknown) {
       return json(400, {
         error: "invalid_household_shopping_list_stock_update_request",
-        message: error instanceof Error ? error.message : "Shopping list stock update request is invalid."
+        message:
+          error instanceof Error ? error.message : "Shopping list stock update request is invalid."
       });
     }
 
@@ -443,7 +476,10 @@ export const householdShoppingListUpdateStocksRoute: AppRoute = {
       : null;
     const completion = buildShoppingListStockUpdatePlan({
       allowAutoTickingAllShoppingListEntries: (
-        await repositoryResult.repository.readFeatureFlag("allowAutoTickingAllShoppingListEntries", true)
+        await repositoryResult.repository.readFeatureFlag(
+          "allowAutoTickingAllShoppingListEntries",
+          true
+        )
       ).enabled,
       confirmationMode: body.confirmationMode ?? null,
       householdId: body.householdId,
@@ -526,19 +562,19 @@ export const householdShoppingListUpdateStocksRoute: AppRoute = {
 
     return updatedShoppingList && updatedStockPage
       ? json(200, {
-        appliedLineCount: completion.plan.updatedShoppingList.items.filter((item) => item.status === "applied").length,
-        confirmationRequired: false,
-        householdStockPage: updatedStockPage,
-        shoppingList: updatedShoppingList
-      })
+          appliedLineCount: completion.plan.updatedShoppingList.items.filter(
+            (item) => item.status === "applied"
+          ).length,
+          confirmationRequired: false,
+          householdStockPage: updatedStockPage,
+          shoppingList: updatedShoppingList
+        })
       : json(404, { error: "shopping_list_not_found" });
   }
 };
 
 export const shopsRoute: AppRoute = {
-  match: (request) =>
-    request.method === "GET"
-    && request.path === "/api/shops",
+  match: (request) => request.method === "GET" && request.path === "/api/shops",
   handle: async (request, context) => {
     const repositoryResult = await createHouseholdRepositoryForUserRequest(request, context);
     if ("response" in repositoryResult) {
@@ -576,10 +612,7 @@ async function createHouseholdRepositoryForUserRequest(
     };
   }
 
-  const client = await context.getMongoClient(
-    config.mongodb.uri,
-    config.mongodb.dnsServers
-  );
+  const client = await context.getMongoClient(config.mongodb.uri, config.mongodb.dnsServers);
   const database = client.db(config.mongodb.databaseName);
   const repository = context.dependencies.createHouseholdRepository
     ? context.dependencies.createHouseholdRepository(database)
@@ -595,11 +628,9 @@ async function createHouseholdRepositoryForUserRequest(
 function createCatalogRepository(
   context: Parameters<AppRoute["handle"]>[1],
   database: Db
-):
-  | {
-      upsertPriceObservations?(records: readonly PriceObservationRecord[]): Promise<void>;
-    }
-  | null {
+): {
+  upsertPriceObservations?(records: readonly PriceObservationRecord[]): Promise<void>;
+} | null {
   return context.dependencies.createCatalogRepository
     ? context.dependencies.createCatalogRepository(database)
     : createDefaultCatalogRepository(database);
@@ -646,7 +677,11 @@ function createShoppingListId(householdId: string): string {
   return `shopping_list_${stableSlug(householdId)}_${Date.now().toString(36)}`;
 }
 
-function createShoppingListLineId(shoppingListId: string, index: number, displayName: string): string {
+function createShoppingListLineId(
+  shoppingListId: string,
+  index: number,
+  displayName: string
+): string {
   return `shopping_list_line_${stableSlug(shoppingListId)}_${index + 1}_${stableSlug(displayName)}`;
 }
 
@@ -658,7 +693,7 @@ function parseJsonObject(bodyText: string | undefined): Record<string, unknown> 
   try {
     const parsed: unknown = JSON.parse(bodyText);
     return parsed && typeof parsed === "object" && !Array.isArray(parsed)
-      ? parsed as Record<string, unknown>
+      ? (parsed as Record<string, unknown>)
       : null;
   } catch {
     return null;
@@ -668,9 +703,7 @@ function parseJsonObject(bodyText: string | undefined): Record<string, unknown> 
 function readSingleString(value: string | string[] | undefined): string | null {
   const candidate = Array.isArray(value) ? value[0] : value;
 
-  return typeof candidate === "string" && candidate.trim().length > 0
-    ? candidate.trim()
-    : null;
+  return typeof candidate === "string" && candidate.trim().length > 0 ? candidate.trim() : null;
 }
 
 function stableSlug(value: string): string {

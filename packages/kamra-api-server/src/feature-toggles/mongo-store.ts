@@ -1,7 +1,14 @@
 import type { MongoCollectionLike, MongoDatabaseLike } from "../db/mongo-like.js";
-import type { FeatureFlagChangeAudit, FeatureFlagKey, FeatureFlagRecord, FeatureFlagStore } from "./contracts.js";
+import type {
+  FeatureFlagChangeAudit,
+  FeatureFlagKey,
+  FeatureFlagRecord,
+  FeatureFlagStore
+} from "./contracts.js";
 
-interface FeatureFlagAuditDocument extends FeatureFlagChangeAudit { createdAt: string; }
+interface FeatureFlagAuditDocument extends FeatureFlagChangeAudit {
+  createdAt: string;
+}
 
 export class MongoFeatureFlagStore implements FeatureFlagStore {
   private readonly audits: MongoCollectionLike<FeatureFlagAuditDocument>;
@@ -14,9 +21,18 @@ export class MongoFeatureFlagStore implements FeatureFlagStore {
 
   async setupCollections(): Promise<void> {
     await Promise.all([
-      this.flags.createIndex({ key: 1 }, { name: "household_feature_flags_key_unique", unique: true }),
-      this.audits.createIndex({ id: 1 }, { name: "feature_flag_change_audits_id_unique", unique: true }),
-      this.audits.createIndex({ key: 1, changedAt: -1 }, { name: "feature_flag_change_audits_key_changed_at" })
+      this.flags.createIndex(
+        { key: 1 },
+        { name: "household_feature_flags_key_unique", unique: true }
+      ),
+      this.audits.createIndex(
+        { id: 1 },
+        { name: "feature_flag_change_audits_id_unique", unique: true }
+      ),
+      this.audits.createIndex(
+        { key: 1, changedAt: -1 },
+        { name: "feature_flag_change_audits_key_changed_at" }
+      )
     ]);
   }
 
@@ -24,12 +40,36 @@ export class MongoFeatureFlagStore implements FeatureFlagStore {
     return await this.flags.findOne({ key });
   }
 
-  async write(input: { expectedRevision?: number; key: FeatureFlagKey; updatedAt: string; updatedByUserId: string; enabled: boolean }): Promise<FeatureFlagRecord> {
+  async write(input: {
+    expectedRevision?: number;
+    key: FeatureFlagKey;
+    updatedAt: string;
+    updatedByUserId: string;
+    enabled: boolean;
+  }): Promise<FeatureFlagRecord> {
     const existing = await this.read(input.key);
-    if (input.expectedRevision !== undefined && (existing?.revision ?? 0) !== input.expectedRevision) throw new Error("feature_flag_revision_conflict");
+    if (
+      input.expectedRevision !== undefined &&
+      (existing?.revision ?? 0) !== input.expectedRevision
+    )
+      throw new Error("feature_flag_revision_conflict");
     await this.flags.updateOne(
-      input.expectedRevision === undefined ? { key: input.key } : { key: input.key, revision: input.expectedRevision },
-      { $set: { enabled: input.enabled, revision: (existing?.revision ?? 0) + 1, updatedAt: input.updatedAt, updatedByUserId: input.updatedByUserId }, $setOnInsert: { createdAt: input.updatedAt, id: `household_feature_flag_${input.key}`, key: input.key } },
+      input.expectedRevision === undefined
+        ? { key: input.key }
+        : { key: input.key, revision: input.expectedRevision },
+      {
+        $set: {
+          enabled: input.enabled,
+          revision: (existing?.revision ?? 0) + 1,
+          updatedAt: input.updatedAt,
+          updatedByUserId: input.updatedByUserId
+        },
+        $setOnInsert: {
+          createdAt: input.updatedAt,
+          id: `household_feature_flag_${input.key}`,
+          key: input.key
+        }
+      },
       { upsert: true }
     );
     const updated = await this.read(input.key);

@@ -9,7 +9,9 @@ export class MongoUserRepository implements UserRepository {
     this.usersCollection = database.collection<UserDocument>("users");
   }
 
-  async createAlphaUser(input: Parameters<UserRepository["createAlphaUser"]>[0]): Promise<UserDocument> {
+  async createAlphaUser(
+    input: Parameters<UserRepository["createAlphaUser"]>[0]
+  ): Promise<UserDocument> {
     const now = new Date();
     const user: UserDocument = {
       alphaAccess: input.alphaAccess,

@@ -16,7 +16,16 @@ import type {
   HouseholdStockItemRecord
 } from "../v1/contracts.js";
 import { MongoHouseholdRepository } from "./mongo-household-repository.js";
-import type { HouseholdProduct, StockAllocation, StockBatch, StockMovement, StockTarget, TrackingUnit } from "../v2/contracts.js";
+import type {
+  HouseholdProduct,
+  ProductGroup,
+  StockAllocation,
+  StockBatch,
+  StockMovement,
+  StockTarget,
+  TargetPolicy,
+  TrackingUnit
+} from "../v2/contracts.js";
 
 export const demoHouseholdSeedName = "demo_household";
 export const seedDemoHouseholdPasswordEnvName = "SEED_DEMO_HOUSEHOLD_PASSWORD";
@@ -81,9 +90,7 @@ export async function runDemoHouseholdSeed(
   };
 }
 
-export function createDemoHouseholdSeed(
-  repository: DemoHouseholdSeedRepository
-): SeedDefinition {
+export function createDemoHouseholdSeed(repository: DemoHouseholdSeedRepository): SeedDefinition {
   return {
     configured: isDemoHouseholdSeedConfigured,
     label: "demo household",
@@ -112,8 +119,9 @@ function isDemoHouseholdSeedConfigured(env: NodeJS.ProcessEnv): boolean {
 async function readDemoHouseholdSeedInput(
   context: SeedExecutionContext
 ): Promise<DemoHouseholdSeedInput> {
-  const password = readSeedEnvValue(context.env, seedDemoHouseholdPasswordEnvName)
-    ?? await context.prompt.secret("Demo household user password");
+  const password =
+    readSeedEnvValue(context.env, seedDemoHouseholdPasswordEnvName) ??
+    (await context.prompt.secret("Demo household user password"));
 
   if (!password) {
     throw new Error(`${seedDemoHouseholdPasswordEnvName} is required for the demo household seed.`);
@@ -143,22 +151,31 @@ export class MongoHouseholdDemoSeedRepository implements DemoHouseholdSeedReposi
     const householdSetup = await this.householdRepository.setupCollections();
 
     await Promise.all([
-      this.usersCollection.createIndex(
-        { email: 1 },
-        { name: "users_email_unique", unique: true }
-      ),
+      this.usersCollection.createIndex({ email: 1 }, { name: "users_email_unique", unique: true }),
       this.seedLedgerCollection.createIndex(
         { seedName: 1, completedAt: -1 },
         { name: "seed_ledger_seed_completed_at" }
       )
     ]);
     await Promise.all([
-      this.database.collection("household_products").createIndex({ id: 1 }, { name: "household_products_id_unique", unique: true }),
-      this.database.collection("household_stock_targets").createIndex({ id: 1 }, { name: "household_stock_targets_id_unique", unique: true }),
-      this.database.collection("household_stock_batches").createIndex({ id: 1 }, { name: "household_stock_batches_id_unique", unique: true }),
-      this.database.collection("household_stock_allocations").createIndex({ id: 1 }, { name: "household_stock_allocations_id_unique", unique: true }),
-      this.database.collection("household_stock_movements").createIndex({ id: 1 }, { name: "household_stock_movements_id_unique", unique: true }),
-      this.database.collection("household_domain_operations").createIndex({ id: 1 }, { name: "household_domain_operations_id_unique", unique: true })
+      this.database
+        .collection("household_products")
+        .createIndex({ id: 1 }, { name: "household_products_id_unique", unique: true }),
+      this.database
+        .collection("household_stock_targets")
+        .createIndex({ id: 1 }, { name: "household_stock_targets_id_unique", unique: true }),
+      this.database
+        .collection("household_stock_batches")
+        .createIndex({ id: 1 }, { name: "household_stock_batches_id_unique", unique: true }),
+      this.database
+        .collection("household_stock_allocations")
+        .createIndex({ id: 1 }, { name: "household_stock_allocations_id_unique", unique: true }),
+      this.database
+        .collection("household_stock_movements")
+        .createIndex({ id: 1 }, { name: "household_stock_movements_id_unique", unique: true }),
+      this.database
+        .collection("household_domain_operations")
+        .createIndex({ id: 1 }, { name: "household_domain_operations_id_unique", unique: true })
     ]);
 
     return {
@@ -181,15 +198,22 @@ export class MongoHouseholdDemoSeedRepository implements DemoHouseholdSeedReposi
     const deletedHouseholdData = await this.householdRepository.clearSeedHouseholdData({
       householdIds: [demoHouseholdId]
     });
-    await Promise.all([
-      "household_products",
-      "household_stock_targets",
-      "household_stock_batches",
-      "household_stock_allocations",
-      "household_stock_movements",
-      "household_domain_operations",
-      "household_shopping_need_lists"
-    ].map(async (collectionName) => await this.database.collection(collectionName).deleteMany({ householdId: demoHouseholdId })));
+    await Promise.all(
+      [
+        "household_products",
+        "household_stock_targets",
+        "household_stock_batches",
+        "household_stock_allocations",
+        "household_stock_movements",
+        "household_domain_operations",
+        "household_shopping_need_lists"
+      ].map(
+        async (collectionName) =>
+          await this.database
+            .collection(collectionName)
+            .deleteMany({ householdId: demoHouseholdId })
+      )
+    );
 
     await this.upsertDemoUsers(dataset.users);
     await this.householdRepository.upsertSeedDataset({
@@ -234,28 +258,30 @@ export class MongoHouseholdDemoSeedRepository implements DemoHouseholdSeedReposi
   }
 
   private async upsertDemoUsers(users: UserDocument[]): Promise<void> {
-    await Promise.all(users.map(async (user) => {
-      await this.usersCollection.updateOne(
-        { email: user.email },
-        {
-          $set: {
-            authProvider: user.authProvider,
-            passwordHash: user.passwordHash,
-            profile: user.profile ?? {},
-            role: user.role,
-            status: user.status,
-            updatedAt: user.updatedAt
+    await Promise.all(
+      users.map(async (user) => {
+        await this.usersCollection.updateOne(
+          { email: user.email },
+          {
+            $set: {
+              authProvider: user.authProvider,
+              passwordHash: user.passwordHash,
+              profile: user.profile ?? {},
+              role: user.role,
+              status: user.status,
+              updatedAt: user.updatedAt
+            },
+            $setOnInsert: {
+              createdAt: user.createdAt,
+              email: user.email
+            }
           },
-          $setOnInsert: {
-            createdAt: user.createdAt,
-            email: user.email
+          {
+            upsert: true
           }
-        },
-        {
-          upsert: true
-        }
-      );
-    }));
+        );
+      })
+    );
   }
 }
 
@@ -523,28 +549,271 @@ export function createDemoHouseholdSeedDataset(
 async function seedDemoHouseholdV2Data(database: MongoDatabaseLike, now: Date): Promise<void> {
   const timestamp = now.toISOString();
   const date = (days: number): string => offsetIsoDate(now, days).slice(0, 10);
-  const milkTarget: StockTarget = { acceptanceCriteria: { acceptedAttributesAny: [], acceptedConceptsAny: [], excludedAttributesAny: [], requiredAttributesAll: [], requiredConceptsAll: [] }, consumptionPolicy: "earliest_expiry_first", createdAt: timestamp, createdByUserId: demoHouseholdOwnerUserId, displayName: "Tej (bármelyik termék)", expiryWarningDays: 5, householdId: demoHouseholdId, id: "stock-target:household1:milk", minimumQuantity: 1, revision: 0, status: "active", targetQuantity: 3, trackingUnit: "l", updatedAt: timestamp, updatedByUserId: demoHouseholdOwnerUserId };
+  const policy = (
+    minimumQuantity: number,
+    desiredQuantity: number,
+    trackingUnit: TrackingUnit
+  ): TargetPolicy => ({
+    consumptionPolicy: "earliest_expiry_first",
+    desiredQuantity,
+    expiryWarningDays: 5,
+    minimumQuantity,
+    trackingUnit
+  });
+  const group = (
+    id: string,
+    displayName: string,
+    trackingUnit: TrackingUnit,
+    targetPolicy?: TargetPolicy
+  ): ProductGroup => ({
+    createdAt: timestamp,
+    createdByUserId: demoHouseholdOwnerUserId,
+    displayName,
+    householdId: demoHouseholdId,
+    id: `product-group:${demoHouseholdId}:${id}`,
+    revision: 0,
+    status: "active",
+    targetPolicy: targetPolicy ?? null,
+    trackingUnit,
+    updatedAt: timestamp,
+    updatedByUserId: demoHouseholdOwnerUserId
+  });
+  const groups: ProductGroup[] = [
+    group("milk", "Tej", "l", policy(2, 4, "l")),
+    group("bread", "Kenyér", "kg", policy(1, 2, "kg")),
+    group("vegetables", "Zöldségek", "kg"),
+    group("fruit", "Gyümölcsök", "kg"),
+    group("nuts", "Egészséges rágcsálnivalók", "kg"),
+    group("empty", "Ünnepi sütés", "kg")
+  ];
+  const groupId = (id: string): string =>
+    groups.find((candidate) => candidate.id.endsWith(`:${id}`))!.id;
+  const product = (
+    id: string,
+    displayName: string,
+    trackingUnit: TrackingUnit,
+    productGroupId: string | null,
+    targetPolicy?: TargetPolicy,
+    identitySnapshot: HouseholdProduct["identitySnapshot"] = {}
+  ): HouseholdProduct => ({
+    classificationRevision: 0,
+    createdAt: timestamp,
+    createdByUserId: demoHouseholdOwnerUserId,
+    defaultTrackingUnit: trackingUnit,
+    directAttributes: [],
+    directConcepts: [],
+    displayName,
+    householdId: demoHouseholdId,
+    id: `household-product:${demoHouseholdId}:${id}`,
+    identityKind: "manual",
+    identitySnapshot,
+    productGroupId,
+    revision: 0,
+    status: "active",
+    targetPolicy: targetPolicy ?? null,
+    updatedAt: timestamp,
+    updatedByUserId: demoHouseholdOwnerUserId
+  });
   const products: HouseholdProduct[] = [
-    { classificationRevision: 0, createdAt: timestamp, createdByUserId: demoHouseholdOwnerUserId, directAttributes: [], directConcepts: [], displayName: "Pilos 1.5% tej", householdId: demoHouseholdId, id: "household-product:household1:pilos-milk", identityKind: "manual", identitySnapshot: { brand: "Pilos", measurementLabel: "1.5%" }, revision: 0, status: "active", updatedAt: timestamp, updatedByUserId: demoHouseholdOwnerUserId },
-    { classificationRevision: 0, createdAt: timestamp, createdByUserId: demoHouseholdOwnerUserId, directAttributes: [], directConcepts: [], displayName: "Mizo laktózmentes tej", householdId: demoHouseholdId, id: "household-product:household1:mizo-milk", identityKind: "manual", identitySnapshot: { brand: "Mizo" }, revision: 0, status: "active", updatedAt: timestamp, updatedByUserId: demoHouseholdOwnerUserId },
-    { classificationRevision: 0, createdAt: timestamp, createdByUserId: demoHouseholdOwnerUserId, directAttributes: [], directConcepts: [], displayName: "Kézzel felvitt joghurt", householdId: demoHouseholdId, id: "household-product:household1:yogurt", identityKind: "manual", identitySnapshot: {}, revision: 0, status: "active", updatedAt: timestamp, updatedByUserId: demoHouseholdOwnerUserId }
+    product("pilos-milk", "Pilos 1.5% tej", "l", groupId("milk"), undefined, {
+      brand: "Pilos",
+      measurementLabel: "1.5%"
+    }),
+    product("mizo-milk", "Mizo laktózmentes tej", "l", groupId("milk"), undefined, {
+      brand: "Mizo"
+    }),
+    product("white-bread", "Fehér kenyér", "kg", groupId("bread")),
+    product("rye-bread", "Rozskenyér", "kg", groupId("bread")),
+    product("tomato", "Paradicsom", "kg", groupId("vegetables")),
+    product("cucumber", "Uborka", "kg", groupId("vegetables")),
+    product("eggplant", "Padlizsán", "kg", groupId("vegetables")),
+    product("apple", "Alma", "kg", groupId("fruit")),
+    product("kiwi", "Kiwi", "kg", groupId("fruit")),
+    product("blueberry", "Áfonya", "kg", groupId("fruit")),
+    product("walnuts", "Dió", "kg", groupId("nuts")),
+    product("yogurt", "Kézzel felvitt joghurt", "custom:db", null),
+    product("diapers", "Pelenka", "count", null, policy(10, 20, "count")),
+    product("sponge", "Mosogatószivacs", "count", null),
+    product("softener", "Öblítő", "l", null)
   ];
-  const batch = (id: string, displayName: string, quantity: number, acquiredOn: string, expiryOn: string | null, householdProductId: string, unit: TrackingUnit): StockBatch => ({ acquiredOn, acquisitionSnapshot: { displayName }, classificationSnapshot: { capturedAt: timestamp, directAttributes: [], directConcepts: [], effectiveConcepts: [], source: "manual" }, createdAt: timestamp, createdByUserId: demoHouseholdOwnerUserId, expiryOn, householdId: demoHouseholdId, householdProductId, id, originalQuantity: quantity, remainingQuantity: quantity, revision: 0, status: "available", unit, updatedAt: timestamp, updatedByUserId: demoHouseholdOwnerUserId });
+  const productId = (id: string): string =>
+    products.find((candidate) => candidate.id.endsWith(`:${id}`))!.id;
+  const batch = (
+    id: string,
+    displayName: string,
+    quantity: number,
+    acquiredOn: string,
+    expiryOn: string | null,
+    householdProductId: string,
+    unit: TrackingUnit
+  ): StockBatch => ({
+    acquiredOn,
+    acquisitionSnapshot: { displayName },
+    classificationSnapshot: {
+      capturedAt: timestamp,
+      directAttributes: [],
+      directConcepts: [],
+      effectiveConcepts: [],
+      source: "manual"
+    },
+    createdAt: timestamp,
+    createdByUserId: demoHouseholdOwnerUserId,
+    expiryOn,
+    householdId: demoHouseholdId,
+    householdProductId,
+    id: `stock-batch:${demoHouseholdId}:${id}`,
+    originalQuantity: quantity,
+    remainingQuantity: quantity,
+    revision: 0,
+    status: "available",
+    unit,
+    updatedAt: timestamp,
+    updatedByUserId: demoHouseholdOwnerUserId
+  });
+  const milkBatches = [
+    batch(
+      "pilos-milk-tomorrow",
+      "Pilos 1.5% tej",
+      1.5,
+      date(-10),
+      date(1),
+      productId("pilos-milk"),
+      "l"
+    ),
+    batch(
+      "mizo-milk-week",
+      "Mizo laktózmentes tej",
+      1,
+      date(-4),
+      date(7),
+      productId("mizo-milk"),
+      "l"
+    ),
+    batch(
+      "mizo-milk-later",
+      "Mizo laktózmentes tej",
+      0.5,
+      date(-1),
+      date(14),
+      productId("mizo-milk"),
+      "l"
+    )
+  ];
   const batches: StockBatch[] = [
-    batch("stock-batch:demo-pilos-milk", "Pilos 1.5% tej", 1.5, date(-10), date(12), products[0]!.id, "l"),
-    batch("stock-batch:demo-mizo-milk", "Mizo laktózmentes tej", 1, date(-4), date(8), products[1]!.id, "l"),
-    batch("stock-batch:demo-expired-yogurt", "Kézzel felvitt joghurt", 4, date(-2), date(-12), products[2]!.id, "custom:db")
+    ...milkBatches,
+    batch(
+      "white-bread-fresh",
+      "Fehér kenyér",
+      0.5,
+      date(-1),
+      date(3),
+      productId("white-bread"),
+      "kg"
+    ),
+    batch(
+      "white-bread-later",
+      "Fehér kenyér",
+      0.5,
+      date(-2),
+      date(8),
+      productId("white-bread"),
+      "kg"
+    ),
+    batch("rye-bread", "Rozskenyér", 1.2, date(-3), date(6), productId("rye-bread"), "kg"),
+    batch("tomato", "Paradicsom", 1, date(-1), date(4), productId("tomato"), "kg"),
+    batch("cucumber", "Uborka", 0.7, date(-1), date(3), productId("cucumber"), "kg"),
+    batch("eggplant", "Padlizsán", 0.8, date(-2), date(5), productId("eggplant"), "kg"),
+    batch("apple-old", "Alma", 1, date(-9), date(-1), productId("apple"), "kg"),
+    batch("apple-fresh", "Alma", 1.5, date(-1), date(10), productId("apple"), "kg"),
+    batch("kiwi", "Kiwi", 0.8, date(-2), date(6), productId("kiwi"), "kg"),
+    batch("blueberry", "Áfonya", 0.25, date(-1), date(2), productId("blueberry"), "kg"),
+    batch("walnuts", "Dió", 0.5, date(-20), null, productId("walnuts"), "kg"),
+    batch(
+      "expired-yogurt",
+      "Kézzel felvitt joghurt",
+      4,
+      date(-2),
+      date(-12),
+      productId("yogurt"),
+      "custom:db"
+    ),
+    batch("diapers", "Pelenka", 6, date(-2), null, productId("diapers"), "count"),
+    batch("sponge", "Mosogatószivacs", 3, date(-5), null, productId("sponge"), "count"),
+    batch("softener", "Öblítő", 1, date(-8), date(30), productId("softener"), "l")
   ];
-  const allocations: StockAllocation[] = batches.slice(0, 2).map((item, index) => ({ acceptanceResult: "accepted", allocatedQuantity: item.remainingQuantity, createdAt: timestamp, createdByUserId: demoHouseholdOwnerUserId, householdId: demoHouseholdId, id: `stock-allocation:demo-milk-${index + 1}`, revision: 0, status: "active", stockBatchId: item.id, stockTargetId: milkTarget.id, unit: item.unit, updatedAt: timestamp, updatedByUserId: demoHouseholdOwnerUserId }));
-  const movements: StockMovement[] = batches.map((item) => ({ actorUserId: demoHouseholdOwnerUserId, createdAt: timestamp, householdId: demoHouseholdId, id: `stock-movement:${item.id}:opening`, kind: "migration_opening_balance", occurrenceAt: item.acquiredOn, operationId: `demo-seed:${item.id}`, quantityDelta: item.originalQuantity, resultingQuantity: item.remainingQuantity, stockBatchId: item.id, stockTargetId: allocations.find((allocation) => allocation.stockBatchId === item.id)?.stockTargetId, unit: item.unit }));
+  const milkTarget: StockTarget = {
+    acceptanceCriteria: {
+      acceptedAttributesAny: [],
+      acceptedConceptsAny: [],
+      excludedAttributesAny: [],
+      requiredAttributesAll: [],
+      requiredConceptsAll: []
+    },
+    consumptionPolicy: "earliest_expiry_first",
+    createdAt: timestamp,
+    createdByUserId: demoHouseholdOwnerUserId,
+    displayName: "Tej (bármelyik termék)",
+    expiryWarningDays: 5,
+    householdId: demoHouseholdId,
+    id: "stock-target:household1:milk",
+    minimumQuantity: 2,
+    revision: 0,
+    status: "active",
+    targetQuantity: 4,
+    trackingUnit: "l",
+    updatedAt: timestamp,
+    updatedByUserId: demoHouseholdOwnerUserId
+  };
+  const allocations: StockAllocation[] = milkBatches.map((item, index) => ({
+    acceptanceResult: "accepted",
+    allocatedQuantity: item.remainingQuantity,
+    createdAt: timestamp,
+    createdByUserId: demoHouseholdOwnerUserId,
+    householdId: demoHouseholdId,
+    id: `stock-allocation:demo-milk-${index + 1}`,
+    revision: 0,
+    status: "active",
+    stockBatchId: item.id,
+    stockTargetId: milkTarget.id,
+    unit: item.unit,
+    updatedAt: timestamp,
+    updatedByUserId: demoHouseholdOwnerUserId
+  }));
+  const movements: StockMovement[] = batches.map((item) => ({
+    actorUserId: demoHouseholdOwnerUserId,
+    createdAt: timestamp,
+    householdId: demoHouseholdId,
+    id: `stock-movement:${item.id}:opening`,
+    kind: "migration_opening_balance",
+    occurrenceAt: item.acquiredOn,
+    operationId: `demo-seed:${item.id}`,
+    quantityDelta: item.originalQuantity,
+    resultingQuantity: item.remainingQuantity,
+    stockBatchId: item.id,
+    stockTargetId: allocations.find((allocation) => allocation.stockBatchId === item.id)
+      ?.stockTargetId,
+    unit: item.unit
+  }));
+  await insertSeedRecords(database.collection<ProductGroup>("household_product_groups"), groups);
   await insertSeedRecords(database.collection<HouseholdProduct>("household_products"), products);
-  await insertSeedRecords(database.collection<StockTarget>("household_stock_targets"), [milkTarget]);
+  await insertSeedRecords(database.collection<StockTarget>("household_stock_targets"), [
+    milkTarget
+  ]);
   await insertSeedRecords(database.collection<StockBatch>("household_stock_batches"), batches);
-  await insertSeedRecords(database.collection<StockAllocation>("household_stock_allocations"), allocations);
-  await insertSeedRecords(database.collection<StockMovement>("household_stock_movements"), movements);
+  await insertSeedRecords(
+    database.collection<StockAllocation>("household_stock_allocations"),
+    allocations
+  );
+  await insertSeedRecords(
+    database.collection<StockMovement>("household_stock_movements"),
+    movements
+  );
 }
 
-async function insertSeedRecords<T extends { id: string }>(collection: MongoCollectionLike<T>, records: readonly T[]): Promise<void> {
+async function insertSeedRecords<T extends { id: string }>(
+  collection: MongoCollectionLike<T>,
+  records: readonly T[]
+): Promise<void> {
   for (const record of records) await collection.insertOne(record as never);
 }
 

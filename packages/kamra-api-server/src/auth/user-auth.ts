@@ -73,9 +73,7 @@ export function toAuthenticatedUser(user: UserDocument): AuthenticatedUser {
       language: isUserLanguagePreference(user.profile?.language)
         ? user.profile.language
         : undefined,
-      theme: isUserThemePreference(user.profile?.theme)
-        ? user.profile.theme
-        : undefined
+      theme: isUserThemePreference(user.profile?.theme) ? user.profile.theme : undefined
     },
     role: user.role
   };

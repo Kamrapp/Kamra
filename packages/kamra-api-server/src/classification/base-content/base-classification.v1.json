@@ -18,8 +18,28 @@
     { "key": "package.recyclable" }
   ],
   "stockTargetTemplates": [
-    { "key": "milk", "trackingUnit": "l", "minimumQuantity": 2, "targetQuantity": 4, "requiredConceptsAll": ["food.milk"] },
-    { "key": "gluten-free-pasta", "trackingUnit": "g", "minimumQuantity": 5000, "targetQuantity": 10000, "requiredConceptsAll": ["food.pasta"], "acceptedConceptsAny": ["food.pasta.penne", "food.pasta.spaghetti", "food.pasta.tagliatelle"], "requiredAttributesAll": ["diet.gluten_free"] },
-    { "key": "bread", "trackingUnit": "count", "minimumQuantity": 1, "targetQuantity": 2, "requiredConceptsAll": ["food.bread"] }
+    {
+      "key": "milk",
+      "trackingUnit": "l",
+      "minimumQuantity": 2,
+      "targetQuantity": 4,
+      "requiredConceptsAll": ["food.milk"]
+    },
+    {
+      "key": "gluten-free-pasta",
+      "trackingUnit": "g",
+      "minimumQuantity": 5000,
+      "targetQuantity": 10000,
+      "requiredConceptsAll": ["food.pasta"],
+      "acceptedConceptsAny": ["food.pasta.penne", "food.pasta.spaghetti", "food.pasta.tagliatelle"],
+      "requiredAttributesAll": ["diet.gluten_free"]
+    },
+    {
+      "key": "bread",
+      "trackingUnit": "count",
+      "minimumQuantity": 1,
+      "targetQuantity": 2,
+      "requiredConceptsAll": ["food.bread"]
+    }
   ]
 }

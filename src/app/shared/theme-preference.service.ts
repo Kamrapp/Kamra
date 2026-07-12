@@ -44,21 +44,15 @@ export class ThemePreferenceService {
 
   private readCookieTheme(): ThemePreference {
     const theme = this.readCookieValue(themeCookieName);
-    return isThemePreference(theme)
-      ? theme
-      : defaultThemePreference;
+    return isThemePreference(theme) ? theme : defaultThemePreference;
   }
 
   private readCookieValue(name: string): string | null {
-    const cookies = this.document.cookie
-      .split(";")
-      .map((cookie) => cookie.trim());
+    const cookies = this.document.cookie.split(";").map((cookie) => cookie.trim());
     const prefix = `${name}=`;
     const match = cookies.find((cookie) => cookie.startsWith(prefix));
 
-    return match
-      ? decodeURIComponent(match.slice(prefix.length))
-      : null;
+    return match ? decodeURIComponent(match.slice(prefix.length)) : null;
   }
 
   private writeThemeCookie(theme: ThemePreference): void {

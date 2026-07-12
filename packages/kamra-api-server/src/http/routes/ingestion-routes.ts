@@ -17,7 +17,10 @@ import {
   sourceOfferProcessorName,
   sourceOfferProcessorVersion
 } from "../../ingestion/processing/source-offer-processor.js";
-import type { IngestionRawSnapshotRecord, ParsedShopProductRow } from "../../ingestion/v1/contracts.js";
+import type {
+  IngestionRawSnapshotRecord,
+  ParsedShopProductRow
+} from "../../ingestion/v1/contracts.js";
 import {
   productReviewDecisionReasons,
   productReviewCandidateMatchConfidences,
@@ -32,8 +35,12 @@ const maxSnapshotPageSize = 75;
 const rowPreviewLimit = 250;
 const reviewItemListLimit = 100;
 
-type CatalogRouteRepository = ReturnType<NonNullable<AppRouteContext["dependencies"]["createCatalogRepository"]>>;
-type IngestionRouteRepository = ReturnType<NonNullable<AppRouteContext["dependencies"]["createIngestionRepository"]>>;
+type CatalogRouteRepository = ReturnType<
+  NonNullable<AppRouteContext["dependencies"]["createCatalogRepository"]>
+>;
+type IngestionRouteRepository = ReturnType<
+  NonNullable<AppRouteContext["dependencies"]["createIngestionRepository"]>
+>;
 
 export const ingestionSnapshotsRoute: AppRoute = {
   match: (request) => request.method === "GET" && request.path === "/api/admin/ingestion/snapshots",
@@ -54,9 +61,15 @@ export const ingestionSnapshotsRoute: AppRoute = {
 
     const includeAcceptedItems = parseBooleanQueryValue(request.query?.["includeAccepted"]);
     const sourceNames = parseQueryStringList(request.query?.["source"]);
-    const page = Math.max(1, parsePositiveIntegerQueryValue(request.query?.["page"], defaultSnapshotPage));
+    const page = Math.max(
+      1,
+      parsePositiveIntegerQueryValue(request.query?.["page"], defaultSnapshotPage)
+    );
     const pageSize = Math.min(
-      Math.max(1, parsePositiveIntegerQueryValue(request.query?.["pageSize"], defaultSnapshotPageSize)),
+      Math.max(
+        1,
+        parsePositiveIntegerQueryValue(request.query?.["pageSize"], defaultSnapshotPageSize)
+      ),
       maxSnapshotPageSize
     );
     const offset = (page - 1) * pageSize;
@@ -69,26 +82,30 @@ export const ingestionSnapshotsRoute: AppRoute = {
       ? await ingestionRepository.listRawSnapshotSourceNames()
       : [];
     const pageSnapshots = snapshots.slice(0, pageSize);
-    const items = (await Promise.all(pageSnapshots.map(async (snapshot) => {
-      const visibleRows = includeAcceptedItems
-        ? snapshot.parsedRows
-        : await listVisibleSnapshotRows(ingestionRepository, snapshot);
-      if (visibleRows.length === 0) {
-        return null;
-      }
+    const items = (
+      await Promise.all(
+        pageSnapshots.map(async (snapshot) => {
+          const visibleRows = includeAcceptedItems
+            ? snapshot.parsedRows
+            : await listVisibleSnapshotRows(ingestionRepository, snapshot);
+          if (visibleRows.length === 0) {
+            return null;
+          }
 
-      return {
-        ...toSnapshotListItem(snapshot, visibleRows),
-        processingState: catalogRepository.findProcessingState
-          ? await catalogRepository.findProcessingState({
-              processorName: sourceOfferProcessorName,
-              processorVersion: sourceOfferProcessorVersion,
-              recordFingerprint: createSourceOfferRecordFingerprint(snapshot),
-              sourceName: snapshot.sourceName
-            })
-          : null
-      };
-    }))).filter((item): item is NonNullable<typeof item> => item !== null);
+          return {
+            ...toSnapshotListItem(snapshot, visibleRows),
+            processingState: catalogRepository.findProcessingState
+              ? await catalogRepository.findProcessingState({
+                  processorName: sourceOfferProcessorName,
+                  processorVersion: sourceOfferProcessorVersion,
+                  recordFingerprint: createSourceOfferRecordFingerprint(snapshot),
+                  sourceName: snapshot.sourceName
+                })
+              : null
+          };
+        })
+      )
+    ).filter((item): item is NonNullable<typeof item> => item !== null);
 
     return json(200, {
       pagination: {
@@ -105,7 +122,8 @@ export const ingestionSnapshotsRoute: AppRoute = {
 };
 
 export const processIngestionSnapshotRoute: AppRoute = {
-  match: (request) => request.method === "POST" && request.path === "/api/admin/ingestion/process-snapshot",
+  match: (request) =>
+    request.method === "POST" && request.path === "/api/admin/ingestion/process-snapshot",
   handle: async (request, context) => {
     const user = requireUserRole("admin", request, context, "apiErrors.adminRequired");
     if ("status" in user) {
@@ -151,7 +169,8 @@ export const processIngestionSnapshotRoute: AppRoute = {
 };
 
 export const prepareProductReviewItemsRoute: AppRoute = {
-  match: (request) => request.method === "POST" && request.path === "/api/admin/ingestion/prepare-review-items",
+  match: (request) =>
+    request.method === "POST" && request.path === "/api/admin/ingestion/prepare-review-items",
   handle: async (request, context) => {
     const user = requireUserRole("admin", request, context, "apiErrors.adminRequired");
     if ("status" in user) {
@@ -197,7 +216,8 @@ export const prepareProductReviewItemsRoute: AppRoute = {
 };
 
 export const productReviewItemsRoute: AppRoute = {
-  match: (request) => request.method === "GET" && request.path === "/api/admin/ingestion/review-items",
+  match: (request) =>
+    request.method === "GET" && request.path === "/api/admin/ingestion/review-items",
   handle: async (request, context) => {
     const user = requireUserRole("admin", request, context, "apiErrors.adminRequired");
     if ("status" in user) {
@@ -234,8 +254,8 @@ export const productReviewItemsRoute: AppRoute = {
 
 export const productReviewItemRoute: AppRoute = {
   match: (request) =>
-    (request.method === "GET" || request.method === "PATCH")
-      && request.path === "/api/admin/ingestion/review-item",
+    (request.method === "GET" || request.method === "PATCH") &&
+    request.path === "/api/admin/ingestion/review-item",
   handle: async (request, context) => {
     const user = requireUserRole("admin", request, context, "apiErrors.adminRequired");
     if ("status" in user) {
@@ -309,12 +329,15 @@ export const productReviewItemRoute: AppRoute = {
 };
 
 export const acceptProductReviewItemRoute: AppRoute = {
-  match: (request) => request.method === "POST" && request.path === "/api/admin/ingestion/review-item/accept",
+  match: (request) =>
+    request.method === "POST" && request.path === "/api/admin/ingestion/review-item/accept",
   handle: async (request, context) => markProductReviewItemDecision(request, context, "accepted")
 };
 
 export const previewProductReviewItemAcceptanceRoute: AppRoute = {
-  match: (request) => request.method === "GET" && request.path === "/api/admin/ingestion/review-item/acceptance-preview",
+  match: (request) =>
+    request.method === "GET" &&
+    request.path === "/api/admin/ingestion/review-item/acceptance-preview",
   handle: async (request, context) => {
     const user = requireUserRole("admin", request, context, "apiErrors.adminRequired");
     if ("status" in user) {
@@ -334,7 +357,10 @@ export const previewProductReviewItemAcceptanceRoute: AppRoute = {
     }
 
     const { catalogRepository, ingestionRepository } = repositories;
-    if (!ingestionRepository.findProductReviewItemById || !catalogRepository.previewCatalogProductFromReviewCandidate) {
+    if (
+      !ingestionRepository.findProductReviewItemById ||
+      !catalogRepository.previewCatalogProductFromReviewCandidate
+    ) {
       return json(501, {
         error: "product_review_acceptance_preview_not_supported"
       });
@@ -366,7 +392,8 @@ export const previewProductReviewItemAcceptanceRoute: AppRoute = {
 };
 
 export const declineProductReviewItemRoute: AppRoute = {
-  match: (request) => request.method === "POST" && request.path === "/api/admin/ingestion/review-item/decline",
+  match: (request) =>
+    request.method === "POST" && request.path === "/api/admin/ingestion/review-item/decline",
   handle: async (request, context) => markProductReviewItemDecision(request, context, "declined")
 };
 
@@ -387,9 +414,7 @@ async function listVisibleSnapshotRows(
   }
 
   const acceptedRowIndexes = new Set(
-    reviewItems
-      .filter((item) => item.status === "accepted")
-      .map((item) => item.rowIndex)
+    reviewItems.filter((item) => item.status === "accepted").map((item) => item.rowIndex)
   );
 
   return snapshot.parsedRows.filter((_row, rowIndex) => !acceptedRowIndexes.has(rowIndex));
@@ -434,9 +459,9 @@ function toRowPreview(row: ParsedShopProductRow): Record<string, unknown> {
 
 async function createIngestionRouteRepositories(context: AppRouteContext): Promise<
   | {
-    catalogRepository: CatalogRouteRepository;
-    ingestionRepository: IngestionRouteRepository;
-  }
+      catalogRepository: CatalogRouteRepository;
+      ingestionRepository: IngestionRouteRepository;
+    }
   | { error: AppResponse }
 > {
   const config = context.config;
@@ -446,10 +471,7 @@ async function createIngestionRouteRepositories(context: AppRouteContext): Promi
     };
   }
 
-  const client = await context.getMongoClient(
-    config.mongodb.uri,
-    config.mongodb.dnsServers
-  );
+  const client = await context.getMongoClient(config.mongodb.uri, config.mongodb.dnsServers);
   const database = client.db(config.mongodb.databaseName);
 
   return {
@@ -503,9 +525,9 @@ async function markProductReviewItemDecision(
 
   const { catalogRepository, ingestionRepository } = repositories;
   if (!ingestionRepository.markProductReviewItemDecision) {
-      return json(501, {
-        error: "product_review_not_supported"
-      });
+    return json(501, {
+      error: "product_review_not_supported"
+    });
   }
 
   await setupIngestionRouteCollections(repositories);
@@ -646,7 +668,10 @@ function parseBooleanQueryValue(value: string | string[] | undefined): boolean {
   return parseOptionalQueryString(value) === "true";
 }
 
-function parsePositiveIntegerQueryValue(value: string | string[] | undefined, fallback: number): number {
+function parsePositiveIntegerQueryValue(
+  value: string | string[] | undefined,
+  fallback: number
+): number {
   const candidate = Number(parseOptionalQueryString(value));
   if (!Number.isInteger(candidate) || candidate < 0) {
     return fallback;
@@ -655,7 +680,9 @@ function parsePositiveIntegerQueryValue(value: string | string[] | undefined, fa
   return candidate;
 }
 
-function parseReviewStatuses(value: string | string[] | undefined): IngestionProductReviewItemRecord["status"][] | undefined {
+function parseReviewStatuses(
+  value: string | string[] | undefined
+): IngestionProductReviewItemRecord["status"][] | undefined {
   const rawValue = parseOptionalQueryString(value);
   if (!rawValue) {
     return undefined;
@@ -679,7 +706,7 @@ function parseJsonObject(bodyText: string | undefined): Record<string, unknown> 
   try {
     const payload = JSON.parse(bodyText) as unknown;
     return payload && typeof payload === "object" && !Array.isArray(payload)
-      ? payload as Record<string, unknown>
+      ? (payload as Record<string, unknown>)
       : null;
   } catch (error) {
     if (error instanceof SyntaxError) {
@@ -709,7 +736,10 @@ function parseReviewItemUpdatePayload(bodyText: string | undefined): {
   };
 }
 
-function parseReviewDecisionPayload(bodyText: string | undefined, status: "accepted" | "declined"): {
+function parseReviewDecisionPayload(
+  bodyText: string | undefined,
+  status: "accepted" | "declined"
+): {
   acceptedCatalogProductId?: string | null;
   declineReason?: ProductReviewDecisionReason | null;
   id: string;
@@ -720,18 +750,20 @@ function parseReviewDecisionPayload(bodyText: string | undefined, status: "accep
     return null;
   }
 
-  const declineReason = typeof payload["declineReason"] === "string"
-    && productReviewDecisionReasons.includes(payload["declineReason"] as ProductReviewDecisionReason)
-      ? payload["declineReason"] as ProductReviewDecisionReason
+  const declineReason =
+    typeof payload["declineReason"] === "string" &&
+    productReviewDecisionReasons.includes(payload["declineReason"] as ProductReviewDecisionReason)
+      ? (payload["declineReason"] as ProductReviewDecisionReason)
       : null;
   if (status === "declined" && !declineReason) {
     return null;
   }
 
   return {
-    acceptedCatalogProductId: typeof payload["acceptedCatalogProductId"] === "string"
-      ? payload["acceptedCatalogProductId"].trim() || null
-      : null,
+    acceptedCatalogProductId:
+      typeof payload["acceptedCatalogProductId"] === "string"
+        ? payload["acceptedCatalogProductId"].trim() || null
+        : null,
     declineReason,
     id: payload["id"].trim(),
     note: typeof payload["note"] === "string" ? payload["note"] : null
@@ -744,11 +776,13 @@ function isProductReviewCandidateDraft(value: unknown): value is ProductReviewCa
   }
 
   const candidate = value as ProductReviewCandidateDraft;
-  return productReviewCandidateMatchConfidences.includes(candidate.matchConfidence)
-    && Boolean(candidate.product)
-    && typeof candidate.product?.name === "string"
-    && Boolean(candidate.source)
-    && typeof candidate.source?.sourceName === "string"
-    && Array.isArray(candidate.priceObservations)
-    && Array.isArray(candidate.sourceProductIdentifiers);
+  return (
+    productReviewCandidateMatchConfidences.includes(candidate.matchConfidence) &&
+    Boolean(candidate.product) &&
+    typeof candidate.product?.name === "string" &&
+    Boolean(candidate.source) &&
+    typeof candidate.source?.sourceName === "string" &&
+    Array.isArray(candidate.priceObservations) &&
+    Array.isArray(candidate.sourceProductIdentifiers)
+  );
 }

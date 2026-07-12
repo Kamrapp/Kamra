@@ -62,11 +62,7 @@ import { LocalizationService } from "../shared/localization.service";
           <p>{{ loc.t("about.techBodyOne") }}</p>
           <p>{{ loc.t("about.techBodyTwo") }}</p>
           <p class="supporting-link">
-            <a
-              href="https://github.com/Kamrapp/Kamra"
-              target="_blank"
-              rel="noreferrer"
-            >
+            <a href="https://github.com/Kamrapp/Kamra" target="_blank" rel="noreferrer">
               github.com/Kamrapp/Kamra
             </a>
           </p>
@@ -78,8 +74,12 @@ import { LocalizationService } from "../shared/localization.service";
           <p>{{ loc.t("about.accessBody") }}</p>
           <div class="access-links">
             <a href="https://kamrapp.hu" target="_blank" rel="noreferrer">kamrapp.hu</a>
-            <a href="https://api-kamrapp.vercel.com" target="_blank" rel="noreferrer">api-kamrapp.vercel.com</a>
-            <a href="https://project-qn32z.vercel.app/" target="_blank" rel="noreferrer">project-qn32z.vercel.app</a>
+            <a href="https://api-kamrapp.vercel.com" target="_blank" rel="noreferrer">
+              api-kamrapp.vercel.com
+            </a>
+            <a href="https://project-qn32z.vercel.app/" target="_blank" rel="noreferrer">
+              project-qn32z.vercel.app
+            </a>
           </div>
         </article>
       </div>
@@ -96,8 +96,17 @@ import { LocalizationService } from "../shared/localization.service";
         align-content: start;
         align-items: stretch;
         background:
-          radial-gradient(circle at top right, color-mix(in srgb, var(--color-accent-sky) 22%, transparent) 0, transparent 44%),
-          linear-gradient(145deg, color-mix(in srgb, var(--color-accent-leaf) 10%, var(--surface-shell-background)) 0%, var(--surface-shell-background) 54%, color-mix(in srgb, var(--color-accent-sand) 18%, var(--surface-shell-background)) 100%);
+          radial-gradient(
+            circle at top right,
+            color-mix(in srgb, var(--color-accent-sky) 22%, transparent) 0,
+            transparent 44%
+          ),
+          linear-gradient(
+            145deg,
+            color-mix(in srgb, var(--color-accent-leaf) 10%, var(--surface-shell-background)) 0%,
+            var(--surface-shell-background) 54%,
+            color-mix(in srgb, var(--color-accent-sand) 18%, var(--surface-shell-background)) 100%
+          );
         display: grid;
         gap: var(--space-4);
         overflow: hidden;
@@ -106,7 +115,12 @@ import { LocalizationService } from "../shared/localization.service";
       }
 
       .about-hero::after {
-        background: linear-gradient(90deg, transparent, color-mix(in srgb, white 22%, transparent), transparent);
+        background: linear-gradient(
+          90deg,
+          transparent,
+          color-mix(in srgb, white 22%, transparent),
+          transparent
+        );
         content: "";
         inset: 0 auto 0 -28%;
         position: absolute;
@@ -154,7 +168,11 @@ import { LocalizationService } from "../shared/localization.service";
 
       .hero-mark-card {
         align-content: center;
-        background: color-mix(in srgb, var(--color-card-tint) 18%, var(--surface-panel-background) 82%);
+        background: color-mix(
+          in srgb,
+          var(--color-card-tint) 18%,
+          var(--surface-panel-background) 82%
+        );
         border: 1px solid color-mix(in srgb, var(--line-panel) 72%, white 28%);
         border-radius: calc(var(--radius-ui) - 0.2rem);
         display: grid;
@@ -185,23 +203,35 @@ import { LocalizationService } from "../shared/localization.service";
       }
 
       .promise-card {
-        background:
-          linear-gradient(180deg, color-mix(in srgb, var(--color-accent-leaf) 10%, var(--surface-shell-background)) 0%, var(--surface-shell-background) 100%);
+        background: linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--color-accent-leaf) 10%, var(--surface-shell-background)) 0%,
+          var(--surface-shell-background) 100%
+        );
       }
 
       .story-card {
-        background:
-          linear-gradient(180deg, color-mix(in srgb, var(--color-accent-sand) 16%, var(--surface-shell-background)) 0%, var(--surface-shell-background) 100%);
+        background: linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--color-accent-sand) 16%, var(--surface-shell-background)) 0%,
+          var(--surface-shell-background) 100%
+        );
       }
 
       .tech-card {
-        background:
-          linear-gradient(180deg, color-mix(in srgb, var(--color-accent-sky) 14%, var(--surface-shell-background)) 0%, var(--surface-shell-background) 100%);
+        background: linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--color-accent-sky) 14%, var(--surface-shell-background)) 0%,
+          var(--surface-shell-background) 100%
+        );
       }
 
       .access-card {
-        background:
-          linear-gradient(180deg, color-mix(in srgb, var(--color-wood-soft) 11%, var(--surface-shell-background)) 0%, var(--surface-shell-background) 100%);
+        background: linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--color-wood-soft) 11%, var(--surface-shell-background)) 0%,
+          var(--surface-shell-background) 100%
+        );
       }
 
       .access-links {
