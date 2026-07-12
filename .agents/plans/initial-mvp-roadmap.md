@@ -25,8 +25,8 @@ Roadmap priorities:
 | Stage 5 | Household stock foundation | Completed | User-owned household collections, membership-checked routes, demo household reseed, signed-in home pulse/editor, shopping-scale preview, admin dashboard controls, and durable `docs/household.md` are in place. |
 | Stage 6 | Shopping list and low-stock notices | Completed | Deterministic shopping-list generation, DB-backed auto-tick feature toggle, household workspace refactor, start-fresh flow, read-only product browsing for signed-in users, About page, and logout redirect are implemented; browser/manual verification remains the main closeout task. |
 | Stage 7 | Controlled alpha access and app module shell | Implemented | Admin-created alpha users with database-backed creation/login gating, empty household allocation, and direct product-lookup, household, site-admin, and dev-admin route grouping are implemented. |
-| Stage 8 | Household-domain correctness | Planned | Adds final Product Groups with optional Group/Product target policies, Product-owned Batches/Movements, Shopping Needs, localized base content, adjustable home split, migrations, and rollout foundations. Legacy Stock Targets/Allocations are migration-history only after cutover. |
-| Stage 9 | Concrete shopping and catalog connection | Planned after Stage 8 | Adds Shop Markets/Products, one-shop Product/Price Observation matching, Shopping Trips, atomic Purchase-to-stock, Purchase Ingestion, and minimum catalog administration. |
+| Stage 8 | Household-domain correctness and complete user-side shopping | Completed user-side; manual closeout pending | Product Groups with optional Group/Product target policies, Product-owned Batches/Movements, Shopping Needs, household settings, migrations, localized Home/Manual surfaces, v2-driven list generation, editable shopping lines, and transactional purchase-to-Product/Batch finalization are implemented. Remaining Stage 8 work is browser verification and bugfixing only. |
+| Stage 9 | Shop, catalogue, price, and purchase-ingestion connection | Ready after Stage 8 user-side closeout | Builds the one-shop Shopping Trip and Shop Product/Price Observation circle around the completed Home list. Finalized trips submit unknown/changed product and price facts for admin review; Stage 9 must not reimplement the basic household list or purchase-to-stock loop. |
 | Stage 10 | Alpha 1.0 hardening | Planned after Stage 9 | Applies the final domain language, preserves/exports/imports Crawl Snapshots, fixes confirmed parser/data defects, improves demonstrated change-locality problems, and prepares external Alpha review. |
 
 Non-MVP and post-MVP ideas are tracked in `mvp-followups.md` so this roadmap stays focused on the shortest useful household grocery-planning MVP.
@@ -381,7 +381,7 @@ Approved planning direction:
 - migrate existing household data through the database maintenance registry with separately tracked validator and data actions
 - connect Product Group/Product target-policy owners, Shopping Needs, classifications, and Stock Batches through explicit ownership plus durable snapshots
 - preserve manual/unlinked stock and keep catalogue archive/removal from invalidating household history
-- redesign generic demand as Shopping Needs that hand off cleanly to Stage 9 without pretending to complete Purchases
+- redesign generic demand as Shopping Needs while completing the basic Home list and purchase-to-household-stock loop; Shop Markets, Prices, Shopping Trips, and admin Purchase Ingestion remain Stage 9
 - add an accessible locally remembered 30/70–70/30 Household/Shopping home divider with 50/50 reset on non-stacked layouts; defer animated tri-state focus/inline quick-action rows
 - add explainable low-stock and expiry/buy-before notices, including products without expiry dates
 - finish the create-or-join workflow for existing controlled users with basic owner/member capabilities
@@ -399,7 +399,7 @@ Validation:
 - inherited concepts match inclusively, independent attributes filter correctly, the motivating milk/pasta rules are explainable, and cycles/cross-household relations are rejected
 - base content/template sync is additive, localized, repeatable, admin-previewable, and never overwrites customized/household content silently
 - Product/Group rollups, partial consumption, corrections, depletion, and history remain consistent without double counting under retries and concurrent requests
-- Shopping Needs are stable, editable, and do not pretend to be a completed Purchase
+- the Home user can generate, edit, mark bought, and finalize a shopping list; finalized lines create/reuse Household Products and Product-owned Stock Batches without requiring catalogue approval
 - the desktop/tablet Household/Shopping divider is keyboard/pointer usable, locally remembers a clamped ratio, resets to 50/50, and leaves stacked mobile behavior unchanged
 - warnings are explainable
 - expiry and min-limit logic do not overwrite each other
@@ -471,7 +471,7 @@ Validation:
 
 ## Final Alpha 1.0 Assessment
 
-The combined Stage 8-10 roadmap is conceptually complete for meaningful single-user and family internal testing **if all three stages and the acceptance scenario are completed**. Stage 8 alone is a correct household foundation, not the full product. Stage 9 supplies the missing central value transition from generic need to concrete shop product/price to actual purchase and stock. Stage 10 verifies that the result is trustworthy and understandable enough to call Alpha 1.0.
+The combined Stage 8-10 roadmap is conceptually complete for meaningful single-user and family internal testing **if all three stages and the acceptance scenario are completed**. Stage 8 is now a complete user-side household/list/purchase foundation. Stage 9 adds the concrete shop/product/price and finalized-trip ingestion-review circle without taking basic household usefulness hostage to catalogue data. Stage 10 verifies that the result is trustworthy and understandable enough to call Alpha 1.0.
 
 The external presentation target is a deliberately engineered **source-available public Alpha**, consistent with `LICENSE.md`; documentation must not imply permissive clone-and-host open-source rights.
 

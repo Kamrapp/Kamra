@@ -371,3 +371,19 @@ The full implementation contract, migration behavior, icon semantics, composer r
 - Batch/product detail refinement (2026-07-12): Batch rows now expose magnifier, pencil, and discard actions without entering edit mode; Stocked at is shown in the expandable Batch details row and remains editable from the pencil flow. Product detail editing now persists GTIN and Note as well as name and Group. The obsolete household-panel “Loaded N stock rows” status was removed from the load path; mutation feedback remains available.
 - Table density refinement (2026-07-12): removed the low-value nested Stock Batch header; Group/Product rows now use compact Minimum < Current < Target columns followed by one Unit column. Batch Quantity reuses the Current column and Batch Expiry spans the Unit/State area, keeping the action column aligned. Manual vocabulary cards were tightened for scan-friendly reading.
 - Group shopping policy and Home bridge (2026-07-12): household settings now persist `groupTargetShoppingMode`, defaulting to `add_products_and_group_item`; the Manage household page exposes Product-and-Group-item, Product-only, and Ignore Group targets choices. The v2 Shopping Need generator applies Product shortages first, recalculates Group shortage, splits residual need across already-planned Products, chooses the earliest-expiring stocked Product otherwise, and creates a Group impulse need only in the default mode when no Product exists. When v2 Product Group data exists, the visible Home generation route now creates a compatibility shopping list from these needs, and purchase application creates/reuses Household Products and acquires v2 Stock Batches transactionally. Validator/migration coverage uses `household-group-shopping-policy-v1`; expiry remains editable after purchase.
+
+## Current closeout status (2026-07-12)
+
+Stage 8 user-side implementation is complete on `eff796b`. The Home Product Group →
+Household Product → Stock Batch workspace now supports the basic household loop: generate,
+edit, and finalize a shopping list, with purchased lines creating or reusing Products and
+Product-owned Batches. Remaining Stage 8 work is manual/browser verification and narrowly
+scoped bug fixing only.
+
+Stage 9 is intentionally separate. It adds Shop Markets, Shop Products, Price Observations,
+Shopping Trips, and admin-reviewed Purchase Ingestion for finalized trips. It must reuse the
+Stage 8 Product/Batch finalization commands and must not be treated as a prerequisite for the
+basic Home shopping experience.
+
+Historical open-issue entries above describe intermediate checkpoints and are superseded by
+this closeout section where they say the Home bridge is still pending or Stage 8 cannot close.

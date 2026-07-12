@@ -1,17 +1,28 @@
 # Stage 9 Concrete Shopping And Catalogue Connection Plan
 
-Status: Proposed final plan. Requires Stage 8 completion and separate user approval before implementation.
+Status: Ready after Stage 8 user-side closeout. Requires separate user approval before Stage 9 implementation.
 
 ## Objective And Classification
 
-Complete the core Kamra MVP journey by translating Stage 8 generic household demand into a concrete, single-shop shopping trip; letting the user override or leave decisions unresolved; processing the trip manually and resumably; converting purchases into new stock batches atomically; and submitting unknown product/price facts for asynchronous administrative review.
+Extend the completed Stage 8 Home shopping experience with a concrete, single-shop Shopping Trip and the Shop Product/Price Observation/Ingestion review circle. Stage 8 already lets household users generate/edit/mark/finalize shopping lists and create Product-owned Stock Batches. Stage 9 adds shop selection, package/price matching, resumable trip state, finalized-trip purchase snapshots, and asynchronous admin review of unknown or changed product/price facts without making catalogue approval a prerequisite for household stock.
 
-This stage contains work **required for MVP usability** and the catalogue/price corrections **required for MVP correctness**. The required first slice is one manually administered Shop Market, a concrete Product/price choice or explicit unresolved line, a resumable Shopping Trip, and idempotent conversion of bought lines into Product-owned Stock Batches. It deliberately excludes multi-shop optimization, receipt/OCR, sophisticated recommendation ranking, a complete catalogue-management suite, and infrastructure that has not earned its place through the first loop.
+This stage contains the concrete shopping and catalogue work **after** the basic user loop. The required first slice is one manually administered Shop Market, a concrete Product/price choice or explicit unresolved line, a resumable Shopping Trip, and a finalized-trip ingestion submission. Reuse the existing Product/Batch command for household stock effects; do not duplicate or regress the Stage 8 Home finalization path. It deliberately excludes multi-shop optimization, receipt/OCR, sophisticated recommendation ranking, a complete catalogue-management suite, and infrastructure that has not earned its place through the first loop.
+
+## Already complete before Stage 9
+
+- Household Product Groups and Product-owned Stock Batches are the Home hierarchy.
+- Product and Group target policies generate v2 Shopping Needs with the household-configured grouped-target behavior.
+- Home generation exposes those needs in the existing editable shopping-list workspace.
+- Users can edit planned/purchased quantities, mark bought lines, and finalize them.
+- Finalization creates or reuses Household Products and acquires Product-owned Stock Batches transactionally, including Group impulse purchases.
+- Household stock does not wait for catalogue or admin review.
+
+Stage 9 must preserve these guarantees and only add the shop/trip/price/review context around them.
 
 ## Dependencies
 
 - Stage 8 Product Groups with optional Group/Product target policies, reusable Household Product anchors, Product Concept hierarchy, Product Attribute filters, Product-owned Stock Batches, Stock Movement history, idempotent command protocol, household permissions, Shopping Needs, structured logging, and feature-toggle foundation are complete.
-- Stage 8 migration reconciliation has passed and v1 stock writes are disabled.
+- Stage 8 user-side implementation is complete; manual/browser closeout remains tracked in the shared checklist. The Home compatibility list uses v2 Product Group data whenever it exists, while the old generator remains only as a compatibility fallback for households without v2 Products.
 - Current ingestion/crawler review remains available; Stage 9 extends it rather than creating an unrelated moderation system.
 
 Stage 9 treats `Household Product` as the reusable concrete household identity. A Purchase creates a new Stock Batch for that Household Product (or creates a manual Household Product first); the batch retains its own acquisition/expiry and immutable snapshot and automatically contributes through its Product Group membership. Stage 9 must not collapse Product identity, Household Product identity, an owner’s target policy, or Stock Batch history into one line item.
@@ -31,8 +42,7 @@ The implementation must still choose the smallest representation that supports t
 - Catalogue hydration currently keeps only the latest observation per price kind by `observedAt`; it does not determine applicability for a shopping date, validate currency/country, or expose stale/no-price reasoning.
 - Crawl-review acceptance currently deletes existing price observations for the source product before writing the accepted candidate. That destroys history and must be replaced before prices drive plans.
 - Product list output can show several source rows and latest per-kind values, but there is no manual product create route, manual shop-product association, manual price-observation workflow, applicable-price service, or price-history/correction relationship.
-- Current shopping completion updates stock and catalogue price observations through sequential writes. It is neither an adequate trip state model nor an atomic/idempotent purchase workflow.
-- Current shopping lines mix tick state, planned/purchased amounts, and stock-application state. Stage 9 must replace that ambiguity rather than extend it.
+- The Home compatibility list intentionally stores its editable display shell in the existing shopping-list collection, but v2 Product/Batch commands own generation and stock finalization. Stage 9 should introduce distinct Trip/Trip Item/Purchase snapshots and retire this compatibility shell only after the new trip path is proven.
 
 ## Stage 9 Domain Model
 
@@ -150,7 +160,7 @@ The MVP does not compare multiple shops or choose a route.
 - A bought Trip Item can change actual Product, quantity, package count, actual paid price, optional normal shelf price, optional offer price/validity, and one or more expiry Stock Batch splits.
 - An unplanned purchase can be added with the same bounded fields.
 - Unknown/manual product information creates household stock immediately using snapshots; catalogue review is asynchronous.
-- Completing a bought Trip Item is one idempotent transaction: result state, Purchase/Purchase Item, new Product-owned Stock Batch(es), Stock Movement(s), Product/Group target-policy aggregate refresh, household price snapshot, and a structured Ingestion Submission whenever user-entered Product/shelf/offer facts could affect shared catalogue data. A new Batch inherits its Product Group automatically; it does not create a Stock Allocation. Even a known matched Product's user-entered price remains unvalidated until review; it is not selected as an authoritative applicable price immediately.
+- Completing a bought Trip Item records Purchase/Purchase Item and finalized shop/price facts, then reuses the already-proven Product-owned Batch command. It also creates a structured Ingestion Submission whenever user-entered Product/shelf/offer facts could affect shared catalogue data. A new Batch inherits its Product Group automatically; it does not create a Stock Allocation. Even a known matched Product's user-entered price remains unvalidated until review; it is not selected as an authoritative applicable price immediately.
 - Repeating the same operation returns the original result. Different content under the same operation id conflicts. Partial failure rolls back the Trip Item transaction.
 - Correcting a completed trip uses explicit correction/reversal commands; it never edits movements or purchase history in place.
 
@@ -269,10 +279,10 @@ Implementation ownership map:
 
 ### Step 7 - Resumable manual completion and atomic stock conversion
 
-- Add in-progress/partial completion UI and transactional result processing with actual substitutions, quantities, prices, expiry splits, unplanned purchases, new Product-owned Batches/Movements, correction/reversal.
-- Likely files: shopping completion domain/service/repository/routes/UI, Purchase contracts, household command interface, transaction/idempotency tests.
-- Acceptance: later-expiring purchase creates a new batch; retries never duplicate; injected failures roll back; trip resumes after partial processing.
-- Commit: `feat: process shopping trips into stock`
+- Add in-progress/partial completion UI and transactional Trip/Purchase result processing with actual substitutions, quantities, prices, expiry splits, and unplanned purchases. Invoke the existing Product-owned Batch command for stock effects rather than creating a second household finalization path.
+- Likely files: shopping trip completion domain/service/repository/routes/UI, Purchase contracts, household command adapter, transaction/idempotency tests.
+- Acceptance: later-expiring purchase creates a new batch through the existing command; retries never duplicate; injected failures roll back; trip resumes after partial processing.
+- Commit: `feat: process shopping trips and finalize purchase facts`
 
 ### Step 8 - Minimum purchase ingestion and review
 
@@ -315,4 +325,4 @@ Stage 9 is complete when one user can choose a shop, turn generic demand into a 
 
 ## Approval Checkpoint
 
-Do not implement until Stage 8 is complete and the user approves this plan or a named step.
+Do not implement until the user approves this Stage 9 plan or a named step. Stage 8 user-side implementation is complete; only its manual/browser closeout and bugfixes remain.

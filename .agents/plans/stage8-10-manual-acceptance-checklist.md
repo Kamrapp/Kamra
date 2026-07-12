@@ -4,9 +4,9 @@ This is the single source of truth for manual/browser verification carried forwa
 
 ## Current status
 
-- Stage 8: Not ready for manual closeout. The v2 household stock workspace and Product/Batch editing slices are implemented, but the remaining backend/admin/membership/reconciliation work and browser confirmation are still required.
-- Stage 8 Home editing: The current allocation-based grouped workspace is superseded by the planned Stock Group → Product → Batch cutover. Do not treat its interim Target/Product/Batch editor checks as final acceptance after that slice lands.
-- Stage 9: Blocked until Stage 8 closeout and separate plan approval.
+- Stage 8: User-side implementation complete; manual/browser verification and bugfixes remain. The Home Product Group → Household Product → Stock Batch workspace, grouped-target generation, editable shopping list, and Product/Batch finalization are in the current branch.
+- Stage 8 Home editing: The Product Group → Product → Batch hierarchy is the final user-side direction. Legacy allocation/stock-row behavior is compatibility or migration input only.
+- Stage 9: Ready for separate approval. It adds Shop Markets, Shop Products, Price Observations, resumable Shopping Trips, and finalized-trip Purchase Ingestion; it must not block the basic Home loop.
 - Stage 10: Blocked until Stage 9 closeout and separate plan approval.
 
 ## Stage 8 household foundation
@@ -34,8 +34,8 @@ This is the single source of truth for manual/browser verification carried forwa
 - [ ] From a grouped Product row, click `Add stock`; verify the right editor switches to batch-only mode, keeps Product identity read-only, saves a separate batch, and leaves the Product in its existing group/unassigned state.
 - [ ] Create a Product with no initial batch; verify it appears under Unassigned/Unclassified, then use `Add stock` to add its first physical batch.
 - [ ] Verify Home no longer exposes household Product Concept creation or assignment; classification remains deferred from the stock workspace and no existing classification data is deleted.
-- [ ] After the Stock Group/Product/Batch cutover, verify Home uses Stock Groups (not Product Concepts) as the first layer, with recursively nested Groups, an Unassigned pseudo-group, Products assigned to zero or one direct Group, and Batches only beneath Products.
-- [ ] Create/edit/rename/discard a Stock Group, Product, and Batch from the left table. Verify the fixed action columns expose pencil/save/X, magnifier-plus/minus detail states, product-plus, and stock-plus with keyboard labels/tooltips; no action position changes with row text length.
+- [ ] After the Product Group/Product/Batch cutover, verify Home uses Product Groups (not Product Concepts) as the first layer, with recursively nested Groups, an Unassigned pseudo-group, Products assigned to zero or one direct Group, and Batches only beneath Products.
+- [ ] Create/edit/rename/discard a Product Group, Product, and Batch from the left table. Verify the fixed action columns expose pencil/save/X, magnifier-plus/minus detail states, product-plus, and stock-plus with keyboard labels/tooltips; no action position changes with row text length.
 - [ ] Use the Product details Group dropdown to move a Product between Groups and to Unassigned. Verify all its Batches move with it, direct/ancestor totals and Product/Group states update once, no duplicate contribution appears, and incompatible-unit/stale failures leave the prior state intact.
 - [ ] Use the three-block right-side composer to add/save each layer independently, then create a Group+Product+Batch through the Batch action. Verify parent creation is atomic/idempotent, pristine-name mirroring never overwrites an edited Product name, Batches have no fake name, selection synchronizes all blocks, and clear/cancel never saves data.
 - [ ] Use the Product Group hierarchy: add/edit a Product Group, add a Product in its context, add a Batch, and verify every later Batch of that Product automatically contributes through the same Group membership.
@@ -49,7 +49,7 @@ This is the single source of truth for manual/browser verification carried forwa
 - [ ] Verify admin flags, audit history, maintenance actions, structured logs, redaction, and effective database name in diagnostics.
 - [ ] Run `npm run smoke:transactions` against `kamra_smoke` or another approved disposable database; record rollback `0`, commit `2`, cleanup, and effective database name.
 
-## Stage 9 concrete shopping journey
+## Stage 9 concrete shopping journey — deferred until separate Stage 9 approval
 
 - [ ] From an open Shopping Need, select exactly one enabled Shop Market and planned shopping date.
 - [ ] Verify automatic Product/Shop Product matches show package math, applicable price, stale/no-price/conditional states, and match explanations.

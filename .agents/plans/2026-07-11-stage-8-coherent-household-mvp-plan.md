@@ -1,12 +1,12 @@
 # Stage 8 Household-Domain Correctness Plan
 
-Status: In implementation. The user authorized Stage 8 implementation on 2026-07-11; proceed one approved commit-sized step at a time.
+Status: User-side implementation complete; manual/browser closeout pending. The user authorized Stage 8 implementation on 2026-07-11; remaining work is verification and narrowly scoped bug fixing.
 
 ## Objective
 
 Build the correct household-domain foundation for the coherent Kamra MVP before concrete shop planning is added in Stage 9. Stage 8 separates Product Concepts and Product Attributes from household **Product Groups**, reusable Household Products, Product-owned Stock Batches, optional owner target policies, and Stock Movement history; adds inclusive `is_a` semantics; makes stock changes concurrency-safe and idempotent; generates Shopping Needs; and establishes the minimum feature-toggle and logging foundations needed for safe rollout. Pre-cutover Stock Targets and Stock Allocations are retained only as explicit migration/history compatibility data.
 
-The milestone is complete when a user can create or join a household, create/reorganize Product Concepts, define nested Product Groups such as `Bread → White bread`, give a Group or Product an optional “keep 2 l” target policy, add Product-owned Batches, consume/correct/remove independently expiring Batches with history, understand low-stock and expiry notices, and generate persisted Shopping Needs ready for Stage 9 translation. Stage 8 alone is not Alpha 1.0.
+The user-side milestone is complete when a household member can create/reorganize Product Groups, give a Group or Product an optional target policy, add Product-owned Batches, consume/correct/discard independently expiring Batches with history, understand low-stock and expiry notices, and generate, edit, purchase-mark, and finalize a Home shopping list into household Products and Batches. Shop selection, trip tracking, prices, and admin-reviewed ingestion remain Stage 9; Stage 8 alone is not Alpha 1.0.
 
 ## Context Read
 
@@ -986,7 +986,7 @@ The required collection/contract cutover is therefore `household_stock_targets` 
 - Multiple concrete batches, manual/unlinked classification snapshots, one explicit full-batch allocation or unassigned state, no double counting, history, aggregation, consume/correct/discard, and deterministic/user-selected consumption.
 - Safe v1-to-v2 migration and operational cutover.
 - Minimum hierarchy-aware catalogue picker/link/preference/classification snapshot/manual relink and archive-safe behavior.
-- Final Shopping Needs with explicit Stage 9 handoff; Shopping Trip planning and Purchase conversion are excluded.
+- Final Shopping Needs with an explicit Stage 9 handoff; the basic Home list and purchase-to-Product/Batch conversion are included, while Shop-aware Shopping Trips and Purchase Ingestion are excluded.
 - Explainable in-app low-stock/expiry/buy-before notices.
 - Create and join via controlled existing-user invitation, basic owner/member capabilities.
 - Optimistic concurrency, idempotency, transactions, explicit validation/errors.

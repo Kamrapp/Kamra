@@ -1,6 +1,9 @@
-# Stage 8 household-stock manual verification — remaining checks
+# Stage 8 household-stock manual verification — user-side closeout
 
-Use the local/disposable demo household only. The Product Group terminology, expansion hierarchy, Group/Product rename and reassignment, and right-side Product loading were confirmed on 2026-07-12.
+The Stage 8 user-side implementation is complete on the current branch. Use this file only
+for manual/browser evidence and any resulting bug fixes. The Product Group terminology,
+expansion hierarchy, Group/Product rename and reassignment, and right-side Product loading
+were confirmed on 2026-07-12.
 
 ## Prepare
 
@@ -37,7 +40,7 @@ The refreshed demo fixture intentionally includes `Tej`, `Kenyér`, `Zöldségek
 20. In Manage household, review **When a Product Group is below target**. Confirm the default is **Add products, then add a group item if needed**, and verify the other two choices save and survive refresh.
 21. Generate a shopping list for the seeded v2 household. Confirm generated lines use concrete Products where available and show a Product Group name only for a Group impulse fallback. Tick a Product line, adjust its purchased amount, apply the list, refresh Home, and confirm a new Batch appears under that Product. For a Group impulse line, confirm a manual Product is created under the Group before its Batch is acquired.
 
-## Remaining Stage 8 behavior
+## Manual verification still required
 
 1. Confirm expired Batches sort ahead of non-expired Batches, future expiry remains ascending, and no-expiry Batches are last. Expired expiry text must be danger-toned.
 2. In Manage household, turn **Allow expired items** off and save. The expired Batch stays visible but stops contributing to Current; the settings success toast appears. Re-enable and confirm it contributes again.

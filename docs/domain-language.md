@@ -19,7 +19,7 @@ This is the executable vocabulary for the Stage 8 household MVP. Stable ids, not
 - A **Stock Batch** is one physical acquisition belonging to a Household Product, with its own quantity, acquisition/expiry dates, immutable display/classification snapshots, lifecycle, and movement history. Need-first entry creates a generic manual Household Product first; normal Home operation has no anonymous top-level Batch.
 - A batch's official expiry date may precede its household acquisition date; these dates describe different facts and are not ordered by validation. Each household defaults to `allowExpiredItems: true`; when disabled, expired stock remains visible/history but is excluded from consumption and derived available totals.
 - A **Stock Movement** is immutable quantity history. Corrections and discard are commands, not deletes.
-- A **Shopping Need** is a generic demand snapshot generated from a Product Group or Household Product target-policy shortage, or entered ad hoc. It is the Stage 9 handoff, not a purchase.
+- A **Shopping Need** is a generic demand snapshot generated from a Product Group or Household Product target-policy shortage, or entered ad hoc. Stage 8 turns these needs into the editable Home shopping-list experience; Stage 9 additionally imports finalized shopping activity into concrete Shopping Trips and reviewable purchase-ingestion facts.
 
 ### Legacy allocation boundary
 
@@ -33,6 +33,6 @@ Quantities are finite, non-negative decimals with six fractional digits. Dates a
 
 Catalogue references in household data are nullable soft references. Names and classification at acquisition are snapshots, so catalogue archival cannot erase household history. Membership capabilities are evaluated server-side; owner-only capabilities are never implied by admin status without household membership.
 
-Stage 9 may extend a Shopping Need with shop market and selected Product/Shop Product choices, but Stage 8 does not select shops, calculate prices, create purchases, or convert purchases into stock.
+Stage 8 does not select shops or calculate catalogue prices. It does support the basic user-side purchase finalization path: a bought Home list line creates or reuses a Household Product and acquires a Product-owned Stock Batch. Stage 9 adds Shop Markets, Shop Products, applicable Price Observations, resumable Shopping Trips, and admin-reviewed Purchase Ingestion around that existing path.
 
 Product-first and need-first entry are both valid: an unclassified Household Product may acquire Batches before later classification, while a generic manual Household Product can hold an approximate opening Batch before a concrete Product is identified. Neither path rewrites historical Batch snapshots.

@@ -202,6 +202,12 @@ Responsibilities:
 Early optimization may be intentionally simple.
 The current household shopping loop should remain understandable before it becomes a full optimizer: `Start fresh` creates an empty list, `Business as usual` includes below-limit and at-limit stock, `Keep it chill` also includes low-soon stock, and `Stock 'em up!` includes all tracked stock rows as a broad restock view.
 
+Stage 8 completes the basic user-side loop on Home: generated lines remain editable, can be
+marked purchased, and can be finalized into reusable Household Products and Product-owned
+Stock Batches. Stage 9 adds the concrete shop/trip/price context and submits finalized-trip
+unknowns or changed facts for admin-reviewed Purchase Ingestion; it must not make catalogue
+data a prerequisite for household stock management.
+
 ## Data Lifecycle
 
 ```text
