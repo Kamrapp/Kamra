@@ -1456,6 +1456,11 @@ describe("handleAppRequest auth guards", () => {
           validatorUpdated: false
         },
         {
+          id: "household-product-groups-v1",
+          migrationCompleted: false,
+          validatorUpdated: false
+        },
+        {
           id: "household-local-classification-v1",
           migrationCompleted: false,
           validatorUpdated: false
@@ -1580,6 +1585,8 @@ describe("handleAppRequest auth guards", () => {
       "household-stock-targets-v1:migration",
       "household-products-v1:validator",
       "household-products-v1:migration",
+      "household-product-groups-v1:validator",
+      "household-product-groups-v1:migration",
       "household-local-classification-v1:validator",
       "household-local-classification-v1:migration",
       "feature-flag-audit-v1:validator",

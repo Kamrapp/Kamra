@@ -339,5 +339,6 @@ The full implementation contract, migration behavior, icon semantics, composer r
 - Batch composer selection: clicking a persisted Batch now populates the Product Group, Product, and Stock Batch composer blocks; saving that selection corrects the existing Batch instead of creating a duplicate. Product creation from a Group row now retains the selected Group context.
 - Product Group integrity guard: Group target policies must use the Group tracking unit, and Group updates now walk the complete parent chain to reject indirect cycles or missing parents. Focused Product Group/read-model tests and typecheck passed.
 - Product target-unit correction: Product drafts now own an explicit tracking unit for their optional target policy and persist it as the Product default unit; atomic Product+Batch creation validates the same policy/unit relationship instead of deriving Product policy units from whichever Batch happens to be entered.
+- Regression expectations: the full suite now includes the Product Group maintenance validator/migration pair; `npm test` passes with 49 files and 194 tests, and typecheck passes.
 - `is_a` is child-to-parent and effective concepts are inclusive; attributes remain independent.
 - Keep the manual-check list current when UI or live Mongo behavior is introduced.
