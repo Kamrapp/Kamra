@@ -90,7 +90,7 @@ export class HouseholdProductEditorComponent {
       if (result.status === "error") return this.fail(result.message ?? "Stock Batch could not be saved.");
       this.logger.log("info", "Stock Batch saved", { batchId: this.batch()!.id }); this.changed.emit(); return;
     }
-    let productId = this.product()?.id;
+    const productId = this.product()?.id;
     if (!productId) {
       const created = await this.service.createProductWithBatch({ batch: { acquiredOn: this.batchDraft.acquiredOn, displayName: name, expiryOn: this.batchDraft.expiryOn || null, originalQuantity: this.batchDraft.quantity, unit: this.batchDraft.unit.trim() }, group: this.productDraft.productGroupId ? null : (this.groupDraft.displayName.trim() ? { displayName: this.groupDraft.displayName.trim(), targetPolicy: this.groupDraft.hasTarget ? this.policy(this.groupDraft.minimumQuantity, this.groupDraft.desiredQuantity, this.groupDraft.trackingUnit) : null, trackingUnit: this.groupDraft.trackingUnit.trim() } : null), householdId: this.householdId(), product: { defaultTrackingUnit: this.productDraft.trackingUnit.trim(), displayName: name, note: this.productDraft.note || null, productGroupId: this.productDraft.productGroupId, targetPolicy: this.productDraft.hasTarget ? this.policy(this.productDraft.minimumQuantity, this.productDraft.desiredQuantity, this.productDraft.trackingUnit) : null } });
       this.saving.set(false); if (created.status === "error") return this.fail(created.message ?? "Product and stock could not be created.");
