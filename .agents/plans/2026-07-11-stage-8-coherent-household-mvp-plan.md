@@ -896,6 +896,72 @@ Add a configured database smoke command for v2 transactions/migration/reconcilia
 - Adding a Product from a Stock Target preselects that Target only for an optional first Batch. Saving a Product without a Batch leaves it visibly Unassigned; it must not imply an allocation. Adding a Batch from a Product inside a Target creates its allocation only when the user confirms that Target and server validation succeeds in the same transaction. Batches created from Unassigned remain unassigned until explicitly allocated.
 - The table is the complete primary CRUD surface. After it is coherent, the right side becomes a compact three-block composer (Target, Product, Batch) that mirrors only unsaved draft names. Its action labels make scope explicit: create Target, create Product, create Batch, or create all missing levels atomically from the Batch block. Editing a saved Target never renames concrete Products or immutable Batch snapshots.
 
+### Home Stock Group / Product / Batch redesign (implementation gate, 2026-07-12)
+
+The interim grouped Home UI is not the requested final interaction model. It was built against the original Batch-to-Stock-Target allocation model and must not be extended piecemeal. The next implementation run first changes the household stock ownership model, then replaces the UI as one coherent slice.
+
+#### Adopted terminology and model
+
+- **Stock Group** is the user-facing replacement for the current **Stock Target**. It is a household stock policy with a name, tracking unit, minimum, target/maximum, state, and optional parent Stock Group. API/storage migration may retain stable `stockTargetId` identifiers temporarily, but Home copy, contracts introduced for this slice, and new maintenance entries use Stock Group consistently.
+- **Product Concept** remains classification/tagging vocabulary. It is not a Home grouping layer and Home does not create, rename, or assign it. Therefore every earlier request referring to a “concept row” in Home means a **Stock Group row**; the requested Product assignment dropdown is a **Stock Group assignment dropdown**, not a Product Concept selector.
+- A Household Product belongs to zero or one direct Stock Group through `stockGroupId`. Its physical Stock Batches always belong to that Product. A generic manual Product covers need-first opening stock, so the normal UI has no anonymous top-level Batch.
+- A Stock Group can have a parent. A Product’s available Batches count toward its direct Group and that Group’s ancestors exactly once; Products are never directly assigned to multiple sibling Groups. This supports a nested `Bread → White bread → White loaf` structure without a second unrelated allocation.
+- Product-level minimum/target limits are independent of the enclosing Group limits. Product state is derived from its active Batches; Group state is derived from direct and descendant Products. Batch quantity, acquisition date, expiry date, and movement history remain physical facts and are never copied to Product or Group records.
+- Existing `household_stock_allocations` are legacy migration input/history after this cutover, not a parallel live grouping mechanism. New Home writes must not maintain both Product→Group and Batch→Target allocation state.
+
+#### Required safe cutover before UI work
+
+1. Add database-maintenance registry entries for the Stock Group/Product relationship and any Group-parent/Product-limit validator changes. Validator upgrade and existing-data migration stay independently acknowledged.
+2. Extend `household_stock_targets` (or introduce a deliberately named successor collection) with optional `parentStockGroupId`; extend `household_products` with nullable `stockGroupId`, Product limit policy, bounded `gtin`, optional catalogue Product id, and bounded note. Add indexes for household/group/name ordering and parent lookup.
+3. Migrate/reconcile live allocations deterministically:
+   - a Product whose active Batches all allocate to one Target receives that Target as `stockGroupId`;
+   - unallocated Products and generic opening Batches become visible under Unassigned (an opening Batch without a Product gets a generated generic manual Product before cutover);
+   - a Product whose active Batches allocate to different Targets is reported as an operator conflict and stays Unassigned until an explicit Group is selected; no quantity is silently moved or deleted;
+   - allocation and movement records remain historical evidence, with a durable cutover marker/reconciliation report; parent Groups are never inferred.
+4. Replace aggregate/read/write commands in one transaction-aware slice: create/update/move Product, create/update/archive Stock Group, and create/correct/discard Batch. A Product Group move validates units and recalculates source/destination/ancestor states atomically. Consumption and Shopping Need generation use Product/Group membership after cutover, not active allocations.
+5. Only after migration/reconciliation tests and the configured transaction smoke pass may the old Allocation controls/read grouping be removed from Home. Keep historical allocation display available in history, not as an editable Home action.
+
+#### Left table: the complete primary CRUD surface
+
+The fixed-header table remains compact and scrollable. Its stable columns are **Name**, **Current**, **Minimum**, **State**, and **Actions**. Rows use a real grid, quiet nested surfaces, and fixed action space; variable names or quantities cannot shift controls.
+
+1. **Stock Group and Unassigned rows** form the first layer. Groups are alphabetically ordered among siblings, then recursively show child Groups before Products. Unassigned is a persistent pseudo-group after normal Groups and has no editable limits.
+   - The core Group row shows its derived Current, Minimum, State badge, expand control, and icon actions.
+   - Pencil starts inline edit for the Group name; it becomes save (floppy) and discard (X). The details row becomes editable in the same edit state.
+   - A combined Group-plus-Product icon adds an inline Product draft directly beneath that Group.
+   - A magnifier-plus opens the Group details row and changes to magnifier-minus while open. Details include tracking unit, minimum, target/maximum, optional parent Group, expiry/consumption policy, and the explanation that Current is derived/read-only.
+   - The Unassigned row offers the same Product-add entry point but no Group edit/details controls. A table footer offers **Add Stock Group** and **Add unassigned Product**.
+2. **Product rows** are always nested under their assigned Group or Unassigned. They show derived Product Current, Product Minimum (or an em dash when no Product limit is enabled), Product State, and fixed icon actions.
+   - Pencil starts inline Product-name edit and swaps to save/discard icons.
+   - A magnifier-plus/minus opens a Product details row. It contains the Stock Group dropdown (including `Unassigned`), Product minimum/target policy, GTIN, optional catalogue Product id, and note. Saving a Group change moves the whole Product and its Batches transactionally; it never duplicates stock.
+   - A combined stock-plus icon creates one inline Batch draft directly beneath that Product. This is the only normal manual way to add another physical Batch for an existing Product.
+   - Selecting a Product also loads the right-side Product block. Details never expose Product Concepts in this MVP workspace.
+3. **Batch rows** are nested only under their Product. Their core row has no name/action ambiguity: quantity + unit, clearly labelled **Stocked at**, clearly labelled **Expiry**, and a state/expiry indicator.
+   - Pencil opens the Batch edit row; save and discard are explicit. A discarded persisted Batch records history rather than disappearing silently. A new unsaved Batch has Save and Cancel only.
+   - Batch rows have no Group assignment selector, add control, or details magnifier. Changing Group is always a Product action.
+4. Use accessible labelled SVG/icon components rather than ambiguous text buttons or Unicode-only merged symbols. The visual glyphs are pencil, disk, X, magnifier-plus/minus, product-plus, and stock-plus; every one has an explicit accessible label and tooltip.
+
+#### Right-side three-block composer
+
+Keep the right column, but make it a secondary, fully functional composer rather than a second inconsistent editor. It contains connected **Stock Group**, **Product**, and **Stock Batch** blocks in that order. Each block has a left-facing action icon: **Add** for a new draft and **Save** for a selected persisted record.
+
+- A blank composer starts with three drafts. Typing a new Group name seeds the Product name only while that Product name is pristine; changing a Product name never overwrites it again. Batches do not have names, so their block displays the selected/draft Product name as context instead of inventing a Batch-name field.
+- Group Add saves only the Group. Product Add saves only the Product (and creates its unsaved parent Group first when selected). Batch Add saves only the Batch, but may create any unsaved parent Group and Product in the same idempotent server transaction. This is the intentional **create all missing levels** path and must not leave a partially created chain after a failure.
+- Selecting a Group in the table loads that Group into the first block and clears Product/Batch drafts. Selecting a Product loads its assigned Group into the first block, the Product into the second, and clears the Batch draft. Selecting a Batch loads its Group, Product, and Batch. Selecting Unassigned leaves the Group block empty/disabled and Product save keeps the Product unassigned unless a Group is selected.
+- The Product block contains the same Group dropdown and expandable identity/details fields as the table. The Batch block contains quantity/unit/Stocked at/Expiry only. A clear/cancel action resets only the relevant unsaved block and its dependent child drafts; it never impersonates Save.
+- Table and composer use the same draft/state service and commands. A successful save refreshes the one workspace read model, preserves a sensible selection, and adds a concise Activity-console success/failure record.
+
+#### Implementation sequence and acceptance gate
+
+1. Update domain contracts, maintenance registry, validators, indexes, migration/reconciliation report, transaction commands, and repository/route tests for direct Product→Stock Group membership and nested Group rollup.
+2. Update the read model/API to return a recursive Group tree, Product limits/identity fields, and Product-owned Batches. Remove live allocation-derived grouping only after cutover verification.
+3. Replace the left table with the three-layer editor and shared accessible icon actions; add focused component tests for draft/reset/selection transitions.
+4. Replace the one-block Product editor with the three-block composer using the same command service; remove the obsolete batch-only and inferred-target paths.
+5. Reseed the demo household with nested Groups, multiple Products and Batches, an Unassigned Product, an expired-but-allowed Batch, and a legacy-allocation migration conflict fixture for automated reconciliation only.
+6. Update the Manual, domain-language documentation, Stage 8 manual checklist, and session evidence. Do not mark Stage 8 complete until the manual flows below pass or are explicitly waived.
+
+Manual acceptance for this slice: create a Group, child Group, unassigned Product, Product with a Group, and multiple Batches; move a Product between Groups and to Unassigned; confirm ancestor rollups and Product/Group limits; rename/edit/save/discard at each layer; verify icon expand/collapse states; create each level from both table and composer; verify compound Batch creation is atomic/idempotent; correct/discard a Batch; confirm no Product Concept controls appear; test light/dark, keyboard, mobile, stale revisions, and activity-log messages.
+
 - Household Stock Targets with combined minimum/target, reorder/expiry policy, and minimal flat typed Product Concept/Attribute Acceptance Criteria.
 - Global cycle-safe concept `is_a` relations, inherited concepts, legacy category-parent migration, qualified household concepts/attributes, and explainable matching.
 - Bounded checked-in JSON base classification/template pack with feature-local English/Hungarian translations, idempotent additive sync through both the seed runner and admin dashboard, and runtime localized-label fallback.

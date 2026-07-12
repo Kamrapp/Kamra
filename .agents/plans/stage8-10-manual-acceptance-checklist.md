@@ -5,6 +5,7 @@ This is the single source of truth for manual/browser verification carried forwa
 ## Current status
 
 - Stage 8: Not ready for manual closeout. The v2 household stock workspace and Product/Batch editing slices are implemented, but the remaining backend/admin/membership/reconciliation work and browser confirmation are still required.
+- Stage 8 Home editing: The current allocation-based grouped workspace is superseded by the planned Stock Group → Product → Batch cutover. Do not treat its interim Target/Product/Batch editor checks as final acceptance after that slice lands.
 - Stage 9: Blocked until Stage 8 closeout and separate plan approval.
 - Stage 10: Blocked until Stage 9 closeout and separate plan approval.
 
@@ -33,6 +34,10 @@ This is the single source of truth for manual/browser verification carried forwa
 - [ ] From a grouped Product row, click `Add stock`; verify the right editor switches to batch-only mode, keeps Product identity read-only, saves a separate batch, and leaves the Product in its existing group/unassigned state.
 - [ ] Create a Product with no initial batch; verify it appears under Unassigned/Unclassified, then use `Add stock` to add its first physical batch.
 - [ ] Verify Home no longer exposes household Product Concept creation or assignment; classification remains deferred from the stock workspace and no existing classification data is deleted.
+- [ ] After the Stock Group/Product/Batch cutover, verify Home uses Stock Groups (not Product Concepts) as the first layer, with recursively nested Groups, an Unassigned pseudo-group, Products assigned to zero or one direct Group, and Batches only beneath Products.
+- [ ] Create/edit/rename/discard a Stock Group, Product, and Batch from the left table. Verify the fixed action columns expose pencil/save/X, magnifier-plus/minus detail states, product-plus, and stock-plus with keyboard labels/tooltips; no action position changes with row text length.
+- [ ] Use the Product details Group dropdown to move a Product between Groups and to Unassigned. Verify all its Batches move with it, direct/ancestor totals and Product/Group states update once, no duplicate contribution appears, and incompatible-unit/stale failures leave the prior state intact.
+- [ ] Use the three-block right-side composer to add/save each layer independently, then create a Group+Product+Batch through the Batch action. Verify parent creation is atomic/idempotent, pristine-name mirroring never overwrites an edited Product name, Batches have no fake name, selection synchronizes all blocks, and clear/cancel never saves data.
 - [ ] Use the Stock Target-first hierarchy: add/edit a Stock Target, add a Product in its context, add a Batch, and verify an allocation is created only after an explicit validated Target choice.
 - [ ] Create a Stock Target from the table footer; edit its name inline using save/cancel actions, open its details, and edit minimum, target, and unit. Confirm the derived current amount remains read-only.
 - [ ] Correct a batch quantity and discard a batch from grouped Home; verify the target aggregate refreshes and the batch remains in history/status rather than disappearing silently.
