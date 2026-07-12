@@ -387,3 +387,13 @@ basic Home shopping experience.
 
 Historical open-issue entries above describe intermediate checkpoints and are superseded by
 this closeout section where they say the Home bridge is still pending or Stage 8 cannot close.
+
+## Stage 9 continuation checkpoint (2026-07-12)
+
+Work continued on branch `dev/bg/stage-9-10` in separate commits:
+
+- `a8d411f feat: define Stage 9 trip and matching domain` — Trip/Trip Item contracts, state transitions, applicable-price selection, and deterministic one-SKU matching.
+- `44b0d4c feat: persist and expose shopping trips` — indexed Trip repository plus household create/list/update routes with optimistic revision checks.
+- `71a1eee feat: add shop products and price history` — market-scoped Shop Product and append-only Price Observation repositories, tests, and maintenance registry entry.
+
+Stage 9 remains in implementation. The next required slice is transactional Trip completion into the existing Product/Batch command plus structured Ingestion Submission creation; Stage 10 must wait for that path.

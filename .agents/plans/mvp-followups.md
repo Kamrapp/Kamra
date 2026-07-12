@@ -10,6 +10,32 @@ The initial MVP roadmap should focus on the shortest path to a usable household 
 
 Use this file when a session discovers an idea that is valuable but not necessary for the next MVP milestone. Keep entries short enough that future planning can scan them quickly.
 
+## Stage 8–10 carry-forward items
+
+These items were intentionally skipped or kept transitional while the basic MVP loop was built:
+
+- retire the Home compatibility shopping-list shell after Shopping Trips have equivalent manual acceptance
+- complete deterministic migration/reconciliation of legacy Stock Targets/Allocations and remove active write paths
+- promote reviewed purchase facts into shared catalogue identity without rewriting household snapshots
+- add robust correction/reversal UI for completed Purchases and their Stock Movements
+- replace manual Shop Product/Price administration with richer reviewed catalogue tooling
+- add paged Trip, Purchase, Price Observation, and Ingestion Submission history views
+- finish archive export/import and parser-quality repair workflow before external Alpha use
+
+## Additional high-value suggestions
+
+1. **Offline-first in-store trip cache** — preserve the active Trip and queued manual results through weak connectivity; AddedValue 5/5, Effort High, Complexity High, Priority High.
+2. **Household explainability timeline** — show why a line was generated, which Product/Group target contributed, and which Batch changed after completion; AddedValue 5/5, Effort Med, Complexity Med, Priority High.
+3. **Safe duplicate-product merge assistant** — compare identity, batches, prices, and history before an explicit household/admin merge; AddedValue 5/5, Effort High, Complexity High, Priority Med.
+4. **Budget and price-history guardrails** — let a household set a trip budget and flag surprising price changes without changing deterministic matching; AddedValue 4/5, Effort Med, Complexity Med, Priority Med.
+5. **Shared household quick actions** — keyboard/mobile shortcuts for add stock, mark bought, extend expiry, and undo the last safe action; AddedValue 4/5, Effort Low, Complexity Med, Priority Med.
+
+## Frontend simplification / UX rework candidates
+
+- **Workspace-to-page extraction:** move Manage household settings, Trip planning, and admin review into dedicated route pages; keep Home focused on stock and a compact trip summary. This reduces nested grids and panel-height CSS.
+- **Flyout editors:** replace the three-block always-present composer with one typed Product Group/Product/Batch flyout that opens from a row and owns its save/cancel lifecycle. This removes duplicated inline/right-side synchronization.
+- **Shared data-grid shell:** extract one accessible, scrollable hierarchy grid with fixed columns, disclosure, action slots, and status tokens; household stock, Trip Items, and admin review then supply row templates instead of separate CSS systems.
+
 ## Triage Fields
 
 - AddedValue: `1/5` to `5/5`, focused on market gain, user delight, and likelihood that people would care.

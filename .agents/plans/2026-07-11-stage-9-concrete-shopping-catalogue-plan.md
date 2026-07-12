@@ -298,6 +298,13 @@ Implementation ownership map:
 - Acceptance: Alpha scenario through reusable validated purchase data passes without DB editing; full automated/manual validation passes.
 - Commit: `docs: close concrete shopping workflow`
 
+### Current implementation checkpoint (2026-07-12)
+
+- Step 4 domain contracts/state machine and Step 5 deterministic matcher are implemented and tested.
+- Trip persistence and authenticated create/list/update routes are implemented; the existing Home compatibility list remains intact until completion processing is proven.
+- Shop Product and append-only Price Observation repositories/indexes are implemented with a separate maintenance registry entry.
+- Remaining Stage 9 implementation is the admin market/product/price surface, Trip planning/completion UI, transactional Purchase and Ingestion Submission path, review actions, seed coverage, and compatibility retirement tests.
+
 ## Testing Strategy
 
 Manual/browser acceptance is tracked centrally in `.agents/plans/stage8-10-manual-acceptance-checklist.md`, including the Stage 8 prerequisite and Stage 9 journey. This plan must not grow a competing checklist.
