@@ -40,6 +40,18 @@ export class MongoProductGroupRepository {
     if (!current) throw new Error("product_group_not_found");
     if (current.revision !== input.expectedRevision) throw new Error("stale_revision");
     if (input.parentProductGroupId === input.id) throw new Error("product_group_cycle");
+    if (input.targetPolicy && input.targetPolicy.trackingUnit !== input.trackingUnit) throw new Error("product_group_target_unit_mismatch");
+    if (input.parentProductGroupId) {
+      let ancestorId: string | null = input.parentProductGroupId;
+      const visited = new Set<string>();
+      while (ancestorId) {
+        if (ancestorId === input.id || visited.has(ancestorId)) throw new Error("product_group_cycle");
+        visited.add(ancestorId);
+        const ancestor = await this.groups.findOne({ householdId: input.householdId, id: ancestorId, status: "active" });
+        if (!ancestor) throw new Error("parent_product_group_not_found");
+        ancestorId = ancestor.parentProductGroupId ?? null;
+      }
+    }
     const next: ProductGroup = {
       ...current,
       displayName: input.displayName,

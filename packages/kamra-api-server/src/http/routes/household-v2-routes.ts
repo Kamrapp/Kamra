@@ -110,6 +110,7 @@ export const householdV2ProductGroupCollectionRoute: AppRoute = {
       const repository = new MongoProductGroupRepository(database);
       if (request.method === "GET") return json(200, { productGroups: await repository.list(householdId), schemaVersion });
       const input = body as CreateProductGroupRequest;
+      if (input.targetPolicy && input.targetPolicy.trackingUnit !== input.trackingUnit) return json(400, { error: "product_group_target_unit_mismatch" });
       if (input.parentProductGroupId && !(await repository.get(householdId, input.parentProductGroupId))) return json(404, { error: "parent_product_group_not_found" });
       const now = new Date().toISOString(); const group: ProductGroup = { createdAt: now, createdByUserId: user.email, displayName: input.displayName.trim(), householdId, id: `product-group:${householdId}:${slug(input.displayName)}`, parentProductGroupId: input.parentProductGroupId ?? null, revision: 0, status: "active", targetPolicy: input.targetPolicy ?? null, trackingUnit: input.trackingUnit, updatedAt: now, updatedByUserId: user.email };
       try { assertProductGroup(group); return json(201, { productGroup: await repository.create(group), schemaVersion }); } catch (error) { return commandError(error); }
@@ -125,7 +126,7 @@ export const householdV2ProductGroupMutationRoute: AppRoute = {
     if (!householdId || !groupId || !body || !Number.isInteger(body["expectedRevision"]) || typeof body["displayName"] !== "string" || typeof body["trackingUnit"] !== "string") return json(400, { error: "invalid_product_group_request" });
     try { assertTrackingUnit(body["trackingUnit"]); if (body["targetPolicy"] !== undefined && body["targetPolicy"] !== null) assertTargetPolicy(body["targetPolicy"]); } catch (error) { return json(400, { error: "invalid_product_group_request", message: error instanceof Error ? error.message : "Product Group request is invalid." }); }
     return await withHouseholdDatabase(context, householdId, user.email, async (database) => {
-      const repository = new MongoProductGroupRepository(database); if (body["parentProductGroupId"] && !(await repository.get(householdId, body["parentProductGroupId"] as string))) return json(404, { error: "parent_product_group_not_found" });
+      const repository = new MongoProductGroupRepository(database); if (body["targetPolicy"] && (body["targetPolicy"] as TargetPolicy).trackingUnit !== body["trackingUnit"]) return json(400, { error: "product_group_target_unit_mismatch" }); if (body["parentProductGroupId"] && !(await repository.get(householdId, body["parentProductGroupId"] as string))) return json(404, { error: "parent_product_group_not_found" });
       try { const group = await repository.update({ displayName: (body["displayName"] as string).trim(), expectedRevision: body["expectedRevision"] as number, householdId, id: groupId, parentProductGroupId: body["parentProductGroupId"] as string | null | undefined, targetPolicy: body["targetPolicy"] as TargetPolicy | null | undefined, trackingUnit: body["trackingUnit"] as ProductGroup["trackingUnit"], updatedAt: new Date().toISOString(), updatedByUserId: user.email }); return json(200, { productGroup: group, schemaVersion }); } catch (error) { return commandError(error); }
     });
   }
