@@ -78,29 +78,31 @@ interface ShellMenuItem extends RadialNavigationItem {
           (themeChanged)="setTheme($event)"
         />
 
-        <a
-          class="about-rail-card manual-rail-card"
-          routerLink="/manual"
-          routerLinkActive="active"
-          [routerLinkActiveOptions]="{ exact: true }"
-          [attr.aria-label]="loc.t('manual.railTitle')"
-        >
-          <p class="rail-kicker">{{ loc.t("manual.railKicker") }}</p>
-          <p class="about-rail-title">{{ loc.t("manual.railTitle") }}</p>
-          <p class="about-rail-copy">{{ loc.t("manual.railBody") }}</p>
-        </a>
+        <div class="rail-reference-links">
+          <a
+            class="about-rail-card manual-rail-card"
+            routerLink="/manual"
+            routerLinkActive="active"
+            [routerLinkActiveOptions]="{ exact: true }"
+            [attr.aria-label]="loc.t('manual.railTitle')"
+          >
+            <p class="rail-kicker">{{ loc.t("manual.railKicker") }}</p>
+            <p class="about-rail-title">{{ loc.t("manual.railTitle") }}</p>
+            <p class="about-rail-copy">{{ loc.t("manual.railBody") }}</p>
+          </a>
 
-        <a
-          class="about-rail-card"
-          routerLink="/about"
-          routerLinkActive="active"
-          [routerLinkActiveOptions]="{ exact: true }"
-          [attr.aria-label]="loc.t('about.railTitle')"
-        >
-          <p class="rail-kicker">{{ loc.t("about.railKicker") }}</p>
-          <p class="about-rail-title">{{ loc.t("about.railTitle") }}</p>
-          <p class="about-rail-copy">{{ loc.t("about.railBody") }}</p>
-        </a>
+          <a
+            class="about-rail-card"
+            routerLink="/about"
+            routerLinkActive="active"
+            [routerLinkActiveOptions]="{ exact: true }"
+            [attr.aria-label]="loc.t('about.railTitle')"
+          >
+            <p class="rail-kicker">{{ loc.t("about.railKicker") }}</p>
+            <p class="about-rail-title">{{ loc.t("about.railTitle") }}</p>
+            <p class="about-rail-copy">{{ loc.t("about.railBody") }}</p>
+          </a>
+        </div>
       </aside>
 
       <app-toast-host />
@@ -205,12 +207,17 @@ interface ShellMenuItem extends RadialNavigationItem {
         color: inherit;
         display: grid;
         gap: 0.35rem;
-        margin-top: auto;
         padding: 0.85rem 0.95rem;
-        position: sticky;
         text-decoration: none;
-        top: calc(100dvh - 9.5rem);
         transition: border-color 160ms ease, transform 180ms ease;
+      }
+
+      .rail-reference-links {
+        bottom: 0;
+        display: grid;
+        gap: var(--space-3);
+        margin-top: auto;
+        position: sticky;
       }
 
       .about-rail-card:hover,
