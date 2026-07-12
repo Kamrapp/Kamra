@@ -177,6 +177,7 @@ export function assertHouseholdLocalProductRecord(
   assertNonEmptyString(value["householdId"], `${label}.householdId`);
   assertNonEmptyString(value["id"], `${label}.id`);
   assertOptionalNonEmptyString(value["productSourceId"], `${label}.productSourceId`);
+  assertOptionalNonEmptyString(value["productGroupId"], `${label}.productGroupId`);
   assertOptionalNonEmptyString(value["sourceName"], `${label}.sourceName`);
   assertOptionalNonEmptyString(value["sourceProductUrl"], `${label}.sourceProductUrl`);
   assertNonEmptyString(value["stockGroupKey"], `${label}.stockGroupKey`);

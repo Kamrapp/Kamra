@@ -139,6 +139,7 @@ const shoppingListLineSchema: JsonSchema = requiredObjectSchema(
       properties: observedPriceSchema["properties"]
     },
     plannedAmount: nonNegativeNumberSchema,
+    productGroupId: optionalStringSchema,
     productSourceId: optionalStringSchema,
     purchasedAmount: nonNegativeNumberSchema,
     reasonCode: {

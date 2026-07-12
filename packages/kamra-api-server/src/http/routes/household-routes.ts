@@ -1,8 +1,18 @@
 import type { Db } from "mongodb";
 
 import type { PriceObservationRecord } from "../../catalog/v1/contracts.js";
+import type {
+  HouseholdShoppingListLineRecord,
+  HouseholdShoppingListRecord
+} from "../../household/v1/contracts.js";
 import { buildShoppingListStockUpdatePlan } from "../../household/current/shopping-list-completion.js";
 import { generateHouseholdShoppingListPreview } from "../../household/current/shopping-list.js";
+import { MongoHouseholdProductRepository } from "../../household/v2/mongo-household-product-repository.js";
+import { MongoProductGroupReadRepository } from "../../household/v2/mongo-product-group-read-repository.js";
+import { MongoStockCommandRepository } from "../../household/v2/mongo-stock-command-repository.js";
+import { generateProductGroupShoppingNeeds } from "../../household/v2/shopping-needs.js";
+import type { HouseholdProduct, StockBatch } from "../../household/v2/contracts.js";
+import type { MongoTransactionClientLike } from "../../db/mongo-like.js";
 import {
   assertCreateHouseholdShoppingListRequest,
   assertCreateHouseholdStockItemRequest,
@@ -321,6 +331,18 @@ export const householdShoppingListsRoute: AppRoute = {
         return json(404, { error: "household_not_found" });
       }
 
+      const v2Workspace = await new MongoProductGroupReadRepository(
+        repositoryResult.database
+      ).getWorkspace(body.householdId, new Date().toISOString().slice(0, 10));
+      const hasV2Products =
+        v2Workspace.productGroups.length > 0 || v2Workspace.unassignedProducts.length > 0;
+      const v2Needs = hasV2Products
+        ? generateProductGroupShoppingNeeds({
+            mode: stockPage.household.groupTargetShoppingMode ?? "add_products_and_group_item",
+            needIdPrefix: `shopping-needs:${body.householdId}`,
+            workspace: v2Workspace
+          })
+        : [];
       const preview = generateHouseholdShoppingListPreview({
         household: {
           defaultCalculatedMaxLimitMultiplier:
@@ -348,17 +370,19 @@ export const householdShoppingListsRoute: AppRoute = {
         createdByUserId: repositoryResult.user.email,
         householdId: body.householdId,
         id: shoppingListId,
-        items: selectedPreviewItems.map((item, index) => ({
-          ...item,
-          id: createShoppingListLineId(shoppingListId, index, item.displayName),
-          observedPrice: null,
-          plannedAmount: item.suggestedBuyAmount,
-          purchasedAmount: 0,
-          sourceKind: "generated",
-          status: "not_applied",
-          ticked: false
-        })),
-        schemaVersion: "shopping_list_v1",
+        items: hasV2Products
+          ? createV2CompatibleShoppingLines(v2Needs, v2Workspace, shoppingListId)
+          : selectedPreviewItems.map((item, index) => ({
+              ...item,
+              id: createShoppingListLineId(shoppingListId, index, item.displayName),
+              observedPrice: null,
+              plannedAmount: item.suggestedBuyAmount,
+              purchasedAmount: 0,
+              sourceKind: "generated",
+              status: "not_applied",
+              ticked: false
+            })),
+        schemaVersion: hasV2Products ? "shopping_list_v2_compat" : "shopping_list_v1",
         scale: body.scale,
         shopId: body.shopId ?? null,
         status: "active",
@@ -469,6 +493,29 @@ export const householdShoppingListUpdateStocksRoute: AppRoute = {
     });
     if (!shoppingList) {
       return json(404, { error: "shopping_list_not_found" });
+    }
+
+    if (shoppingList.schemaVersion === "shopping_list_v2_compat") {
+      if (!context.config.mongodb.uri || !context.config.mongodb.databaseName)
+        return json(503, { error: "household_not_configured" });
+      const updatedShoppingList = await applyV2CompatibleShoppingList({
+        database: repositoryResult.database,
+        shoppingList,
+        stockAppliedAt: body.stockAppliedAt,
+        transactionClient: repositoryResult.client,
+        userId: repositoryResult.user.email
+      });
+      const householdStockPage = await repositoryResult.repository.getHouseholdStockPage({
+        householdId: body.householdId,
+        userId: repositoryResult.user.email
+      });
+      return json(200, {
+        appliedLineCount: updatedShoppingList.items.filter((item) => item.status === "applied")
+          .length,
+        confirmationRequired: false,
+        householdStockPage,
+        shoppingList: updatedShoppingList
+      });
     }
 
     const stockPage = await repositoryResult.repository.getHouseholdStockPage({
@@ -601,6 +648,7 @@ async function createHouseholdRepositoryForUserRequest(
 ): Promise<
   | { response: AppResponse }
   | {
+      client: MongoTransactionClientLike;
       database: Db;
       repository: ReturnType<NonNullable<typeof context.dependencies.createHouseholdRepository>>;
       user: NonNullable<ReturnType<typeof context.authenticateRequestUser>>;
@@ -627,6 +675,7 @@ async function createHouseholdRepositoryForUserRequest(
     : createDefaultHouseholdRepository(database);
 
   return {
+    client,
     database,
     repository,
     user
@@ -679,6 +728,182 @@ function mapCatalogObservationToHouseholdPurchaseObservation(
 
 function createHouseholdId(name: string): string {
   return `household_${stableSlug(name)}_${Date.now().toString(36)}`;
+}
+
+function createV2CompatibleShoppingLines(
+  needs: ReturnType<typeof generateProductGroupShoppingNeeds>,
+  workspace: Awaited<ReturnType<MongoProductGroupReadRepository["getWorkspace"]>>,
+  shoppingListId: string
+): HouseholdShoppingListLineRecord[] {
+  const productRows = [
+    ...workspace.productGroups.flatMap((group) => group.products),
+    ...workspace.unassignedProducts
+  ];
+  const products = new Map(productRows.map((row) => [row.product.id, row]));
+  return needs.map((need, index) => {
+    const product =
+      need.ownerKind === "household_product" ? products.get(need.ownerId ?? "") : null;
+    const currentAmount = product?.aggregate.availableQuantity ?? 0;
+    const productGroupId =
+      need.ownerKind === "product_group" ? need.ownerId : (product?.product.productGroupId ?? null);
+    return {
+      catalogProductId: product?.product.catalogProductId ?? null,
+      catalogProductNameSnapshot: null,
+      currentAmount,
+      displayName: need.ownerDisplayNameSnapshot ?? "Shopping item",
+      gtin: product?.product.identitySnapshot?.gtin ?? null,
+      householdProductId: product?.product.id ?? null,
+      householdStockItemId: null,
+      id: createShoppingListLineId(shoppingListId, index, need.ownerDisplayNameSnapshot ?? need.id),
+      idealMaxLimit: null,
+      minLimit: null,
+      observedPrice: null,
+      plannedAmount: need.plannedQuantity,
+      productGroupId,
+      productSourceId: null,
+      purchasedAmount: 0,
+      reasonCode: "below_minimum",
+      sourceKind: "generated",
+      sourceName: null,
+      sourceProductUrl: null,
+      status: "not_applied",
+      stockGroupKey: need.ownerId ?? null,
+      stockStatus: "below_limit",
+      suggestedBuyAmount: need.plannedQuantity,
+      targetAmount: currentAmount + need.plannedQuantity,
+      ticked: false,
+      uncertaintyFlags: product ? [] : ["missing_catalog_product", "missing_product_source"],
+      unit: need.unit
+    };
+  });
+}
+
+async function applyV2CompatibleShoppingList(input: {
+  database: Db;
+  shoppingList: HouseholdShoppingListRecord;
+  stockAppliedAt: string;
+  transactionClient: MongoTransactionClientLike;
+  userId: string;
+}): Promise<HouseholdShoppingListRecord> {
+  const productRepository = new MongoHouseholdProductRepository(input.database);
+  const groupCollection = input.database.collection<{ id: string; householdId: string }>(
+    "household_product_groups"
+  );
+  const commandRepository = new MongoStockCommandRepository(
+    input.database,
+    input.transactionClient
+  );
+  const now = new Date().toISOString();
+  const items = [...input.shoppingList.items];
+
+  for (const [index, item] of items.entries()) {
+    if (!item.ticked || item.status === "applied") continue;
+    const quantity = item.purchasedAmount > 0 ? item.purchasedAmount : item.plannedAmount;
+    if (quantity <= 0) continue;
+
+    const deterministicProductId = `household-product:${input.shoppingList.householdId}:purchase:${stableSlug(item.id)}`;
+    let product: HouseholdProduct | null = item.householdProductId
+      ? await productRepository.get(input.shoppingList.householdId, item.householdProductId)
+      : await productRepository.get(input.shoppingList.householdId, deterministicProductId);
+    if (!product) {
+      if (item.productGroupId) {
+        const group = await groupCollection.findOne({
+          householdId: input.shoppingList.householdId,
+          id: item.productGroupId
+        });
+        if (!group) throw new Error("product_group_not_found");
+      }
+      product = {
+        classificationRevision: 0,
+        createdAt: now,
+        createdByUserId: input.userId,
+        defaultTrackingUnit: item.unit as HouseholdProduct["defaultTrackingUnit"],
+        directAttributes: [],
+        directConcepts: [],
+        displayName: item.displayName,
+        householdId: input.shoppingList.householdId,
+        id: deterministicProductId,
+        identityKind: "manual",
+        identitySnapshot: { gtin: item.gtin ?? null },
+        note: null,
+        productGroupId: item.productGroupId ?? null,
+        revision: 0,
+        status: "active",
+        updatedAt: now,
+        updatedByUserId: input.userId
+      };
+      await productRepository.create(product);
+    }
+
+    const batchId = `stock-batch:${input.shoppingList.householdId}:purchase:${stableSlug(item.id)}`;
+    const operationId = `purchase:${input.shoppingList.id}:${item.id}`;
+    const batch: StockBatch = {
+      acquiredOn: input.stockAppliedAt,
+      acquisitionSnapshot: {
+        displayName: product.displayName,
+        gtin: product.identitySnapshot.gtin ?? null
+      },
+      classificationSnapshot: {
+        capturedAt: now,
+        directAttributes: product.directAttributes,
+        directConcepts: product.directConcepts,
+        effectiveConcepts: product.directConcepts,
+        source: "household"
+      },
+      createdAt: now,
+      createdByUserId: input.userId,
+      expiryOn: null,
+      householdId: input.shoppingList.householdId,
+      householdProductId: product.id,
+      id: batchId,
+      originalQuantity: quantity,
+      productId: product.id,
+      purchaseOperationId: operationId,
+      remainingQuantity: quantity,
+      revision: 0,
+      shopProductId: null,
+      shoppingNeedId: item.id,
+      shoppingNeedListId: input.shoppingList.id,
+      status: "available",
+      unit: item.unit as StockBatch["unit"],
+      updatedAt: now,
+      updatedByUserId: input.userId
+    };
+    await commandRepository.acquireBatch({
+      batch,
+      operationId,
+      requestFingerprint: `purchase:${input.shoppingList.id}:${item.id}`
+    });
+    items[index] = {
+      ...item,
+      householdProductId: product.id,
+      purchasedAmount: quantity,
+      status: "applied",
+      ticked: true
+    };
+  }
+
+  const updated = {
+    ...input.shoppingList,
+    items,
+    stockAppliedAt: input.stockAppliedAt,
+    updatedAt: now,
+    updatedByUserId: input.userId
+  };
+  await input.database
+    .collection<HouseholdShoppingListRecord>("household_shopping_lists")
+    .updateOne(
+      { householdId: input.shoppingList.householdId, id: input.shoppingList.id },
+      {
+        $set: {
+          items: updated.items,
+          stockAppliedAt: updated.stockAppliedAt,
+          updatedAt: updated.updatedAt,
+          updatedByUserId: updated.updatedByUserId
+        }
+      }
+    );
+  return updated;
 }
 
 function createShoppingListId(householdId: string): string {

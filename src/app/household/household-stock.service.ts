@@ -50,6 +50,7 @@ export interface HouseholdStockItemListItem {
   minLimit: number;
   note?: string | null;
   productSourceId?: string | null;
+  productGroupId?: string | null;
   sourceName?: string | null;
   sourceProductUrl?: string | null;
   status: "active" | "archived";

@@ -290,6 +290,7 @@ export interface HouseholdShoppingListItemReference {
   householdProductId?: string | null;
   householdStockItemId?: string | null;
   productSourceId?: string | null;
+  productGroupId?: string | null;
   sourceName?: string | null;
   sourceProductUrl?: string | null;
   stockGroupKey?: string | null;
