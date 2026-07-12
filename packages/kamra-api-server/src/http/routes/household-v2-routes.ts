@@ -14,6 +14,19 @@ import { MongoProductGroupReadRepository } from "../../household/v2/mongo-produc
 import { MongoProductGroupRepository } from "../../household/v2/mongo-product-group-repository.js";
 import { MongoProductComposerRepository } from "../../household/v2/mongo-product-composer-repository.js";
 import { MongoHouseholdProductConceptRepository } from "../../household/v2/mongo-household-product-concept-repository.js";
+import { MongoShoppingTripRepository } from "../../household/v2/mongo-shopping-trip-repository.js";
+import { MongoShopMarketRepository } from "../../household/v2/mongo-shop-market-repository.js";
+import {
+  createShoppingTrip,
+  setShoppingTripMarket,
+  transitionShoppingTrip,
+  updateShoppingTripItem
+} from "../../household/v2/shopping-trip-domain.js";
+import type {
+  ShoppingTripItemPlanStatus,
+  ShoppingTripItemResultStatus,
+  ShoppingTripStatus
+} from "../../household/v2/stage9-contracts.js";
 import { FeatureFlagService } from "../../feature-toggles/service.js";
 import { MongoFeatureFlagStore } from "../../feature-toggles/mongo-store.js";
 import {
@@ -23,6 +36,7 @@ import {
   type CreateProductGroupRequest,
   type CreateStockTargetRequest,
   type ProductGroup,
+  type ShoppingNeedList,
   type StockTarget,
   type TargetPolicy,
   type TrackingUnit
@@ -1107,6 +1121,113 @@ export const householdV2ShoppingNeedTransitionRoute: AppRoute = {
   }
 };
 
+export const householdV2ShoppingTripsRoute: AppRoute = {
+  match: (request) =>
+    (request.method === "GET" || request.method === "POST") &&
+    /^\/api\/households\/[^/]+\/shopping-trips$/.test(request.path),
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request);
+    if (!user) return unauthorized("apiErrors.signInRequired");
+    const householdId = pathSegment(
+      request.path.match(/^\/api\/households\/([^/]+)\/shopping-trips$/)?.[1]
+    );
+    if (!householdId) return json(400, { error: "invalid_household_path" });
+    const body = request.method === "POST" ? parseJsonObject(request.bodyText) : null;
+    if (
+      request.method === "POST" &&
+      (!body || typeof body["plannedDate"] !== "string" || !isIsoDate(body["plannedDate"]))
+    )
+      return json(400, { error: "invalid_shopping_trip_request" });
+    return await withHouseholdDatabase(context, householdId, user.email, async (database) => {
+      const repository = new MongoShoppingTripRepository(database);
+      if (request.method === "GET") return json(200, { trips: await repository.list(householdId) });
+      const needListId =
+        typeof body!["shoppingNeedListId"] === "string"
+          ? (body!["shoppingNeedListId"] as string)
+          : `shopping-needs:${householdId}`;
+      const marketId = typeof body!["shopMarketId"] === "string" ? body!["shopMarketId"] : null;
+      if (!marketId) return json(400, { error: "shop_market_required" });
+      if (!(await new MongoShopMarketRepository(database).get(marketId)))
+        return json(400, { error: "shop_market_not_found" });
+      const needs = await database
+        .collection<ShoppingNeedList>("household_shopping_need_lists")
+        .findOne({ householdId, id: needListId });
+      if (!needs) return json(404, { error: "shopping_need_list_not_found" });
+      const now = new Date().toISOString();
+      const trip = createShoppingTrip({
+        createdAt: now,
+        createdByUserId: user.email,
+        householdId,
+        id: `shopping-trip:${householdId}:${needListId}:${body!["plannedDate"]}:${marketId}`,
+        items: needs.items
+          .filter((need) => need.state === "open")
+          .map((need) => ({
+            id: `shopping-trip-item:${need.id}`,
+            needId: need.id,
+            displayNameSnapshot: need.ownerDisplayNameSnapshot ?? "Shopping need",
+            requiredQuantity: need.plannedQuantity,
+            requiredUnit: need.unit,
+            planStatus: "unresolved" as const,
+            resultStatus: "pending" as const
+          })),
+        plannedDate: body!["plannedDate"] as string,
+        sourceShoppingNeedListId: needListId,
+        updatedAt: now,
+        updatedByUserId: user.email
+      });
+      const selected = setShoppingTripMarket(trip, marketId);
+      return json(201, { result: await repository.create(selected), schemaVersion });
+    });
+  }
+};
+
+export const householdV2ShoppingTripRoute: AppRoute = {
+  match: (request) =>
+    request.method === "PATCH" &&
+    /^\/api\/households\/[^/]+\/shopping-trips\/[^/]+$/.test(request.path),
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request);
+    if (!user) return unauthorized("apiErrors.signInRequired");
+    const match = request.path.match(/^\/api\/households\/([^/]+)\/shopping-trips\/([^/]+)$/);
+    const householdId = pathSegment(match?.[1]);
+    const tripId = pathSegment(match?.[2]);
+    const body = parseJsonObject(request.bodyText);
+    if (!householdId || !tripId || !body || !Number.isInteger(body["expectedRevision"]))
+      return json(400, { error: "invalid_shopping_trip_update" });
+    return await withHouseholdDatabase(context, householdId, user.email, async (database) => {
+      const repository = new MongoShoppingTripRepository(database);
+      const existing = await repository.get(householdId, tripId);
+      if (!existing) return json(404, { error: "shopping_trip_not_found" });
+      try {
+        let updated = existing;
+        if (typeof body["shopMarketId"] === "string")
+          updated = setShoppingTripMarket(updated, body["shopMarketId"] as string);
+        if (isTripStatus(body["transition"]))
+          updated = transitionShoppingTrip(updated, body["transition"]);
+        if (typeof body["itemId"] === "string")
+          updated = updateShoppingTripItem(updated, body["itemId"] as string, {
+            planStatus: isTripPlanStatus(body["planStatus"]) ? body["planStatus"] : undefined,
+            resultStatus: isTripResultStatus(body["resultStatus"])
+              ? body["resultStatus"]
+              : undefined,
+            actualQuantity:
+              typeof body["actualQuantity"] === "number" ? body["actualQuantity"] : undefined,
+            actualPaidPrice:
+              typeof body["actualPaidPrice"] === "number" ? body["actualPaidPrice"] : undefined
+          });
+        const result = await repository.update({
+          expectedRevision: body["expectedRevision"] as number,
+          householdId,
+          trip: { ...updated, updatedAt: new Date().toISOString(), updatedByUserId: user.email }
+        });
+        return json(200, { result, schemaVersion });
+      } catch (error) {
+        return commandError(error);
+      }
+    });
+  }
+};
+
 async function runBatchCommand(
   context: Parameters<AppRoute["handle"]>[1],
   userId: string,
@@ -1177,6 +1298,23 @@ function pathSegment(value: string | undefined): string | undefined {
   } catch {
     return undefined;
   }
+}
+function isTripStatus(value: unknown): value is ShoppingTripStatus {
+  return [
+    "draft",
+    "matching",
+    "ready",
+    "in_progress",
+    "partially_processed",
+    "completed",
+    "cancelled"
+  ].includes(value as ShoppingTripStatus);
+}
+function isTripPlanStatus(value: unknown): value is ShoppingTripItemPlanStatus {
+  return ["unresolved", "selected", "skipped"].includes(value as ShoppingTripItemPlanStatus);
+}
+function isTripResultStatus(value: unknown): value is ShoppingTripItemResultStatus {
+  return ["pending", "bought", "not_bought"].includes(value as ShoppingTripItemResultStatus);
 }
 async function withHouseholdDatabase(
   context: Parameters<AppRoute["handle"]>[1],
