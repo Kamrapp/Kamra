@@ -8,6 +8,10 @@ import type {
 
 const terminalItem = (item: ShoppingTripItem): boolean =>
   item.planStatus === "skipped" || item.resultStatus !== "pending";
+const processedItem = (item: ShoppingTripItem): boolean =>
+  item.planStatus === "skipped" ||
+  item.resultStatus === "not_bought" ||
+  (item.resultStatus === "bought" && (item.createdBatchIds?.length ?? 0) > 0);
 
 export function createShoppingTrip(input: {
   createdAt: string;
@@ -49,7 +53,7 @@ export function transitionShoppingTrip(trip: ShoppingTrip, next: ShoppingTripSta
     (!trip.shopMarketId || trip.items.some((item) => item.planStatus === "unresolved"))
   )
     throw new Error("shopping_trip_not_ready");
-  if (next === "completed" && trip.items.some((item) => !terminalItem(item)))
+  if (next === "completed" && trip.items.some((item) => !processedItem(item)))
     throw new Error("shopping_trip_items_incomplete");
   return { ...trip, status: next, revision: trip.revision + 1 };
 }

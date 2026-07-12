@@ -57,6 +57,9 @@ describe("Stage 9 Shopping Trip state", () => {
       "plan_locked"
     );
     trip = updateShoppingTripItem(trip, "two", { resultStatus: "not_bought" });
+    expect(() => transitionShoppingTrip(trip, "completed")).toThrow("items_incomplete");
+    trip = updateShoppingTripItem(trip, "one", { createdBatchIds: ["batch:one"] });
+    trip = updateShoppingTripItem(trip, "two", { createdBatchIds: [] });
     expect(transitionShoppingTrip(trip, "completed").status).toBe("completed");
   });
 
