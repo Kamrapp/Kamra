@@ -2,9 +2,9 @@
 
 ## Purpose
 
-This directory contains the small retained Vercel Function fallback surface.
+This directory contains thin Vercel Function adapters for the shared API server.
 
-Each file here maps to a deployed `/api/*` route. Do not add helper modules here unless they are intentionally route files.
+Dedicated files map to high-traffic or compatibility `/api/*` routes. `api/[...path].ts` is the catch-all adapter for shared routes that do not need a dedicated wrapper; it preserves the original URL and delegates to the same dispatcher.
 
 ## Boundaries
 
@@ -12,14 +12,14 @@ Each file here maps to a deployed `/api/*` route. Do not add helper modules here
 - Adapt Vercel request/response objects to shared server logic.
 - Put reusable request handling, config parsing, MongoDB logic, health report generation, auth/session logic, and tests in `packages/kamra-api-server/`.
 - Use `scripts/local-api.ts` for local API development; it delegates to the same shared server handler.
-- Keep only the approved fallback/admin-validity routes here:
+- Keep dedicated wrappers only for the approved fallback/admin-validity routes:
   - login
   - logout
   - browser log ingestion
   - current admin/user identity
   - admin preferences
   - admin dashboard maintenance and health routes
-- Do not re-add household, catalog, ingestion-review, or other core domain routes here unless a new approved plan explicitly changes the deployment split.
+- The catch-all adapter keeps shared household, catalog, ingestion-review, database-maintenance, and alpha-access routes useful on Vercel without duplicating one entrypoint per route.
 
 ## Naming
 

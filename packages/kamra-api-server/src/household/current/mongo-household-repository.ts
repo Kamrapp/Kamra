@@ -884,7 +884,22 @@ export class MongoHouseholdRepository {
       return null;
     }
 
-    await this.householdShoppingListsCollection.insertOne(input);
+    const shoppingList: HouseholdShoppingListRecord = {
+      createdAt: input.createdAt,
+      createdByUserId: input.createdByUserId,
+      householdId: input.householdId,
+      id: input.id,
+      items: input.items,
+      schemaVersion: input.schemaVersion,
+      scale: input.scale,
+      shopId: input.shopId,
+      status: input.status,
+      stockAppliedAt: input.stockAppliedAt,
+      updatedAt: input.updatedAt,
+      updatedByUserId: input.updatedByUserId
+    };
+
+    await this.householdShoppingListsCollection.insertOne(shoppingList);
     return await this.householdShoppingListsCollection.findOne({ id: input.id });
   }
 

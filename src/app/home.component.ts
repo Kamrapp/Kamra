@@ -1,6 +1,4 @@
-import { FormsModule } from "@angular/forms";
 import { Component, ViewChild, computed, effect, inject, signal, type OnDestroy } from "@angular/core";
-import { RouterLink } from "@angular/router";
 
 import { AuthService } from "./auth.service";
 import {
@@ -10,44 +8,27 @@ import {
   type HouseholdStockItemListItem,
   type HouseholdStockPage
 } from "./household/household-stock.service";
+import {
+  HouseholdPreviewWorkspaceComponent,
+  type HouseholdPreviewStockItem
+} from "./household/household-preview-workspace.component";
+import {
+  HouseholdStockEditorComponent,
+  type HouseholdStockDraft,
+  type HouseholdStockEditorMode
+} from "./household/household-stock-editor.component";
+import { HouseholdStockPanelComponent } from "./household/household-stock-panel.component";
 import { HouseholdShoppingListComponent } from "./household/household-shopping-list.component";
 import { LocalizationService, type TranslationKey } from "./shared/localization.service";
 import { PageRailService, type PageRailSection } from "./shared/page-rail.service";
 import { ToastService } from "./shared/toast.service";
 
-type EditorMode = "create" | "edit";
 type ShoppingScale = "start_fresh" | "usual" | "chill" | "stock_up";
-
-interface StockDraft {
-  currentAmount: number;
-  displayName: string;
-  gtin: string;
-  id: string;
-  idealMaxLimit: number | null;
-  initialAmount: number;
-  minLimit: number;
-  note: string;
-  productSourceId: string;
-  sourceName: string;
-  sourceProductUrl: string;
-  stockedAt: string;
-  stockGroupKey: string;
-  unit: string;
-}
 
 interface ShoppingScaleOption {
   hintKey: TranslationKey;
   key: ShoppingScale;
   labelKey: TranslationKey;
-}
-
-interface PreviewStockItem {
-  currentAmount: number;
-  displayName: string;
-  id: string;
-  minLimit: number;
-  stockStatus: HouseholdStockItemListItem["stockStatus"];
-  unit: string;
 }
 
 const shoppingScaleOptions: readonly ShoppingScaleOption[] = [
@@ -85,842 +66,14 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
 @Component({
   selector: "app-home",
   standalone: true,
-  imports: [FormsModule, RouterLink, HouseholdShoppingListComponent],
-  template: `
-    @if (!auth.isAuthenticated()) {
-      <section class="stock-workspace" aria-labelledby="home-title">
-        <section class="stock-panel preview-surface" [attr.aria-label]="loc.t('household.stockPanelLabel')">
-          <div class="panel-topline">
-            <p class="panel-title" id="home-title">{{ loc.t("household.stockPanelTitle") }}</p>
-          </div>
-
-          <div class="household-bar">
-            <div class="household-picker-group">
-              <label class="household-select">
-                <span>{{ loc.t("household.activeHousehold") }}</span>
-                <select disabled>
-                  <option>{{ loc.t("home.pantryPulse") }}</option>
-                </select>
-              </label>
-
-              <button class="ui-button ui-button-quiet ui-button-sm manage-household-button" type="button" disabled>
-                {{ loc.t("household.manageHousehold") }}
-              </button>
-            </div>
-
-            <button
-              class="ui-button ui-button-quiet ui-button-sm icon-button"
-              type="button"
-              disabled
-              [attr.aria-label]="loc.t('common.refresh')"
-              [attr.title]="loc.t('common.refresh')"
-            >
-              <span aria-hidden="true">↻</span>
-            </button>
-          </div>
-
-          <div class="stock-table-shell">
-            <div class="stock-table-header" aria-hidden="true">
-              <div class="stock-header-main">
-                <span>{{ loc.t("common.product") }}</span>
-                <span>{{ loc.t("household.currentShort") }}</span>
-                <span aria-hidden="true"></span>
-                <span>{{ loc.t("household.minShort") }}</span>
-                <span>{{ loc.t("common.state") }}</span>
-              </div>
-            </div>
-
-            <div class="stock-table-body">
-              @for (item of previewStockItems(); track item.id) {
-                <div class="stock-table-row stock-table-grid preview-stock-row">
-                  <button class="stock-row-main" type="button" disabled>
-                    <span class="stock-name">{{ item.displayName }}</span>
-                    <span>{{ formatAmount(item.currentAmount, item.unit) }}</span>
-                    <span
-                      class="relation-symbol"
-                      [class.relation-below]="item.stockStatus === 'below_limit' || item.stockStatus === 'at_limit'"
-                      [class.relation-watch]="item.stockStatus === 'low_soon'"
-                      [class.relation-steady]="item.stockStatus === 'steady'"
-                    >
-                      {{ relationSymbol(item.stockStatus) }}
-                    </span>
-                    <span>{{ formatAmount(item.minLimit, item.unit) }}</span>
-                    <span
-                      class="status-badge"
-                      [class.status-danger]="item.stockStatus === 'below_limit' || item.stockStatus === 'at_limit'"
-                      [class.status-watch]="item.stockStatus === 'low_soon'"
-                    >
-                      {{ loc.t(stockStatusTranslationKey(item.stockStatus)) }}
-                    </span>
-                  </button>
-
-                  <button
-                    class="stock-list-add"
-                    type="button"
-                    disabled
-                    [attr.title]="loc.t('household.shoppingListAddRequiresExisting')"
-                  >
-                    <span aria-hidden="true">🛒+</span>
-                  </button>
-                </div>
-              }
-            </div>
-          </div>
-
-          <button class="ui-button ui-button-primary add-new-button" type="button" disabled>
-            {{ loc.t("household.addNewItem") }}
-          </button>
-        </section>
-
-        <section class="editor-panel preview-surface" [attr.aria-label]="loc.t('household.selectedItem')">
-          <p class="card-kicker">{{ loc.t("household.selectedItem") }}</p>
-          <h2>{{ previewEditorItem().displayName }}</h2>
-
-          <form class="stock-form">
-            <label>
-              <span>{{ loc.t("common.name") }}</span>
-              <input type="text" [value]="previewEditorItem().displayName" disabled />
-            </label>
-
-            <div class="split-fields">
-              <label>
-                <span>{{ loc.t("household.currentAmount") }}</span>
-                <input type="number" step="0.01" [value]="previewEditorItem().currentAmount" disabled />
-              </label>
-              <label>
-                <span>{{ loc.t("household.minLimit") }}</span>
-                <input type="number" step="0.01" [value]="previewEditorItem().minLimit" disabled />
-              </label>
-            </div>
-
-            <div class="split-fields">
-              <label>
-                <span>{{ loc.t("household.unit") }}</span>
-                <input type="text" [value]="previewEditorItem().unit" disabled />
-              </label>
-              <label>
-                <span>{{ loc.t("household.stockedAt") }}</span>
-                <input type="date" value="2026-07-10" disabled />
-              </label>
-            </div>
-
-            <button
-              class="details-toggle icon-button"
-              type="button"
-              disabled
-              [attr.aria-label]="loc.t('household.showAdditionalDetails')"
-              [attr.title]="loc.t('household.showAdditionalDetails')"
-            >
-              <span>{{ loc.t("household.showAdditionalDetails") }}</span>
-            </button>
-
-            <div class="editor-actions">
-              <button class="ui-button ui-button-primary" type="button" disabled>
-                {{ loc.t("common.save") }}
-              </button>
-              <button class="ui-button ui-button-quiet" type="button" disabled>
-                {{ loc.t("common.delete") }}
-              </button>
-            </div>
-          </form>
-        </section>
-
-        <app-household-shopping-list
-          class="shopping-bottom-row"
-          householdId="preview_household"
-          [demoShoppingList]="demoShoppingList()"
-          [shoppingScale]="apiShoppingScale()"
-        />
-      </section>
-    } @else {
-      <section class="stock-workspace" aria-labelledby="home-title">
-        <section class="stock-panel" [attr.aria-label]="loc.t('household.stockPanelLabel')">
-          <div class="panel-topline">
-            <p class="panel-title" id="home-title">{{ loc.t("household.stockPanelTitle") }}</p>
-          </div>
-
-          <div class="household-bar">
-            <div class="household-picker-group">
-              <label class="household-select">
-                <span>{{ loc.t("household.activeHousehold") }}</span>
-                <select
-                  [ngModel]="selectedHouseholdId()"
-                  (ngModelChange)="selectHousehold($event)"
-                  [disabled]="loadState() === 'loading' || households().length === 0"
-                >
-                  @for (household of households(); track household.id) {
-                    <option [value]="household.id">{{ household.name }}</option>
-                  }
-                </select>
-              </label>
-
-              <button
-                class="ui-button ui-button-quiet ui-button-sm manage-household-button"
-                type="button"
-                [routerLink]="selectedHouseholdId() ? ['/household', selectedHouseholdId()] : ['/']"
-                [disabled]="!selectedHouseholdId()"
-              >
-                {{ loc.t("household.manageHousehold") }}
-              </button>
-            </div>
-
-            <button
-              class="ui-button ui-button-quiet ui-button-sm icon-button"
-              type="button"
-              (click)="refreshHome()"
-              [disabled]="loadState() === 'loading'"
-              [attr.aria-label]="loc.t('common.refresh')"
-              [attr.title]="loc.t('common.refresh')"
-            >
-              <span aria-hidden="true">↻</span>
-            </button>
-          </div>
-
-          @if (loadState() === "loading" && !householdPage()) {
-            <section class="state-panel">
-              <p>{{ loc.t("household.loading") }}</p>
-            </section>
-          } @else if (errorMessage()) {
-            <section class="state-panel state-panel-error">
-              <h2>{{ loc.t("household.loadFailure") }}</h2>
-              <p>{{ errorMessage() }}</p>
-            </section>
-          } @else if (!households().length) {
-            <section class="state-panel">
-              <h2>{{ loc.t("household.noHouseholdTitle") }}</h2>
-              <p>{{ loc.t("household.noHouseholdDescription") }}</p>
-              <form class="stack-form" (ngSubmit)="createHousehold()">
-                <label>
-                  <span>{{ loc.t("household.householdName") }}</span>
-                  <input
-                    type="text"
-                    name="householdName"
-                    [(ngModel)]="createHouseholdName"
-                    [placeholder]="loc.t('household.householdNamePlaceholder')"
-                  />
-                </label>
-                <button class="ui-button ui-button-primary" type="submit" [disabled]="loadState() === 'loading'">
-                  {{ loc.t("household.createHousehold") }}
-                </button>
-              </form>
-            </section>
-          } @else {
-            <div class="stock-table-shell">
-              <div class="stock-table-header" aria-hidden="true">
-                <div class="stock-header-main">
-                  <span>{{ loc.t("common.product") }}</span>
-                  <span>{{ loc.t("household.currentShort") }}</span>
-                  <span aria-hidden="true"></span>
-                  <span>{{ loc.t("household.minShort") }}</span>
-                  <span>{{ loc.t("common.state") }}</span>
-                </div>
-              </div>
-
-              <div class="stock-table-body">
-                @for (item of stockItemsByPriority(); track item.id) {
-                  <div
-                    class="stock-table-row stock-table-grid"
-                    [class.selected-row]="selectedItem()?.id === item.id"
-                    [class.shopping-candidate-row]="shouldHighlightStockItem(item)"
-                  >
-                    <button class="stock-row-main" type="button" (click)="openEditor(item)">
-                      <span class="stock-name">{{ item.displayName }}</span>
-                      <span>{{ formatAmount(item.currentAmount, item.unit) }}</span>
-                      <span
-                        class="relation-symbol"
-                        [class.relation-below]="item.stockStatus === 'below_limit' || item.stockStatus === 'at_limit'"
-                        [class.relation-watch]="item.stockStatus === 'low_soon'"
-                        [class.relation-steady]="item.stockStatus === 'steady'"
-                      >
-                        {{ relationSymbol(item.stockStatus) }}
-                      </span>
-                      <span>{{ formatAmount(item.minLimit, item.unit) }}</span>
-                      <span
-                        class="status-badge"
-                        [class.status-danger]="item.stockStatus === 'below_limit' || item.stockStatus === 'at_limit'"
-                        [class.status-watch]="item.stockStatus === 'low_soon'"
-                      >
-                        {{ loc.t(stockStatusTranslationKey(item.stockStatus)) }}
-                      </span>
-                    </button>
-
-                    <button
-                      class="stock-list-add"
-                      type="button"
-                      [disabled]="!shoppingListPanel?.shoppingList() || shoppingListPanel.hasShoppingLineForStockItem(item.id)"
-                      [attr.title]="shoppingListPanel?.shoppingList()
-                        ? (shoppingListPanel.hasShoppingLineForStockItem(item.id)
-                          ? loc.t('household.shoppingListAlreadyAdded')
-                          : loc.t('household.shoppingListAddItemAction'))
-                        : loc.t('household.shoppingListAddRequiresExisting')"
-                      (click)="addStockItemToShoppingList(item, shoppingListPanel)"
-                    >
-                      <span aria-hidden="true">🛒+</span>
-                    </button>
-                  </div>
-                } @empty {
-                  <p class="empty-copy">{{ loc.t("household.noStockItems") }}</p>
-                }
-              </div>
-            </div>
-          }
-
-          @if (statusMessage()) {
-            <small class="status-note">{{ statusMessage() }}</small>
-          }
-        </section>
-
-        <section class="editor-panel" [attr.aria-label]="loc.t('household.selectedItem')">
-          <p class="card-kicker">{{ editorMode() === "create" ? loc.t("household.addNewItem") : loc.t("household.selectedItem") }}</p>
-          <h2>{{ editorTitle() }}</h2>
-
-          <form class="stock-form" (ngSubmit)="saveEditor()">
-            <label>
-              <span>{{ loc.t("common.name") }}</span>
-              <input
-                type="text"
-                name="editorDisplayName"
-                [ngModel]="editorDraft.displayName"
-                (ngModelChange)="setEditorDisplayName($event)"
-                [placeholder]="loc.t('household.stockNamePlaceholder')"
-              />
-            </label>
-
-            <div class="split-fields">
-              <label>
-                <span>{{ loc.t("household.currentAmount") }}</span>
-                <input type="number" step="0.01" name="editorCurrentAmount" [(ngModel)]="editorDraft.currentAmount" />
-              </label>
-              <label>
-                <span>{{ loc.t("household.minLimit") }}</span>
-                <span class="amount-stepper">
-                  <button type="button" [attr.aria-label]="loc.t('household.decreaseMinLimit')" (click)="adjustEditorMinLimit(-1)">−</button>
-                  <input type="number" step="0.01" name="editorMinLimit" [(ngModel)]="editorDraft.minLimit" />
-                  <button type="button" [attr.aria-label]="loc.t('household.increaseMinLimit')" (click)="adjustEditorMinLimit(1)">+</button>
-                </span>
-              </label>
-            </div>
-
-            <div class="split-fields">
-              <label>
-                <span>{{ loc.t("household.unit") }}</span>
-                <input type="text" name="editorUnit" [(ngModel)]="editorDraft.unit" />
-              </label>
-              <label>
-                <span>{{ loc.t("household.stockedAt") }}</span>
-                <input type="date" name="editorStockedAt" [(ngModel)]="editorDraft.stockedAt" />
-              </label>
-            </div>
-
-            <button
-              class="details-toggle icon-button"
-              type="button"
-              (click)="toggleDetails()"
-              [attr.aria-label]="detailsOpen() ? loc.t('household.hideAdditionalDetails') : loc.t('household.showAdditionalDetails')"
-              [attr.title]="detailsOpen() ? loc.t('household.hideAdditionalDetails') : loc.t('household.showAdditionalDetails')"
-            >
-              <span aria-hidden="true">{{ detailsOpen() ? loc.t('household.hideAdditionalDetails') : loc.t('household.showAdditionalDetails') }}</span>
-            </button>
-
-            @if (detailsOpen()) {
-              <div class="additional-details">
-                <div class="split-fields">
-                  <label>
-                    <span>{{ loc.t("household.idealMaxLimitOptional") }}</span>
-                    <input type="number" step="0.01" name="editorIdealMaxLimit" [(ngModel)]="editorDraft.idealMaxLimit" />
-                  </label>
-                  <label>
-                    <span>{{ loc.t("household.initialAmountOptional") }}</span>
-                    <input type="number" step="0.01" name="editorInitialAmount" [(ngModel)]="editorDraft.initialAmount" />
-                  </label>
-                </div>
-
-                <div class="split-fields">
-                  <label>
-                    <span>{{ loc.t("household.stockGroupKeyOptional") }}</span>
-                    <input type="text" name="editorStockGroupKey" [(ngModel)]="editorDraft.stockGroupKey" />
-                  </label>
-                  <label>
-                    <span>{{ loc.t("household.productSourceIdOptional") }}</span>
-                    <input type="text" name="editorProductSourceId" [(ngModel)]="editorDraft.productSourceId" />
-                  </label>
-                </div>
-
-                <label>
-                  <span>{{ loc.t("household.gtinOptional") }}</span>
-                  <input type="text" name="editorGtin" [(ngModel)]="editorDraft.gtin" inputmode="numeric" />
-                </label>
-
-                <div class="split-fields">
-                  <label>
-                    <span>{{ loc.t("household.sourceNameOptional") }}</span>
-                    <input type="text" name="editorSourceName" [(ngModel)]="editorDraft.sourceName" />
-                  </label>
-                  <label>
-                    <span>{{ loc.t("household.sourceProductUrlOptional") }}</span>
-                    <input type="url" name="editorSourceProductUrl" [(ngModel)]="editorDraft.sourceProductUrl" />
-                  </label>
-                </div>
-
-                <label>
-                  <span>{{ loc.t("editor.note") }}</span>
-                  <textarea name="editorNote" rows="3" [(ngModel)]="editorDraft.note"></textarea>
-                </label>
-              </div>
-            }
-
-            <div class="editor-actions">
-              <button class="ui-button ui-button-warm add-new-button" type="button" (click)="startCreateItem()" [disabled]="mutationState() === 'saving'">
-                {{ loc.t("household.addNewItem") }}
-              </button>
-              <button class="ui-button ui-button-primary" type="submit" [disabled]="mutationState() === 'saving'">
-                {{ mutationState() === "saving" ? loc.t("common.loading") : loc.t("common.save") }}
-              </button>
-              @if (editorMode() === "edit") {
-                <button class="ui-button ui-button-quiet" type="button" (click)="archiveSelectedItem()" [disabled]="mutationState() === 'saving'">
-                  {{ loc.t("common.delete") }}
-                </button>
-              }
-            </div>
-          </form>
-        </section>
-
-        <app-household-shopping-list
-          #shoppingListPanel
-          class="shopping-bottom-row"
-          [householdId]="selectedHouseholdId()"
-          [shoppingScale]="apiShoppingScale()"
-          (stockPageUpdated)="applyShoppingListStockPage($event)"
-        />
-      </section>
-    }
-  `,
-  styles: [
-    `
-      :host {
-        display: grid;
-        gap: var(--space-7);
-        min-height: 100%;
-        --scale-start-fresh: #6f8f3a;
-        --scale-usual: #e5bd55;
-        --scale-chill: #e98f39;
-        --scale-stock-up: #d94c3c;
-      }
-
-      :host-context(:root[data-theme="dark"]) {
-        --scale-start-fresh: #96b760;
-        --scale-usual: #f2d47a;
-        --scale-chill: #f2a855;
-        --scale-stock-up: #ec6758;
-      }
-
-      .stock-workspace {
-        align-items: stretch;
-        display: grid;
-        gap: var(--space-5);
-        grid-template-columns: minmax(0, 1fr);
-      }
-
-      .stock-panel,
-      .state-panel,
-      .editor-panel {
-        background: var(--surface-shell-background);
-        border: 1px solid var(--line-panel);
-        border-radius: var(--radius-ui);
-        box-shadow: var(--surface-panel-shadow);
-      }
-
-      .stock-panel,
-      .editor-panel {
-        align-content: start;
-        display: grid;
-        gap: var(--space-4);
-        padding: clamp(1rem, 3vw, 1.5rem);
-      }
-
-      .panel-topline,
-      .household-bar,
-      .household-picker-group,
-      .split-fields,
-      .editor-actions {
-        align-items: end;
-        display: flex;
-        gap: var(--space-3);
-      }
-
-      .panel-topline,
-      .household-bar {
-        justify-content: space-between;
-      }
-
-      .shopping-bottom-row {
-        grid-column: 1 / -1;
-      }
-
-      .icon-button {
-        min-width: 2.35rem;
-        padding-inline: 0;
-      }
-
-      .icon-button span {
-        display: inline-flex;
-        font-size: 1rem;
-        font-weight: 900;
-        justify-content: center;
-        width: 100%;
-      }
-
-      .preview-surface :is(button, input, select, textarea) {
-        cursor: not-allowed;
-      }
-
-      .state-panel {
-        align-content: center;
-        display: grid;
-        gap: var(--space-4);
-        padding: clamp(1.1rem, 3vw, 1.75rem);
-      }
-
-      h2,
-      p {
-        margin: 0;
-      }
-
-      .panel-title {
-        color: var(--color-text-muted);
-        font-size: 0.82rem;
-        font-weight: 800;
-        letter-spacing: 0.02em;
-        text-transform: uppercase;
-      }
-
-      h2,
-      .stock-name,
-      .row-title {
-        color: var(--color-text);
-      }
-
-      .status-note {
-        color: var(--color-text-muted);
-        line-height: 0;
-      }
-
-      .empty-copy,
-      .state-panel p {
-        color: var(--color-text-muted);
-        line-height: 1.6;
-      }
-
-      .household-select,
-      .stock-form label,
-      .stack-form label {
-        color: var(--color-text-muted);
-        display: grid;
-        font-size: 0.75rem;
-        font-weight: 800;
-        gap: 0.3rem;
-      }
-
-      .household-select {
-        min-width: min(22rem, 100%);
-      }
-
-      .manage-household-button,
-      .add-new-stock-button {
-        flex: 0 1 auto;
-        min-width: max-content;
-        white-space: nowrap;
-      }
-
-      .stock-table-shell {
-        border: 1px solid var(--line-panel);
-        border-radius: var(--radius-ui);
-        overflow: hidden;
-      }
-
-      .stock-table-grid {
-        align-items: center;
-        display: grid;
-        gap: 0.55rem;
-        grid-template-columns: minmax(0, 1fr) 2.35rem;
-      }
-
-      .stock-table-header {
-        align-items: center;
-        background: color-mix(in srgb, var(--pulse-row-background) 72%, transparent);
-        color: var(--color-text-muted);
-        display: grid;
-        font-size: 0.66rem;
-        font-weight: 900;
-        gap: 0.55rem;
-        grid-template-columns: minmax(0, 1fr) 2.35rem;
-        line-height: 1;
-        min-height: 2.25rem;
-        padding: 0.45rem 0.65rem;
-        text-transform: uppercase;
-      }
-
-      .stock-header-main,
-      .stock-row-main {
-        align-items: center;
-        display: grid;
-        gap: 0.55rem;
-        grid-template-columns: minmax(8rem, 1.5fr) minmax(4.25rem, 0.72fr) 1.8rem minmax(4.25rem, 0.72fr) minmax(5.5rem, 0.9fr);
-        min-width: 0;
-      }
-
-      .stock-header-main span,
-      .stock-header-add {
-        line-height: 1.1;
-        white-space: nowrap;
-      }
-
-      .stock-header-add {
-        justify-self: center;
-      }
-
-      .stock-table-body {
-        max-height: 18rem;
-        overflow: auto;
-      }
-
-      .stock-table-row {
-        align-items: center;
-        background: var(--pulse-row-background);
-        border-bottom: 1px solid var(--pulse-row-border);
-        color: var(--pulse-row-text);
-        min-height: 2.65rem;
-        padding: 0.42rem 0.65rem;
-      }
-
-      .stock-table-row:hover,
-      .selected-row {
-        background: var(--row-hover-background);
-      }
-
-      .shopping-candidate-row {
-        background: color-mix(in srgb, var(--color-accent-leaf) 16%, var(--pulse-row-background));
-      }
-
-      .stock-row-main {
-        background: transparent;
-        border: 0;
-        color: inherit;
-        cursor: pointer;
-        font: inherit;
-        min-height: 0;
-        min-width: 0;
-        padding: 0;
-        text-align: left;
-        width: 100%;
-      }
-
-      .stock-list-add {
-        background: var(--control-quiet-background);
-        border: 1px solid var(--control-quiet-border);
-        border-radius: var(--radius-ui);
-        color: var(--control-quiet-text);
-        cursor: pointer;
-        font: inherit;
-        font-size: 0.92rem;
-        font-weight: 900;
-        line-height: 1;
-        min-height: 2rem;
-        min-width: 2.15rem;
-        padding: 0;
-      }
-
-      .stock-list-add:disabled {
-        cursor: not-allowed;
-        opacity: 0.68;
-      }
-
-      .stock-name {
-        font-weight: 900;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .relation-symbol {
-        align-items: center;
-        border-radius: var(--radius-ui);
-        display: inline-flex;
-        font-family: var(--font-mono);
-        font-size: 0.98rem;
-        font-weight: 900;
-        justify-content: center;
-        line-height: 1;
-        min-height: 1.55rem;
-      }
-
-      .relation-below {
-        color: var(--color-status-danger-text);
-      }
-
-      .relation-watch {
-        color: var(--color-status-warning);
-      }
-
-      .relation-steady {
-        color: var(--color-accent-leaf-strong);
-      }
-
-      .status-badge {
-        align-self: center;
-        background: color-mix(in srgb, var(--color-accent-leaf) 12%, var(--surface-soft-background));
-        border-radius: var(--radius-ui);
-        color: var(--color-text);
-        display: inline-flex;
-        font-size: 0.88rem;
-        font-weight: 900;
-        justify-content: center;
-        justify-self: start;
-        line-height: 1;
-        min-height: 1.45rem;
-        padding: 0.24rem 0.45rem;
-        text-transform: uppercase;
-        white-space: nowrap;
-        width: max-content;
-      }
-
-      .status-danger {
-        background: color-mix(in srgb, var(--color-status-danger) 14%, var(--surface-soft-background));
-      }
-
-      .status-watch {
-        background: color-mix(in srgb, var(--color-status-warning) 22%, var(--surface-soft-background));
-      }
-
-      .add-new-button {
-        justify-self: start;
-      }
-
-      .preview-stock-row {
-        cursor: default;
-      }
-
-      .preview-stock-row:hover {
-        background: var(--pulse-row-background);
-      }
-
-      .preview-stock-row .stock-row-main {
-        cursor: not-allowed;
-      }
-
-      .stock-form,
-      .stack-form,
-      .additional-details {
-        display: grid;
-        gap: var(--space-3);
-      }
-
-      .stock-form input,
-      .stock-form textarea,
-      .stack-form input,
-      .household-select select {
-        background: var(--form-field-background);
-        border: 1px solid var(--line-subtle);
-        border-radius: var(--radius-ui);
-        color: var(--color-text);
-        font: inherit;
-        min-height: 2.2rem;
-        padding: 0.45rem 0.55rem;
-      }
-
-      .amount-stepper {
-        display: grid;
-        gap: 0.35rem;
-        grid-template-columns: 2.35rem minmax(0, 1fr) 2.35rem;
-      }
-
-      .amount-stepper button {
-        background: var(--control-quiet-background);
-        border: 1px solid var(--control-quiet-border);
-        border-radius: var(--radius-ui);
-        color: var(--control-quiet-text);
-        cursor: pointer;
-        font: inherit;
-        font-size: 1rem;
-        font-weight: 900;
-        min-height: 2.2rem;
-        padding: 0;
-      }
-
-      .amount-stepper button:hover,
-      .amount-stepper button:focus-visible {
-        border-color: var(--line-strong);
-      }
-
-      .stock-form textarea {
-        min-height: 6rem;
-        resize: vertical;
-      }
-
-      .split-fields {
-        align-items: stretch;
-      }
-
-      .split-fields label {
-        flex: 1 1 0;
-      }
-
-      .details-toggle {
-        align-items: center;
-        background: var(--control-quiet-background);
-        border: 1px solid var(--control-quiet-border);
-        border-radius: var(--radius-ui);
-        color: var(--control-quiet-text);
-        cursor: pointer;
-        display: flex;
-        font: inherit;
-        font-weight: 800;
-        justify-content: center;
-        min-height: 2.4rem;
-        padding: 0.45rem;
-      }
-
-      .additional-details {
-        border-top: 1px solid var(--line-subtle);
-        padding-top: var(--space-3);
-      }
-
-      .state-panel-error {
-        border-color: color-mix(in srgb, var(--color-status-danger) 45%, var(--line-panel));
-      }
-
-      @media (min-width: 900px) {
-        .stock-workspace {
-          grid-template-columns: minmax(26rem, 1.2fr) minmax(20rem, 0.8fr);
-          grid-template-rows: auto auto auto;
-        }
-      }
-
-      @media (max-width: 740px) {
-        .panel-topline,
-        .household-bar,
-        .household-picker-group,
-        .split-fields,
-        .editor-actions {
-          align-items: stretch;
-          flex-direction: column;
-        }
-
-        .stock-table-shell {
-          overflow-x: auto;
-        }
-
-        .stock-table-grid,
-        .stock-row-main {
-          min-width: 40rem;
-        }
-
-        .stock-header-main {
-          min-width: 40rem;
-        }
-      }
-    `
-  ]
+  imports: [
+    HouseholdPreviewWorkspaceComponent,
+    HouseholdShoppingListComponent,
+    HouseholdStockEditorComponent,
+    HouseholdStockPanelComponent
+  ],
+  templateUrl: "./home.component.html",
+  styleUrl: "./home.component.css"
 })
 export class HomeComponent implements OnDestroy {
   readonly auth = inject(AuthService);
@@ -929,8 +82,8 @@ export class HomeComponent implements OnDestroy {
   readonly pageRail = inject(PageRailService);
   private readonly toast = inject(ToastService);
 
-  readonly detailsOpen = signal(false);
-  readonly editorMode = signal<EditorMode>("create");
+  readonly editorMode = signal<HouseholdStockEditorMode>("create");
+  readonly editorRevision = signal(0);
   readonly errorMessage = signal("");
   readonly householdPage = signal<HouseholdStockPage | null>(null);
   readonly households = signal<HouseholdListItem[]>([]);
@@ -943,8 +96,7 @@ export class HomeComponent implements OnDestroy {
   readonly shoppingScaleDisplayOptions = shoppingScaleDisplayOptions;
   readonly shoppingScaleOptions = shoppingScaleOptions;
   readonly shoppingListPanel = signal<HouseholdShoppingListComponent | null>(null);
-  createHouseholdName = "";
-  editorDraft: StockDraft = createEmptyStockDraft();
+  editorDraftSeed: HouseholdStockDraft = createEmptyStockDraft();
   private loadSerial = 0;
 
   @ViewChild(HouseholdShoppingListComponent)
@@ -959,7 +111,7 @@ export class HomeComponent implements OnDestroy {
       || left.displayName.localeCompare(right.displayName, this.loc.language() === "hu" ? "hu-HU" : "en-US")
     )
   );
-  readonly previewStockItems = computed<PreviewStockItem[]>(() => [
+  readonly previewStockItems = computed<HouseholdPreviewStockItem[]>(() => [
     {
       currentAmount: 0.6,
       displayName: this.loc.t("home.milk"),
@@ -1026,7 +178,7 @@ export class HomeComponent implements OnDestroy {
     updatedAt: "2026-07-10T12:00:00.000Z",
     updatedByUserId: "preview_user"
   }));
-  readonly previewEditorItem = computed<PreviewStockItem>(() =>
+  readonly previewEditorItem = computed<HouseholdPreviewStockItem>(() =>
     this.previewStockItems()[0] ?? {
       currentAmount: 0,
       displayName: this.loc.t("home.milk"),
@@ -1039,6 +191,13 @@ export class HomeComponent implements OnDestroy {
   readonly shoppingItems = computed(() =>
     this.stockItemsByPriority().filter((item) => shouldBuyForScale(item.stockStatus, this.shoppingScale()))
   );
+  readonly highlightedStockItemIds = computed(() =>
+    new Set(this.shoppingItems().map((item) => item.id))
+  );
+  readonly existingShoppingLineItemIds = computed(() => {
+    const shoppingList = this.shoppingListPanel()?.shoppingList();
+    return new Set(shoppingList?.items.map((item) => item.householdStockItemId).filter((id): id is string => !!id) ?? []);
+  });
   readonly shoppingItemCount = computed(() => this.shoppingItems().length);
   readonly railShoppingItemCount = computed(() =>
     this.auth.isAuthenticated() ? this.shoppingItemCount() : this.previewShoppingItems().length
@@ -1121,8 +280,8 @@ export class HomeComponent implements OnDestroy {
     this.pageRail.clearSections();
   }
 
-  async createHousehold(): Promise<void> {
-    const name = this.createHouseholdName.trim();
+  async createHousehold(requestedName: string): Promise<void> {
+    const name = requestedName.trim();
     if (!name) {
       this.toast.push(this.loc.t("household.householdNameRequired"), "warning");
       return;
@@ -1137,21 +296,8 @@ export class HomeComponent implements OnDestroy {
       return;
     }
 
-    this.createHouseholdName = "";
     this.statusMessage.set(this.loc.t("household.createdHousehold", { name: result.household.name }));
     await this.loadHouseholdContext(result.household.id);
-  }
-
-  editorTitle(): string {
-    if (this.editorMode() === "create") {
-      return this.loc.t("household.addStockTitle");
-    }
-
-    return this.selectedItem()?.displayName || this.loc.t("household.editorTitle");
-  }
-
-  formatAmount(amount: number, unit: string): string {
-    return `${amount.toLocaleString(this.loc.language() === "hu" ? "hu-HU" : "en-US")} ${unit}`;
   }
 
   async addStockItemToShoppingList(
@@ -1164,23 +310,8 @@ export class HomeComponent implements OnDestroy {
   openEditor(item: HouseholdStockItemListItem): void {
     this.editorMode.set("edit");
     this.selectedItemId.set(item.id);
-    this.detailsOpen.set(false);
-    this.editorDraft = stockItemToDraft(item);
-  }
-
-  relationSymbol(status: HouseholdStockItemListItem["stockStatus"]): string {
-    const symbols: Record<HouseholdStockItemListItem["stockStatus"], string> = {
-      at_limit: "=",
-      below_limit: "<",
-      low_soon: "~",
-      steady: ">"
-    };
-
-    return symbols[status];
-  }
-
-  shouldHighlightStockItem(item: HouseholdStockItemListItem): boolean {
-    return shouldBuyForScale(item.stockStatus, this.shoppingScale());
+    this.editorDraftSeed = stockItemToDraft(item);
+    this.editorRevision.update((revision) => revision + 1);
   }
 
   async archiveSelectedItem(): Promise<void> {
@@ -1210,13 +341,12 @@ export class HomeComponent implements OnDestroy {
     await this.loadHouseholdContext(this.selectedHouseholdId() || undefined);
   }
 
-  async saveEditor(): Promise<void> {
+  async saveEditor(draft: HouseholdStockDraft): Promise<void> {
     const householdId = this.selectedHouseholdId();
     if (!householdId) {
       return;
     }
 
-    const draft = this.editorDraft;
     if (!draft.displayName.trim() || !draft.unit.trim()) {
       this.toast.push(this.loc.t("household.createDraftInvalid"), "warning");
       return;
@@ -1290,26 +420,6 @@ export class HomeComponent implements OnDestroy {
     this.statusMessage.set(this.loc.t("household.shoppingListAppliedAndStockRefreshed"));
   }
 
-  adjustEditorMinLimit(delta: number): void {
-    this.editorDraft = {
-      ...this.editorDraft,
-      minLimit: clampAmount(this.editorDraft.minLimit + delta)
-    };
-  }
-
-  setEditorDisplayName(value: string): void {
-    const previousSlug = normalizeStockGroupKey(this.editorDraft.displayName);
-    const nextSlug = normalizeStockGroupKey(value);
-
-    this.editorDraft = {
-      ...this.editorDraft,
-      displayName: value,
-      stockGroupKey: !this.editorDraft.stockGroupKey || this.editorDraft.stockGroupKey === previousSlug
-        ? nextSlug
-        : this.editorDraft.stockGroupKey
-    };
-  }
-
   setShoppingScaleIndex(value: number | string): void {
     const index = Number(value);
     const option = shoppingScaleOptions[index];
@@ -1321,23 +431,8 @@ export class HomeComponent implements OnDestroy {
   startCreateItem(): void {
     this.editorMode.set("create");
     this.selectedItemId.set(null);
-    this.detailsOpen.set(false);
-    this.editorDraft = createEmptyStockDraft();
-  }
-
-  stockStatusTranslationKey(status: HouseholdStockItemListItem["stockStatus"]): TranslationKey {
-    const keys = {
-      at_limit: "household.atLimit",
-      below_limit: "household.belowLimit",
-      low_soon: "household.lowSoonShort",
-      steady: "household.steady"
-    } as const;
-
-    return keys[status];
-  }
-
-  toggleDetails(): void {
-    this.detailsOpen.update((open) => !open);
+    this.editorDraftSeed = createEmptyStockDraft();
+    this.editorRevision.update((revision) => revision + 1);
   }
 
   private applyLoadedPage(page: HouseholdStockPage): void {
@@ -1408,10 +503,9 @@ export class HomeComponent implements OnDestroy {
   }
 
   private resetState(): void {
-    this.createHouseholdName = "";
-    this.detailsOpen.set(false);
     this.editorMode.set("create");
-    this.editorDraft = createEmptyStockDraft();
+    this.editorDraftSeed = createEmptyStockDraft();
+    this.editorRevision.set(0);
     this.errorMessage.set("");
     this.householdPage.set(null);
     this.households.set([]);
@@ -1423,7 +517,7 @@ export class HomeComponent implements OnDestroy {
   }
 }
 
-function createEmptyStockDraft(): StockDraft {
+function createEmptyStockDraft(): HouseholdStockDraft {
   return {
     currentAmount: 0,
     displayName: "",
@@ -1442,14 +536,8 @@ function createEmptyStockDraft(): StockDraft {
   };
 }
 
-function initialAmountForCreate(draft: StockDraft): number {
+function initialAmountForCreate(draft: HouseholdStockDraft): number {
   return draft.initialAmount > 0 ? draft.initialAmount : draft.currentAmount;
-}
-
-function clampAmount(value: number): number {
-  const finiteValue = Number.isFinite(value) ? value : 0;
-
-  return Math.max(0, Number(finiteValue.toFixed(2)));
 }
 
 function nullableTrim(value: string): string | null {
@@ -1514,7 +602,7 @@ function createShoppingLinePlanning(item: HouseholdStockItemListItem): {
   };
 }
 
-function previewStockItemToHouseholdStockItem(item: PreviewStockItem): HouseholdStockItemListItem {
+function previewStockItemToHouseholdStockItem(item: HouseholdPreviewStockItem): HouseholdStockItemListItem {
   return {
     createdAt: "2026-07-10T12:00:00.000Z",
     currentAmount: item.currentAmount,
@@ -1533,7 +621,7 @@ function previewStockItemToHouseholdStockItem(item: PreviewStockItem): Household
   };
 }
 
-function stockItemToDraft(item: HouseholdStockItemListItem): StockDraft {
+function stockItemToDraft(item: HouseholdStockItemListItem): HouseholdStockDraft {
   return {
     currentAmount: item.currentAmount,
     displayName: item.displayName,
