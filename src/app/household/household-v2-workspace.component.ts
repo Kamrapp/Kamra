@@ -46,11 +46,14 @@ export class HouseholdV2WorkspaceComponent {
   readonly editingGroupDesired = signal(0);
   readonly editingGroupHasTarget = signal(false);
   readonly editingProductName = signal("");
+  readonly editingProductGtin = signal("");
+  readonly editingProductNote = signal("");
   readonly editingProductGroupId = signal("");
   readonly expandedGroupIds = signal<ReadonlySet<string>>(new Set());
   readonly expandedProductIds = signal<ReadonlySet<string>>(new Set());
   readonly groupDetailsIds = signal<ReadonlySet<string>>(new Set());
   readonly productDetailsIds = signal<ReadonlySet<string>>(new Set());
+  readonly batchDetailsIds = signal<ReadonlySet<string>>(new Set());
   readonly unassignedExpanded = signal(true);
   readonly sectionExpanded = signal(true);
   readonly icons = householdDomainIcons;
@@ -130,6 +133,12 @@ export class HouseholdV2WorkspaceComponent {
   isProductDetailsOpen(productId: string): boolean {
     return this.productDetailsIds().has(productId);
   }
+  toggleBatchDetails(batchId: string): void {
+    this.toggleSet(this.batchDetailsIds, batchId);
+  }
+  isBatchDetailsOpen(batchId: string): boolean {
+    return this.batchDetailsIds().has(batchId);
+  }
   selectGroup(group: HouseholdV2ProductGroup): void {
     this.groupSelected.emit(group);
   }
@@ -164,13 +173,20 @@ export class HouseholdV2WorkspaceComponent {
   }
   editProduct(product: HouseholdV2Product): void {
     this.editingProductName.set(product.displayName);
+    this.editingProductGtin.set(
+      typeof product.identitySnapshot?.["gtin"] === "string" ? product.identitySnapshot["gtin"] : ""
+    );
+    this.editingProductNote.set(product.note ?? "");
     this.editingProductGroupId.set(product.productGroupId ?? "");
     this.editingProductId.set(product.id);
+    this.productDetailsIds.update((ids) => new Set(ids).add(product.id));
     this.productSelected.emit(product);
   }
   cancelProductEdit(): void {
     this.editingProductId.set(null);
     this.editingProductName.set("");
+    this.editingProductGtin.set("");
+    this.editingProductNote.set("");
     this.editingProductGroupId.set("");
   }
   editBatch(
@@ -291,7 +307,9 @@ export class HouseholdV2WorkspaceComponent {
   async saveProductRow(
     product: HouseholdV2Product,
     displayName: string,
-    productGroupId: string
+    productGroupId: string,
+    gtin: string,
+    note: string
   ): Promise<void> {
     const name = displayName.trim();
     if (!name) {
@@ -307,8 +325,8 @@ export class HouseholdV2WorkspaceComponent {
       displayName: name,
       expectedRevision: product.revision,
       householdId: this.householdId(),
-      identitySnapshot: product.identitySnapshot,
-      note: product.note ?? null,
+      identitySnapshot: { ...product.identitySnapshot, gtin: gtin.trim() || null },
+      note: note.trim() || null,
       productGroupId: productGroupId || null,
       productId: product.id,
       targetPolicy: product.targetPolicy ?? null

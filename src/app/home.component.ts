@@ -629,6 +629,7 @@ export class HomeComponent implements OnDestroy {
   private async loadHouseholdPage(householdId: string, loadSerial: number): Promise<void> {
     this.loadState.set("loading");
     this.errorMessage.set("");
+    this.statusMessage.set("");
 
     const pageResult = await this.household.loadHouseholdStock(householdId);
     if (loadSerial !== this.loadSerial) {
@@ -643,11 +644,6 @@ export class HomeComponent implements OnDestroy {
 
     this.applyLoadedPage(pageResult.page);
     this.loadState.set("ready");
-    this.statusMessage.set(
-      this.loc.t("household.loadedHousehold", {
-        count: pageResult.page.stockItems.length
-      })
-    );
   }
 
   private resetState(): void {

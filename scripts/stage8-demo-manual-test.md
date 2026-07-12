@@ -29,6 +29,9 @@ The refreshed demo fixture intentionally includes `Tej`, `Kenyér`, `Zöldségek
 12. Discard a Batch and confirm it completes without a 404.
 13. Confirm comparison symbols are visibly larger and the state badges use good/danger styling in both light and dark themes.
 14. In the Shopping list, add an impulse item, then submit the same name again with different casing or accents. Confirm no second line is created, the input remains filled, and the activity console reports that the item was already added.
+15. Click a Product pencil and edit GTIN and Note in the expanded Product details row. Save, refresh, and confirm both values persist.
+16. Expand a Product and confirm every Batch has magnifier, pencil, and discard actions immediately. The Batch magnifier shows Stocked at in its details row; the main Batch row shows Quantity and Expiry without overlapping dates. Discard works without opening edit mode.
+17. Confirm the household selector panel does not show a persistent “Loaded N stock rows” message after refresh; meaningful save/error feedback belongs in the activity console or a mutation toast.
 
 ## Remaining Stage 8 behavior
 
@@ -43,7 +46,7 @@ The refreshed demo fixture intentionally includes `Tej`, `Kenyér`, `Zöldségek
 
 ## Deferred boundary
 
-Moving shopping-selection checkboxes into the Product Group workspace requires the direct v2 shopping-list bridge and batch-aware purchase application. The current legacy shopping-list selector must not be used as evidence that Product Group shopping is complete.
+The direct v2 shopping-list bridge and batch-aware purchase application are still pending. The current Home shopping-list component reads the older `household_stock_items` model, while Product Groups read `household_products` and `household_stock_batches`; these are different command/read-model paths, so the legacy selector cannot safely be presented as Product Group shopping. The earlier note that the “final grouped-item rule was cut off” refers to the user request that ended after “for grouped items, we should” without defining whether a group produces one shopping line, product lines, or residual parent quantities. That rule must be decided before replacing the path; it was not an application error.
 
 ## Automated checks
 

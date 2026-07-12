@@ -388,6 +388,7 @@
     "addStockToProduct": "Add stock to Product",
     "deleteHouseholdProduct": "Delete Household Product and stock batches",
     "discardStockBatch": "Discard Stock Batch",
+    "showStockBatchDetails": "Show Stock Batch details",
     "cancelStockBatchEdit": "Cancel Stock Batch edit",
     "editStockBatch": "Edit Stock Batch",
     "clearHouseholdProductEditor": "Clear Household Product editor",

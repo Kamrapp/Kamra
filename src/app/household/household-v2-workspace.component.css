@@ -154,7 +154,8 @@ button.row-name {
 .inline-name-input,
 .inline-group-select,
 .inline-amount-input,
-.inline-date-input {
+.inline-date-input,
+.inline-note-input {
   background: var(--form-field-background);
   border: 1px solid var(--line-subtle);
   border-radius: var(--radius-ui);
@@ -173,6 +174,10 @@ button.row-name {
 .inline-amount-input,
 .inline-date-input {
   min-height: 1.8rem;
+}
+.inline-note-input {
+  min-height: 3.5rem;
+  resize: vertical;
 }
 .current-value {
   background: color-mix(in srgb, var(--color-accent-leaf) 10%, transparent);
@@ -254,6 +259,11 @@ button.row-name {
   flex-wrap: wrap;
   gap: var(--space-2);
   justify-content: flex-end;
+}
+.row-action-placeholder {
+  display: inline-block;
+  height: 2rem;
+  width: 2rem;
 }
 .concept-editor {
   align-items: end;

@@ -419,7 +419,15 @@
         <app-table-icon-button
           [ariaLabel]="loc.t('household.saveHouseholdProduct')"
           [titleText]="loc.t('household.saveHouseholdProduct')"
-          (press)="saveProductRow(row.product, editingProductName(), editingProductGroupId())"
+          (press)="
+            saveProductRow(
+              row.product,
+              editingProductName(),
+              editingProductGroupId(),
+              editingProductGtin(),
+              editingProductNote()
+            )
+          "
         >
           ▣
         </app-table-icon-button>
@@ -470,11 +478,29 @@
       </span>
       <span>
         <small>{{ loc.t("household.gtin") }}</small>
-        <strong>{{ row.product.identitySnapshot?.["gtin"] ?? "—" }}</strong>
+        @if (editingProductId() === row.product.id) {
+          <input
+            class="inline-name-input"
+            [ngModel]="editingProductGtin()"
+            (ngModelChange)="editingProductGtin.set($event)"
+            [attr.aria-label]="loc.t('household.gtin')"
+          />
+        } @else {
+          <strong>{{ row.product.identitySnapshot?.["gtin"] ?? "—" }}</strong>
+        }
       </span>
       <span>
         <small>{{ loc.t("household.note") }}</small>
-        <strong>{{ row.product.note ?? "—" }}</strong>
+        @if (editingProductId() === row.product.id) {
+          <textarea
+            class="inline-note-input"
+            [ngModel]="editingProductNote()"
+            (ngModelChange)="editingProductNote.set($event)"
+            [attr.aria-label]="loc.t('household.note')"
+          ></textarea>
+        } @else {
+          <strong>{{ row.product.note ?? "—" }}</strong>
+        }
       </span>
       <span>
         <small>{{ loc.t("household.productGroup") }}</small>
@@ -489,7 +515,7 @@
         <span></span>
         <span></span>
         <span>{{ loc.t("household.quantity") }}</span>
-        <span>{{ loc.t("household.stockedAt") }}</span>
+        <span></span>
         <span>{{ loc.t("household.expiry") }}</span>
         <span></span>
         <span></span>
@@ -553,12 +579,19 @@
           <span></span>
           <span></span>
           <span class="current-value">{{ batch.remainingQuantity }} {{ batch.unit }}</span>
-          <span>{{ batch.acquiredOn }}</span>
+          <span></span>
           <span [class.expired-date]="isExpired(batch.expiryOn)">
             {{ batch.expiryOn ?? loc.t("household.noExpiry") }}
           </span>
           <span></span>
           <span class="row-actions">
+            <app-table-icon-button
+              [ariaLabel]="loc.t('household.showStockBatchDetails')"
+              [titleText]="loc.t('household.showStockBatchDetails')"
+              (press)="toggleBatchDetails(batch.id)"
+            >
+              {{ isBatchDetailsOpen(batch.id) ? "⌕−" : "⌕+" }}
+            </app-table-icon-button>
             <app-table-icon-button
               [ariaLabel]="loc.t('household.editStockBatch')"
               [titleText]="loc.t('household.editStockBatch')"
@@ -566,9 +599,25 @@
             >
               ✎
             </app-table-icon-button>
+            <app-table-icon-button
+              [ariaLabel]="loc.t('household.discardStockBatch')"
+              [titleText]="loc.t('household.discardStockBatch')"
+              (press)="discardBatch(batch)"
+            >
+              ⌫
+            </app-table-icon-button>
+            <span class="row-action-placeholder" aria-hidden="true"></span>
           </span>
         }
       </div>
+      @if (isBatchDetailsOpen(batch.id)) {
+        <div class="details-row batch-details" [style.--row-depth]="depth + 1">
+          <span>
+            <small>{{ loc.t("household.stockedAt") }}</small>
+            <strong>{{ batch.acquiredOn }}</strong>
+          </span>
+        </div>
+      }
     }
   }
 </ng-template>

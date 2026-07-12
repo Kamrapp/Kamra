@@ -388,6 +388,7 @@
     "addStockToProduct": "Készlet hozzáadása a termékhez",
     "deleteHouseholdProduct": "Háztartási termék és készlettételeinek törlése",
     "discardStockBatch": "Készlettétel elvetése",
+    "showStockBatchDetails": "Készlettétel részleteinek megjelenítése",
     "cancelStockBatchEdit": "Készlettétel-szerkesztés megszakítása",
     "editStockBatch": "Készlettétel szerkesztése",
     "clearHouseholdProductEditor": "Háztartási termékszerkesztő ürítése",
