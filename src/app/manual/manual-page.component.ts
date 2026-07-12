@@ -188,27 +188,27 @@ import { LocalizationService } from "../shared/localization.service";
       }
       .manual-tab-panel {
         border-top-left-radius: 0;
-        gap: var(--space-5);
+        gap: var(--space-3);
         min-height: 0;
       }
       .manual-vocabulary {
         display: grid;
-        gap: var(--space-3);
+        gap: var(--space-2);
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
       .manual-vocabulary article {
         display: grid;
-        gap: var(--space-2);
-        padding: var(--space-4);
+        gap: 0.25rem;
+        padding: var(--space-2) var(--space-3);
       }
       .manual-vocabulary h2 {
         color: var(--color-text);
         font-family: var(--font-display);
-        font-size: 1rem;
+        font-size: 0.86rem;
       }
       .manual-vocabulary p {
         color: var(--color-text-muted);
-        line-height: 1.45;
+        line-height: 1.3;
       }
       .admin-note {
         margin: 0;

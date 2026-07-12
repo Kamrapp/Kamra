@@ -43,6 +43,7 @@
           <span>{{ loc.t("household.currentShort") }}</span>
           <span class="comparison-column">&lt;</span>
           <span>{{ loc.t("household.target") }}</span>
+          <span>{{ loc.t("household.unit") }}</span>
           <span>{{ loc.t("common.state") }}</span>
           <span>{{ loc.t("household.actions") }}</span>
         </div>
@@ -77,12 +78,7 @@
                 </span>
               }
               <span>
-                {{ row.group.group.targetPolicy?.minimumQuantity ?? "—"
-                }}{{
-                  row.group.group.targetPolicy
-                    ? " " + row.group.group.targetPolicy.trackingUnit
-                    : ""
-                }}
+                {{ row.group.group.targetPolicy?.minimumQuantity ?? "—" }}
               </span>
               <span
                 class="comparison-column"
@@ -107,7 +103,6 @@
               </span>
               <span class="current-value">
                 {{ row.group.aggregate.availableQuantity }}
-                {{ row.group.aggregate.trackingUnit ?? row.group.group.trackingUnit }}
               </span>
               <span
                 class="comparison-column"
@@ -131,12 +126,10 @@
                 &lt;
               </span>
               <span>
-                {{ row.group.group.targetPolicy?.desiredQuantity ?? "—"
-                }}{{
-                  row.group.group.targetPolicy
-                    ? " " + row.group.group.targetPolicy.trackingUnit
-                    : ""
-                }}
+                {{ row.group.group.targetPolicy?.desiredQuantity ?? "—" }}
+              </span>
+              <span>
+                {{ row.group.aggregate.trackingUnit || row.group.group.trackingUnit || "—" }}
               </span>
               <span
                 class="ui-token ui-token-muted stock-state"
@@ -344,8 +337,7 @@
       </span>
     }
     <span>
-      {{ row.product.targetPolicy?.minimumQuantity ?? "—"
-      }}{{ row.product.targetPolicy ? " " + row.product.targetPolicy.trackingUnit : "" }}
+      {{ row.product.targetPolicy?.minimumQuantity ?? "—" }}
     </span>
     <span
       class="comparison-column"
@@ -369,7 +361,7 @@
       &lt;
     </span>
     <span class="current-value">
-      {{ row.aggregate.availableQuantity }} {{ row.aggregate.trackingUnit ?? "—" }}
+      {{ row.aggregate.availableQuantity }}
     </span>
     <span
       class="comparison-column"
@@ -393,8 +385,10 @@
       &lt;
     </span>
     <span>
-      {{ row.product.targetPolicy?.desiredQuantity ?? "—"
-      }}{{ row.product.targetPolicy ? " " + row.product.targetPolicy.trackingUnit : "" }}
+      {{ row.product.targetPolicy?.desiredQuantity ?? "—" }}
+    </span>
+    <span>
+      {{ row.aggregate.trackingUnit ?? row.product.defaultTrackingUnit ?? "—" }}
     </span>
     <span
       class="ui-copy-muted stock-state"
@@ -509,18 +503,6 @@
     </div>
   }
   @if (isProductExpanded(row.product.id)) {
-    @if (productHasBatches(row)) {
-      <div class="stock-grid stock-subheader" [style.--row-depth]="depth + 1">
-        <span>{{ loc.t("household.stockBatch") }}</span>
-        <span></span>
-        <span></span>
-        <span>{{ loc.t("household.quantity") }}</span>
-        <span></span>
-        <span>{{ loc.t("household.expiry") }}</span>
-        <span></span>
-        <span></span>
-      </div>
-    }
     @for (batch of row.batches; track batch.id) {
       <div class="stock-grid stock-batch-row" [style.--row-depth]="depth + 1">
         <span class="row-name batch-name">
@@ -539,19 +521,18 @@
           />
           <input
             #acquired
-            class="inline-date-input"
+            class="inline-date-input batch-edit-acquired"
             type="date"
             [value]="batch.acquiredOn"
             [attr.aria-label]="loc.t('household.stockedAt')"
           />
           <input
             #expiry
-            class="inline-date-input"
+            class="inline-date-input batch-edit-expiry"
             type="date"
             [value]="batch.expiryOn ?? ''"
             [attr.aria-label]="loc.t('household.expiry')"
           />
-          <span></span>
           <span class="row-actions">
             <app-table-icon-button
               [ariaLabel]="loc.t('household.saveStockBatch')"
@@ -580,10 +561,9 @@
           <span></span>
           <span class="current-value">{{ batch.remainingQuantity }} {{ batch.unit }}</span>
           <span></span>
-          <span [class.expired-date]="isExpired(batch.expiryOn)">
+          <span class="batch-expiry" [class.expired-date]="isExpired(batch.expiryOn)">
             {{ batch.expiryOn ?? loc.t("household.noExpiry") }}
           </span>
-          <span></span>
           <span class="row-actions">
             <app-table-icon-button
               [ariaLabel]="loc.t('household.showStockBatchDetails')"

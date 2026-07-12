@@ -32,6 +32,8 @@ The refreshed demo fixture intentionally includes `Tej`, `Kenyér`, `Zöldségek
 15. Click a Product pencil and edit GTIN and Note in the expanded Product details row. Save, refresh, and confirm both values persist.
 16. Expand a Product and confirm every Batch has magnifier, pencil, and discard actions immediately. The Batch magnifier shows Stocked at in its details row; the main Batch row shows Quantity and Expiry without overlapping dates. Discard works without opening edit mode.
 17. Confirm the household selector panel does not show a persistent “Loaded N stock rows” message after refresh; meaningful save/error feedback belongs in the activity console or a mutation toast.
+18. Confirm the Product Group table has no nested Stock Batch header. Group/Product rows show compact Minimum, Current, Target, and one Unit column; Batch Quantity aligns under Current and Batch Expiry sits toward the right across the Unit/State area.
+19. Open the Manual page and confirm terminology cards are compact, readable, and do not dominate the tab content.
 
 ## Remaining Stage 8 behavior
 

@@ -50,17 +50,10 @@
   display: grid;
   gap: var(--space-2);
   grid-template-columns:
-    minmax(12rem, 1.45fr) minmax(4.8rem, 0.55fr) 0.8rem minmax(5.2rem, 0.6fr)
-    0.8rem minmax(4.8rem, 0.55fr) minmax(8rem, 0.8fr) auto;
+    minmax(12rem, 1.45fr) minmax(3.6rem, 0.42fr) 0.7rem minmax(4rem, 0.48fr)
+    0.7rem minmax(4rem, 0.48fr) minmax(3.4rem, 0.38fr) minmax(7rem, 0.8fr) auto;
   min-width: 48rem;
   padding: 0.45rem var(--space-3);
-}
-.stock-batch-row,
-.stock-subheader {
-  grid-template-columns:
-    minmax(12rem, 1.45fr) minmax(4.8rem, 0.55fr) 0.8rem minmax(5.2rem, 0.6fr)
-    minmax(7.2rem, 0.9fr) minmax(7.2rem, 0.9fr) minmax(8rem, 0.8fr) auto;
-  min-width: 54rem;
 }
 .comparison-column {
   color: var(--color-text-muted);
@@ -124,17 +117,6 @@
   color: var(--color-text-muted);
   font-size: 0.8rem;
   min-height: 2.15rem;
-}
-.stock-subheader {
-  background: color-mix(in srgb, var(--surface-soft-background) 86%, transparent);
-  border-bottom: 1px solid var(--line-subtle);
-  color: var(--color-text-muted);
-  font-size: 0.66rem;
-  font-weight: 900;
-  text-transform: uppercase;
-}
-.stock-subheader > span:first-child {
-  padding-left: calc(var(--space-3) + (var(--row-depth, 0) * 1rem));
 }
 .row-name {
   align-items: center;
@@ -264,6 +246,18 @@ button.row-name {
   display: inline-block;
   height: 2rem;
   width: 2rem;
+}
+.batch-expiry {
+  grid-column: 7 / span 2;
+}
+.batch-edit-acquired {
+  grid-column: 5 / span 2;
+}
+.batch-edit-expiry {
+  grid-column: 7 / span 2;
+}
+.stock-batch-row > .row-actions {
+  grid-column: 9;
 }
 .concept-editor {
   align-items: end;
