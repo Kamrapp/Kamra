@@ -48,7 +48,7 @@ export class HouseholdProductEditorComponent {
 
   clear(): void { this.draft = { ...createDraft(), displayName: this.product()?.displayName ?? "" }; this.errorMessage.set(""); }
 
-  toggleConcept(key: string): void { this.selectedConceptKeys.update((keys) => { const next = new Set(keys); if (next.has(key)) next.delete(key); else next.add(key); return next; }); }
+  setConceptSelection(key: string, selected: boolean): void { this.selectedConceptKeys.update((keys) => { const next = new Set(keys); if (selected) next.add(key); else next.delete(key); return next; }); }
 
   async save(): Promise<void> {
     const householdId = this.householdId();

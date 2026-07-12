@@ -14,4 +14,11 @@ describe("MongoHouseholdProductRepository", () => {
     expect(renamed.displayName).toBe("Pilos milk");
     await expect(repository.updateClassification({ directAttributes: [], directConcepts: [], expectedRevision: 0, householdId: "h", id: "product-1", updatedAt: product.updatedAt, updatedByUserId: "u" })).rejects.toThrow("stale_revision");
   });
+
+  it("preserves direct concept references when a Product is created", async () => {
+    const created: HouseholdProduct = { ...product, directConcepts: [{ key: "household-bread", scope: "household" }] };
+    const repository = new MongoHouseholdProductRepository(createFakeDb());
+    await repository.create(created);
+    await expect(repository.get("h", created.id)).resolves.toMatchObject({ directConcepts: created.directConcepts });
+  });
 });
