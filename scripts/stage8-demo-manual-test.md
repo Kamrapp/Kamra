@@ -38,10 +38,10 @@ Use this against the local/demo database only. Reseeding resets the stable demo 
 7. Discard the Mizo batch. Confirm the target amount falls to the remaining eligible quantity and the batch is not silently erased from history/status.
 8. Inspect the unassigned group. Confirm the flour batch remains visible and can be corrected without becoming an unrelated top-level household row.
 9. From the Pilos Product row, click **Add stock**. Confirm the right editor switches to **New stock batch**, keeps the Product name read-only, and lets you enter quantity, Stocked at, and Expiry. Save and confirm a second batch appears without changing the Product identity or the first batch snapshot.
-10. Classify the Product. Confirm the newly created batch inherits Product classification while the earlier batch snapshot remains unchanged.
-11. Click **Click to add new product stock**. Save a Product with initial quantity `0` and confirm it appears as an empty Product in Unassigned. Then select it, enable **Create initial stock batch**, enter a positive quantity, and confirm its Batch appears under the Product.
+10. Confirm that household Product Concept controls are no longer present in the stock workspace; existing classification data is deliberately deferred from this view.
+11. Use the Product editor to save a Product with no initial Batch. Confirm it appears as an empty Product in Unassigned. Then select it, enable **Create initial stock batch**, enter a positive quantity, and confirm its Batch appears under the Product.
 12. Rename a demo Product and a Stock Target. Confirm both save without a 404 and retain their existing Batch data.
-13. Use **Add new concept** in the grouped footer. Confirm it appears in the Product editor alphabetically; associate it with a Product, save, then remove the association and save again. Confirm Batch acquisition/classification snapshots are unchanged.
+13. Use **Add Stock Target** in the grouped footer. Confirm the inline draft accepts name, minimum, target, and unit; save it, then use the row edit and details icons to rename it and change its limits. Confirm its current amount remains derived/read-only.
 14. In the left rail, click **Build shopping list**. Confirm checkboxes appear in the temporary selection table and the scale-eligible rows start selected.
 15. Change the shopping scale. Confirm the checked selection resets to that scale's eligible rows; manually select or clear at least one row.
 16. Click **Generate shopping list**. Confirm only checked legacy stock rows are included, then confirm the selection checkboxes disappear. Start Build again and use Cancel; confirm the checkboxes disappear without changing the persisted list.

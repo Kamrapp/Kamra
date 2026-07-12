@@ -1,8 +1,9 @@
 import { Component, effect, inject, input, output, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
+import { TableIconButtonComponent } from "../shared/table-icon-button.component";
 import { HouseholdV2Service, type HouseholdV2Product, type HouseholdV2Workspace } from "./household-v2.service";
 
-@Component({ selector: "app-household-v2-workspace", standalone: true, imports: [FormsModule], templateUrl: "./household-v2-workspace.component.html", styleUrl: "./household-v2-workspace.component.css" })
+@Component({ selector: "app-household-v2-workspace", standalone: true, imports: [FormsModule, TableIconButtonComponent], templateUrl: "./household-v2-workspace.component.html", styleUrl: "./household-v2-workspace.component.css" })
 export class HouseholdV2WorkspaceComponent {
   readonly householdId = input("");
   readonly refreshRevision = input(0);
@@ -14,10 +15,10 @@ export class HouseholdV2WorkspaceComponent {
   readonly loadState = signal<"idle" | "loading" | "ready" | "error">("idle");
   readonly editingTargetId = signal<string | null>(null);
   readonly editingBatchId = signal<string | null>(null);
-  readonly addingConcept = signal(false);
+  readonly addingTarget = signal(false);
+  readonly targetDetailsId = signal<string | null>(null);
   readonly expandedTargetIds = signal<ReadonlySet<string>>(new Set());
   targetDraft = { displayName: "", minimumQuantity: 0, targetQuantity: 0, trackingUnit: "count" };
-  conceptLabel = "";
   private readonly service = inject(HouseholdV2Service);
   constructor() { effect(() => { const householdId = this.householdId(); this.refreshRevision(); if (householdId) void this.load(householdId); }); }
   async refresh(): Promise<void> { const householdId = this.householdId(); if (householdId) await this.load(householdId); }
@@ -29,11 +30,22 @@ export class HouseholdV2WorkspaceComponent {
   }
   toggleTarget(targetId: string): void { this.expandedTargetIds.update((ids) => { const next = new Set(ids); if (next.has(targetId)) next.delete(targetId); else next.add(targetId); return next; }); }
   isTargetExpanded(targetId: string): boolean { return this.expandedTargetIds().has(targetId); }
+  toggleTargetDetails(targetId: string): void { this.targetDetailsId.update((current) => current === targetId ? null : targetId); }
+  isTargetDetailsOpen(targetId: string): boolean { return this.targetDetailsId() === targetId; }
   editTarget(target: { displayName: string; id: string; minimumQuantity: number; targetQuantity: number; trackingUnit: string }): void { this.editingTargetId.set(target.id); this.targetDraft = { displayName: target.displayName, minimumQuantity: target.minimumQuantity, targetQuantity: target.targetQuantity, trackingUnit: target.trackingUnit }; }
   cancelTargetEdit(): void { this.editingTargetId.set(null); }
+  beginTargetCreate(): void { this.addingTarget.set(true); this.editingTargetId.set(null); this.targetDraft = { displayName: "", minimumQuantity: 0, targetQuantity: 0, trackingUnit: "count" }; }
+  cancelTargetCreate(): void { this.addingTarget.set(false); }
+  async saveNewTarget(): Promise<void> {
+    const draft = this.targetDraft;
+    if (!this.isTargetDraftValid(draft)) { this.errorMessage.set("Target name, unit, and limits are invalid."); return; }
+    const result = await this.service.createStockTarget({ displayName: draft.displayName.trim(), householdId: this.householdId(), minimumQuantity: draft.minimumQuantity, targetQuantity: draft.targetQuantity, trackingUnit: draft.trackingUnit.trim() });
+    if (result.status === "error") { this.errorMessage.set(result.message ?? "Stock Target could not be created."); return; }
+    this.addingTarget.set(false); await this.refresh();
+  }
   async saveTarget(target: { id: string; revision: number }): Promise<void> {
     const draft = this.targetDraft;
-    if (!draft.displayName.trim() || !Number.isFinite(draft.minimumQuantity) || !Number.isFinite(draft.targetQuantity) || draft.minimumQuantity < 0 || draft.targetQuantity < draft.minimumQuantity || !draft.trackingUnit.trim()) { this.errorMessage.set("Target name, unit, and limits are invalid."); return; }
+    if (!this.isTargetDraftValid(draft)) { this.errorMessage.set("Target name, unit, and limits are invalid."); return; }
     const result = await this.service.updateStockTarget({ displayName: draft.displayName.trim(), expectedRevision: target.revision, householdId: this.householdId(), minimumQuantity: draft.minimumQuantity, targetId: target.id, targetQuantity: draft.targetQuantity, trackingUnit: draft.trackingUnit.trim() });
     if (result.status === "error") { this.errorMessage.set(result.message ?? "Stock Target could not be updated."); return; }
     this.editingTargetId.set(null); await this.refresh();
@@ -53,13 +65,5 @@ export class HouseholdV2WorkspaceComponent {
     if (result.status === "error") { this.errorMessage.set(result.message ?? "Batch could not be discarded."); return; }
     await this.refresh();
   }
-  async addConcept(): Promise<void> {
-    const label = this.conceptLabel.trim();
-    if (!label) { this.errorMessage.set("Concept name is required."); return; }
-    const result = await this.service.createConcept(this.householdId(), label);
-    if (result.status === "error") { this.errorMessage.set(result.message ?? "Concept could not be created."); return; }
-    this.conceptLabel = "";
-    this.addingConcept.set(false);
-    this.newProductRequested.emit();
-  }
+  private isTargetDraftValid(draft: { displayName: string; minimumQuantity: number; targetQuantity: number; trackingUnit: string }): boolean { return Boolean(draft.displayName.trim()) && Number.isFinite(draft.minimumQuantity) && Number.isFinite(draft.targetQuantity) && draft.minimumQuantity >= 0 && draft.targetQuantity >= draft.minimumQuantity && Boolean(draft.trackingUnit.trim()); }
 }

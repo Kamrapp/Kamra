@@ -32,6 +32,7 @@ This is the single source of truth for manual/browser verification carried forwa
 - [ ] Create a Product with no initial batch; verify it appears under Unassigned/Unclassified, then use `Add stock` to add its first physical batch.
 - [ ] Verify Home no longer exposes household Product Concept creation or assignment; classification remains deferred from the stock workspace and no existing classification data is deleted.
 - [ ] Use the Stock Target-first hierarchy: add/edit a Stock Target, add a Product in its context, add a Batch, and verify an allocation is created only after an explicit validated Target choice.
+- [ ] Create a Stock Target from the table footer; edit its name inline using save/cancel actions, open its details, and edit minimum, target, and unit. Confirm the derived current amount remains read-only.
 - [ ] Correct a batch quantity and discard a batch from grouped Home; verify the target aggregate refreshes and the batch remains in history/status rather than disappearing silently.
 - [ ] Edit a batch acquisition/expiry date from grouped Home; verify an expiry-before-acquisition date is accepted and valid changes refresh without changing the Product identity.
 - [ ] Verify an expiry date before acquisition is accepted; toggle household `allowExpiredItems` off/on and confirm expired stock remains visible but is excluded/included in derived availability and consumption accordingly. Default must be permissive.

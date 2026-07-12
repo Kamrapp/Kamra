@@ -2,7 +2,6 @@ import { Injectable, inject } from "@angular/core";
 import { buildApiUrl } from "../api-url";
 import { AuthService } from "../auth.service";
 
-export interface HouseholdV2Concept { key: string; label: string; revision: number; }
 export interface HouseholdV2Product { directConcepts?: Array<{ key: string; scope: "catalog" | "household" }>; displayName: string; id: string; identityKind: "manual" | "catalogue"; identitySnapshot?: Record<string, unknown>; revision: number; }
 export interface HouseholdV2Batch { acquiredOn: string; acquisitionSnapshot: { displayName: string }; expiryOn?: string | null; householdProductId?: string | null; id: string; remainingQuantity: number; revision: number; unit: string; }
 export interface HouseholdV2TargetGroup { aggregate: { availableQuantity: number; batchCount: number; status: string }; batches: HouseholdV2Batch[]; products: HouseholdV2Product[]; target: { displayName: string; id: string; minimumQuantity: number; revision: number; targetQuantity: number; trackingUnit: string }; }
@@ -23,29 +22,20 @@ export class HouseholdV2Service {
   async updateProductIdentity(input: { displayName: string; householdId: string; productId: string; expectedRevision: number }): Promise<{ status: "error" | "ok"; message?: string }> {
     return await this.write("PATCH", `/api/households/${encodeURIComponent(input.householdId)}/products/${input.productId}`, { displayName: input.displayName, expectedRevision: input.expectedRevision });
   }
-  async createProduct(input: { conceptKeys: string[]; displayName: string; householdId: string }): Promise<{ message?: string; product?: HouseholdV2Product; status: "error" | "ok" }> {
-    const response = await fetch(buildApiUrl(`/api/households/${encodeURIComponent(input.householdId)}/products`), { body: JSON.stringify({ directConcepts: input.conceptKeys.map((key) => ({ key, scope: "household" })), displayName: input.displayName, identityKind: "manual" }), headers: this.headers(), method: "POST" });
+  async createProduct(input: { displayName: string; householdId: string }): Promise<{ message?: string; product?: HouseholdV2Product; status: "error" | "ok" }> {
+    const response = await fetch(buildApiUrl(`/api/households/${encodeURIComponent(input.householdId)}/products`), { body: JSON.stringify({ displayName: input.displayName, identityKind: "manual" }), headers: this.headers(), method: "POST" });
     if (!response.ok) return { message: `Product creation failed (${response.status}).`, status: "error" };
     const payload = await response.json() as { product: HouseholdV2Product };
     return { product: payload.product, status: "ok" };
-  }
-  async listConcepts(householdId: string): Promise<{ concepts: HouseholdV2Concept[]; message?: string; status: "error" | "ok" }> {
-    const response = await fetch(buildApiUrl(`/api/households/${encodeURIComponent(householdId)}/concepts`), { headers: { accept: "application/json", ...this.auth.getAuthorizationHeaders() }, method: "GET" });
-    if (!response.ok) return { concepts: [], message: `Concept loading failed (${response.status}).`, status: "error" };
-    const payload = await response.json() as { concepts: HouseholdV2Concept[] };
-    return { concepts: payload.concepts, status: "ok" };
-  }
-  async createConcept(householdId: string, label: string): Promise<{ message?: string; status: "error" | "ok" }> {
-    return await this.write("POST", `/api/households/${encodeURIComponent(householdId)}/concepts`, { label });
-  }
-  async updateProductClassification(input: { conceptKeys: string[]; expectedRevision: number; householdId: string; productId: string }): Promise<{ message?: string; status: "error" | "ok" }> {
-    return await this.write("PATCH", `/api/households/${encodeURIComponent(input.householdId)}/products/${input.productId}/classification`, { directAttributes: [], directConcepts: input.conceptKeys.map((key) => ({ key, scope: "household" })), expectedRevision: input.expectedRevision });
   }
   async createBatch(input: { acquiredOn: string; displayName: string; expiryOn?: string | null; householdId: string; householdProductId: string; quantity: number; unit: string }): Promise<{ message?: string; status: "error" | "ok" }> {
     return await this.write("POST", `/api/households/${encodeURIComponent(input.householdId)}/batches`, { acquiredOn: input.acquiredOn, displayName: input.displayName, expiryOn: input.expiryOn ?? null, householdProductId: input.householdProductId, operationId: crypto.randomUUID(), originalQuantity: input.quantity, requestFingerprint: crypto.randomUUID(), unit: input.unit });
   }
   async updateStockTarget(input: { displayName: string; expectedRevision: number; householdId: string; minimumQuantity: number; targetId: string; targetQuantity: number; trackingUnit: string }): Promise<{ status: "error" | "ok"; message?: string }> {
     return await this.write("PATCH", `/api/households/${encodeURIComponent(input.householdId)}/stock-targets/${input.targetId}`, { expectedRevision: input.expectedRevision, patch: { displayName: input.displayName, minimumQuantity: input.minimumQuantity, targetQuantity: input.targetQuantity, trackingUnit: input.trackingUnit } });
+  }
+  async createStockTarget(input: { displayName: string; householdId: string; minimumQuantity: number; targetQuantity: number; trackingUnit: string }): Promise<{ status: "error" | "ok"; message?: string }> {
+    return await this.write("POST", `/api/households/${encodeURIComponent(input.householdId)}/stock-targets`, { acceptanceCriteria: { acceptedAttributesAny: [], acceptedConceptsAny: [], excludedAttributesAny: [], requiredAttributesAll: [], requiredConceptsAll: [] }, consumptionPolicy: "earliest_expiry_first", displayName: input.displayName, expiryWarningDays: 0, minimumQuantity: input.minimumQuantity, targetQuantity: input.targetQuantity, trackingUnit: input.trackingUnit });
   }
   async updateHouseholdSettings(input: { allowExpiredItems?: boolean; defaultCalculatedMaxLimitMultiplier?: number; householdId: string; name?: string }): Promise<{ status: "error" | "ok"; message?: string }> {
     return await this.write("PATCH", `/api/households/${encodeURIComponent(input.householdId)}/settings`, input);

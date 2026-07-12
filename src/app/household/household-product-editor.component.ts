@@ -1,7 +1,7 @@
 import { Component, effect, inject, input, output, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 
-import { HouseholdV2Service, type HouseholdV2Concept, type HouseholdV2Product } from "./household-v2.service";
+import { HouseholdV2Service, type HouseholdV2Product } from "./household-v2.service";
 
 interface ProductDraft {
   acquiredOn: string;
@@ -26,8 +26,6 @@ export class HouseholdProductEditorComponent {
   readonly resetRevision = input(0);
   readonly changed = output<void>();
   readonly errorMessage = signal("");
-  readonly concepts = signal<HouseholdV2Concept[]>([]);
-  readonly selectedConceptKeys = signal<ReadonlySet<string>>(new Set());
   readonly saving = signal(false);
   draft: ProductDraft = createDraft();
   private readonly service = inject(HouseholdV2Service);
@@ -37,18 +35,13 @@ export class HouseholdProductEditorComponent {
       const product = this.product();
       this.resetRevision();
       this.draft = { ...createDraft(), createBatch: this.batchOnly(), displayName: product?.displayName ?? "" };
-      this.selectedConceptKeys.set(new Set(product?.directConcepts?.filter((concept) => concept.scope === "household").map((concept) => concept.key) ?? []));
       this.errorMessage.set("");
-      const householdId = this.householdId();
-      if (householdId) void this.loadConcepts(householdId);
     });
   }
 
   get isNew(): boolean { return this.product() === null; }
 
   clear(): void { this.draft = { ...createDraft(), displayName: this.product()?.displayName ?? "" }; this.errorMessage.set(""); }
-
-  setConceptSelection(key: string, selected: boolean): void { this.selectedConceptKeys.update((keys) => { const next = new Set(keys); if (selected) next.add(key); else next.delete(key); return next; }); }
 
   async save(): Promise<void> {
     const householdId = this.householdId();
@@ -59,17 +52,11 @@ export class HouseholdProductEditorComponent {
     this.saving.set(true);
     this.errorMessage.set("");
     let productId = product?.id;
-    const conceptKeys = [...this.selectedConceptKeys()];
-    const classificationChanged = product ? !sameKeys(conceptKeys, product.directConcepts?.filter((concept) => concept.scope === "household").map((concept) => concept.key) ?? []) : false;
     if (product && !this.batchOnly()) {
-      if (classificationChanged) {
-        const classification = await this.service.updateProductClassification({ conceptKeys, expectedRevision: product.revision, householdId, productId: product.id });
-        if (classification.status === "error") { this.saving.set(false); this.errorMessage.set(classification.message ?? "Product classification could not be saved."); return; }
-      }
-      const savedProduct = await this.service.updateProductIdentity({ displayName: name, expectedRevision: product.revision + (classificationChanged ? 1 : 0), householdId, productId: product.id });
+      const savedProduct = await this.service.updateProductIdentity({ displayName: name, expectedRevision: product.revision, householdId, productId: product.id });
       if (savedProduct.status === "error") { this.saving.set(false); this.errorMessage.set(savedProduct.message ?? "Product could not be saved."); return; }
     } else if (!product) {
-      const createdProduct = await this.service.createProduct({ conceptKeys, displayName: name, householdId });
+      const createdProduct = await this.service.createProduct({ displayName: name, householdId });
       if (createdProduct.status === "error") { this.saving.set(false); this.errorMessage.set(createdProduct.message ?? "Product could not be saved."); return; }
       productId = createdProduct.product?.id;
     }
@@ -81,17 +68,8 @@ export class HouseholdProductEditorComponent {
     this.saving.set(false);
     this.changed.emit();
   }
-
-  private async loadConcepts(householdId: string): Promise<void> {
-    const result = await this.service.listConcepts(householdId);
-    if (result.status === "ok") this.concepts.set(result.concepts);
-  }
 }
 
 function createDraft(): ProductDraft {
   return { acquiredOn: new Date().toISOString().slice(0, 10), createBatch: false, displayName: "", expiryOn: "", quantity: 0, unit: "count" };
-}
-
-function sameKeys(left: readonly string[], right: readonly string[]): boolean {
-  return left.length === right.length && left.every((key) => right.includes(key));
 }

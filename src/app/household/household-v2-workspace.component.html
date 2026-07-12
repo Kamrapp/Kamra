@@ -11,20 +11,30 @@
       <div class="stock-grid-body">
         @for (group of current.targets; track group.target.id) {
           <div class="stock-grid stock-target-row">
-            <button class="row-name target-name" type="button" (click)="toggleTarget(group.target.id)" [attr.aria-expanded]="isTargetExpanded(group.target.id)"><span aria-hidden="true">{{ isTargetExpanded(group.target.id) ? '▾' : '▸' }}</span><strong>{{ group.target.displayName }}</strong></button>
+            @if (editingTargetId() === group.target.id) {
+              <label class="row-name target-name"><span class="sr-only">Stock Target name</span><input class="ui-form-control" [(ngModel)]="targetDraft.displayName" name="targetName-{{ group.target.id }}" /></label>
+            } @else {
+              <button class="row-name target-name" type="button" (click)="toggleTarget(group.target.id)" [attr.aria-expanded]="isTargetExpanded(group.target.id)"><span aria-hidden="true">{{ isTargetExpanded(group.target.id) ? '▾' : '▸' }}</span><strong>{{ group.target.displayName }}</strong></button>
+            }
             <span>{{ group.aggregate.availableQuantity }} {{ group.target.trackingUnit }}</span>
             <span>{{ group.target.minimumQuantity }} {{ group.target.trackingUnit }}</span>
             <span class="ui-token ui-token-muted">{{ stateLabel(group.aggregate.status) }}</span>
-            <button class="ui-button ui-button-quiet ui-button-sm" type="button" (click)="editTarget(group.target)">Edit</button>
+            <span class="row-actions">
+              <app-table-icon-button ariaLabel="Show Stock Target details" titleText="Show Stock Target details" (press)="toggleTargetDetails(group.target.id)">⌕</app-table-icon-button>
+              @if (editingTargetId() === group.target.id) {
+                <app-table-icon-button ariaLabel="Save Stock Target" titleText="Save Stock Target" (press)="saveTarget(group.target)">▣</app-table-icon-button>
+                <app-table-icon-button ariaLabel="Cancel Stock Target edit" titleText="Cancel Stock Target edit" (press)="cancelTargetEdit()">×</app-table-icon-button>
+              } @else {
+                <app-table-icon-button ariaLabel="Edit Stock Target" titleText="Edit Stock Target" (press)="editTarget(group.target)">✎</app-table-icon-button>
+              }
+            </span>
           </div>
-          @if (editingTargetId() === group.target.id) {
-            <form class="target-editor" (ngSubmit)="saveTarget(group.target)">
-              <label>Name<input class="ui-form-control" [(ngModel)]="targetDraft.displayName" name="targetName" /></label>
-              <label>Minimum<input class="ui-form-control" type="number" min="0" [(ngModel)]="targetDraft.minimumQuantity" name="targetMinimum" /></label>
-              <label>Target<input class="ui-form-control" type="number" min="0" [(ngModel)]="targetDraft.targetQuantity" name="targetQuantity" /></label>
-              <label>Unit<input class="ui-form-control" [(ngModel)]="targetDraft.trackingUnit" name="targetUnit" /></label>
-              <div class="editor-actions"><button class="ui-button ui-button-sm" type="submit">Save group</button><button class="ui-button ui-button-quiet ui-button-sm" type="button" (click)="cancelTargetEdit()">Cancel</button></div>
-            </form>
+          @if (isTargetDetailsOpen(group.target.id)) {
+            <div class="target-editor">
+              <label>Minimum @if (editingTargetId() === group.target.id) { <input class="ui-form-control" type="number" min="0" [(ngModel)]="targetDraft.minimumQuantity" name="targetMinimum-{{ group.target.id }}" /> } @else { <strong>{{ group.target.minimumQuantity }} {{ group.target.trackingUnit }}</strong> }</label>
+              <label>Target @if (editingTargetId() === group.target.id) { <input class="ui-form-control" type="number" min="0" [(ngModel)]="targetDraft.targetQuantity" name="targetQuantity-{{ group.target.id }}" /> } @else { <strong>{{ group.target.targetQuantity }} {{ group.target.trackingUnit }}</strong> }</label>
+              <label>Unit @if (editingTargetId() === group.target.id) { <input class="ui-form-control" [(ngModel)]="targetDraft.trackingUnit" name="targetUnit-{{ group.target.id }}" /> } @else { <strong>{{ group.target.trackingUnit }}</strong> }</label>
+            </div>
           }
           @if (isTargetExpanded(group.target.id)) {
             @for (product of group.products; track product.id) {
@@ -54,11 +64,16 @@
             <div class="batch-editor"><label>Quantity<input class="ui-form-control" #quantity type="number" min="0" [value]="batch.remainingQuantity" /></label><label>Stocked at<input class="ui-form-control" #acquired type="date" [value]="batch.acquiredOn" /></label><label>Expiry<input class="ui-form-control" #expiry type="date" [value]="batch.expiryOn ?? ''" /></label><div class="editor-actions"><button class="ui-button ui-button-sm" type="button" (click)="correctBatch(batch, quantity.valueAsNumber, acquired.value, expiry.value)">Save batch</button><button class="ui-button ui-button-danger ui-button-sm" type="button" (click)="discardBatch(batch)">Discard</button><button class="ui-button ui-button-quiet ui-button-sm" type="button" (click)="cancelBatchEdit()">Close</button></div></div>
           }
         }
-        <button class="stock-grid add-stock-row" type="button" (click)="newProductRequested.emit()"><span class="row-name"><strong>＋ Click to add new product stock</strong></span><span>—</span><span>—</span><span class="ui-copy-muted">Creates a Product; first Batch is optional</span><span></span></button>
-        @if (addingConcept()) {
-          <form class="concept-editor" (ngSubmit)="addConcept()"><label>New concept<input class="ui-form-control" [(ngModel)]="conceptLabel" name="conceptLabel" /></label><div class="editor-actions"><button class="ui-button ui-button-sm" type="submit">Save concept</button><button class="ui-button ui-button-quiet ui-button-sm" type="button" (click)="addingConcept.set(false)">Cancel</button></div></form>
+        @if (addingTarget()) {
+          <form class="target-editor" (ngSubmit)="saveNewTarget()">
+            <label>Name<input class="ui-form-control" [(ngModel)]="targetDraft.displayName" name="newTargetName" /></label>
+            <label>Minimum<input class="ui-form-control" type="number" min="0" [(ngModel)]="targetDraft.minimumQuantity" name="newTargetMinimum" /></label>
+            <label>Target<input class="ui-form-control" type="number" min="0" [(ngModel)]="targetDraft.targetQuantity" name="newTargetQuantity" /></label>
+            <label>Unit<input class="ui-form-control" [(ngModel)]="targetDraft.trackingUnit" name="newTargetUnit" /></label>
+            <div class="editor-actions"><button class="ui-button ui-button-sm" type="submit">Save Stock Target</button><button class="ui-button ui-button-quiet ui-button-sm" type="button" (click)="cancelTargetCreate()">Cancel</button></div>
+          </form>
         } @else {
-          <button class="stock-grid add-stock-row" type="button" (click)="addingConcept.set(true)"><span class="row-name"><strong>＋ Add new concept</strong></span><span>—</span><span>—</span><span class="ui-copy-muted">Household-local classification vocabulary</span><span></span></button>
+          <button class="stock-grid add-stock-row" type="button" (click)="beginTargetCreate()"><span class="row-name"><strong>＋ Add Stock Target</strong></span><span>—</span><span>—</span><span class="ui-copy-muted">A generic household stock group with its own limits</span><span></span></button>
         }
       </div>
     </div>
