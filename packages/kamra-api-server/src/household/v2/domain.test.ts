@@ -24,7 +24,7 @@ describe("household v2 classification", () => {
 });
 
 const target: StockTarget = { id: "target", householdId: "household", displayName: "Milk", trackingUnit: "l", minimumQuantity: 2, targetQuantity: 4, expiryWarningDays: 3, consumptionPolicy: "earliest_expiry_first", acceptanceCriteria: { requiredConceptsAll: [], acceptedConceptsAny: [], requiredAttributesAll: [], acceptedAttributesAny: [], excludedAttributesAny: [] }, status: "active", revision: 0, createdAt: "2026-07-11T00:00:00.000Z", updatedAt: "2026-07-11T00:00:00.000Z", createdByUserId: "user", updatedByUserId: "user" };
-const batch = (id: string, expiryOn: string | null, quantity: number, acquiredOn = "2026-07-01"): StockBatch => ({ id, householdId: "household", acquiredOn, expiryOn, originalQuantity: quantity, remainingQuantity: quantity, unit: "ml", status: "available", acquisitionSnapshot: { displayName: id }, classificationSnapshot: { directConcepts: [], effectiveConcepts: [], directAttributes: [], source: "manual", capturedAt: "2026-07-11T00:00:00.000Z" }, revision: 0, createdAt: "2026-07-11T00:00:00.000Z", updatedAt: "2026-07-11T00:00:00.000Z", createdByUserId: "user", updatedByUserId: "user" });
+const batch = (id: string, expiryOn: string | null, quantity: number, acquiredOn = "2026-07-01"): StockBatch => ({ id, householdId: "household", householdProductId: "household-product:milk", acquiredOn, expiryOn, originalQuantity: quantity, remainingQuantity: quantity, unit: "ml", status: "available", acquisitionSnapshot: { displayName: id }, classificationSnapshot: { directConcepts: [], effectiveConcepts: [], directAttributes: [], source: "manual", capturedAt: "2026-07-11T00:00:00.000Z" }, revision: 0, createdAt: "2026-07-11T00:00:00.000Z", updatedAt: "2026-07-11T00:00:00.000Z", createdByUserId: "user", updatedByUserId: "user" });
 const allocation = (batchId: string, quantity: number): StockAllocation => ({ id: `allocation-${batchId}`, householdId: "household", stockBatchId: batchId, stockTargetId: "target", allocatedQuantity: quantity, unit: "ml", acceptanceResult: "accepted", status: "active", revision: 0, createdAt: "2026-07-11T00:00:00.000Z", updatedAt: "2026-07-11T00:00:00.000Z", createdByUserId: "user", updatedByUserId: "user" });
 
 describe("household v2 stock rules", () => {
@@ -51,6 +51,7 @@ describe("household v2 stock rules", () => {
   it("validates target, batch, allocation, precision, and expiry invariants", () => {
     expect(() => assertStockTarget(target)).not.toThrow();
     expect(() => assertStockBatch(batch("a", "2026-07-20", 1))).not.toThrow();
+    expect(() => assertStockBatch({ ...batch("orphan", null, 1), householdProductId: null })).toThrow("householdProductId is required");
     expect(() => assertStockAllocation(allocation("a", 1))).not.toThrow();
     expect(() => assertStockBatch(batch("bad", "2026-06-01", 1))).not.toThrow();
     expect(() => assertStockTarget({ ...target, targetQuantity: 1 })).toThrow("below");

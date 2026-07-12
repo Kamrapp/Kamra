@@ -8,7 +8,7 @@
 } @else {
   <section class="stock-workspace" aria-labelledby="home-title">
     <section class="household-stock-layout">
-      <app-household-v2-workspace [householdId]="selectedHouseholdId()" [refreshRevision]="v2WorkspaceRevision()" (newProductRequested)="startV2ProductCreate($event)" (newBatchRequested)="startV2BatchCreate($event)" (productSelected)="selectV2Product($event)" (batchSelected)="selectV2Batch($event)" (groupSelected)="selectV2Group($event)" />
+      <app-household-v2-workspace [householdId]="selectedHouseholdId()" [refreshRevision]="v2WorkspaceRevision()" (newProductRequested)="startV2ProductCreate($event)" (newBatchRequested)="startV2BatchCreate($event)" (productSelected)="selectV2Product($event)" (batchSelected)="selectV2Batch($event)" (groupSelected)="selectV2Group($event)" (changed)="refreshV2Workspace()" />
       <aside class="household-editor-side">
         <app-household-stock-panel
           [errorMessage]="errorMessage()"

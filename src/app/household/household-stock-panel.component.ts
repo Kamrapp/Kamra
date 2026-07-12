@@ -13,6 +13,16 @@ import { LocalizationService, type TranslationKey } from "../shared/localization
     <section class="stock-panel" [attr.aria-label]="loc.t('household.stockPanelLabel')">
       <div class="panel-topline">
         <p class="panel-title" id="home-title">{{ loc.t("household.stockPanelTitle") }}</p>
+        <button
+          class="ui-button ui-button-quiet ui-button-sm icon-button"
+          type="button"
+          (click)="refreshRequested.emit()"
+          [disabled]="loadState() === 'loading'"
+          [attr.aria-label]="loc.t('common.refresh')"
+          [attr.title]="loc.t('common.refresh')"
+        >
+          <span aria-hidden="true">↻</span>
+        </button>
       </div>
 
       <div class="household-bar">
@@ -31,25 +41,16 @@ import { LocalizationService, type TranslationKey } from "../shared/localization
           </label>
 
           <button
-            class="ui-button ui-button-quiet ui-button-sm manage-household-button"
+            class="ui-button ui-button-quiet ui-button-sm icon-button manage-household-button"
             type="button"
             [routerLink]="selectedHouseholdId() ? ['/household', selectedHouseholdId()] : ['/']"
             [disabled]="!selectedHouseholdId()"
+            [attr.aria-label]="loc.t('household.manageHousehold')"
+            [attr.title]="loc.t('household.manageHousehold')"
           >
-            {{ loc.t("household.manageHousehold") }}
+            <span aria-hidden="true">⚙</span>
           </button>
         </div>
-
-        <button
-          class="ui-button ui-button-quiet ui-button-sm icon-button"
-          type="button"
-          (click)="refreshRequested.emit()"
-          [disabled]="loadState() === 'loading'"
-          [attr.aria-label]="loc.t('common.refresh')"
-          [attr.title]="loc.t('common.refresh')"
-        >
-          <span aria-hidden="true">↻</span>
-        </button>
       </div>
 
       @if (loadState() === "loading" && !hasHouseholdPage()) {
@@ -179,6 +180,10 @@ import { LocalizationService, type TranslationKey } from "../shared/localization
         gap: var(--space-3);
       }
 
+      .panel-topline {
+        align-items: center;
+      }
+
       .panel-topline,
       .household-bar {
         justify-content: space-between;
@@ -222,9 +227,7 @@ import { LocalizationService, type TranslationKey } from "../shared/localization
       }
 
       .manage-household-button {
-        flex: 0 1 auto;
-        min-width: max-content;
-        white-space: nowrap;
+        flex: 0 0 auto;
       }
 
       .icon-button {

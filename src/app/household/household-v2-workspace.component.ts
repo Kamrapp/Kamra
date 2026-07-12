@@ -16,6 +16,7 @@ export class HouseholdV2WorkspaceComponent {
   readonly newBatchRequested = output<HouseholdV2Product>();
   readonly newProductRequested = output<HouseholdV2ProductGroup | null>();
   readonly groupSelected = output<HouseholdV2ProductGroup>();
+  readonly changed = output<void>();
   readonly workspace = signal<HouseholdV2Workspace | null>(null);
   readonly errorMessage = signal("");
   readonly loadState = signal<"idle" | "loading" | "ready" | "error">("idle");
@@ -39,7 +40,15 @@ export class HouseholdV2WorkspaceComponent {
   private readonly service = inject(HouseholdV2Service);
   private readonly logger = inject(BrowserLoggerService);
   readonly loc = inject(LocalizationService);
-  constructor() { effect(() => { const householdId = this.householdId(); this.refreshRevision(); if (householdId) void this.load(householdId); }); }
+  constructor() {
+    let lastRefreshRevision = this.refreshRevision();
+    effect(() => {
+      const householdId = this.householdId();
+      const refreshRevision = this.refreshRevision();
+      if (refreshRevision !== lastRefreshRevision) { lastRefreshRevision = refreshRevision; this.resetEditingState(); }
+      if (householdId) void this.load(householdId);
+    });
+  }
   async refresh(): Promise<void> { const householdId = this.householdId(); if (householdId) await this.load(householdId); }
   private async load(householdId: string): Promise<void> {
     this.loadState.set("loading"); this.errorMessage.set("");
@@ -96,42 +105,43 @@ export class HouseholdV2WorkspaceComponent {
     const targetPolicy = this.editingGroupHasTarget() ? { consumptionPolicy: group.targetPolicy?.consumptionPolicy ?? "earliest_expiry_first", desiredQuantity, expiryWarningDays: group.targetPolicy?.expiryWarningDays ?? 0, minimumQuantity, trackingUnit } : null;
     const result = await this.service.updateProductGroup({ displayName: name, expectedRevision: group.revision, groupId: group.id, householdId: this.householdId(), targetPolicy, trackingUnit });
     if (result.status === "error") { this.errorMessage.set(result.message ?? this.loc.t("household.groupSaveFailure")); this.logger.log("error", "Product Group rename failed", { displayName: group.displayName, groupId: group.id }); return; }
-    this.logger.log("info", "Product Group renamed", { displayName: name, groupId: group.id }); this.cancelGroupEdit(); await this.refresh();
+    this.logger.log("info", "Product Group renamed", { displayName: name, groupId: group.id }); this.cancelGroupEdit(); this.changed.emit(); await this.refresh();
   }
   async saveProductRow(product: HouseholdV2Product, displayName: string, productGroupId: string): Promise<void> {
     const name = displayName.trim();
     if (!name) { this.errorMessage.set(this.loc.t("household.productNameRequired")); return; }
     const result = await this.service.updateProductIdentity({ catalogProductId: typeof product.identitySnapshot?.["catalogProductId"] === "string" ? product.identitySnapshot["catalogProductId"] : null, defaultTrackingUnit: product.defaultTrackingUnit ?? null, displayName: name, expectedRevision: product.revision, householdId: this.householdId(), identitySnapshot: product.identitySnapshot, note: product.note ?? null, productGroupId: productGroupId || null, productId: product.id, targetPolicy: product.targetPolicy ?? null });
     if (result.status === "error") { this.errorMessage.set(result.message ?? this.loc.t("household.productSaveFailure")); this.logger.log("error", "Household Product inline save failed", { displayName: product.displayName, productId: product.id }); return; }
-    this.logger.log("info", "Household Product saved", { displayName: name, productGroupId: productGroupId || null, productId: product.id }); this.cancelProductEdit(); await this.refresh();
+    this.logger.log("info", "Household Product saved", { displayName: name, productGroupId: productGroupId || null, productId: product.id }); this.cancelProductEdit(); this.changed.emit(); await this.refresh();
   }
   async correctBatch(batch: { acquiredOn: string; expiryOn?: string | null; id: string; revision: number }, resultingQuantity: number, acquiredOn: string, expiryOn: string): Promise<void> {
     this.logger.log("info", "Correcting stock batch", { batchId: batch.id });
     const result = await this.service.correctBatch({ acquiredOn, batchId: batch.id, expiryOn: expiryOn || null, expectedBatchRevision: batch.revision, householdId: this.householdId(), resultingQuantity });
     if (result.status === "error") { this.errorMessage.set(result.message ?? this.loc.t("household.batchCorrectionFailure")); this.logger.log("error", "Stock batch correction failed", { batchId: batch.id }); return; }
-    this.logger.log("info", "Stock batch corrected", { batchId: batch.id, resultingQuantity }); this.editingBatchId.set(null); await this.refresh();
+    this.logger.log("info", "Stock batch corrected", { batchId: batch.id, resultingQuantity }); this.editingBatchId.set(null); this.changed.emit(); await this.refresh();
   }
   async discardBatch(batch: { id: string; revision: number }): Promise<void> {
     if (!window.confirm(this.loc.t("household.discardBatchConfirm"))) return;
     this.logger.log("info", "Discarding stock batch", { batchId: batch.id });
     const result = await this.service.discardBatch({ batchId: batch.id, expectedBatchRevision: batch.revision, householdId: this.householdId() });
     if (result.status === "error") { this.errorMessage.set(result.message ?? this.loc.t("household.batchDiscardFailure")); this.logger.log("error", "Stock batch discard failed", { batchId: batch.id }); return; }
-    this.logger.log("info", "Stock batch discarded", { batchId: batch.id }); this.editingBatchId.set(null); await this.refresh();
+    this.logger.log("info", "Stock batch discarded", { batchId: batch.id }); this.editingBatchId.set(null); this.changed.emit(); await this.refresh();
   }
   async deleteGroup(group: HouseholdV2ProductGroup["group"]): Promise<void> {
     if (!window.confirm(this.loc.t("household.deleteProductGroupConfirm", { name: group.displayName }))) return;
     this.logger.log("warn", "Deleting Product Group", { displayName: group.displayName, groupId: group.id });
     const result = await this.service.deleteProductGroup({ expectedRevision: group.revision, groupId: group.id, householdId: this.householdId() });
     if (result.status === "error") { this.errorMessage.set(result.message ?? this.loc.t("household.groupDeleteFailure")); this.logger.log("error", "Product Group deletion failed", { displayName: group.displayName, groupId: group.id }); return; }
-    this.logger.log("info", "Product Group deleted; Products are unassigned", { displayName: group.displayName, groupId: group.id }); await this.refresh();
+    this.logger.log("info", "Product Group deleted; Products are unassigned", { displayName: group.displayName, groupId: group.id }); this.changed.emit(); await this.refresh();
   }
   async deleteProduct(product: HouseholdV2Product): Promise<void> {
     if (!window.confirm(this.loc.t("household.deleteHouseholdProductConfirm", { name: product.displayName }))) return;
     this.logger.log("warn", "Deleting Household Product and stock batches", { displayName: product.displayName, productId: product.id });
     const result = await this.service.deleteProduct({ expectedRevision: product.revision, householdId: this.householdId(), productId: product.id });
     if (result.status === "error") { this.errorMessage.set(result.message ?? this.loc.t("household.productDeleteFailure")); this.logger.log("error", "Household Product deletion failed", { displayName: product.displayName, productId: product.id }); return; }
-    this.logger.log("info", "Household Product and owned stock batches deleted", { displayName: product.displayName, productId: product.id }); await this.refresh();
+    this.logger.log("info", "Household Product and owned stock batches deleted", { displayName: product.displayName, productId: product.id }); this.changed.emit(); await this.refresh();
   }
+  private resetEditingState(): void { this.cancelGroupEdit(); this.cancelProductEdit(); this.cancelBatchEdit(); }
   private toggleSet(target: ReturnType<typeof signal<ReadonlySet<string>>>, id: string): void { target.update((ids) => { const next = new Set(ids); if (next.has(id)) next.delete(id); else next.add(id); return next; }); }
   private groupIds(groups: HouseholdV2ProductGroup[]): string[] { return groups.flatMap((group) => [group.group.id, ...this.groupIds(group.childGroups)]); }
   private flattenGroups(groups: HouseholdV2ProductGroup[]): HouseholdV2ProductGroup["group"][] { return groups.flatMap((group) => [group.group, ...this.flattenGroups(group.childGroups)]); }

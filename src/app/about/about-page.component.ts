@@ -146,6 +146,7 @@ import { LocalizationService } from "../shared/localization.service";
       }
 
       .hero-actions {
+        align-items: center;
         display: flex;
         flex-wrap: wrap;
         gap: var(--space-3);

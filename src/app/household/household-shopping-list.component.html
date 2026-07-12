@@ -1,7 +1,7 @@
 
-    <section class="ui-panel-card shopping-card" [class.shopping-collapsed]="sectionCollapsed() && !shoppingList()" [attr.aria-label]="loc.t('household.shoppingListPanelTitle')">
+    <section class="ui-panel-card shopping-card" [class.shopping-collapsed]="sectionCollapsed()" [attr.aria-label]="loc.t('household.shoppingListPanelTitle')">
       <button class="shopping-section-toggle" type="button" (click)="sectionCollapsed.set(!sectionCollapsed())" [attr.aria-expanded]="!sectionCollapsed()"><span aria-hidden="true">{{ sectionCollapsed() ? '▸' : '▾' }}</span><span>{{ loc.t('household.shoppingListPanelTitle') }}</span></button>
-      @if (!sectionCollapsed() || shoppingList()) {
+      @if (!sectionCollapsed()) {
       <div class="shopping-layout">
         <section class="shopping-overview">
           <div class="shopping-card-topline">

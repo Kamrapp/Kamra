@@ -15,6 +15,8 @@
 }
 
 .stock-workspace:has(.shopping-collapsed) { grid-template-rows: minmax(0, 1fr) auto; }
+.stock-workspace:has(.workspace-collapsed) { grid-template-rows: auto minmax(0, 1fr); }
+.stock-workspace:has(.workspace-collapsed):has(.shopping-collapsed) { grid-template-rows: auto auto; }
 
 .shopping-bottom-row {
   grid-column: 1 / -1;
