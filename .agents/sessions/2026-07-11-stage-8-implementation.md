@@ -364,3 +364,4 @@ The full implementation contract, migration behavior, icon semantics, composer r
 - `is_a` is child-to-parent and effective concepts are inclusive; attributes remain independent.
 - Keep the manual-check list current when UI or live Mongo behavior is introduced.
 - Localization pass (2026-07-12): Stage 8 Product Group workspace, three-block composer, and Manage household settings now route visible labels, editor actions, state text, validation fallbacks, and confirmations through paired English/Hungarian household translation keys. Typecheck, lint, web build, and the full 50-file/198-test suite pass.
+- Batch-grid spacing fix (2026-07-12): batch rows and their subheader now use dedicated Stocked at and Expiry columns, preventing date overlap while keeping Quantity aligned with the product Current column. Lint and web build pass.

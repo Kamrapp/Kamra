@@ -6,6 +6,7 @@
 .section-toggle .ui-kicker, .section-toggle .ui-card-title { margin: 0; }
 .stock-grid-shell { border: 1px solid var(--line-panel); border-radius: var(--radius-ui); display: grid; grid-template-rows: auto minmax(0, 1fr); min-height: 0; overflow: hidden; }
 .stock-grid { align-items: center; display: grid; gap: var(--space-2); grid-template-columns: minmax(12rem, 1.45fr) minmax(4.8rem, .55fr) .8rem minmax(5.2rem, .6fr) .8rem minmax(4.8rem, .55fr) minmax(8rem, .8fr) auto; min-width: 48rem; padding: .45rem var(--space-3); }
+.stock-batch-row, .stock-subheader { grid-template-columns: minmax(12rem, 1.45fr) minmax(4.8rem, .55fr) .8rem minmax(5.2rem, .6fr) minmax(7.2rem, .9fr) minmax(7.2rem, .9fr) minmax(8rem, .8fr) auto; min-width: 54rem; }
 .comparison-column { color: var(--color-text-muted); font-size: .72rem; font-weight: 900; text-align: center; }
 .comparison-good { color: var(--color-accent-leaf-strong); }
 .comparison-warning { color: var(--color-status-warning); }
