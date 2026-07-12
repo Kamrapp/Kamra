@@ -46,6 +46,7 @@
 - Item: Home now reads the Product Group workspace payload and renders Product Group → Product → Batch rows with recursive indentation, fixed columns, symbolic detail/add/select actions, Product identity details, neutral no-policy state, and existing Batch correction/discard controls. Product Group collection/mutation routes and Product assignment/target-policy request validation were added; typecheck and web build passed.
 - Item: Replaced the one-block right-side Product editor with connected Product Group, Household Product, and Stock Batch composer blocks. Group/Product target-policy controls, Product Group assignment, GTIN/catalogue-id/note details, and explicit Batch quantity/date fields are present with left-facing Add/Save actions. Typecheck and web build passed. The compound create-all path still needs one server transaction command.
 - Item: Added the idempotent transactional Product Composer command for the new Product + initial Batch path, including optional new Product Group, Movement, and operation receipt. The composer now uses it instead of sequential parent creation. Focused tests (4), typecheck, and web build passed.
+- Item: Wired Product Group row selection into Home and the composer, so Group actions populate the top editor block while Product selection populates Product details. Typecheck and web build passed.
 
 ## Changed Files
 

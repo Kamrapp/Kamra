@@ -20,7 +20,7 @@ import { HouseholdStockPanelComponent } from "./household/household-stock-panel.
 import { HouseholdShoppingListComponent } from "./household/household-shopping-list.component";
 import { HouseholdProductEditorComponent } from "./household/household-product-editor.component";
 import { HouseholdV2WorkspaceComponent } from "./household/household-v2-workspace.component";
-import type { HouseholdV2Product } from "./household/household-v2.service";
+import type { HouseholdV2Product, HouseholdV2ProductGroup } from "./household/household-v2.service";
 import { LocalizationService, type TranslationKey } from "./shared/localization.service";
 import { PageRailService, type PageRailSection } from "./shared/page-rail.service";
 import { ToastService } from "./shared/toast.service";
@@ -94,6 +94,7 @@ export class HomeComponent implements OnDestroy {
   readonly mutationState = signal<"idle" | "saving">("idle");
   readonly selectedHouseholdId = signal<string>("");
   readonly selectedV2Product = signal<HouseholdV2Product | null>(null);
+  readonly selectedV2Group = signal<HouseholdV2ProductGroup | null>(null);
   readonly v2BatchEditorMode = signal(false);
   readonly productEditorRevision = signal(0);
   readonly v2WorkspaceRevision = signal(0);
@@ -461,12 +462,21 @@ export class HomeComponent implements OnDestroy {
 
   selectV2Product(product: HouseholdV2Product): void {
     this.v2BatchEditorMode.set(false);
+    this.selectedV2Group.set(null);
     this.selectedV2Product.set(product);
+    this.productEditorRevision.update((revision) => revision + 1);
+  }
+
+  selectV2Group(group: HouseholdV2ProductGroup): void {
+    this.v2BatchEditorMode.set(false);
+    this.selectedV2Product.set(null);
+    this.selectedV2Group.set(group);
     this.productEditorRevision.update((revision) => revision + 1);
   }
 
   startV2ProductCreate(): void {
     this.v2BatchEditorMode.set(false);
+    this.selectedV2Group.set(null);
     this.selectedV2Product.set(null);
     this.productEditorRevision.update((revision) => revision + 1);
   }
@@ -480,6 +490,7 @@ export class HomeComponent implements OnDestroy {
   refreshV2Workspace(): void {
     this.v2BatchEditorMode.set(false);
     this.selectedV2Product.set(null);
+    this.selectedV2Group.set(null);
     this.v2WorkspaceRevision.update((revision) => revision + 1);
   }
 
