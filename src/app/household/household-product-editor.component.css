@@ -2,15 +2,22 @@
 .composer { display: grid; gap: var(--space-2); }
 .composer-block { align-items: stretch; background: var(--surface-panel-background); border: 1px solid var(--line-panel); border-radius: var(--radius-ui); display: grid; grid-template-columns: auto minmax(0, 1fr); overflow: hidden; }
 .composer-block + .composer-block { margin-top: calc(var(--space-2) * -1); border-top-left-radius: 0; border-top-right-radius: 0; }
-.composer-action { align-self: stretch; background: var(--control-quiet-background); border: 0; border-right: 1px solid var(--line-subtle); color: var(--control-quiet-text); cursor: pointer; font: inherit; font-size: .75rem; font-weight: 800; min-width: 5.2rem; padding: var(--space-2); }
-.composer-action:disabled { cursor: not-allowed; opacity: .55; }
+.composer-actions { border-right: 1px solid var(--line-subtle); display: grid; grid-template-rows: 2fr 1fr; min-width: 3.25rem; }
+.composer-primary, .composer-clear { border: 0; color: var(--control-quiet-text); cursor: pointer; font: inherit; font-size: 1rem; font-weight: 900; }
+.composer-primary { background: var(--control-quiet-background); }
+.composer-clear { background: color-mix(in srgb, var(--color-status-danger) 14%, var(--control-quiet-background)); border-top: 1px solid var(--line-subtle); color: var(--color-status-danger); }
+.composer-primary:disabled { cursor: not-allowed; opacity: .55; }
 .composer-content { display: grid; gap: var(--space-2); padding: var(--space-3); }
 .composer-content p, .composer-content h2 { margin: 0; }
+.composer-content header { align-items: start; display: flex; justify-content: space-between; gap: var(--space-2); }
+.composer-content header span { display: grid; gap: var(--space-1); }
+.collapse-button { background: var(--control-quiet-background); border: 1px solid var(--control-quiet-border); border-radius: var(--radius-ui); color: var(--control-quiet-text); cursor: pointer; font: inherit; font-weight: 900; height: 1.8rem; width: 1.8rem; }
+.is-collapsed .composer-content { padding-block: var(--space-2); }
 label { color: var(--color-text-muted); display: grid; font-size: .76rem; font-weight: 700; gap: var(--space-2); }
 .checkbox-row { align-items: center; display: flex; font-size: .82rem; }
-.policy-fields, .batch-fields, .details-fields { display: grid; gap: var(--space-2); grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.policy-fields, .batch-fields, .details-fields, .product-core-fields { display: grid; gap: var(--space-2); grid-template-columns: repeat(2, minmax(0, 1fr)); }
 details { border-top: 1px solid var(--line-subtle); padding-top: var(--space-2); }
 summary { color: var(--color-text-muted); cursor: pointer; font-size: .78rem; font-weight: 800; }
 .details-fields { margin-top: var(--space-2); }
 textarea.ui-form-control { min-height: 4rem; resize: vertical; }
-@media (max-width: 720px) { .composer-block { grid-template-columns: 1fr; } .composer-action { border-bottom: 1px solid var(--line-subtle); border-right: 0; min-height: 2.2rem; text-align: left; } }
+@media (max-width: 720px) { .composer-block { grid-template-columns: 1fr; } .composer-actions { border-bottom: 1px solid var(--line-subtle); border-right: 0; grid-template-columns: 2fr 1fr; grid-template-rows: 1fr; min-height: 2.2rem; } }

@@ -51,6 +51,7 @@ export class HouseholdShoppingListComponent implements OnChanges {
   readonly mutationState = signal<"idle" | "saving">("idle");
   readonly pendingConfirmation = signal<PendingConfirmation | null>(null);
   readonly purchasedSectionCollapsed = signal(true);
+  readonly sectionCollapsed = signal(true);
   readonly quickAddDraft = signal<QuickAddDraft>({
     displayName: "",
     purchasedAmount: 1,
@@ -194,6 +195,7 @@ export class HouseholdShoppingListComponent implements OnChanges {
 
     this.pendingConfirmation.set(null);
     this.shoppingList.set(result.shoppingList);
+    this.sectionCollapsed.set(false);
     this.stockPageUpdated.emit(result.householdStockPage);
     this.statusMessage.set(this.loc.t("household.shoppingListApplySuccess", { count: result.appliedLineCount }));
   }
@@ -269,6 +271,7 @@ export class HouseholdShoppingListComponent implements OnChanges {
     }
 
     this.shoppingList.set(null);
+    this.sectionCollapsed.set(true);
     this.stockAppliedAt.set(todayDateInputValue());
     this.statusMessage.set(this.loc.t("household.shoppingListCancelled"));
   }
@@ -505,6 +508,7 @@ export class HouseholdShoppingListComponent implements OnChanges {
 
     if (!this.householdId) {
       this.shoppingList.set(null);
+      this.sectionCollapsed.set(true);
       this.shops.set([]);
       return;
     }
@@ -529,6 +533,7 @@ export class HouseholdShoppingListComponent implements OnChanges {
 
     if (listResult.status === "ok") {
       this.shoppingList.set(listResult.shoppingList);
+      if (listResult.shoppingList) this.sectionCollapsed.set(false);
       this.purchasedSectionCollapsed.set(true);
       this.stockAppliedAt.set(readPreferredStockAppliedAt(listResult.shoppingList.stockAppliedAt));
       this.loadState.set("ready");

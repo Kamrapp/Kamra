@@ -3,7 +3,8 @@ import { NgTemplateOutlet } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { TableIconButtonComponent } from "../shared/table-icon-button.component";
 import { BrowserLoggerService } from "../browser-logger.service";
-import { HouseholdV2Service, type HouseholdV2Batch, type HouseholdV2Product, type HouseholdV2ProductGroup, type HouseholdV2Workspace } from "./household-v2.service";
+import { HouseholdV2Service, type HouseholdV2Batch, type HouseholdV2Product, type HouseholdV2ProductGroup, type HouseholdV2ProductRow, type HouseholdV2Workspace } from "./household-v2.service";
+import { householdDomainIcons } from "./household-domain-icons";
 
 @Component({ selector: "app-household-v2-workspace", standalone: true, imports: [FormsModule, NgTemplateOutlet, TableIconButtonComponent], templateUrl: "./household-v2-workspace.component.html", styleUrl: "./household-v2-workspace.component.css" })
 export class HouseholdV2WorkspaceComponent {
@@ -19,9 +20,12 @@ export class HouseholdV2WorkspaceComponent {
   readonly loadState = signal<"idle" | "loading" | "ready" | "error">("idle");
   readonly editingBatchId = signal<string | null>(null);
   readonly expandedGroupIds = signal<ReadonlySet<string>>(new Set());
+  readonly expandedProductIds = signal<ReadonlySet<string>>(new Set());
   readonly groupDetailsIds = signal<ReadonlySet<string>>(new Set());
   readonly productDetailsIds = signal<ReadonlySet<string>>(new Set());
   readonly unassignedExpanded = signal(true);
+  readonly sectionExpanded = signal(true);
+  readonly icons = householdDomainIcons;
   private readonly service = inject(HouseholdV2Service);
   private readonly logger = inject(BrowserLoggerService);
   constructor() { effect(() => { const householdId = this.householdId(); this.refreshRevision(); if (householdId) void this.load(householdId); }); }
@@ -30,13 +34,19 @@ export class HouseholdV2WorkspaceComponent {
     this.loadState.set("loading"); this.errorMessage.set("");
     const result = await this.service.loadWorkspace(householdId);
     if (result.status === "error") { this.loadState.set("error"); this.errorMessage.set(result.message ?? "The household workspace could not be loaded."); this.logger.log("error", "Household stock workspace load failed", { householdId }); return; }
-    this.workspace.set(result.workspace ?? null); this.loadState.set("ready");
+    const workspace = result.workspace ?? null;
+    if (!this.workspace() && workspace) this.expandedGroupIds.set(new Set(this.groupIds(workspace.productGroups)));
+    this.workspace.set(workspace); this.loadState.set("ready");
   }
-  groupRows(): Array<{ depth: number; group: HouseholdV2ProductGroup }> { const rows: Array<{ depth: number; group: HouseholdV2ProductGroup }> = []; const visit = (groups: HouseholdV2ProductGroup[], depth: number): void => { for (const group of groups) { rows.push({ depth, group }); visit(group.childGroups, depth + 1); } }; visit(this.workspace()?.productGroups ?? [], 0); return rows; }
+  groupRows(): Array<{ depth: number; group: HouseholdV2ProductGroup }> { const rows: Array<{ depth: number; group: HouseholdV2ProductGroup }> = []; const visit = (groups: HouseholdV2ProductGroup[], depth: number): void => { for (const group of groups) { rows.push({ depth, group }); if (this.isGroupExpanded(group.group.id)) visit(group.childGroups, depth + 1); } }; visit(this.workspace()?.productGroups ?? [], 0); return rows; }
+  groupHasChildren(group: HouseholdV2ProductGroup): boolean { return group.products.length > 0 || group.childGroups.length > 0; }
+  productHasBatches(product: HouseholdV2ProductRow): boolean { return product.batches.length > 0; }
   toggleGroup(groupId: string): void { this.toggleSet(this.expandedGroupIds, groupId); }
   isGroupExpanded(groupId: string): boolean { return this.expandedGroupIds().has(groupId); }
   toggleGroupDetails(groupId: string): void { this.toggleSet(this.groupDetailsIds, groupId); }
   isGroupDetailsOpen(groupId: string): boolean { return this.groupDetailsIds().has(groupId); }
+  toggleProduct(productId: string): void { this.toggleSet(this.expandedProductIds, productId); }
+  isProductExpanded(productId: string): boolean { return this.expandedProductIds().has(productId); }
   toggleProductDetails(productId: string): void { this.toggleSet(this.productDetailsIds, productId); }
   isProductDetailsOpen(productId: string): boolean { return this.productDetailsIds().has(productId); }
   selectGroup(group: HouseholdV2ProductGroup): void { this.groupSelected.emit(group); }
@@ -48,7 +58,6 @@ export class HouseholdV2WorkspaceComponent {
     };
     return visit(this.workspace()?.productGroups ?? []);
   }
-  unassignedQuantity(): number { return (this.workspace()?.unassignedProducts ?? []).reduce((total, row) => total + row.aggregate.availableQuantity, 0); }
   editBatch(batchId: string): void { this.editingBatchId.set(batchId); }
   cancelBatchEdit(): void { this.editingBatchId.set(null); }
   stateLabel(state: string): string { return state.replaceAll("_", " "); }
@@ -66,4 +75,5 @@ export class HouseholdV2WorkspaceComponent {
     this.logger.log("info", "Stock batch discarded", { batchId: batch.id }); await this.refresh();
   }
   private toggleSet(target: ReturnType<typeof signal<ReadonlySet<string>>>, id: string): void { target.update((ids) => { const next = new Set(ids); if (next.has(id)) next.delete(id); else next.add(id); return next; }); }
+  private groupIds(groups: HouseholdV2ProductGroup[]): string[] { return groups.flatMap((group) => [group.group.id, ...this.groupIds(group.childGroups)]); }
 }

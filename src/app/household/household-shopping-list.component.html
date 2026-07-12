@@ -1,5 +1,7 @@
 
-    <section class="ui-panel-card shopping-card" [attr.aria-label]="loc.t('household.shoppingListPanelTitle')">
+    <section class="ui-panel-card shopping-card" [class.shopping-collapsed]="sectionCollapsed() && !shoppingList()" [attr.aria-label]="loc.t('household.shoppingListPanelTitle')">
+      <button class="shopping-section-toggle" type="button" (click)="sectionCollapsed.set(!sectionCollapsed())" [attr.aria-expanded]="!sectionCollapsed()"><span aria-hidden="true">{{ sectionCollapsed() ? '▸' : '▾' }}</span><span>{{ loc.t('household.shoppingListPanelTitle') }}</span></button>
+      @if (!sectionCollapsed() || shoppingList()) {
       <div class="shopping-layout">
         <section class="shopping-overview">
           <div class="shopping-card-topline">
@@ -176,5 +178,5 @@
       @if (statusMessage()) {
         <p class="shopping-note">{{ statusMessage() }}</p>
       }
-
+      }
     </section>
