@@ -350,6 +350,7 @@ samp {
   min-height: 2.75rem;
   min-width: 8rem;
   padding: 0.7rem 1rem;
+  text-decoration: none;
 }
 
 .ui-button-quiet {
