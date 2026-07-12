@@ -258,6 +258,7 @@
 - Manual script: `scripts/stage8-demo-manual-test.md` now includes the explicit existing-Product `Add stock` flow and the revised sequence.
 - Classification fix: Product concept checkboxes now use standalone Angular form bindings with an explicit boolean setter; repository coverage confirms create-time direct concept references are retained.
 - Concept uniqueness: household-local Concept creation now rejects duplicate normalized keys with a `409` conflict, including database unique-index races, and the UI reports that the name already exists.
+- 2026-07-12 UX decision: Home is Stock Target-first, not Product Concept-first. Product Concepts remain persisted classification/tagging vocabulary but are removed from the household stock workspace until seeded catalogue classification receives a dedicated MVP design. The primary editing hierarchy is Stock Target/Unassigned → Household Product → Stock Batch; allocation remains Batch-level and explicit.
 - Seed validator repair: adding `allowExpiredItems` changed an already-completed household validator, so `household-expired-item-policy-v1` now independently upgrades the validator and backfills the permissive default before demo reseeding.
 - API grouped workspace: GET `/api/households/{householdId}/stock-workspace`; verify target totals are derived from active allocations, allocated batches group under their Household Product, and unallocated batches remain visible.
 - Browser Home: sign in, select a household, confirm the grouped Stage 8 workspace appears above the legacy controls, refresh it, and verify target/product/batch/unassigned hierarchy.
@@ -273,7 +274,7 @@
 
 ## Next Step
 
-Continue Stage 8 with classification sync/admin surfaces, household-local classification/membership, reconciliation and command closure, then Angular v2 service/UI cutover.
+Implement the Stock Target-first inline table editing model: Target/Product/Batch CRUD with explicit allocation context, then simplify the right-side composer. Keep Product Concept management out of Home.
 
 ## Notes For Future Agent
 
