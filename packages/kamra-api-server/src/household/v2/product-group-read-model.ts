@@ -34,7 +34,10 @@ export function buildProductGroupWorkspace(input: { allowExpiredItems: boolean; 
     batches.push(batch);
     batchesByProduct.set(batch.householdProductId, batches);
   }
-  const productRows = new Map(input.products.map((product) => [product.id, { aggregate: summarizeProduct(product.targetPolicy ?? null, product.defaultTrackingUnit, batchesByProduct.get(product.id) ?? [], input.allowExpiredItems, input.today), batches: batchesByProduct.get(product.id) ?? [], product }]));
+  const productRows = new Map(input.products.map((product) => {
+    const batches = orderBatchesForWorkspace(batchesByProduct.get(product.id) ?? [], input.today);
+    return [product.id, { aggregate: summarizeProduct(product.targetPolicy ?? null, product.defaultTrackingUnit, batches, input.allowExpiredItems, input.today), batches, product }];
+  }));
   const childrenByParent = new Map<string | null, ProductGroup[]>();
   for (const group of input.groups) {
     const children = childrenByParent.get(group.parentProductGroupId ?? null) ?? [];
@@ -51,6 +54,15 @@ export function buildProductGroupWorkspace(input: { allowExpiredItems: boolean; 
   const productGroups = (childrenByParent.get(null) ?? []).sort(compareGroups).map(buildNode);
   const assigned = new Set(input.products.filter((product) => product.productGroupId).map((product) => product.id));
   return { allowExpiredItems: input.allowExpiredItems, productGroups, unassignedBatches, unassignedProducts: input.products.filter((product) => !assigned.has(product.id)).map((product) => productRows.get(product.id)!) };
+}
+
+function orderBatchesForWorkspace(batches: readonly StockBatch[], today: string): StockBatch[] {
+  return [...batches].sort((left, right) => {
+    const leftExpired = Boolean(left.expiryOn && left.expiryOn < today);
+    const rightExpired = Boolean(right.expiryOn && right.expiryOn < today);
+    if (leftExpired !== rightExpired) return leftExpired ? -1 : 1;
+    return (left.expiryOn ?? "9999-12-31").localeCompare(right.expiryOn ?? "9999-12-31") || left.acquiredOn.localeCompare(right.acquiredOn) || left.id.localeCompare(right.id);
+  });
 }
 
 function summarizeProduct(policy: TargetPolicy | null, defaultTrackingUnit: TrackingUnit | null | undefined, batches: readonly StockBatch[], allowExpiredItems: boolean, today: string): ProductStockAggregate {

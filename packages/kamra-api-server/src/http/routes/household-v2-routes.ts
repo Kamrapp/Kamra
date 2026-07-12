@@ -10,6 +10,8 @@ import { MongoProductGroupReadRepository } from "../../household/v2/mongo-produc
 import { MongoProductGroupRepository } from "../../household/v2/mongo-product-group-repository.js";
 import { MongoProductComposerRepository } from "../../household/v2/mongo-product-composer-repository.js";
 import { MongoHouseholdProductConceptRepository } from "../../household/v2/mongo-household-product-concept-repository.js";
+import { FeatureFlagService } from "../../feature-toggles/service.js";
+import { MongoFeatureFlagStore } from "../../feature-toggles/mongo-store.js";
 import { schemaVersion, type CreateHouseholdProductRequest, type CreateManualStockBatchRequest, type CreateProductGroupRequest, type CreateStockTargetRequest, type ProductGroup, type StockTarget, type TargetPolicy, type TrackingUnit } from "../../household/v2/contracts.js";
 import { assertCreateHouseholdProductRequest, assertCreateManualStockBatchRequest, assertCreateProductGroupRequest, assertCreateStockTargetRequest, assertProductGroup, assertTargetPolicy, assertTrackingUnit } from "../../household/v2/validation.js";
 
@@ -21,7 +23,7 @@ export const householdV2WorkspaceRoute: AppRoute = {
     const householdId = pathSegment(request.path.match(/^\/api\/households\/([^/]+)\/stock-workspace$/)?.[1]);
     if (!householdId) return json(400, { error: "invalid_household_path" });
     return await withHouseholdDatabase(context, householdId, user.email, async (database) => json(200, {
-      productGroupWorkspace: await new MongoProductGroupReadRepository(database).getWorkspace(householdId, new Date().toISOString().slice(0, 10)),
+      productGroupWorkspace: { ...(await new MongoProductGroupReadRepository(database).getWorkspace(householdId, new Date().toISOString().slice(0, 10))), useAbbreviatedUiLabels: (await new FeatureFlagService(new MongoFeatureFlagStore(database)).evaluate("useAbbreviatedUiLabels")).enabled },
       schemaVersion,
       workspace: await new MongoStockReadRepository(database).getWorkspace(householdId, new Date().toISOString().slice(0, 10))
     }));
@@ -276,7 +278,7 @@ export const householdV2CorrectBatchRoute: AppRoute = {
   match: (request) => request.method === "POST" && /^\/api\/households\/[^/]+\/batches\/[^/]+\/correct$/.test(request.path),
   handle: async (request, context) => {
     const user = context.authenticateRequestUser(request); if (!user) return unauthorized("apiErrors.signInRequired");
-    const match = request.path.match(/^\/api\/households\/([^/]+)\/batches\/([^/]+)\/correct$/); const householdId = match?.[1]; const batchId = match?.[2]; const body = parseJsonObject(request.bodyText);
+    const match = request.path.match(/^\/api\/households\/([^/]+)\/batches\/([^/]+)\/correct$/); const householdId = pathSegment(match?.[1]); const batchId = pathSegment(match?.[2]); const body = parseJsonObject(request.bodyText);
     if (!householdId || !batchId || !body || typeof body["operationId"] !== "string" || typeof body["requestFingerprint"] !== "string" || typeof body["resultingQuantity"] !== "number" || !Number.isFinite(body["resultingQuantity"]) || !Number.isInteger(body["expectedBatchRevision"]) || (body["expectedBatchRevision"] as number) < 0 || (body["acquiredOn"] !== undefined && !isIsoDate(body["acquiredOn"])) || (body["expiryOn"] !== undefined && body["expiryOn"] !== null && !isIsoDate(body["expiryOn"]))) return json(400, { error: "invalid_stock_correction_request" });
     return await runBatchCommand(context, user.email, householdId, batchId, body, "correct");
   }
@@ -286,7 +288,7 @@ export const householdV2DiscardBatchRoute: AppRoute = {
   match: (request) => request.method === "POST" && /^\/api\/households\/[^/]+\/batches\/[^/]+\/discard$/.test(request.path),
   handle: async (request, context) => {
     const user = context.authenticateRequestUser(request); if (!user) return unauthorized("apiErrors.signInRequired");
-    const match = request.path.match(/^\/api\/households\/([^/]+)\/batches\/([^/]+)\/discard$/); const householdId = match?.[1]; const batchId = match?.[2]; const body = parseJsonObject(request.bodyText);
+    const match = request.path.match(/^\/api\/households\/([^/]+)\/batches\/([^/]+)\/discard$/); const householdId = pathSegment(match?.[1]); const batchId = pathSegment(match?.[2]); const body = parseJsonObject(request.bodyText);
     if (!householdId || !batchId || !body || typeof body["operationId"] !== "string" || typeof body["requestFingerprint"] !== "string" || !Number.isInteger(body["expectedBatchRevision"]) || (body["expectedBatchRevision"] as number) < 0) return json(400, { error: "invalid_stock_discard_request" });
     return await runBatchCommand(context, user.email, householdId, batchId, body, "discard");
   }

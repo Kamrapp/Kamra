@@ -42,8 +42,8 @@ describe("MongoStockCommandRepository", () => {
     await repository.acquireBatch({ batch, operationId: "op-acquire", requestFingerprint: "acquire" });
     const allocation: StockAllocation = { acceptanceResult: "accepted", allocatedQuantity: 2, createdAt: batch.createdAt, createdByUserId: "u", householdId: "h", id: "allocation-1", revision: 0, status: "active", stockBatchId: batch.id, stockTargetId: target.id, unit: "l", updatedAt: batch.updatedAt, updatedByUserId: "u" };
     await repository.allocateBatch({ allocation, operationId: "op-allocate", requestFingerprint: "allocate" });
-    await repository.correctBatch({ actorUserId: "u", batchId: batch.id, householdId: "h", expectedBatchRevision: 0, occurredAt: batch.updatedAt, operationId: "op-correct", requestFingerprint: "correct", resultingQuantity: 1.5 });
-    expect(db.__collections["household_stock_batches"]!.docs[0]).toMatchObject({ remainingQuantity: 1.5, revision: 1 });
+    await repository.correctBatch({ actorUserId: "u", acquiredOn: "2026-07-12", batchId: batch.id, expiryOn: "2026-07-10", householdId: "h", expectedBatchRevision: 0, occurredAt: batch.updatedAt, operationId: "op-correct", requestFingerprint: "correct", resultingQuantity: 1.5 });
+    expect(db.__collections["household_stock_batches"]!.docs[0]).toMatchObject({ acquiredOn: "2026-07-12", expiryOn: "2026-07-10", remainingQuantity: 1.5, revision: 1 });
     await repository.discardBatch({ actorUserId: "u", batchId: batch.id, householdId: "h", expectedBatchRevision: 1, occurredAt: batch.updatedAt, operationId: "op-discard", requestFingerprint: "discard" });
     expect(db.__collections["household_stock_batches"]!.docs[0]).toMatchObject({ remainingQuantity: 0, status: "discarded", revision: 2 });
     expect(db.__collections["household_stock_movements"]!.docs).toHaveLength(3);

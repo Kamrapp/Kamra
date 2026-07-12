@@ -20,4 +20,12 @@ describe("buildProductGroupWorkspace", () => {
     const result = buildProductGroupWorkspace({ allowExpiredItems: true, batches: [], groups: [], products: [product("p1", "Unassigned flour", null)], today: "2026-07-12" });
     expect(result.unassignedProducts[0]?.aggregate).toMatchObject({ availableQuantity: 0, state: "not_tracked" });
   });
+
+  it("orders expired batches first, then earliest expiry", () => {
+    const expired = { ...batch("expired", "p1", 1), expiryOn: "2026-07-10" };
+    const soon = { ...batch("soon", "p1", 1), expiryOn: "2026-07-13" };
+    const noExpiry = batch("none", "p1", 1);
+    const result = buildProductGroupWorkspace({ allowExpiredItems: true, batches: [noExpiry, soon, expired], groups: [], products: [product("p1", "Milk", null)], today: "2026-07-12" });
+    expect(result.unassignedProducts[0]?.batches.map((entry) => entry.id)).toEqual(["expired", "soon", "none"]);
+  });
 });
