@@ -26,4 +26,11 @@ describe("MongoStockReadRepository", () => {
     expect(result.unassignedBatches).toHaveLength(1);
     expect(result.unassignedProducts).toEqual([]);
   });
+
+  it("keeps a Product with no physical batches visible as unassigned", async () => {
+    const emptyProduct = { ...product, id: "empty-product", displayName: "Unstocked flour" };
+    const db = createFakeDb({ household_stock_targets: new FakeCollection<Record<string, unknown>>("household_stock_targets", []), household_stock_batches: new FakeCollection<Record<string, unknown>>("household_stock_batches", []), household_stock_allocations: new FakeCollection<Record<string, unknown>>("household_stock_allocations", []), household_products: new FakeCollection<Record<string, unknown>>("household_products", [emptyProduct as unknown as Record<string, unknown>]) });
+    const result = await new MongoStockReadRepository(db).getWorkspace("h", "2026-07-11");
+    expect(result.unassignedProducts.map((item) => item.id)).toEqual(["empty-product"]);
+  });
 });

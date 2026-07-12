@@ -1,9 +1,9 @@
 <section class="ui-panel-card product-editor" aria-label="Product editor">
-  <p class="ui-kicker">{{ isNew ? 'New product' : 'Product editor' }}</p>
+  <p class="ui-kicker">{{ isNew ? 'New product' : (batchOnly() ? 'New stock batch' : 'Product editor') }}</p>
   <h2 class="ui-card-title">{{ isNew ? 'Add product' : product()!.displayName }}</h2>
-  <p class="ui-copy-muted">A Product can exist without stock. Add a positive first Batch only when physical stock is present.</p>
+  <p class="ui-copy-muted">{{ batchOnly() ? 'Add a separate physical stock batch to this Product. Its quantity and dates remain independent.' : 'A Product can exist without stock. Add a positive first Batch only when physical stock is present.' }}</p>
   <form (ngSubmit)="save()">
-    <label>Product name<input class="ui-form-control" [(ngModel)]="draft.displayName" name="productDisplayName" /></label>
+    <label>Product name<input class="ui-form-control" [(ngModel)]="draft.displayName" name="productDisplayName" [readonly]="batchOnly()" /></label>
     <fieldset class="concept-picker"><legend>Concepts</legend>@for (concept of concepts(); track concept.key) { <label class="concept-option"><input type="checkbox" [checked]="selectedConceptKeys().has(concept.key)" (change)="toggleConcept(concept.key)" /> {{ concept.label }}</label> } @empty { <p class="ui-copy-muted">No household concepts yet.</p> }</fieldset>
     <label class="batch-toggle"><input type="checkbox" [(ngModel)]="draft.createBatch" name="createBatch" /> Create initial stock batch</label>
     @if (draft.createBatch) {

@@ -31,7 +31,7 @@
               <div class="stock-grid stock-product-row">
                 <button class="row-name product-name" type="button" (click)="productSelected.emit(product)"><strong>{{ product.displayName }}</strong><small>{{ product.identityKind }}</small></button>
                 <span>{{ productQuantity(group, product.id) }} {{ group.target.trackingUnit }}</span><span>—</span><span class="ui-copy-muted">Product</span>
-                <button class="ui-button ui-button-quiet ui-button-sm" type="button" (click)="productSelected.emit(product)">Edit</button>
+                <span class="row-actions"><button class="ui-button ui-button-quiet ui-button-sm" type="button" (click)="productSelected.emit(product)">Edit</button><button class="ui-button ui-button-quiet ui-button-sm" type="button" (click)="newBatchRequested.emit(product)">Add stock</button></span>
               </div>
               @for (batch of group.batches; track batch.id) {
                 @if (batch.householdProductId === product.id) {
@@ -46,7 +46,7 @@
         }
         <div class="stock-grid stock-target-row unassigned-row"><span class="row-name"><strong>Unassigned or unclassified</strong></span><span>{{ current.unassignedBatches.length + current.unassignedProducts.length }}</span><span>—</span><span class="ui-copy-muted">Needs allocation</span><span></span></div>
         @for (product of current.unassignedProducts; track product.id) {
-          <div class="stock-grid stock-product-row"><button class="row-name product-name" type="button" (click)="productSelected.emit(product)"><strong>{{ product.displayName }}</strong><small>Empty product</small></button><span>0</span><span>—</span><span class="ui-copy-muted">No batch yet</span><button class="ui-button ui-button-quiet ui-button-sm" type="button" (click)="productSelected.emit(product)">Edit</button></div>
+          <div class="stock-grid stock-product-row"><button class="row-name product-name" type="button" (click)="productSelected.emit(product)"><strong>{{ product.displayName }}</strong><small>Empty product</small></button><span>0</span><span>—</span><span class="ui-copy-muted">No batch yet</span><span class="row-actions"><button class="ui-button ui-button-quiet ui-button-sm" type="button" (click)="productSelected.emit(product)">Edit</button><button class="ui-button ui-button-quiet ui-button-sm" type="button" (click)="newBatchRequested.emit(product)">Add stock</button></span></div>
         }
         @for (batch of current.unassignedBatches; track batch.id) {
           <div class="stock-grid stock-batch-row"><span class="row-name batch-name">{{ batch.acquisitionSnapshot.displayName }}</span><span>{{ batch.remainingQuantity }} {{ batch.unit }}</span><span>—</span><span class="ui-copy-muted">Unassigned</span><button class="ui-button ui-button-quiet ui-button-sm" type="button" (click)="editBatch(batch.id)">Edit</button></div>

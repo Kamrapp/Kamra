@@ -94,6 +94,7 @@ export class HomeComponent implements OnDestroy {
   readonly mutationState = signal<"idle" | "saving">("idle");
   readonly selectedHouseholdId = signal<string>("");
   readonly selectedV2Product = signal<HouseholdV2Product | null>(null);
+  readonly v2BatchEditorMode = signal(false);
   readonly productEditorRevision = signal(0);
   readonly v2WorkspaceRevision = signal(0);
   readonly selectedItemId = signal<string | null>(null);
@@ -459,16 +460,25 @@ export class HomeComponent implements OnDestroy {
   }
 
   selectV2Product(product: HouseholdV2Product): void {
+    this.v2BatchEditorMode.set(false);
     this.selectedV2Product.set(product);
     this.productEditorRevision.update((revision) => revision + 1);
   }
 
   startV2ProductCreate(): void {
+    this.v2BatchEditorMode.set(false);
     this.selectedV2Product.set(null);
     this.productEditorRevision.update((revision) => revision + 1);
   }
 
+  startV2BatchCreate(product: HouseholdV2Product): void {
+    this.v2BatchEditorMode.set(true);
+    this.selectedV2Product.set(product);
+    this.productEditorRevision.update((revision) => revision + 1);
+  }
+
   refreshV2Workspace(): void {
+    this.v2BatchEditorMode.set(false);
     this.selectedV2Product.set(null);
     this.v2WorkspaceRevision.update((revision) => revision + 1);
   }

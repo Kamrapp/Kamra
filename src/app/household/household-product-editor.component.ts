@@ -22,6 +22,7 @@ interface ProductDraft {
 export class HouseholdProductEditorComponent {
   readonly householdId = input("");
   readonly product = input<HouseholdV2Product | null>(null);
+  readonly batchOnly = input(false);
   readonly resetRevision = input(0);
   readonly changed = output<void>();
   readonly errorMessage = signal("");
@@ -35,7 +36,7 @@ export class HouseholdProductEditorComponent {
     effect(() => {
       const product = this.product();
       this.resetRevision();
-      this.draft = { ...createDraft(), displayName: product?.displayName ?? "" };
+      this.draft = { ...createDraft(), createBatch: this.batchOnly(), displayName: product?.displayName ?? "" };
       this.selectedConceptKeys.set(new Set(product?.directConcepts?.filter((concept) => concept.scope === "household").map((concept) => concept.key) ?? []));
       this.errorMessage.set("");
       const householdId = this.householdId();
@@ -60,14 +61,14 @@ export class HouseholdProductEditorComponent {
     let productId = product?.id;
     const conceptKeys = [...this.selectedConceptKeys()];
     const classificationChanged = product ? !sameKeys(conceptKeys, product.directConcepts?.filter((concept) => concept.scope === "household").map((concept) => concept.key) ?? []) : false;
-    if (product) {
+    if (product && !this.batchOnly()) {
       if (classificationChanged) {
         const classification = await this.service.updateProductClassification({ conceptKeys, expectedRevision: product.revision, householdId, productId: product.id });
         if (classification.status === "error") { this.saving.set(false); this.errorMessage.set(classification.message ?? "Product classification could not be saved."); return; }
       }
       const savedProduct = await this.service.updateProductIdentity({ displayName: name, expectedRevision: product.revision + (classificationChanged ? 1 : 0), householdId, productId: product.id });
       if (savedProduct.status === "error") { this.saving.set(false); this.errorMessage.set(savedProduct.message ?? "Product could not be saved."); return; }
-    } else {
+    } else if (!product) {
       const createdProduct = await this.service.createProduct({ conceptKeys, displayName: name, householdId });
       if (createdProduct.status === "error") { this.saving.set(false); this.errorMessage.set(createdProduct.message ?? "Product could not be saved."); return; }
       productId = createdProduct.product?.id;

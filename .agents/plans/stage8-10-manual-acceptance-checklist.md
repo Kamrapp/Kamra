@@ -4,7 +4,7 @@ This is the single source of truth for manual/browser verification carried forwa
 
 ## Current status
 
-- Stage 8: Not ready for manual closeout. The v2 backend foundation, initial Stock Target CRUD, and reusable Household Product anchor API are implemented, but complete classification pack/admin sync, household-local classification management, household membership management, migration reconciliation, Angular cutover, generated Shopping Need synchronization, and the complete browser flow remain incomplete.
+- Stage 8: Not ready for manual closeout. The v2 household stock workspace and Product/Batch editing slices are implemented, but the remaining backend/admin/membership/reconciliation work and browser confirmation are still required.
 - Stage 9: Blocked until Stage 8 closeout and separate plan approval.
 - Stage 10: Blocked until Stage 9 closeout and separate plan approval.
 
@@ -28,6 +28,8 @@ This is the single source of truth for manual/browser verification carried forwa
 - [ ] Verify Home top-level rows are grouped Stock Targets plus an Unassigned/Unclassified group; expand Product and Batch details; confirm target amount is derived/read-only and batch physical fields remain editable.
 - [ ] Sign in and manually verify the Stage 8 grouped workspace renders on Home, refreshes, and keeps target/product/batch/unassigned hierarchy visible.
 - [ ] Edit a Household Product identity and verify its existing batch acquisition/expiry/history remains unchanged; verify stale Product revisions are rejected.
+- [ ] From a grouped Product row, click `Add stock`; verify the right editor switches to batch-only mode, keeps Product identity read-only, saves a separate batch, and leaves the Product in its existing group/unassigned state.
+- [ ] Create a Product with no initial batch; verify it appears under Unassigned/Unclassified, then use `Add stock` to add its first physical batch.
 - [ ] Correct a batch quantity and discard a batch from grouped Home; verify the target aggregate refreshes and the batch remains in history/status rather than disappearing silently.
 - [ ] Edit a batch acquisition/expiry date from grouped Home; verify an expiry-before-acquisition date is accepted and valid changes refresh without changing the Product identity.
 - [ ] Verify an expiry date before acquisition is accepted; toggle household `allowExpiredItems` off/on and confirm expired stock remains visible but is excluded/included in derived availability and consumption accordingly. Default must be permissive.

@@ -7,6 +7,7 @@ export class HouseholdV2WorkspaceComponent {
   readonly householdId = input("");
   readonly refreshRevision = input(0);
   readonly productSelected = output<HouseholdV2Product>();
+  readonly newBatchRequested = output<HouseholdV2Product>();
   readonly newProductRequested = output<void>();
   readonly workspace = signal<HouseholdV2Workspace | null>(null);
   readonly errorMessage = signal("");
