@@ -35,7 +35,7 @@ export class MongoProductGroupRepository {
     return await this.groups.find({ householdId, status: "active" }).sort({ displayName: 1 }).toArray();
   }
 
-  async update(input: { displayName: string; expectedRevision: number; householdId: string; id: string; parentProductGroupId?: string | null; targetPolicy?: TargetPolicy | null; updatedAt: string; updatedByUserId: string }): Promise<ProductGroup> {
+  async update(input: { displayName: string; expectedRevision: number; householdId: string; id: string; parentProductGroupId?: string | null; targetPolicy?: TargetPolicy | null; trackingUnit: ProductGroup["trackingUnit"]; updatedAt: string; updatedByUserId: string }): Promise<ProductGroup> {
     const current = await this.groups.findOne({ householdId: input.householdId, id: input.id, status: "active" });
     if (!current) throw new Error("product_group_not_found");
     if (current.revision !== input.expectedRevision) throw new Error("stale_revision");
@@ -43,6 +43,7 @@ export class MongoProductGroupRepository {
     const next: ProductGroup = {
       ...current,
       displayName: input.displayName,
+      trackingUnit: input.trackingUnit,
       ...(input.parentProductGroupId === undefined ? {} : { parentProductGroupId: input.parentProductGroupId }),
       ...(input.targetPolicy === undefined ? {} : { targetPolicy: input.targetPolicy }),
       revision: current.revision + 1,

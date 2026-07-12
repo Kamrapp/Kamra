@@ -1,25 +1,26 @@
 import { Component, effect, inject, input, output, signal } from "@angular/core";
+import { NgTemplateOutlet } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { TableIconButtonComponent } from "../shared/table-icon-button.component";
 import { BrowserLoggerService } from "../browser-logger.service";
-import { HouseholdV2Service, type HouseholdV2Product, type HouseholdV2Workspace } from "./household-v2.service";
+import { HouseholdV2Service, type HouseholdV2Product, type HouseholdV2ProductGroup, type HouseholdV2Workspace } from "./household-v2.service";
 
-@Component({ selector: "app-household-v2-workspace", standalone: true, imports: [FormsModule, TableIconButtonComponent], templateUrl: "./household-v2-workspace.component.html", styleUrl: "./household-v2-workspace.component.css" })
+@Component({ selector: "app-household-v2-workspace", standalone: true, imports: [FormsModule, NgTemplateOutlet, TableIconButtonComponent], templateUrl: "./household-v2-workspace.component.html", styleUrl: "./household-v2-workspace.component.css" })
 export class HouseholdV2WorkspaceComponent {
   readonly householdId = input("");
   readonly refreshRevision = input(0);
   readonly productSelected = output<HouseholdV2Product>();
   readonly newBatchRequested = output<HouseholdV2Product>();
   readonly newProductRequested = output<void>();
+  readonly groupSelected = output<HouseholdV2ProductGroup>();
   readonly workspace = signal<HouseholdV2Workspace | null>(null);
   readonly errorMessage = signal("");
   readonly loadState = signal<"idle" | "loading" | "ready" | "error">("idle");
-  readonly editingTargetId = signal<string | null>(null);
   readonly editingBatchId = signal<string | null>(null);
-  readonly addingTarget = signal(false);
-  readonly targetDetailsId = signal<string | null>(null);
-  readonly expandedTargetIds = signal<ReadonlySet<string>>(new Set());
-  targetDraft = { displayName: "", minimumQuantity: 0, targetQuantity: 0, trackingUnit: "count" };
+  readonly expandedGroupIds = signal<ReadonlySet<string>>(new Set());
+  readonly groupDetailsIds = signal<ReadonlySet<string>>(new Set());
+  readonly productDetailsIds = signal<ReadonlySet<string>>(new Set());
+  readonly unassignedExpanded = signal(true);
   private readonly service = inject(HouseholdV2Service);
   private readonly logger = inject(BrowserLoggerService);
   constructor() { effect(() => { const householdId = this.householdId(); this.refreshRevision(); if (householdId) void this.load(householdId); }); }
@@ -30,33 +31,17 @@ export class HouseholdV2WorkspaceComponent {
     if (result.status === "error") { this.loadState.set("error"); this.errorMessage.set(result.message ?? "The household workspace could not be loaded."); this.logger.log("error", "Household stock workspace load failed", { householdId }); return; }
     this.workspace.set(result.workspace ?? null); this.loadState.set("ready");
   }
-  toggleTarget(targetId: string): void { this.expandedTargetIds.update((ids) => { const next = new Set(ids); if (next.has(targetId)) next.delete(targetId); else next.add(targetId); return next; }); }
-  isTargetExpanded(targetId: string): boolean { return this.expandedTargetIds().has(targetId); }
-  toggleTargetDetails(targetId: string): void { this.targetDetailsId.update((current) => current === targetId ? null : targetId); }
-  isTargetDetailsOpen(targetId: string): boolean { return this.targetDetailsId() === targetId; }
-  editTarget(target: { displayName: string; id: string; minimumQuantity: number; targetQuantity: number; trackingUnit: string }): void { this.editingTargetId.set(target.id); this.targetDraft = { displayName: target.displayName, minimumQuantity: target.minimumQuantity, targetQuantity: target.targetQuantity, trackingUnit: target.trackingUnit }; }
-  cancelTargetEdit(): void { this.editingTargetId.set(null); }
-  beginTargetCreate(): void { this.addingTarget.set(true); this.editingTargetId.set(null); this.targetDraft = { displayName: "", minimumQuantity: 0, targetQuantity: 0, trackingUnit: "count" }; }
-  cancelTargetCreate(): void { this.addingTarget.set(false); }
-  async saveNewTarget(): Promise<void> {
-    const draft = this.targetDraft;
-    if (!this.isTargetDraftValid(draft)) { this.errorMessage.set("Target name, unit, and limits are invalid."); this.logger.log("info", "Stock Target creation rejected by client validation"); return; }
-    this.logger.log("info", "Creating Stock Target");
-    const result = await this.service.createStockTarget({ displayName: draft.displayName.trim(), householdId: this.householdId(), minimumQuantity: draft.minimumQuantity, targetQuantity: draft.targetQuantity, trackingUnit: draft.trackingUnit.trim() });
-    if (result.status === "error") { this.errorMessage.set(result.message ?? "Stock Target could not be created."); this.logger.log("error", "Stock Target creation failed"); return; }
-    this.addingTarget.set(false); this.logger.log("info", "Stock Target created"); await this.refresh();
-  }
-  async saveTarget(target: { id: string; revision: number }): Promise<void> {
-    const draft = this.targetDraft;
-    if (!this.isTargetDraftValid(draft)) { this.errorMessage.set("Target name, unit, and limits are invalid."); this.logger.log("info", "Stock Target save rejected by client validation", { targetId: target.id }); return; }
-    this.logger.log("info", "Saving Stock Target", { targetId: target.id });
-    const result = await this.service.updateStockTarget({ displayName: draft.displayName.trim(), expectedRevision: target.revision, householdId: this.householdId(), minimumQuantity: draft.minimumQuantity, targetId: target.id, targetQuantity: draft.targetQuantity, trackingUnit: draft.trackingUnit.trim() });
-    if (result.status === "error") { this.errorMessage.set(result.message ?? "Stock Target could not be updated."); this.logger.log("error", "Stock Target save failed", { targetId: target.id }); return; }
-    this.editingTargetId.set(null); this.logger.log("info", "Stock Target saved", { targetId: target.id }); await this.refresh();
-  }
+  groupRows(): Array<{ depth: number; group: HouseholdV2ProductGroup }> { const rows: Array<{ depth: number; group: HouseholdV2ProductGroup }> = []; const visit = (groups: HouseholdV2ProductGroup[], depth: number): void => { for (const group of groups) { rows.push({ depth, group }); visit(group.childGroups, depth + 1); } }; visit(this.workspace()?.productGroups ?? [], 0); return rows; }
+  toggleGroup(groupId: string): void { this.toggleSet(this.expandedGroupIds, groupId); }
+  isGroupExpanded(groupId: string): boolean { return this.expandedGroupIds().has(groupId); }
+  toggleGroupDetails(groupId: string): void { this.toggleSet(this.groupDetailsIds, groupId); }
+  isGroupDetailsOpen(groupId: string): boolean { return this.groupDetailsIds().has(groupId); }
+  toggleProductDetails(productId: string): void { this.toggleSet(this.productDetailsIds, productId); }
+  isProductDetailsOpen(productId: string): boolean { return this.productDetailsIds().has(productId); }
+  selectGroup(group: HouseholdV2ProductGroup): void { this.groupSelected.emit(group); }
+  unassignedQuantity(): number { return (this.workspace()?.unassignedProducts ?? []).reduce((total, row) => total + row.aggregate.availableQuantity, 0); }
   editBatch(batchId: string): void { this.editingBatchId.set(batchId); }
   cancelBatchEdit(): void { this.editingBatchId.set(null); }
-  productQuantity(group: HouseholdV2Workspace["targets"][number], productId: string): number { return group.batches.filter((batch) => batch.householdProductId === productId).reduce((total, batch) => total + batch.remainingQuantity, 0); }
   stateLabel(state: string): string { return state.replaceAll("_", " "); }
   async correctBatch(batch: { acquiredOn: string; expiryOn?: string | null; id: string; revision: number }, resultingQuantity: number, acquiredOn: string, expiryOn: string): Promise<void> {
     this.logger.log("info", "Correcting stock batch", { batchId: batch.id });
@@ -71,5 +56,5 @@ export class HouseholdV2WorkspaceComponent {
     if (result.status === "error") { this.errorMessage.set(result.message ?? "Batch could not be discarded."); this.logger.log("error", "Stock batch discard failed", { batchId: batch.id }); return; }
     this.logger.log("info", "Stock batch discarded", { batchId: batch.id }); await this.refresh();
   }
-  private isTargetDraftValid(draft: { displayName: string; minimumQuantity: number; targetQuantity: number; trackingUnit: string }): boolean { return Boolean(draft.displayName.trim()) && Number.isFinite(draft.minimumQuantity) && Number.isFinite(draft.targetQuantity) && draft.minimumQuantity >= 0 && draft.targetQuantity >= draft.minimumQuantity && Boolean(draft.trackingUnit.trim()); }
+  private toggleSet(target: ReturnType<typeof signal<ReadonlySet<string>>>, id: string): void { target.update((ids) => { const next = new Set(ids); if (next.has(id)) next.delete(id); else next.add(id); return next; }); }
 }

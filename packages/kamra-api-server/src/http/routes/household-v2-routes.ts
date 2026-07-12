@@ -7,9 +7,10 @@ import { createAdHocShoppingNeed } from "../../household/v2/shopping-needs.js";
 import { MongoStockTargetRepository } from "../../household/v2/mongo-stock-target-repository.js";
 import { MongoHouseholdProductRepository } from "../../household/v2/mongo-household-product-repository.js";
 import { MongoProductGroupReadRepository } from "../../household/v2/mongo-product-group-read-repository.js";
+import { MongoProductGroupRepository } from "../../household/v2/mongo-product-group-repository.js";
 import { MongoHouseholdProductConceptRepository } from "../../household/v2/mongo-household-product-concept-repository.js";
-import { schemaVersion, type CreateHouseholdProductRequest, type CreateManualStockBatchRequest, type CreateStockTargetRequest, type StockTarget, type TrackingUnit } from "../../household/v2/contracts.js";
-import { assertCreateHouseholdProductRequest, assertCreateManualStockBatchRequest, assertCreateStockTargetRequest, assertTrackingUnit } from "../../household/v2/validation.js";
+import { schemaVersion, type CreateHouseholdProductRequest, type CreateManualStockBatchRequest, type CreateProductGroupRequest, type CreateStockTargetRequest, type ProductGroup, type StockTarget, type TargetPolicy, type TrackingUnit } from "../../household/v2/contracts.js";
+import { assertCreateHouseholdProductRequest, assertCreateManualStockBatchRequest, assertCreateProductGroupRequest, assertCreateStockTargetRequest, assertProductGroup, assertTargetPolicy, assertTrackingUnit } from "../../household/v2/validation.js";
 
 export const householdV2WorkspaceRoute: AppRoute = {
   match: (request) => request.method === "GET" && /^\/api\/households\/[^/]+\/stock-workspace$/.test(request.path),
@@ -42,6 +43,7 @@ export const householdV2HouseholdProductCollectionRoute: AppRoute = {
       if (request.method === "GET") return json(200, { products: await repository.list(householdId), schemaVersion });
       const input = body as CreateHouseholdProductRequest;
       const now = new Date().toISOString();
+      if (input.productGroupId && !(await new MongoProductGroupRepository(database).get(householdId, input.productGroupId))) return json(404, { error: "product_group_not_found" });
       const product = { ...input, classificationRevision: 0, createdAt: now, createdByUserId: user.email, directAttributes: input.directAttributes ?? [], directConcepts: input.directConcepts ?? [], householdId, id: `household-product:${householdId}:${slug(input.displayName)}`, identitySnapshot: input.identitySnapshot ?? {}, revision: 0, status: "active" as const, updatedAt: now, updatedByUserId: user.email };
       try { return json(201, { product: await repository.create(product), schemaVersion }); } catch (error) { return commandError(error); }
     });
@@ -87,9 +89,43 @@ export const householdV2HouseholdProductIdentityRoute: AppRoute = {
     if (!user) return unauthorized("apiErrors.signInRequired");
     const match = request.path.match(/^\/api\/households\/([^/]+)\/products\/([^/]+)$/); const householdId = match?.[1]; const productId = match?.[2]; const body = parseJsonObject(request.bodyText);
     if (!householdId || !productId || !body || !Number.isInteger(body["expectedRevision"]) || (body["expectedRevision"] as number) < 0 || typeof body["displayName"] !== "string" || body["displayName"].trim().length === 0 || (!!body["identitySnapshot"] && (typeof body["identitySnapshot"] !== "object" || Array.isArray(body["identitySnapshot"])))) return json(400, { error: "invalid_household_product_identity_request" });
+    try { assertCreateHouseholdProductRequest({ displayName: body["displayName"], identityKind: "manual", defaultTrackingUnit: body["defaultTrackingUnit"], note: body["note"], productGroupId: body["productGroupId"], targetPolicy: body["targetPolicy"] }); } catch (error) { return json(400, { error: "invalid_household_product_identity_request", message: error instanceof Error ? error.message : "Household Product details are invalid." }); }
     const displayName = body["displayName"] as string;
     return await withHouseholdDatabase(context, householdId, user.email, async (database) => {
-      try { const product = await new MongoHouseholdProductRepository(database).updateIdentity({ catalogProductId: typeof body["catalogProductId"] === "string" ? body["catalogProductId"] : undefined, displayName: displayName.trim(), expectedRevision: body["expectedRevision"] as number, householdId, id: productId, identitySnapshot: body["identitySnapshot"] as never, updatedAt: new Date().toISOString(), updatedByUserId: user.email }); return json(200, { product, schemaVersion }); } catch (error) { return commandError(error); }
+      if (body["productGroupId"] && !(await new MongoProductGroupRepository(database).get(householdId, body["productGroupId"] as string))) return json(404, { error: "product_group_not_found" });
+      try { const product = await new MongoHouseholdProductRepository(database).updateIdentity({ catalogProductId: typeof body["catalogProductId"] === "string" ? body["catalogProductId"] : undefined, defaultTrackingUnit: body["defaultTrackingUnit"] as never, displayName: displayName.trim(), expectedRevision: body["expectedRevision"] as number, householdId, id: productId, identitySnapshot: body["identitySnapshot"] as never, note: body["note"] as string | null | undefined, productGroupId: body["productGroupId"] as string | null | undefined, targetPolicy: body["targetPolicy"] as TargetPolicy | null | undefined, updatedAt: new Date().toISOString(), updatedByUserId: user.email }); return json(200, { product, schemaVersion }); } catch (error) { return commandError(error); }
+    });
+  }
+};
+
+export const householdV2ProductGroupCollectionRoute: AppRoute = {
+  match: (request) => (request.method === "GET" || request.method === "POST") && /^\/api\/households\/[^/]+\/product-groups$/.test(request.path),
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request); if (!user) return unauthorized("apiErrors.signInRequired");
+    const householdId = request.path.match(/^\/api\/households\/([^/]+)\/product-groups$/)?.[1]; const body = request.method === "POST" ? parseJsonObject(request.bodyText) : null;
+    if (!householdId || (request.method === "POST" && !body)) return json(400, { error: "invalid_product_group_request" });
+    if (body) { try { assertCreateProductGroupRequest(body); } catch (error) { return json(400, { error: "invalid_product_group_request", message: error instanceof Error ? error.message : "Product Group request is invalid." }); } }
+    return await withHouseholdDatabase(context, householdId, user.email, async (database) => {
+      const repository = new MongoProductGroupRepository(database);
+      if (request.method === "GET") return json(200, { productGroups: await repository.list(householdId), schemaVersion });
+      const input = body as CreateProductGroupRequest;
+      if (input.parentProductGroupId && !(await repository.get(householdId, input.parentProductGroupId))) return json(404, { error: "parent_product_group_not_found" });
+      const now = new Date().toISOString(); const group: ProductGroup = { createdAt: now, createdByUserId: user.email, displayName: input.displayName.trim(), householdId, id: `product-group:${householdId}:${slug(input.displayName)}`, parentProductGroupId: input.parentProductGroupId ?? null, revision: 0, status: "active", targetPolicy: input.targetPolicy ?? null, trackingUnit: input.trackingUnit, updatedAt: now, updatedByUserId: user.email };
+      try { assertProductGroup(group); return json(201, { productGroup: await repository.create(group), schemaVersion }); } catch (error) { return commandError(error); }
+    });
+  }
+};
+
+export const householdV2ProductGroupMutationRoute: AppRoute = {
+  match: (request) => request.method === "PATCH" && /^\/api\/households\/[^/]+\/product-groups\/[^/]+$/.test(request.path),
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request); if (!user) return unauthorized("apiErrors.signInRequired");
+    const match = request.path.match(/^\/api\/households\/([^/]+)\/product-groups\/([^/]+)$/); const householdId = match?.[1]; const groupId = match?.[2]; const body = parseJsonObject(request.bodyText);
+    if (!householdId || !groupId || !body || !Number.isInteger(body["expectedRevision"]) || typeof body["displayName"] !== "string" || typeof body["trackingUnit"] !== "string") return json(400, { error: "invalid_product_group_request" });
+    try { assertTrackingUnit(body["trackingUnit"]); if (body["targetPolicy"] !== undefined && body["targetPolicy"] !== null) assertTargetPolicy(body["targetPolicy"]); } catch (error) { return json(400, { error: "invalid_product_group_request", message: error instanceof Error ? error.message : "Product Group request is invalid." }); }
+    return await withHouseholdDatabase(context, householdId, user.email, async (database) => {
+      const repository = new MongoProductGroupRepository(database); if (body["parentProductGroupId"] && !(await repository.get(householdId, body["parentProductGroupId"] as string))) return json(404, { error: "parent_product_group_not_found" });
+      try { const group = await repository.update({ displayName: (body["displayName"] as string).trim(), expectedRevision: body["expectedRevision"] as number, householdId, id: groupId, parentProductGroupId: body["parentProductGroupId"] as string | null | undefined, targetPolicy: body["targetPolicy"] as TargetPolicy | null | undefined, trackingUnit: body["trackingUnit"] as ProductGroup["trackingUnit"], updatedAt: new Date().toISOString(), updatedByUserId: user.email }); return json(200, { productGroup: group, schemaVersion }); } catch (error) { return commandError(error); }
     });
   }
 };

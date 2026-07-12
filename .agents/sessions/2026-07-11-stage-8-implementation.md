@@ -43,6 +43,7 @@
 - Item: Added non-destructive Mongo base-pack sync with seed provenance, repeat-safe unchanged reporting, and customized-record conflict reporting.
 - Item: Added the Product Group/target-policy contract slice: optional embedded target policies on Product Groups and Household Products, direct Product Group membership fields/indexes, Product Group maintenance registry setup, and an idempotent legacy reconciliation that links unambiguous Products, wraps anonymous Batches in generic Products, and reports multi-target Product conflicts. Focused repository tests (4) and typecheck passed.
 - Item: Added the Product Group read model alongside the interim allocation read model. It derives Product/Group quantities from Product-owned Batches, rolls recursive ancestor groups once, keeps no-policy owners neutral, and exposes a parallel `productGroupWorkspace` route payload. Read-model tests (2) and typecheck passed.
+- Item: Home now reads the Product Group workspace payload and renders Product Group → Product → Batch rows with recursive indentation, fixed columns, symbolic detail/add/select actions, Product identity details, neutral no-policy state, and existing Batch correction/discard controls. Product Group collection/mutation routes and Product assignment/target-policy request validation were added; typecheck and web build passed.
 
 ## Changed Files
 

@@ -2,10 +2,13 @@ import { Injectable, inject } from "@angular/core";
 import { buildApiUrl } from "../api-url";
 import { AuthService } from "../auth.service";
 
-export interface HouseholdV2Product { directConcepts?: Array<{ key: string; scope: "catalog" | "household" }>; displayName: string; id: string; identityKind: "manual" | "catalogue"; identitySnapshot?: Record<string, unknown>; revision: number; }
+export interface HouseholdV2TargetPolicy { consumptionPolicy: "earliest_expiry_first" | "oldest_acquired_first"; desiredQuantity: number; expiryWarningDays: number; minimumQuantity: number; trackingUnit: string; }
+export interface HouseholdV2Product { defaultTrackingUnit?: string | null; directConcepts?: Array<{ key: string; scope: "catalog" | "household" }>; displayName: string; id: string; identityKind: "manual" | "catalogue"; identitySnapshot?: Record<string, unknown>; note?: string | null; productGroupId?: string | null; revision: number; targetPolicy?: HouseholdV2TargetPolicy | null; }
 export interface HouseholdV2Batch { acquiredOn: string; acquisitionSnapshot: { displayName: string }; expiryOn?: string | null; householdProductId?: string | null; id: string; remainingQuantity: number; revision: number; unit: string; }
-export interface HouseholdV2TargetGroup { aggregate: { availableQuantity: number; batchCount: number; status: string }; batches: HouseholdV2Batch[]; products: HouseholdV2Product[]; target: { displayName: string; id: string; minimumQuantity: number; revision: number; targetQuantity: number; trackingUnit: string }; }
-export interface HouseholdV2Workspace { allowExpiredItems: boolean; products: HouseholdV2Product[]; targets: HouseholdV2TargetGroup[]; unassignedBatches: HouseholdV2Batch[]; unassignedProducts: HouseholdV2Product[]; }
+export interface HouseholdV2Aggregate { availableQuantity: number; batchCount: number; nextExpiryOn: string | null; state: "below_minimum" | "at_target" | "between_minimum_and_target" | "not_tracked"; trackingUnit: string | null; }
+export interface HouseholdV2ProductRow { aggregate: HouseholdV2Aggregate; batches: HouseholdV2Batch[]; product: HouseholdV2Product; }
+export interface HouseholdV2ProductGroup { aggregate: HouseholdV2Aggregate; childGroups: HouseholdV2ProductGroup[]; group: { displayName: string; id: string; parentProductGroupId?: string | null; revision: number; targetPolicy?: HouseholdV2TargetPolicy | null; trackingUnit: string }; products: HouseholdV2ProductRow[]; }
+export interface HouseholdV2Workspace { allowExpiredItems: boolean; productGroups: HouseholdV2ProductGroup[]; unassignedBatches: HouseholdV2Batch[]; unassignedProducts: HouseholdV2ProductRow[]; }
 
 @Injectable({ providedIn: "root" })
 export class HouseholdV2Service {
@@ -15,8 +18,8 @@ export class HouseholdV2Service {
     if (!this.auth.token()) return { message: "Sign in before loading household stock.", status: "error" };
     const response = await fetch(buildApiUrl(`/api/households/${encodeURIComponent(householdId)}/stock-workspace`), { headers: { accept: "application/json", ...this.auth.getAuthorizationHeaders() }, method: "GET" });
     if (!response.ok) return { message: `Household workspace could not be loaded (${response.status}).`, status: "error" };
-    const payload = await response.json() as { workspace: HouseholdV2Workspace };
-    return { status: "ok", workspace: payload.workspace };
+    const payload = await response.json() as { productGroupWorkspace?: HouseholdV2Workspace; workspace?: HouseholdV2Workspace };
+    return { status: "ok", workspace: payload.productGroupWorkspace ?? payload.workspace };
   }
 
   async updateProductIdentity(input: { displayName: string; householdId: string; productId: string; expectedRevision: number }): Promise<{ status: "error" | "ok"; message?: string }> {

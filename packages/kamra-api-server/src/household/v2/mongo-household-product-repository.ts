@@ -40,11 +40,11 @@ export class MongoHouseholdProductRepository {
     return next;
   }
 
-  async updateIdentity(input: { catalogProductId?: string | null; displayName: string; householdId: string; id: string; identitySnapshot?: HouseholdProduct["identitySnapshot"]; expectedRevision: number; updatedAt: string; updatedByUserId: string }): Promise<HouseholdProduct> {
+  async updateIdentity(input: { catalogProductId?: string | null; defaultTrackingUnit?: TrackingUnit | null; displayName: string; householdId: string; id: string; identitySnapshot?: HouseholdProduct["identitySnapshot"]; note?: string | null; expectedRevision: number; productGroupId?: string | null; targetPolicy?: TargetPolicy | null; updatedAt: string; updatedByUserId: string }): Promise<HouseholdProduct> {
     const current = await this.products.findOne({ householdId: input.householdId, id: input.id, status: "active" });
     if (!current) throw new Error("household_product_not_found");
     if (current.revision !== input.expectedRevision) throw new Error("stale_revision");
-    const next: HouseholdProduct = { ...current, ...(input.catalogProductId === undefined ? {} : { catalogProductId: input.catalogProductId }), ...(input.identitySnapshot === undefined ? {} : { identitySnapshot: input.identitySnapshot }), displayName: input.displayName, revision: current.revision + 1, updatedAt: input.updatedAt, updatedByUserId: input.updatedByUserId };
+    const next: HouseholdProduct = { ...current, ...(input.catalogProductId === undefined ? {} : { catalogProductId: input.catalogProductId }), ...(input.defaultTrackingUnit === undefined ? {} : { defaultTrackingUnit: input.defaultTrackingUnit }), ...(input.identitySnapshot === undefined ? {} : { identitySnapshot: input.identitySnapshot }), ...(input.note === undefined ? {} : { note: input.note }), ...(input.productGroupId === undefined ? {} : { productGroupId: input.productGroupId }), ...(input.targetPolicy === undefined ? {} : { targetPolicy: input.targetPolicy }), displayName: input.displayName, revision: current.revision + 1, updatedAt: input.updatedAt, updatedByUserId: input.updatedByUserId };
     await this.products.updateOne({ householdId: input.householdId, id: input.id, revision: input.expectedRevision }, { $set: next });
     return next;
   }

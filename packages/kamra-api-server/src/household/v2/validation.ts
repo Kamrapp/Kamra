@@ -1,4 +1,4 @@
-import { householdProductIdentityKinds, trackingUnits, type AcceptanceCriteria, type CreateHouseholdProductRequest, type CreateManualStockBatchRequest, type CreateStockTargetRequest, type ProductGroup, type StockAllocation, type StockBatch, type StockTarget, type TargetPolicy, type TrackingUnit } from "./contracts.js";
+import { householdProductIdentityKinds, trackingUnits, type AcceptanceCriteria, type CreateHouseholdProductRequest, type CreateManualStockBatchRequest, type CreateProductGroupRequest, type CreateStockTargetRequest, type ProductGroup, type StockAllocation, type StockBatch, type StockTarget, type TargetPolicy, type TrackingUnit } from "./contracts.js";
 
 function isDate(value: unknown): value is string {
   return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`));
@@ -118,6 +118,15 @@ export function assertCreateStockTargetRequest(value: unknown, label = "createSt
   assertAcceptanceCriteria(request["acceptanceCriteria"], `${label}.acceptanceCriteria`);
 }
 
+export function assertCreateProductGroupRequest(value: unknown, label = "createProductGroupRequest"): asserts value is CreateProductGroupRequest {
+  assertValue(!!value && typeof value === "object" && !Array.isArray(value), `${label} must be an object`);
+  const request = value as Record<string, unknown>;
+  assertValue(typeof request["displayName"] === "string" && request["displayName"].trim().length > 0, `${label}.displayName is required`);
+  assertTrackingUnit(request["trackingUnit"], `${label}.trackingUnit`);
+  if (request["parentProductGroupId"] !== undefined && request["parentProductGroupId"] !== null) assertValue(typeof request["parentProductGroupId"] === "string" && request["parentProductGroupId"].length > 0, `${label}.parentProductGroupId is invalid`);
+  if (request["targetPolicy"] !== undefined && request["targetPolicy"] !== null) assertTargetPolicy(request["targetPolicy"], `${label}.targetPolicy`);
+}
+
 export function assertCreateHouseholdProductRequest(value: unknown, label = "createHouseholdProductRequest"): asserts value is CreateHouseholdProductRequest {
   assertValue(!!value && typeof value === "object" && !Array.isArray(value), `${label} must be an object`);
   const request = value as Record<string, unknown>;
@@ -126,4 +135,8 @@ export function assertCreateHouseholdProductRequest(value: unknown, label = "cre
   if (request["catalogProductId"] !== undefined && request["catalogProductId"] !== null) assertValue(typeof request["catalogProductId"] === "string" && request["catalogProductId"].length > 0, `${label}.catalogProductId is invalid`);
   if (request["directConcepts"] !== undefined) assertRefs(request["directConcepts"], `${label}.directConcepts`);
   if (request["directAttributes"] !== undefined) assertRefs(request["directAttributes"], `${label}.directAttributes`);
+  if (request["defaultTrackingUnit"] !== undefined && request["defaultTrackingUnit"] !== null) assertTrackingUnit(request["defaultTrackingUnit"], `${label}.defaultTrackingUnit`);
+  if (request["note"] !== undefined && request["note"] !== null) assertValue(typeof request["note"] === "string" && request["note"].length <= 500, `${label}.note is invalid`);
+  if (request["productGroupId"] !== undefined && request["productGroupId"] !== null) assertValue(typeof request["productGroupId"] === "string" && request["productGroupId"].length > 0, `${label}.productGroupId is invalid`);
+  if (request["targetPolicy"] !== undefined && request["targetPolicy"] !== null) assertTargetPolicy(request["targetPolicy"], `${label}.targetPolicy`);
 }

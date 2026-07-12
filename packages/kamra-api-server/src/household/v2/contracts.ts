@@ -323,6 +323,13 @@ export interface CreateStockTargetRequest {
   trackingUnit: TrackingUnit;
 }
 
+export interface CreateProductGroupRequest {
+  displayName: string;
+  parentProductGroupId?: string | null;
+  targetPolicy?: TargetPolicy | null;
+  trackingUnit: TrackingUnit;
+}
+
 export interface CreateHouseholdProductRequest {
   catalogProductId?: string | null;
   directAttributes?: ProductAttributeRef[];
@@ -330,4 +337,8 @@ export interface CreateHouseholdProductRequest {
   displayName: string;
   identityKind: HouseholdProductIdentityKind;
   identitySnapshot?: HouseholdProductIdentitySnapshot;
+  defaultTrackingUnit?: TrackingUnit | null;
+  note?: string | null;
+  productGroupId?: string | null;
+  targetPolicy?: TargetPolicy | null;
 }
