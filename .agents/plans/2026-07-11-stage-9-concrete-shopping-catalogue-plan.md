@@ -1,6 +1,6 @@
 # Stage 9 Concrete Shopping And Catalogue Connection Plan
 
-Status: Ready after Stage 8 user-side closeout. Requires separate user approval before Stage 9 implementation.
+Status: In implementation (user-approved 2026-07-12). Execute one commit-sized slice at a time; manual/browser closeout remains tracked centrally.
 
 ## Objective And Classification
 
@@ -325,4 +325,4 @@ Stage 9 is complete when one user can choose a shop, turn generic demand into a 
 
 ## Approval Checkpoint
 
-Do not implement until the user approves this Stage 9 plan or a named step. Stage 8 user-side implementation is complete; only its manual/browser closeout and bugfixes remain.
+Stage 9 implementation is approved. Keep each slice independently testable and preserve the Stage 8 Home compatibility path until the Shopping Trip path has equivalent purchase-finalization coverage.
