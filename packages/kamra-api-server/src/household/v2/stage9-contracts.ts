@@ -30,7 +30,7 @@ export interface ShopProductCandidate {
 export interface PriceObservationCandidate {
   currencyCode: string;
   id: string;
-  kind: "base" | "offer" | "coupon" | "loyalty_card";
+  kind: "base" | "offer" | "coupon" | "loyalty_card" | "purchase_paid";
   observedAt: string;
   price: number;
   shopProductId: string;

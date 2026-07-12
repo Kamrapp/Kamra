@@ -64,7 +64,12 @@ export function selectApplicablePrice(input: {
     currencyCode: selected.currencyCode,
     observationId: selected.id,
     price: selected.price,
-    state: ageDays > staleAfterDays ? "stale" : "applicable"
+    state:
+      selected.kind === "coupon" || selected.kind === "loyalty_card"
+        ? "conditional_only"
+        : ageDays > staleAfterDays
+          ? "stale"
+          : "applicable"
   };
 }
 

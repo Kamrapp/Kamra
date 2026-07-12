@@ -67,6 +67,12 @@ export const databaseMaintenanceEntries: readonly DatabaseMaintenanceEntry[] = [
   },
   {
     details:
+      "Creates the Shop Product and append-only Price Observation indexes needed by the Stage 9 matching path. Validator and existing-data applicability migration remain separate operator actions; this entry never deletes or replaces price history.",
+    id: "shop-product-price-foundation-v1",
+    title: "Shop Products and Price Observations"
+  },
+  {
+    details:
       "Ensures the feature_flag_change_audits collection and its indexes for persisted old/new values, actor, reason, and revision. This is an audit-schema action; it does not change the current value of any feature flag.",
     id: "feature-flag-audit-v1",
     title: "Feature flag audit history"

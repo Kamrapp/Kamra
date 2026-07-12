@@ -16,6 +16,8 @@ import { MongoHouseholdProductRepository } from "../../household/v2/mongo-househ
 import { MongoProductGroupRepository } from "../../household/v2/mongo-product-group-repository.js";
 import { MongoHouseholdProductConceptRepository } from "../../household/v2/mongo-household-product-concept-repository.js";
 import { MongoShopMarketRepository } from "../../household/v2/mongo-shop-market-repository.js";
+import { MongoShopProductRepository } from "../../household/v2/mongo-shop-product-repository.js";
+import { MongoPriceObservationRepository } from "../../household/v2/mongo-price-observation-repository.js";
 import { describeRequest, json, unauthorized, type AppRoute } from "../app-route-context.js";
 
 export const databaseMaintenanceListRoute: AppRoute = {
@@ -247,6 +249,10 @@ async function runValidatorAction(
   if (entryId === "shopping-trip-foundation-v1") {
     return await new MongoShopMarketRepository(database).setupCollections();
   }
+  if (entryId === "shop-product-price-foundation-v1") {
+    await new MongoShopProductRepository(database).setupCollections();
+    return await new MongoPriceObservationRepository(database).setupCollections();
+  }
   if (entryId === "household-expired-item-policy-v1") {
     const repository = context.dependencies.createHouseholdRepository
       ? context.dependencies.createHouseholdRepository(database)
@@ -306,6 +312,9 @@ async function runMigrationAction(
   }
   if (entryId === "shopping-trip-foundation-v1") {
     return { status: "ready", migratedCount: 0 };
+  }
+  if (entryId === "shop-product-price-foundation-v1") {
+    return { status: "ready", migratedCount: 0, preservedHistory: true };
   }
   if (entryId === "household-expired-item-policy-v1") {
     const repository = context.dependencies.createHouseholdRepository
