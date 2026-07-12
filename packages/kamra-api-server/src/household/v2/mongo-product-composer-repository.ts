@@ -8,7 +8,7 @@ export interface CreateProductWithBatchInput {
   group?: { displayName: string; targetPolicy?: TargetPolicy | null; trackingUnit: TrackingUnit } | null;
   householdId: string;
   operationId: string;
-  product: { displayName: string; note?: string | null; productGroupId?: string | null; targetPolicy?: TargetPolicy | null };
+  product: { defaultTrackingUnit?: TrackingUnit | null; displayName: string; note?: string | null; productGroupId?: string | null; targetPolicy?: TargetPolicy | null };
   requestFingerprint: string;
 }
 
@@ -45,7 +45,7 @@ export class MongoProductComposerRepository {
         throw new Error("product_group_not_found");
       }
       const productId = `household-product:${input.householdId}:${slug(input.product.displayName)}:${input.operationId}`;
-      const product: HouseholdProduct = { classificationRevision: 0, createdAt: now, createdByUserId: input.actorUserId, directAttributes: [], directConcepts: [], displayName: input.product.displayName.trim(), householdId: input.householdId, id: productId, identityKind: "manual", identitySnapshot: {}, note: input.product.note ?? null, productGroupId, revision: 0, status: "active", targetPolicy: input.product.targetPolicy ?? null, updatedAt: now, updatedByUserId: input.actorUserId };
+      const product: HouseholdProduct = { classificationRevision: 0, createdAt: now, createdByUserId: input.actorUserId, defaultTrackingUnit: input.product.defaultTrackingUnit ?? null, directAttributes: [], directConcepts: [], displayName: input.product.displayName.trim(), householdId: input.householdId, id: productId, identityKind: "manual", identitySnapshot: {}, note: input.product.note ?? null, productGroupId, revision: 0, status: "active", targetPolicy: input.product.targetPolicy ?? null, updatedAt: now, updatedByUserId: input.actorUserId };
       const batchId = `stock-batch:${input.householdId}:${input.operationId}`;
       const batch: StockBatch = { acquiredOn: input.batch.acquiredOn, acquisitionSnapshot: { displayName: product.displayName }, classificationSnapshot: { capturedAt: now, directAttributes: [], directConcepts: [], effectiveConcepts: [], source: "household" }, createdAt: now, createdByUserId: input.actorUserId, expiryOn: input.batch.expiryOn ?? null, householdId: input.householdId, householdProductId: productId, id: batchId, originalQuantity: input.batch.originalQuantity, remainingQuantity: input.batch.originalQuantity, revision: 0, status: "available", unit: input.batch.unit, updatedAt: now, updatedByUserId: input.actorUserId };
       const operation: DomainOperation = { actorUserId: input.actorUserId, createdAt: now, householdId: input.householdId, id: input.operationId, operationType: "product_composer.create_product_with_batch", requestFingerprint: input.requestFingerprint, status: "started", updatedAt: now };
