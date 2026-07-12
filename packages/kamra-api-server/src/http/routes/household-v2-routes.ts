@@ -6,6 +6,7 @@ import { MongoShoppingNeedRepository } from "../../household/v2/mongo-shopping-n
 import { createAdHocShoppingNeed } from "../../household/v2/shopping-needs.js";
 import { MongoStockTargetRepository } from "../../household/v2/mongo-stock-target-repository.js";
 import { MongoHouseholdProductRepository } from "../../household/v2/mongo-household-product-repository.js";
+import { MongoProductGroupReadRepository } from "../../household/v2/mongo-product-group-read-repository.js";
 import { MongoHouseholdProductConceptRepository } from "../../household/v2/mongo-household-product-concept-repository.js";
 import { schemaVersion, type CreateHouseholdProductRequest, type CreateManualStockBatchRequest, type CreateStockTargetRequest, type StockTarget, type TrackingUnit } from "../../household/v2/contracts.js";
 import { assertCreateHouseholdProductRequest, assertCreateManualStockBatchRequest, assertCreateStockTargetRequest, assertTrackingUnit } from "../../household/v2/validation.js";
@@ -17,7 +18,11 @@ export const householdV2WorkspaceRoute: AppRoute = {
     if (!user) return unauthorized("apiErrors.signInRequired");
     const householdId = request.path.match(/^\/api\/households\/([^/]+)\/stock-workspace$/)?.[1];
     if (!householdId) return json(400, { error: "invalid_household_path" });
-    return await withHouseholdDatabase(context, householdId, user.email, async (database) => json(200, { schemaVersion, workspace: await new MongoStockReadRepository(database).getWorkspace(householdId, new Date().toISOString().slice(0, 10)) }));
+    return await withHouseholdDatabase(context, householdId, user.email, async (database) => json(200, {
+      productGroupWorkspace: await new MongoProductGroupReadRepository(database).getWorkspace(householdId, new Date().toISOString().slice(0, 10)),
+      schemaVersion,
+      workspace: await new MongoStockReadRepository(database).getWorkspace(householdId, new Date().toISOString().slice(0, 10))
+    }));
   }
 };
 

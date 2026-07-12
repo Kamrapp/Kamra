@@ -131,6 +131,7 @@ function toProductGroup(target: StockTarget): ProductGroup {
     revision: 0,
     status: target.status,
     targetPolicy: { consumptionPolicy: target.consumptionPolicy, desiredQuantity: target.targetQuantity, expiryWarningDays: target.expiryWarningDays, minimumQuantity: target.minimumQuantity, trackingUnit: target.trackingUnit },
+    trackingUnit: target.trackingUnit,
     updatedAt: target.updatedAt,
     updatedByUserId: target.updatedByUserId
   };

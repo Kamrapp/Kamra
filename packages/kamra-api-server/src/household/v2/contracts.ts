@@ -93,6 +93,7 @@ export interface ProductGroup {
   revision: number;
   status: LifecycleStatus;
   targetPolicy?: TargetPolicy | null;
+  trackingUnit: TrackingUnit;
   updatedAt: string;
   updatedByUserId: string;
 }

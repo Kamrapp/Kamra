@@ -62,6 +62,7 @@ export function assertProductGroup(value: unknown, label = "productGroup"): asse
   const group = value as Record<string, unknown>;
   for (const key of ["id", "householdId", "displayName", "createdByUserId", "updatedByUserId", "createdAt", "updatedAt"]) assertValue(typeof group[key] === "string" && Boolean(group[key]), `${label}.${key} is required`);
   assertValue(isTimestamp(group["createdAt"]) && isTimestamp(group["updatedAt"]), `${label} timestamps are invalid`);
+  assertTrackingUnit(group["trackingUnit"], `${label}.trackingUnit`);
   if (group["parentProductGroupId"] !== undefined && group["parentProductGroupId"] !== null) assertValue(typeof group["parentProductGroupId"] === "string" && Boolean(group["parentProductGroupId"]), `${label}.parentProductGroupId is invalid`);
   if (group["targetPolicy"] !== undefined && group["targetPolicy"] !== null) assertTargetPolicy(group["targetPolicy"], `${label}.targetPolicy`);
   assertValue(Number.isInteger(group["revision"]) && (group["revision"] as number) >= 0, `${label}.revision is invalid`);
