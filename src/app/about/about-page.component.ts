@@ -93,6 +93,7 @@ import { LocalizationService } from "../shared/localization.service";
       }
 
       .about-hero {
+        align-content: start;
         align-items: stretch;
         background:
           radial-gradient(circle at top right, color-mix(in srgb, var(--color-accent-sky) 22%, transparent) 0, transparent 44%),
