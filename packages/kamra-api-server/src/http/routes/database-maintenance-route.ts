@@ -18,6 +18,7 @@ import { MongoHouseholdProductConceptRepository } from "../../household/v2/mongo
 import { MongoShopMarketRepository } from "../../household/v2/mongo-shop-market-repository.js";
 import { MongoShopProductRepository } from "../../household/v2/mongo-shop-product-repository.js";
 import { MongoPriceObservationRepository } from "../../household/v2/mongo-price-observation-repository.js";
+import { MongoIngestionSubmissionRepository } from "../../household/v2/mongo-ingestion-submission-repository.js";
 import { describeRequest, json, unauthorized, type AppRoute } from "../app-route-context.js";
 
 export const databaseMaintenanceListRoute: AppRoute = {
@@ -247,7 +248,8 @@ async function runValidatorAction(
     return await new MongoHouseholdProductConceptRepository(database).setupCollections();
   }
   if (entryId === "shopping-trip-foundation-v1") {
-    return await new MongoShopMarketRepository(database).setupCollections();
+    await new MongoShopMarketRepository(database).setupCollections();
+    return await new MongoIngestionSubmissionRepository(database).setupCollections();
   }
   if (entryId === "shop-product-price-foundation-v1") {
     await new MongoShopProductRepository(database).setupCollections();

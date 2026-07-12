@@ -108,3 +108,36 @@ export interface ShopProductRecord extends ShopProductCandidate {
   sourceUrl?: string | null;
   lastConfirmedAt?: string | null;
 }
+
+export const ingestionSubmissionStatuses = [
+  "pending",
+  "accepted",
+  "corrected",
+  "rejected"
+] as const;
+export type IngestionSubmissionStatus = (typeof ingestionSubmissionStatuses)[number];
+
+export interface IngestionSubmission {
+  id: string;
+  householdId: string;
+  shoppingTripId: string;
+  shoppingTripItemId: string;
+  submittedByUserId: string;
+  status: IngestionSubmissionStatus;
+  facts: {
+    displayName: string;
+    shopMarketId: string | null;
+    shopProductId?: string | null;
+    productId?: string | null;
+    quantity: number;
+    unit: TrackingUnit;
+    paidPrice?: number | null;
+    currencyCode?: string | null;
+  };
+  reviewNote?: string | null;
+  revision: number;
+  createdAt: string;
+  updatedAt: string;
+  reviewedAt?: string | null;
+  reviewedByUserId?: string | null;
+}

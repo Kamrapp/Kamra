@@ -1,0 +1,42 @@
+import { describe, expect, it } from "vitest";
+import { createFakeDb, FakeCollection } from "../../test-support/fake-mongo.js";
+import { MongoIngestionSubmissionRepository } from "./mongo-ingestion-submission-repository.js";
+
+describe("MongoIngestionSubmissionRepository", () => {
+  it("keeps a pending purchase fact reviewable and revision checked", async () => {
+    const repository = new MongoIngestionSubmissionRepository(
+      createFakeDb({ ingestion_submissions: new FakeCollection("ingestion_submissions") })
+    );
+    await repository.setupCollections();
+    await repository.create({
+      id: "submission:1",
+      householdId: "household",
+      shoppingTripId: "trip",
+      shoppingTripItemId: "item",
+      submittedByUserId: "user",
+      status: "pending",
+      facts: { displayName: "Manual milk", shopMarketId: "market", quantity: 1, unit: "l" },
+      revision: 0,
+      createdAt: "2026-07-12T00:00:00.000Z",
+      updatedAt: "2026-07-12T00:00:00.000Z"
+    });
+    await expect(
+      repository.review({
+        expectedRevision: 0,
+        id: "submission:1",
+        reviewerId: "admin",
+        status: "accepted",
+        reviewedAt: "2026-07-12T01:00:00.000Z"
+      })
+    ).resolves.toMatchObject({ status: "accepted", revision: 1 });
+    await expect(
+      repository.review({
+        expectedRevision: 0,
+        id: "submission:1",
+        reviewerId: "admin",
+        status: "rejected",
+        reviewedAt: "2026-07-12T02:00:00.000Z"
+      })
+    ).rejects.toThrow("revision_conflict");
+  });
+});
