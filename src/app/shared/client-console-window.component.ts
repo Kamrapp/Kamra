@@ -11,7 +11,7 @@ import { LocalizationService } from "./localization.service";
       <header><span>{{ loc.t("clientConsole.title") }}</span><small>{{ loc.t("clientConsole.localOnly") }}</small></header>
       <div class="client-console-scroll" aria-live="polite">
         @for (entry of activity.entries(); track entry.id) {
-          <div class="client-console-row" [class.error]="entry.level === 'error'" [class.warn]="entry.level === 'warn'"><time>{{ entry.timestamp.slice(11, 16) }}</time><span>{{ entry.message }}</span></div>
+          <div class="client-console-row" [class.debug]="entry.level === 'debug'" [class.error]="entry.level === 'error'" [class.info]="entry.level === 'info'" [class.warn]="entry.level === 'warn'"><time>{{ entry.timestamp.slice(11, 16) }}</time><span>{{ entry.message }}</span></div>
         } @empty { <p>{{ loc.t("clientConsole.empty") }}</p> }
       </div>
     </section>
@@ -22,10 +22,12 @@ import { LocalizationService } from "./localization.service";
     header { align-items: center; border-bottom: 1px solid var(--line-subtle); color: var(--color-text); display: flex; font-size: .72rem; font-weight: 800; gap: var(--space-2); justify-content: space-between; padding: var(--space-2) var(--space-3); }
     header small { color: var(--color-text-muted); font-size: .62rem; font-weight: 700; }
     .client-console-scroll { min-height: 0; overflow: auto; padding: var(--space-2) var(--space-3); }
-    .client-console-row { color: var(--color-text-muted); display: grid; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .68rem; gap: var(--space-2); grid-template-columns: 2.7rem minmax(0, 1fr); line-height: 1.35; padding: .08rem 0; }
-    .client-console-row time { color: var(--color-text-muted); }
-    .client-console-row.error { color: var(--color-status-danger); }
-    .client-console-row.warn { color: var(--color-status-warning); }
+    .client-console-row { border-radius: calc(var(--radius-ui) / 2); color: var(--color-text-muted); display: grid; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .68rem; gap: var(--space-2); grid-template-columns: 2.7rem minmax(0, 1fr); line-height: 1.35; padding: .1rem var(--space-2); }
+    .client-console-row time { color: inherit; opacity: .8; }
+    .client-console-row.debug { background: color-mix(in srgb, var(--color-text-muted) 8%, transparent); }
+    .client-console-row.info { background: color-mix(in srgb, var(--color-accent-sky) 12%, transparent); color: var(--color-text); }
+    .client-console-row.warn { background: color-mix(in srgb, var(--color-status-warning) 13%, transparent); color: var(--color-status-warning); }
+    .client-console-row.error { background: color-mix(in srgb, var(--color-status-danger) 13%, transparent); color: var(--color-status-danger); }
     p { color: var(--color-text-muted); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .68rem; margin: 0; }
   `]
 })
