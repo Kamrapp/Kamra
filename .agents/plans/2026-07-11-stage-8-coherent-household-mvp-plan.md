@@ -4,9 +4,9 @@ Status: In implementation. The user authorized Stage 8 implementation on 2026-07
 
 ## Objective
 
-Build the correct household-domain foundation for the coherent Kamra MVP before concrete shop planning is added in Stage 9. Stage 8 will separate Product Concepts, Product Attributes, household Stock Targets, concrete Stock Batches, and explicit Stock Allocations; preserve Stock Movement history; add inclusive `is_a` semantics; connect generic/manual and explicit Products safely to the same Stock Target; make stock changes concurrency-safe and idempotent; generate Shopping Needs; and establish the minimum feature-toggle and logging foundations needed for safe rollout.
+Build the correct household-domain foundation for the coherent Kamra MVP before concrete shop planning is added in Stage 9. Stage 8 separates Product Concepts and Product Attributes from household **Product Groups**, reusable Household Products, Product-owned Stock Batches, optional owner target policies, and Stock Movement history; adds inclusive `is_a` semantics; makes stock changes concurrency-safe and idempotent; generates Shopping Needs; and establishes the minimum feature-toggle and logging foundations needed for safe rollout. Pre-cutover Stock Targets and Stock Allocations are retained only as explicit migration/history compatibility data.
 
-The milestone is complete when a user can create or join a household, create/reorganize Product Concepts, define a Stock Target such as “keep 2 l of any milk” or “keep 10,000 g of gluten-free penne, spaghetti, or tagliatelle”, allocate matching generic/manual and explicit-Product Stock Batches into it, consume/correct/remove independently expiring batches with history, understand low-stock and expiry notices, and generate persisted Shopping Needs ready for Stage 9 translation. Stage 8 alone is not Alpha 1.0.
+The milestone is complete when a user can create or join a household, create/reorganize Product Concepts, define nested Product Groups such as `Bread → White bread`, give a Group or Product an optional “keep 2 l” target policy, add Product-owned Batches, consume/correct/remove independently expiring Batches with history, understand low-stock and expiry notices, and generate persisted Shopping Needs ready for Stage 9 translation. Stage 8 alone is not Alpha 1.0.
 
 ## Context Read
 
@@ -90,7 +90,7 @@ The final roadmap review deliberately narrows this plan. Stage 8 owns household-
 
 ## Open Questions
 
-None for implementation. The MVP defaults are final: flat Acceptance Criteria, one full Stock Allocation per Stock Batch, one active Shopping Need set, JSON base content with EN/HU runtime labels, local-only 30/70–70/30 home split preference, and no richer tri-state home focus mode. Repository contradictions trigger the named stop/replan rule; they are not permission to invent a different model.
+The final Product Group/target-policy decision supersedes the former one-full-Stock-Allocation default. The remaining MVP defaults are: one active Shopping Need set, JSON base content with EN/HU runtime labels, local-only 30/70–70/30 home split preference, and no richer tri-state home focus mode. `desiredQuantity` is a desired post-replenishment level, not a hard storage ceiling. Repository contradictions trigger the named stop/replan rule; they are not permission to invent a different model.
 
 ## Product-to-Batch Workflow Reassessment
 
@@ -887,7 +887,9 @@ Add a configured database smoke command for v2 transactions/migration/reconcilia
 - Household-level policy belongs in Manage household, not Home. Manage household owns editable household name, default calculated max-limit multiplier, and `allowExpiredItems`, plus a clearly marked invitation placeholder.
 - Shopping-list selection is a distinct two-step state: **Build shopping list** selects the scale-eligible rows, exposes checkboxes, and becomes **Generate shopping list**; changing scale resets the selection from eligibility, cancellation exits the mode, and generation exits it after persisting only checked rows. This requires v2 Shopping Need/Target-backed list creation; do not pass grouped v2 row ids to the legacy v1 list endpoint.
 
-### Stock Target-first editing model (2026-07-12)
+### Superseded Stock Target-first editing model (2026-07-12)
+
+> Superseded by **Final Product Group target-policy model (2026-07-12)** below. Retained only to explain the committed interim UI and migration source data.
 
 - Home terminology uses **Stock Target** (or the shorter user-facing **stock group**) for the top-level generic household need. It owns minimum/target quantities, unit, state, and policy. It is not a Product Concept.
 - The primary table has exactly three editable domain layers: Stock Target (plus the Unassigned group), Household Product, then Stock Batch. Product classification is intentionally absent from this workspace until seeded catalogue classification has a dedicated MVP design.
@@ -896,7 +898,9 @@ Add a configured database smoke command for v2 transactions/migration/reconcilia
 - Adding a Product from a Stock Target preselects that Target only for an optional first Batch. Saving a Product without a Batch leaves it visibly Unassigned; it must not imply an allocation. Adding a Batch from a Product inside a Target creates its allocation only when the user confirms that Target and server validation succeeds in the same transaction. Batches created from Unassigned remain unassigned until explicitly allocated.
 - The table is the complete primary CRUD surface. After it is coherent, the right side becomes a compact three-block composer (Target, Product, Batch) that mirrors only unsaved draft names. Its action labels make scope explicit: create Target, create Product, create Batch, or create all missing levels atomically from the Batch block. Editing a saved Target never renames concrete Products or immutable Batch snapshots.
 
-### Home Stock Group / Product / Batch redesign (implementation gate, 2026-07-12)
+### Superseded Stock Group / Product / Batch redesign (implementation gate, 2026-07-12)
+
+> Superseded terminology: use **Product Group** and embedded **target policy** as defined in the final section below. The UI behavior and migration safeguards remain applicable where they do not depend on the old name.
 
 The interim grouped Home UI is not the requested final interaction model. It was built against the original Batch-to-Stock-Target allocation model and must not be extended piecemeal. The next implementation run first changes the household stock ownership model, then replaces the UI as one coherent slice.
 

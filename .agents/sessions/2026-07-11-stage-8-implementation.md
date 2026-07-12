@@ -281,12 +281,12 @@
 
 ## Roadmap Or Plan Updates
 
-- Needed: The active Stage 8 plan now contains the approved Home Stock Group/Product/Batch redesign gate. The broad roadmap order is unchanged.
-- Status: Stage 8 remains in implementation. Transaction validation is cleared and the interim allocation-based grouped workspace is committed, but it is not the final Home editor; direct Product→Stock Group membership, migration/reconciliation, and the full table/composer redesign remain before manual closeout.
+- Needed: The active Stage 8 plan now contains the final Product Group/embedded-target-policy redesign. The broad roadmap order is unchanged.
+- Status: Stage 8 remains in implementation. Transaction validation is cleared and the interim allocation-based grouped workspace is committed, but it is not the final Home editor; direct Product→Product Group membership, migration/reconciliation, and the full table/composer redesign remain before manual closeout.
 
 ## Next Step
 
-Do not extend the interim allocation-based Home editor. Start the approved Stock Group/Product/Batch cutover described below: direct Product-to-Stock-Group membership and nested Group rollup must land before the requested three-layer table and three-block composer.
+Do not extend the interim allocation-based Home editor. Start the approved Product Group/Product/Batch cutover described below: direct Product-to-Product Group membership and nested Group rollup must land before the requested three-layer table and three-block composer.
 
 ## Planned Home UI/UX redesign handoff (2026-07-12)
 
@@ -298,28 +298,36 @@ A Product has zero or one direct `productGroupId`; every normal Batch belongs to
 
 ### Why the current Home UI does not match the requested rework
 
-The current grouped table and one-block right-side Product editor are an interim Stock Target implementation. They group a Product only through its individual Batch allocations. That model cannot safely provide the requested Product Group dropdown, automatic grouping of later Batches, nested Groups, or the requested three separate right-side blocks. The missing “add Product on Concept row” is also terminology drift: Home must use **Stock Group**, not Product Concept, as its first layer.
+The current grouped table and one-block right-side Product editor are an interim Stock Target implementation. They group a Product only through its individual Batch allocations. That model cannot safely provide the requested Product Group dropdown, automatic grouping of later Batches, nested Groups, or the requested three separate right-side blocks. The missing “add Product on Concept row” is also terminology drift: Home must use **Product Group**, not Product Concept, as its first layer.
 
 ### Final implementation design
 
-- Home hierarchy is exactly **Stock Group (plus Unassigned) → Household Product → Stock Batch**. Product Concepts stay deferred tagging/classification vocabulary and do not appear in this workspace.
-- A Product has one optional direct Stock Group. Batches always belong to a Product. Groups may nest; stock rolls up to ancestors once. Product and Group both have their own derived current/minimum/state; Batch fields remain quantity/unit/Stocked at/Expiry/history.
+- Home hierarchy is exactly **Product Group (plus Unassigned) → Household Product → Stock Batch**. Product Concepts stay deferred tagging/classification vocabulary and do not appear in this workspace.
+- A Product has one optional direct Product Group. Batches always belong to a Product. Groups may nest; stock rolls up to ancestors once. Product and Group each own an optional embedded target policy and have derived current/minimum/state when tracked; Batch fields remain quantity/unit/Stocked at/Expiry/history.
 - The old live Batch→Target allocation mechanism must be migrated/reconciled and retired from Home before the UI rework. Keep historical allocation/movement evidence; unresolved multi-target legacy Products stay Unassigned for an explicit operator/user choice.
 - Left table is the primary CRUD surface. Group rows get pencil/save/X, magnifier-plus/minus details, and product-plus. Product rows get pencil/save/X, magnifier-plus/minus identity/details, Group dropdown, and stock-plus. Batch rows get quantity/unit/dates plus pencil/save/discard only. All actions are fixed-size accessible icon buttons.
-- The right side becomes three joined blocks: Stock Group, Product, Stock Batch. New blocks add; selected persisted rows save. Group name seeds a pristine Product name only; Batches have no name. Batch Add can atomically create missing parent Group/Product; Group Add creates only Group; Product Add creates only Product (and an explicitly selected unsaved Group if needed).
+- The right side becomes three joined blocks: Product Group, Product, Stock Batch. New blocks add; selected persisted rows save. Group name seeds a pristine Product name only; Batches have no name. Batch Add can atomically create missing parent Group/Product; Group Add creates only Group; Product Add creates only Product (and an explicitly selected unsaved Group if needed).
 - Table selection populates the corresponding composer blocks: Group clears lower drafts; Product populates Group+Product; Batch populates all three. `Unassigned` clears/disables the Group block. Both surfaces share one draft/command service and refresh the same read model after save.
 
 ### Required next-run order
 
-1. Implement direct Product→Stock Group + nested Group data migration, validators, transaction commands, reconciliation reporting, and route/read-model tests.
+1. Implement direct Product→Product Group + nested Group data migration, optional Group/Product target policies, validators, transaction commands, reconciliation reporting, and route/read-model tests.
 2. Replace the left table with the three-level inline editor and icon semantics.
 3. Replace the right-side Product editor with the three-block composer; remove the obsolete batch-only/inferred-target paths.
 4. Reseed and run the newly listed manual flows, then update the single acceptance checklist with evidence.
 
-The full implementation contract, migration behavior, icon semantics, composer rules, and manual acceptance criteria are in the active plan under **Home Stock Group / Product / Batch redesign (implementation gate, 2026-07-12)**. No implementation was started in this planning update.
+The full implementation contract, migration behavior, icon semantics, composer rules, target-policy ownership, and manual acceptance criteria are in the active plan under **Final Product Group target-policy model (2026-07-12)**. No implementation was started in this planning update.
+
+### Design safeguards and resolved uncertainty
+
+- `desiredQuantity` is a restock destination, not a hard maximum. Current stock may exceed it without becoming invalid.
+- A Group or Product may have no target policy. It still shows derived current stock; its state is neutral and it does not create a Shopping Need.
+- Parent/child Group and Product targets are not additive. Shopping planning is bottom-up: satisfy the most specific Product/child Group policies, then create only the parent Group's residual shortage. Warn on incompatible parent/child settings instead of silently changing either policy.
+- Group tracking units are required even without a target policy. Product assignment validates compatible units; only the existing narrow conversions are automatic.
+- The migration must stop/report rather than guess when one Product's live Batch history points to multiple legacy Targets. Normal runtime never reads allocation and Product Group membership as two counting sources.
 
 ## Notes For Future Agent
 
-- Until the Stock Group cutover is migrated, aggregate stock only from active Stock Allocations; never infer counted quantity from classification matches. After the cutover, Group aggregates come only from direct Product membership plus ancestor rollup—never from both allocation and membership paths.
+- Until the Product Group cutover is migrated, aggregate stock only from active Stock Allocations; never infer counted quantity from classification matches. After the cutover, Group aggregates come only from direct Product membership plus ancestor rollup—never from both allocation and membership paths.
 - `is_a` is child-to-parent and effective concepts are inclusive; attributes remain independent.
 - Keep the manual-check list current when UI or live Mongo behavior is introduced.
