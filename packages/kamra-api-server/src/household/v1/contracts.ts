@@ -84,12 +84,20 @@ export interface HouseholdRecord {
   createdAt: string;
   createdByUserId: string;
   defaultCalculatedMaxLimitMultiplier?: number | null;
+  groupTargetShoppingMode?: GroupTargetShoppingMode | null;
   favouriteShopId?: string | null;
   id: string;
   name: string;
   status: HouseholdStatus;
   updatedAt: string;
 }
+
+export const groupTargetShoppingModes = [
+  "add_products_and_group_item",
+  "add_products_only",
+  "ignore_group_targets"
+] as const;
+export type GroupTargetShoppingMode = (typeof groupTargetShoppingModes)[number];
 
 export interface HouseholdMembershipRecord {
   createdAt: string;
@@ -158,6 +166,7 @@ export interface HouseholdListItem {
   allowExpiredItems?: boolean;
   createdAt: string;
   defaultCalculatedMaxLimitMultiplier?: number | null;
+  groupTargetShoppingMode?: GroupTargetShoppingMode;
   favouriteShopId?: string | null;
   id: string;
   membershipRole: HouseholdMembershipRole;

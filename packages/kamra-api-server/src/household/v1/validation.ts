@@ -18,6 +18,7 @@ import type {
 } from "./contracts.js";
 import {
   householdFeatureFlagKeys,
+  groupTargetShoppingModes,
   householdLocalProductStatuses,
   householdMembershipRoles,
   householdMembershipStatuses,
@@ -117,6 +118,12 @@ export function assertHouseholdRecord(
     value["defaultCalculatedMaxLimitMultiplier"],
     `${label}.defaultCalculatedMaxLimitMultiplier`
   );
+  if (value["groupTargetShoppingMode"] !== undefined && value["groupTargetShoppingMode"] !== null)
+    assertEnum(
+      value["groupTargetShoppingMode"],
+      groupTargetShoppingModes,
+      `${label}.groupTargetShoppingMode`
+    );
   assertOptionalNonEmptyString(value["favouriteShopId"], `${label}.favouriteShopId`);
   assertNonEmptyString(value["id"], `${label}.id`);
   assertNonEmptyString(value["name"], `${label}.name`);

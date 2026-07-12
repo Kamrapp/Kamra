@@ -34,6 +34,7 @@ The refreshed demo fixture intentionally includes `Tej`, `Kenyér`, `Zöldségek
 17. Confirm the household selector panel does not show a persistent “Loaded N stock rows” message after refresh; meaningful save/error feedback belongs in the activity console or a mutation toast.
 18. Confirm the Product Group table has no nested Stock Batch header. Group/Product rows show compact Minimum, Current, Target, and one Unit column; Batch Quantity aligns under Current and Batch Expiry sits toward the right across the Unit/State area.
 19. Open the Manual page and confirm terminology cards are compact, readable, and do not dominate the tab content.
+20. In Manage household, review **When a Product Group is below target**. Confirm the default is **Add products, then add a group item if needed**, and verify the other two choices save and survive refresh.
 
 ## Remaining Stage 8 behavior
 
@@ -49,6 +50,8 @@ The refreshed demo fixture intentionally includes `Tej`, `Kenyér`, `Zöldségek
 ## Deferred boundary
 
 The direct v2 shopping-list bridge and batch-aware purchase application are still pending. The current Home shopping-list component reads the older `household_stock_items` model, while Product Groups read `household_products` and `household_stock_batches`; these are different command/read-model paths, so the legacy selector cannot safely be presented as Product Group shopping. The earlier note that the “final grouped-item rule was cut off” refers to the user request that ended after “for grouped items, we should” without defining whether a group produces one shopping line, product lines, or residual parent quantities. That rule must be decided before replacing the path; it was not an application error.
+
+The grouped-target rule is now defined and implemented in the v2 Shopping Need generator: Product target shortages are generated first; Group shortage is recalculated after those planned quantities; remaining shortage is split across already-planned Products, otherwise assigned to the earliest-expiring stocked Product (or the first Product), with the default mode creating a Group impulse need only when no Product exists. The visible legacy Home list still needs the final v2 list/purchase bridge before this behavior is user-visible there.
 
 ## Automated checks
 

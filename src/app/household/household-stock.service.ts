@@ -10,6 +10,8 @@ export interface HouseholdListItem {
   allowExpiredItems?: boolean;
   createdAt: string;
   defaultCalculatedMaxLimitMultiplier?: number | null;
+  groupTargetShoppingMode?:
+    "add_products_and_group_item" | "add_products_only" | "ignore_group_targets";
   id: string;
   memberCount: number;
   membershipRole: "member" | "owner";

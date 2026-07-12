@@ -253,6 +253,12 @@ async function runValidatorAction(
       : createDefaultHouseholdRepository(database);
     return await repository.upgradeHouseholdValidators();
   }
+  if (entryId === "household-group-shopping-policy-v1") {
+    const repository = context.dependencies.createHouseholdRepository
+      ? context.dependencies.createHouseholdRepository(database)
+      : createDefaultHouseholdRepository(database);
+    return await repository.upgradeHouseholdValidators();
+  }
   if (entryId === "catalog-product-validation") {
     const repository = context.dependencies.createCatalogRepository
       ? context.dependencies.createCatalogRepository(database)
@@ -306,6 +312,12 @@ async function runMigrationAction(
       ? context.dependencies.createHouseholdRepository(database)
       : createDefaultHouseholdRepository(database);
     return await repository.migrateExpiredItemPolicy();
+  }
+  if (entryId === "household-group-shopping-policy-v1") {
+    const repository = context.dependencies.createHouseholdRepository
+      ? context.dependencies.createHouseholdRepository(database)
+      : createDefaultHouseholdRepository(database);
+    return await repository.migrateGroupTargetShoppingMode();
   }
   if (entryId === "catalog-product-validation") {
     const repository = context.dependencies.createCatalogRepository

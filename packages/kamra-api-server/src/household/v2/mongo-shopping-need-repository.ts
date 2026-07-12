@@ -66,6 +66,33 @@ export class MongoShoppingNeedRepository {
     return updated;
   }
 
+  async replaceGeneratedNeeds(input: {
+    actorUserId: string;
+    householdId: string;
+    needs: ShoppingNeed[];
+    now: string;
+  }): Promise<ShoppingNeedList> {
+    const list = await this.getOrCreateList(input.householdId, input.actorUserId, input.now);
+    const manualItems = list.items.filter((item) => item.ownerKind === "manual");
+    const updated = {
+      ...list,
+      items: [...manualItems, ...input.needs],
+      updatedAt: input.now,
+      updatedByUserId: input.actorUserId
+    };
+    await this.lists.updateOne(
+      { householdId: input.householdId },
+      {
+        $set: {
+          items: updated.items,
+          updatedAt: updated.updatedAt,
+          updatedByUserId: updated.updatedByUserId
+        }
+      }
+    );
+    return updated;
+  }
+
   async transitionNeed(input: {
     actorUserId: string;
     expectedRevision: number;

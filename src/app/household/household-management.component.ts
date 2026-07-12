@@ -75,6 +75,20 @@ import { ToastService } from "../shared/toast.service";
               <input type="checkbox" [(ngModel)]="allowExpiredItemsDraft" />
               {{ loc.t("household.allowExpiredItems") }}
             </label>
+            <label>
+              <span>{{ loc.t("household.groupTargetShoppingMode") }}</span>
+              <select class="ui-form-control" [(ngModel)]="groupTargetShoppingModeDraft">
+                <option value="add_products_and_group_item">
+                  {{ loc.t("household.groupTargetShoppingModeProductsAndGroupItem") }}
+                </option>
+                <option value="add_products_only">
+                  {{ loc.t("household.groupTargetShoppingModeProductsOnly") }}
+                </option>
+                <option value="ignore_group_targets">
+                  {{ loc.t("household.groupTargetShoppingModeIgnore") }}
+                </option>
+              </select>
+            </label>
             <button class="ui-button ui-button-sm" type="button" (click)="saveSettings()">
               {{ loc.t("household.saveSettings") }}
             </button>
@@ -145,6 +159,9 @@ export class HouseholdManagementComponent {
   readonly errorMessage = signal("");
   allowExpiredItemsDraft = true;
   maxLimitMultiplierDraft = 2;
+  groupTargetShoppingModeDraft:
+    "add_products_and_group_item" | "add_products_only" | "ignore_group_targets" =
+    "add_products_and_group_item";
   nameDraft = "";
 
   constructor() {
@@ -168,6 +185,8 @@ export class HouseholdManagementComponent {
     const household = this.household();
     this.allowExpiredItemsDraft = household?.allowExpiredItems ?? true;
     this.maxLimitMultiplierDraft = household?.defaultCalculatedMaxLimitMultiplier ?? 2;
+    this.groupTargetShoppingModeDraft =
+      household?.groupTargetShoppingMode ?? "add_products_and_group_item";
     this.nameDraft = household?.name ?? "";
   }
 
@@ -184,6 +203,7 @@ export class HouseholdManagementComponent {
     const result = await this.householdV2Service.updateHouseholdSettings({
       allowExpiredItems: this.allowExpiredItemsDraft,
       defaultCalculatedMaxLimitMultiplier: this.maxLimitMultiplierDraft,
+      groupTargetShoppingMode: this.groupTargetShoppingModeDraft,
       householdId: household.id,
       name: this.nameDraft.trim()
     });

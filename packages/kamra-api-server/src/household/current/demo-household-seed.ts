@@ -315,6 +315,7 @@ export function createDemoHouseholdSeedDataset(
     createdByUserId: demoHouseholdOwnerUserId,
     defaultCalculatedMaxLimitMultiplier: 2,
     favouriteShopId: null,
+    groupTargetShoppingMode: "add_products_and_group_item",
     id: demoHouseholdId,
     name: "Hungarian nature household",
     status: "active",

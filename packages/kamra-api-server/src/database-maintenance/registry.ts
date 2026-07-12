@@ -25,6 +25,12 @@ export const databaseMaintenanceEntries: readonly DatabaseMaintenanceEntry[] = [
   },
   {
     details:
+      "Adds the grouped-target shopping mode to the household validator and backfills existing households with the default that adds Product needs first and a Group impulse item only when no Product can represent the shortage.",
+    id: "household-group-shopping-policy-v1",
+    title: "Household grouped-target shopping policy"
+  },
+  {
+    details:
       "Creates the final Product Concept, Product Attribute, relation, and product-classification assignment collections and migrates legacy category/attribute tags without treating keyword hints as eligibility rules.",
     id: "catalog-classification-v1",
     title: "Catalog product classification"

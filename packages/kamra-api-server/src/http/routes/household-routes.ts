@@ -14,6 +14,7 @@ import {
   assertUpdateHouseholdShoppingListStocksRequest,
   assertUpdateHouseholdStockItemRequest
 } from "../../household/v1/validation.js";
+import { groupTargetShoppingModes } from "../../household/v1/contracts.js";
 import {
   createDefaultCatalogRepository,
   createDefaultHouseholdRepository,
@@ -84,6 +85,11 @@ export const householdSettingsRoute: AppRoute = {
       body["defaultCalculatedMaxLimitMultiplier"] >= 0
         ? body["defaultCalculatedMaxLimitMultiplier"]
         : undefined;
+    const groupTargetShoppingMode = groupTargetShoppingModes.includes(
+      body?.["groupTargetShoppingMode"] as (typeof groupTargetShoppingModes)[number]
+    )
+      ? (body?.["groupTargetShoppingMode"] as (typeof groupTargetShoppingModes)[number])
+      : undefined;
     const name =
       typeof body?.["name"] === "string" && body["name"].trim().length > 0
         ? body["name"].trim()
@@ -93,6 +99,7 @@ export const householdSettingsRoute: AppRoute = {
       !body ||
       (allowExpiredItems === undefined &&
         defaultCalculatedMaxLimitMultiplier === undefined &&
+        groupTargetShoppingMode === undefined &&
         name === undefined)
     )
       return json(400, { error: "invalid_household_settings_request" });
@@ -100,6 +107,7 @@ export const householdSettingsRoute: AppRoute = {
       const result = await repositoryResult.repository.updateHouseholdSettings({
         allowExpiredItems,
         defaultCalculatedMaxLimitMultiplier,
+        groupTargetShoppingMode,
         householdId,
         name,
         updatedAt: new Date().toISOString(),

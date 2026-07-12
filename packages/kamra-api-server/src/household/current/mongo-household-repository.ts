@@ -345,7 +345,7 @@ export class MongoHouseholdRepository {
     const households = await this.householdsCollection.find({}).toArray();
 
     for (const household of households) {
-      const fieldsToSet: Record<string, number | boolean | null> = {};
+      const fieldsToSet: Record<string, number | boolean | null | string> = {};
       if (household.defaultCalculatedMaxLimitMultiplier === undefined) {
         fieldsToSet["defaultCalculatedMaxLimitMultiplier"] = 2;
       }
@@ -354,6 +354,9 @@ export class MongoHouseholdRepository {
       }
       if (household.favouriteShopId === undefined) {
         fieldsToSet["favouriteShopId"] = null;
+      }
+      if (household.groupTargetShoppingMode === undefined) {
+        fieldsToSet["groupTargetShoppingMode"] = "add_products_and_group_item";
       }
       if (Object.keys(fieldsToSet).length === 0) {
         continue;
@@ -380,6 +383,7 @@ export class MongoHouseholdRepository {
       createdAt,
       createdByUserId: input.createdByUserId,
       allowExpiredItems: true,
+      groupTargetShoppingMode: "add_products_and_group_item",
       id: input.id,
       name: input.name,
       status: "active",
@@ -417,9 +421,29 @@ export class MongoHouseholdRepository {
     return { updatedCount };
   }
 
+  async migrateGroupTargetShoppingMode(): Promise<HouseholdFieldsMigrationResult> {
+    let updatedCount = 0;
+    const households = await this.householdsCollection.find({}).toArray();
+    for (const household of households) {
+      if (household.groupTargetShoppingMode !== undefined) continue;
+      await this.householdsCollection.updateOne(
+        { id: household.id },
+        {
+          $set: {
+            groupTargetShoppingMode: "add_products_and_group_item",
+            updatedAt: household.updatedAt
+          }
+        }
+      );
+      updatedCount += 1;
+    }
+    return { updatedCount };
+  }
+
   async updateHouseholdSettings(input: {
     allowExpiredItems?: boolean;
     defaultCalculatedMaxLimitMultiplier?: number;
+    groupTargetShoppingMode?: HouseholdRecord["groupTargetShoppingMode"];
     householdId: string;
     name?: string;
     updatedAt: string;
@@ -427,6 +451,7 @@ export class MongoHouseholdRepository {
   }): Promise<{
     allowExpiredItems: boolean;
     defaultCalculatedMaxLimitMultiplier: number;
+    groupTargetShoppingMode: NonNullable<HouseholdRecord["groupTargetShoppingMode"]>;
     name: string;
   }> {
     const household = await this.householdsCollection.findOne({ id: input.householdId });
@@ -445,6 +470,9 @@ export class MongoHouseholdRepository {
       ...(input.defaultCalculatedMaxLimitMultiplier === undefined
         ? {}
         : { defaultCalculatedMaxLimitMultiplier: input.defaultCalculatedMaxLimitMultiplier }),
+      ...(input.groupTargetShoppingMode === undefined
+        ? {}
+        : { groupTargetShoppingMode: input.groupTargetShoppingMode }),
       ...(input.name === undefined ? {} : { name: input.name }),
       updatedAt: input.updatedAt
     };
@@ -455,6 +483,10 @@ export class MongoHouseholdRepository {
         input.defaultCalculatedMaxLimitMultiplier ??
         household.defaultCalculatedMaxLimitMultiplier ??
         2,
+      groupTargetShoppingMode:
+        input.groupTargetShoppingMode ??
+        household.groupTargetShoppingMode ??
+        "add_products_and_group_item",
       name: input.name ?? household.name
     };
   }
@@ -1156,6 +1188,7 @@ export class MongoHouseholdRepository {
       createdAt: household.createdAt,
       allowExpiredItems: household.allowExpiredItems ?? true,
       defaultCalculatedMaxLimitMultiplier: household.defaultCalculatedMaxLimitMultiplier ?? 2,
+      groupTargetShoppingMode: household.groupTargetShoppingMode ?? "add_products_and_group_item",
       favouriteShopId: household.favouriteShopId ?? null,
       id: household.id,
       membershipRole,

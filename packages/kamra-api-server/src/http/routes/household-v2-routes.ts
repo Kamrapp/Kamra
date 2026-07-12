@@ -3,7 +3,11 @@ import { json, unauthorized, type AppRoute } from "../app-route-context.js";
 import { MongoStockReadRepository } from "../../household/v2/mongo-stock-read-repository.js";
 import { MongoStockCommandRepository } from "../../household/v2/mongo-stock-command-repository.js";
 import { MongoShoppingNeedRepository } from "../../household/v2/mongo-shopping-need-repository.js";
-import { createAdHocShoppingNeed } from "../../household/v2/shopping-needs.js";
+import {
+  createAdHocShoppingNeed,
+  generateProductGroupShoppingNeeds,
+  type GroupTargetShoppingMode
+} from "../../household/v2/shopping-needs.js";
 import { MongoStockTargetRepository } from "../../household/v2/mongo-stock-target-repository.js";
 import { MongoHouseholdProductRepository } from "../../household/v2/mongo-household-product-repository.js";
 import { MongoProductGroupReadRepository } from "../../household/v2/mongo-product-group-read-repository.js";
@@ -982,16 +986,18 @@ export const householdV2ShoppingNeedsRoute: AppRoute = {
     const householdId = request.path.match(/^\/api\/households\/([^/]+)\/shopping-needs$/)?.[1];
     if (!householdId) return json(400, { error: "invalid_household_path" });
     const body = request.method === "POST" ? parseJsonObject(request.bodyText) : null;
+    const regenerate = body?.["regenerate"] === true;
     if (
       request.method === "POST" &&
       (!body ||
-        typeof body["needId"] !== "string" ||
-        typeof body["plannedQuantity"] !== "number" ||
-        typeof body["unit"] !== "string")
+        (!regenerate &&
+          (typeof body["needId"] !== "string" ||
+            typeof body["plannedQuantity"] !== "number" ||
+            typeof body["unit"] !== "string")))
     )
       return json(400, { error: "invalid_shopping_need_request" });
     let adHocUnit: TrackingUnit | undefined;
-    if (request.method === "POST") {
+    if (request.method === "POST" && !regenerate) {
       try {
         assertTrackingUnit(body!["unit"]);
         adHocUnit = body!["unit"];
@@ -1012,20 +1018,42 @@ export const householdV2ShoppingNeedsRoute: AppRoute = {
     if (!membership) return json(403, { error: "household_membership_required" });
     const repository = new MongoShoppingNeedRepository(database);
     const now = new Date().toISOString();
+    const storedHousehold = await database
+      .collection<{ groupTargetShoppingMode?: string | null }>("households")
+      .findOne({ id: householdId });
+    const groupTargetMode: GroupTargetShoppingMode =
+      storedHousehold?.groupTargetShoppingMode === "add_products_only" ||
+      storedHousehold?.groupTargetShoppingMode === "ignore_group_targets"
+        ? storedHousehold.groupTargetShoppingMode
+        : "add_products_and_group_item";
     try {
       const result =
         request.method === "GET"
           ? await repository.getOrCreateList(householdId, user.email, now)
-          : await repository.upsertNeed({
-              actorUserId: user.email,
-              householdId,
-              need: createAdHocShoppingNeed({
-                id: body!["needId"] as string,
-                plannedQuantity: body!["plannedQuantity"] as number,
-                unit: adHocUnit!
-              }),
-              now
-            });
+          : regenerate
+            ? await repository.replaceGeneratedNeeds({
+                actorUserId: user.email,
+                householdId,
+                needs: generateProductGroupShoppingNeeds({
+                  mode: groupTargetMode,
+                  needIdPrefix: `shopping-needs:${householdId}`,
+                  workspace: await new MongoProductGroupReadRepository(database).getWorkspace(
+                    householdId,
+                    now.slice(0, 10)
+                  )
+                }),
+                now
+              })
+            : await repository.upsertNeed({
+                actorUserId: user.email,
+                householdId,
+                need: createAdHocShoppingNeed({
+                  id: body!["needId"] as string,
+                  plannedQuantity: body!["plannedQuantity"] as number,
+                  unit: adHocUnit!
+                }),
+                now
+              });
       return json(200, { result, schemaVersion });
     } catch (error) {
       return commandError(error);

@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   createAdHocShoppingNeed,
+  generateProductGroupShoppingNeeds,
   generateShoppingNeed,
   generateTargetPolicyShoppingNeed,
   transitionShoppingNeed
 } from "./shopping-needs.js";
 import type { StockTarget } from "./contracts.js";
 import type { StockTargetAggregate } from "./domain.js";
+import type { ProductGroupWorkspaceReadModel } from "./product-group-read-model.js";
 
 const target: StockTarget = {
   acceptanceCriteria: {
@@ -99,4 +101,156 @@ describe("shopping needs", () => {
       unit: "l"
     });
   });
+
+  it("uses product shortages first and splits remaining Group shortage across planned Products", () => {
+    const workspace = createWorkspace({
+      groupCurrent: 1,
+      groupMinimum: 3,
+      groupDesired: 5,
+      products: [
+        {
+          current: 0,
+          displayName: "Milk A",
+          id: "milk-a",
+          nextExpiryOn: "2026-07-13",
+          target: { desired: 1, minimum: 1 }
+        },
+        {
+          current: 1,
+          displayName: "Milk B",
+          id: "milk-b",
+          nextExpiryOn: "2026-07-20",
+          target: { desired: 2, minimum: 2 }
+        }
+      ]
+    });
+
+    const needs = generateProductGroupShoppingNeeds({
+      mode: "add_products_and_group_item",
+      needIdPrefix: "list",
+      workspace
+    });
+
+    expect(needs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ ownerId: "milk-a", plannedQuantity: 2 }),
+        expect.objectContaining({ ownerId: "milk-b", plannedQuantity: 2 })
+      ])
+    );
+    expect(needs.some((need) => need.ownerKind === "product_group")).toBe(false);
+  });
+
+  it("selects the earliest-expiring stocked Product when no Product target is already planned", () => {
+    const workspace = createWorkspace({
+      groupCurrent: 0,
+      groupMinimum: 1,
+      groupDesired: 2,
+      products: [
+        { current: 0, displayName: "Milk later", id: "later", nextExpiryOn: "2026-07-20" },
+        { current: 0, displayName: "Milk sooner", id: "sooner", nextExpiryOn: "2026-07-13" }
+      ],
+      stockedProductId: "sooner"
+    });
+
+    const needs = generateProductGroupShoppingNeeds({
+      mode: "add_products_only",
+      needIdPrefix: "list",
+      workspace
+    });
+
+    expect(needs).toHaveLength(1);
+    expect(needs[0]).toMatchObject({ ownerId: "sooner", plannedQuantity: 2 });
+  });
+
+  it("uses a Group impulse need only in the default mode when the Group has no Products", () => {
+    const workspace = createWorkspace({
+      groupCurrent: 0,
+      groupMinimum: 1,
+      groupDesired: 2,
+      products: []
+    });
+
+    expect(
+      generateProductGroupShoppingNeeds({
+        mode: "add_products_and_group_item",
+        needIdPrefix: "list",
+        workspace
+      })
+    ).toEqual([expect.objectContaining({ ownerKind: "product_group", plannedQuantity: 2 })]);
+    expect(
+      generateProductGroupShoppingNeeds({
+        mode: "add_products_only",
+        needIdPrefix: "list",
+        workspace
+      })
+    ).toEqual([]);
+  });
 });
+
+function createWorkspace(input: {
+  groupCurrent: number;
+  groupDesired: number;
+  groupMinimum: number;
+  products: Array<{
+    current: number;
+    displayName: string;
+    id: string;
+    nextExpiryOn: string | null;
+    target?: { desired: number; minimum: number };
+  }>;
+  stockedProductId?: string;
+}): ProductGroupWorkspaceReadModel {
+  const products = input.products.map((product) => ({
+    aggregate: {
+      availableQuantity: product.current,
+      batchCount: product.id === input.stockedProductId ? 1 : 0,
+      nextExpiryOn: product.nextExpiryOn,
+      state: "not_tracked" as const,
+      trackingUnit: "l" as const
+    },
+    batches: [],
+    product: {
+      displayName: product.displayName,
+      id: product.id,
+      targetPolicy: product.target
+        ? {
+            consumptionPolicy: "earliest_expiry_first",
+            desiredQuantity: product.target.desired,
+            expiryWarningDays: 0,
+            minimumQuantity: product.target.minimum,
+            trackingUnit: "l"
+          }
+        : null
+    }
+  }));
+  return {
+    allowExpiredItems: true,
+    productGroups: [
+      {
+        aggregate: {
+          availableQuantity: input.groupCurrent,
+          batchCount: products.reduce((total, product) => total + product.aggregate.batchCount, 0),
+          nextExpiryOn: null,
+          state: "below_minimum",
+          trackingUnit: "l"
+        },
+        childGroups: [],
+        group: {
+          displayName: "Milk",
+          id: "group:milk",
+          targetPolicy: {
+            consumptionPolicy: "earliest_expiry_first",
+            desiredQuantity: input.groupDesired,
+            expiryWarningDays: 0,
+            minimumQuantity: input.groupMinimum,
+            trackingUnit: "l"
+          },
+          trackingUnit: "l"
+        },
+        products
+      }
+    ],
+    unassignedBatches: [],
+    unassignedProducts: []
+  } as unknown as ProductGroupWorkspaceReadModel;
+}
