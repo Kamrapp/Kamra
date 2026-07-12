@@ -18,7 +18,7 @@ export const householdV2WorkspaceRoute: AppRoute = {
   handle: async (request, context) => {
     const user = context.authenticateRequestUser(request);
     if (!user) return unauthorized("apiErrors.signInRequired");
-    const householdId = request.path.match(/^\/api\/households\/([^/]+)\/stock-workspace$/)?.[1];
+    const householdId = pathSegment(request.path.match(/^\/api\/households\/([^/]+)\/stock-workspace$/)?.[1]);
     if (!householdId) return json(400, { error: "invalid_household_path" });
     return await withHouseholdDatabase(context, householdId, user.email, async (database) => json(200, {
       productGroupWorkspace: await new MongoProductGroupReadRepository(database).getWorkspace(householdId, new Date().toISOString().slice(0, 10)),
@@ -33,7 +33,7 @@ export const householdV2HouseholdProductCollectionRoute: AppRoute = {
   handle: async (request, context) => {
     const user = context.authenticateRequestUser(request);
     if (!user) return unauthorized("apiErrors.signInRequired");
-    const householdId = request.path.match(/^\/api\/households\/([^/]+)\/products$/)?.[1];
+    const householdId = pathSegment(request.path.match(/^\/api\/households\/([^/]+)\/products$/)?.[1]);
     const body = request.method === "POST" ? parseJsonObject(request.bodyText) : null;
     if (!householdId || (request.method === "POST" && !body)) return json(400, { error: "invalid_household_product_request" });
     if (body) {
@@ -56,7 +56,7 @@ export const householdV2HouseholdConceptsRoute: AppRoute = {
   handle: async (request, context) => {
     const user = context.authenticateRequestUser(request);
     if (!user) return unauthorized("apiErrors.signInRequired");
-    const householdId = request.path.match(/^\/api\/households\/([^/]+)\/concepts$/)?.[1];
+    const householdId = pathSegment(request.path.match(/^\/api\/households\/([^/]+)\/concepts$/)?.[1]);
     const body = request.method === "POST" ? parseJsonObject(request.bodyText) : null;
     if (!householdId || (request.method === "POST" && (!body || typeof body["label"] !== "string" || body["label"].trim().length === 0))) return json(400, { error: "invalid_household_concept_request" });
     return await withHouseholdDatabase(context, householdId, user.email, async (database) => {
@@ -74,7 +74,7 @@ export const householdV2HouseholdProductClassificationRoute: AppRoute = {
     const user = context.authenticateRequestUser(request);
     if (!user) return unauthorized("apiErrors.signInRequired");
     const match = request.path.match(/^\/api\/households\/([^/]+)\/products\/([^/]+)\/classification$/);
-    const householdId = match?.[1]; const productId = match?.[2]; const body = parseJsonObject(request.bodyText);
+    const householdId = pathSegment(match?.[1]); const productId = pathSegment(match?.[2]); const body = parseJsonObject(request.bodyText);
     if (!householdId || !productId || !body || !Number.isInteger(body["expectedRevision"]) || (body["expectedRevision"] as number) < 0) return json(400, { error: "invalid_household_product_classification_request" });
     try { assertCreateHouseholdProductRequest({ displayName: "classification", identityKind: "manual", directConcepts: body["directConcepts"] ?? [], directAttributes: body["directAttributes"] ?? [] }); } catch (error) { return json(400, { error: "invalid_household_product_classification_request", message: error instanceof Error ? error.message : "Classification request is invalid." }); }
     return await withHouseholdDatabase(context, householdId, user.email, async (database) => {
@@ -88,7 +88,7 @@ export const householdV2HouseholdProductIdentityRoute: AppRoute = {
   handle: async (request, context) => {
     const user = context.authenticateRequestUser(request);
     if (!user) return unauthorized("apiErrors.signInRequired");
-    const match = request.path.match(/^\/api\/households\/([^/]+)\/products\/([^/]+)$/); const householdId = match?.[1]; const productId = match?.[2]; const body = parseJsonObject(request.bodyText);
+    const match = request.path.match(/^\/api\/households\/([^/]+)\/products\/([^/]+)$/); const householdId = pathSegment(match?.[1]); const productId = pathSegment(match?.[2]); const body = parseJsonObject(request.bodyText);
     if (!householdId || !productId || !body || !Number.isInteger(body["expectedRevision"]) || (body["expectedRevision"] as number) < 0 || typeof body["displayName"] !== "string" || body["displayName"].trim().length === 0 || (!!body["identitySnapshot"] && (typeof body["identitySnapshot"] !== "object" || Array.isArray(body["identitySnapshot"])))) return json(400, { error: "invalid_household_product_identity_request" });
     try { assertCreateHouseholdProductRequest({ displayName: body["displayName"], identityKind: "manual", defaultTrackingUnit: body["defaultTrackingUnit"], note: body["note"], productGroupId: body["productGroupId"], targetPolicy: body["targetPolicy"] }); } catch (error) { return json(400, { error: "invalid_household_product_identity_request", message: error instanceof Error ? error.message : "Household Product details are invalid." }); }
     const displayName = body["displayName"] as string;
@@ -103,7 +103,7 @@ export const householdV2ProductGroupCollectionRoute: AppRoute = {
   match: (request) => (request.method === "GET" || request.method === "POST") && /^\/api\/households\/[^/]+\/product-groups$/.test(request.path),
   handle: async (request, context) => {
     const user = context.authenticateRequestUser(request); if (!user) return unauthorized("apiErrors.signInRequired");
-    const householdId = request.path.match(/^\/api\/households\/([^/]+)\/product-groups$/)?.[1]; const body = request.method === "POST" ? parseJsonObject(request.bodyText) : null;
+    const householdId = pathSegment(request.path.match(/^\/api\/households\/([^/]+)\/product-groups$/)?.[1]); const body = request.method === "POST" ? parseJsonObject(request.bodyText) : null;
     if (!householdId || (request.method === "POST" && !body)) return json(400, { error: "invalid_product_group_request" });
     if (body) { try { assertCreateProductGroupRequest(body); } catch (error) { return json(400, { error: "invalid_product_group_request", message: error instanceof Error ? error.message : "Product Group request is invalid." }); } }
     return await withHouseholdDatabase(context, householdId, user.email, async (database) => {
@@ -122,7 +122,7 @@ export const householdV2ProductGroupMutationRoute: AppRoute = {
   match: (request) => request.method === "PATCH" && /^\/api\/households\/[^/]+\/product-groups\/[^/]+$/.test(request.path),
   handle: async (request, context) => {
     const user = context.authenticateRequestUser(request); if (!user) return unauthorized("apiErrors.signInRequired");
-    const match = request.path.match(/^\/api\/households\/([^/]+)\/product-groups\/([^/]+)$/); const householdId = match?.[1]; const groupId = match?.[2]; const body = parseJsonObject(request.bodyText);
+    const match = request.path.match(/^\/api\/households\/([^/]+)\/product-groups\/([^/]+)$/); const householdId = pathSegment(match?.[1]); const groupId = pathSegment(match?.[2]); const body = parseJsonObject(request.bodyText);
     if (!householdId || !groupId || !body || !Number.isInteger(body["expectedRevision"]) || typeof body["displayName"] !== "string" || typeof body["trackingUnit"] !== "string") return json(400, { error: "invalid_product_group_request" });
     try { assertTrackingUnit(body["trackingUnit"]); if (body["targetPolicy"] !== undefined && body["targetPolicy"] !== null) assertTargetPolicy(body["targetPolicy"]); } catch (error) { return json(400, { error: "invalid_product_group_request", message: error instanceof Error ? error.message : "Product Group request is invalid." }); }
     return await withHouseholdDatabase(context, householdId, user.email, async (database) => {
@@ -136,7 +136,7 @@ export const householdV2ProductComposerRoute: AppRoute = {
   match: (request) => request.method === "POST" && /^\/api\/households\/[^/]+\/product-composer$/.test(request.path),
   handle: async (request, context) => {
     const user = context.authenticateRequestUser(request); if (!user) return unauthorized("apiErrors.signInRequired");
-    const householdId = request.path.match(/^\/api\/households\/([^/]+)\/product-composer$/)?.[1]; const body = parseJsonObject(request.bodyText);
+    const householdId = pathSegment(request.path.match(/^\/api\/households\/([^/]+)\/product-composer$/)?.[1]); const body = parseJsonObject(request.bodyText);
     const product = body?.["product"] as Record<string, unknown> | undefined; const batch = body?.["batch"] as Record<string, unknown> | undefined; const group = body?.["group"] as Record<string, unknown> | null | undefined;
     if (!householdId || !body || typeof body["operationId"] !== "string" || typeof body["requestFingerprint"] !== "string" || !product || !batch || typeof product["displayName"] !== "string" || typeof batch["displayName"] !== "string" || typeof batch["acquiredOn"] !== "string" || typeof batch["unit"] !== "string" || typeof batch["originalQuantity"] !== "number") return json(400, { error: "invalid_product_composer_request" });
     try { assertTrackingUnit(batch["unit"]); if (product["defaultTrackingUnit"] !== undefined && product["defaultTrackingUnit"] !== null) assertTrackingUnit(product["defaultTrackingUnit"]); if (product["targetPolicy"] !== undefined && product["targetPolicy"] !== null) { assertTargetPolicy(product["targetPolicy"]); if (product["defaultTrackingUnit"] !== undefined && (product["targetPolicy"] as TargetPolicy).trackingUnit !== product["defaultTrackingUnit"]) throw new Error("product target unit does not match product tracking unit"); } if (group) { if (typeof group["displayName"] !== "string" || typeof group["trackingUnit"] !== "string") throw new Error("group details are invalid"); assertTrackingUnit(group["trackingUnit"]); if (group["targetPolicy"] !== undefined && group["targetPolicy"] !== null) assertTargetPolicy(group["targetPolicy"]); } } catch (error) { return json(400, { error: "invalid_product_composer_request", message: error instanceof Error ? error.message : "Product composer request is invalid." }); }
@@ -332,6 +332,7 @@ async function runBatchCommand(context: Parameters<AppRoute["handle"]>[1], userI
 }
 
 function parseJsonObject(bodyText: string | undefined): Record<string, unknown> | null { if (!bodyText) return null; try { const value: unknown = JSON.parse(bodyText); return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null; } catch { return null; } }
+function pathSegment(value: string | undefined): string | undefined { if (!value) return undefined; try { return decodeURIComponent(value); } catch { return undefined; } }
 async function withHouseholdDatabase(context: Parameters<AppRoute["handle"]>[1], householdId: string, userId: string, action: (database: Db) => Promise<ReturnType<typeof json>>): Promise<ReturnType<typeof json>> {
   if (!context.config.mongodb.uri || !context.config.mongodb.databaseName) return json(503, { error: "household_not_configured" });
   const client = await context.getMongoClient(context.config.mongodb.uri, context.config.mongodb.dnsServers); const database = client.db(context.config.mongodb.databaseName); const membership = await database.collection<{ householdId: string; status: string; userId: string }>("household_memberships").findOne({ householdId, status: "active", userId }); if (!membership) return json(403, { error: "household_membership_required" }); return await action(database);
