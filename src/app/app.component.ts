@@ -133,7 +133,8 @@ interface ShellMenuItem extends RadialNavigationItem {
       .left-rail,
       .right-rail {
         align-content: start;
-        display: grid;
+        display: flex;
+        flex-direction: column;
         gap: var(--space-3);
         min-height: 0;
         min-width: 0;
@@ -213,11 +214,9 @@ interface ShellMenuItem extends RadialNavigationItem {
       }
 
       .rail-reference-links {
-        bottom: 0;
         display: grid;
         gap: var(--space-3);
         margin-top: auto;
-        position: sticky;
       }
 
       .about-rail-card:hover,

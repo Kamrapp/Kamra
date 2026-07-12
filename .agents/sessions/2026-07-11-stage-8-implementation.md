@@ -265,6 +265,7 @@
 - Activity console level treatment: debug, info, warn, and error rows use faded theme-aware status backgrounds and matching text colors, aligned with the household stock-state visual language.
 - Activity console resize refinement: only the scrollable log-output field is vertically resizable; the console header/card no longer carries the resize handle. Web build passed.
 - Manual rail visibility fix: Manual and About now share one sticky right-rail reference stack, with Manual structurally above Project note instead of both cards competing for the same sticky position. Web build passed.
+- Manual rail anchoring refinement: the right rail now uses a column flex layout so the combined Manual/Project note stack is pushed to the bottom together. Web build passed.
 - Seed validator repair: adding `allowExpiredItems` changed an already-completed household validator, so `household-expired-item-policy-v1` now independently upgrades the validator and backfills the permissive default before demo reseeding.
 - API grouped workspace: GET `/api/households/{householdId}/stock-workspace`; verify target totals are derived from active allocations, allocated batches group under their Household Product, and unallocated batches remain visible.
 - Browser Home: sign in, select a household, confirm the grouped Stage 8 workspace appears above the legacy controls, refresh it, and verify target/product/batch/unassigned hierarchy.
