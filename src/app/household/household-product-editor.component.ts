@@ -2,16 +2,11 @@ import { Component, effect, inject, input, output, signal } from "@angular/core"
 import { FormsModule } from "@angular/forms";
 
 import { BrowserLoggerService } from "../browser-logger.service";
-import { HouseholdV2Service, type HouseholdV2Product } from "./household-v2.service";
+import { HouseholdV2Service, type HouseholdV2Product, type HouseholdV2ProductGroup, type HouseholdV2TargetPolicy } from "./household-v2.service";
 
-interface ProductDraft {
-  acquiredOn: string;
-  createBatch: boolean;
-  displayName: string;
-  expiryOn: string;
-  quantity: number;
-  unit: string;
-}
+interface GroupDraft { displayName: string; desiredQuantity: number; hasTarget: boolean; minimumQuantity: number; trackingUnit: string; }
+interface ProductDraft { catalogProductId: string; desiredQuantity: number; displayName: string; gtin: string; hasTarget: boolean; minimumQuantity: number; note: string; productGroupId: string | null; }
+interface BatchDraft { acquiredOn: string; expiryOn: string; quantity: number; unit: string; }
 
 @Component({
   selector: "app-household-product-editor",
@@ -28,7 +23,11 @@ export class HouseholdProductEditorComponent {
   readonly changed = output<void>();
   readonly errorMessage = signal("");
   readonly saving = signal(false);
-  draft: ProductDraft = createDraft();
+  readonly productGroups = signal<HouseholdV2ProductGroup["group"][]>([]);
+  readonly selectedGroupId = signal<string | null>(null);
+  groupDraft: GroupDraft = createGroupDraft();
+  productDraft: ProductDraft = createProductDraft(null);
+  batchDraft: BatchDraft = createBatchDraft();
   private readonly service = inject(HouseholdV2Service);
   private readonly logger = inject(BrowserLoggerService);
 
@@ -36,46 +35,68 @@ export class HouseholdProductEditorComponent {
     effect(() => {
       const product = this.product();
       this.resetRevision();
-      this.draft = { ...createDraft(), createBatch: this.batchOnly(), displayName: product?.displayName ?? "" };
+      this.productDraft = createProductDraft(product);
+      this.batchDraft = createBatchDraft(product?.defaultTrackingUnit ?? "count");
+      this.selectedGroupId.set(product?.productGroupId ?? null);
+      this.groupDraft = createGroupDraft();
       this.errorMessage.set("");
+      void this.loadGroups();
     });
   }
 
-  get isNew(): boolean { return this.product() === null; }
-
-  clear(): void { this.draft = { ...createDraft(), displayName: this.product()?.displayName ?? "" }; this.errorMessage.set(""); }
-
-  async save(): Promise<void> {
-    const householdId = this.householdId();
-    const product = this.product();
-    const name = this.draft.displayName.trim();
-    if (!householdId || !name || !this.draft.unit.trim() || !Number.isFinite(this.draft.quantity) || this.draft.quantity < 0) { this.errorMessage.set("Enter a product name, a unit, and a non-negative stock quantity."); this.logger.log("info", "Product save rejected by client validation"); return; }
-    if (this.draft.createBatch && this.draft.quantity <= 0) { this.errorMessage.set("A physical stock batch must have a positive quantity. Save the Product without a batch for an empty stock entry."); this.logger.log("info", "Stock batch creation rejected by client validation"); return; }
-    this.saving.set(true);
-    this.errorMessage.set("");
-    this.logger.log("info", product ? "Saving household Product" : "Creating household Product", { hasInitialBatch: this.draft.createBatch, productId: product?.id });
-    let productId = product?.id;
-    if (product && !this.batchOnly()) {
-      const savedProduct = await this.service.updateProductIdentity({ displayName: name, expectedRevision: product.revision, householdId, productId: product.id });
-      if (savedProduct.status === "error") { this.saving.set(false); this.errorMessage.set(savedProduct.message ?? "Product could not be saved."); this.logger.log("error", "Household Product save failed", { productId: product.id }); return; }
-    } else if (!product) {
-      const createdProduct = await this.service.createProduct({ displayName: name, householdId });
-      if (createdProduct.status === "error") { this.saving.set(false); this.errorMessage.set(createdProduct.message ?? "Product could not be saved."); this.logger.log("error", "Household Product creation failed"); return; }
-      productId = createdProduct.product?.id;
-      this.logger.log("info", "Household Product created", { productId });
-    }
-    if (!productId) { this.saving.set(false); this.errorMessage.set("Product was saved without an identifier."); this.logger.log("error", "Household Product save returned no identifier"); return; }
-    if (this.draft.createBatch) {
-      const batch = await this.service.createBatch({ acquiredOn: this.draft.acquiredOn, displayName: name, expiryOn: this.draft.expiryOn || null, householdId, householdProductId: productId, quantity: this.draft.quantity, unit: this.draft.unit.trim() });
-      if (batch.status === "error") { this.saving.set(false); this.errorMessage.set(`Product saved, but initial stock was not created: ${batch.message ?? "unknown error"}`); this.logger.log("error", "Initial stock batch creation failed", { productId }); this.changed.emit(); return; }
-      this.logger.log("info", "Stock batch created", { productId });
-    }
-    this.saving.set(false);
-    if (product) this.logger.log("info", "Household Product saved", { productId });
-    this.changed.emit();
+  groupNameChanged(): void {
+    if (!this.product() && !this.productDraft.displayName) this.productDraft.displayName = this.groupDraft.displayName;
   }
+
+  async saveGroup(): Promise<void> {
+    const name = this.groupDraft.displayName.trim();
+    if (!name || !this.groupDraft.trackingUnit.trim() || !this.validLimits(this.groupDraft.hasTarget, this.groupDraft.minimumQuantity, this.groupDraft.desiredQuantity)) return this.fail("Enter a group name, unit, and valid target values.");
+    this.saving.set(true); this.errorMessage.set("");
+    const policy = this.groupDraft.hasTarget ? this.policy(this.groupDraft.minimumQuantity, this.groupDraft.desiredQuantity, this.groupDraft.trackingUnit) : null;
+    const result = this.selectedGroupId() ? await this.service.updateProductGroup({ displayName: name, expectedRevision: this.selectedGroupRevision(), groupId: this.selectedGroupId()!, householdId: this.householdId(), targetPolicy: policy, trackingUnit: this.groupDraft.trackingUnit.trim() }) : await this.service.createProductGroup({ displayName: name, householdId: this.householdId(), targetPolicy: policy, trackingUnit: this.groupDraft.trackingUnit.trim() });
+    this.saving.set(false);
+    if (result.status === "error") return this.fail(result.message ?? "Product Group could not be saved.");
+    this.logger.log("info", this.selectedGroupId() ? "Product Group saved" : "Product Group created"); this.changed.emit(); await this.loadGroups();
+  }
+
+  async saveProduct(): Promise<void> {
+    const name = this.productDraft.displayName.trim();
+    if (!name || !this.validLimits(this.productDraft.hasTarget, this.productDraft.minimumQuantity, this.productDraft.desiredQuantity)) return this.fail("Enter a Product name and valid target values.");
+    this.saving.set(true); this.errorMessage.set("");
+    const policy = this.productDraft.hasTarget ? this.policy(this.productDraft.minimumQuantity, this.productDraft.desiredQuantity, this.batchDraft.unit) : null;
+    const identitySnapshot = { gtin: this.productDraft.gtin || null };
+    const result = this.product() ? await this.service.updateProductIdentity({ displayName: name, expectedRevision: this.product()!.revision, householdId: this.householdId(), productId: this.product()!.id, productGroupId: this.productDraft.productGroupId, targetPolicy: policy, note: this.productDraft.note || null, catalogProductId: this.productDraft.catalogProductId || null, identitySnapshot }) : await this.service.createProduct({ displayName: name, householdId: this.householdId(), productGroupId: this.productDraft.productGroupId, targetPolicy: policy, note: this.productDraft.note || null });
+    this.saving.set(false);
+    if (result.status === "error") return this.fail(result.message ?? "Household Product could not be saved.");
+    this.logger.log("info", this.product() ? "Household Product saved" : "Household Product created"); this.changed.emit(); await this.loadGroups();
+  }
+
+  async saveBatch(): Promise<void> {
+    const name = this.productDraft.displayName.trim();
+    if (!name || this.batchDraft.quantity <= 0 || !this.batchDraft.unit.trim()) return this.fail("Enter a Product and a positive stock quantity.");
+    this.saving.set(true); this.errorMessage.set("");
+    let productId = this.product()?.id;
+    if (!productId) {
+      const created = await this.service.createProduct({ displayName: name, householdId: this.householdId(), productGroupId: this.productDraft.productGroupId });
+      if (created.status === "error" || !created.product?.id) { this.saving.set(false); return this.fail(created.message ?? "Product could not be created for the stock."); }
+      productId = created.product.id;
+    }
+    const result = await this.service.createBatch({ acquiredOn: this.batchDraft.acquiredOn, displayName: name, expiryOn: this.batchDraft.expiryOn || null, householdId: this.householdId(), householdProductId: productId, quantity: this.batchDraft.quantity, unit: this.batchDraft.unit.trim() });
+    this.saving.set(false);
+    if (result.status === "error") return this.fail(result.message ?? "Stock Batch could not be saved.");
+    this.logger.log("info", "Stock Batch created", { productId }); this.changed.emit();
+  }
+
+  private async loadGroups(): Promise<void> {
+    const householdId = this.householdId(); if (!householdId) return;
+    const result = await this.service.loadProductGroups(householdId); if (result.status === "ok") { this.productGroups.set(result.productGroups ?? []); const selected = result.productGroups?.find((group) => group.id === this.product()?.productGroupId); if (selected) { this.selectedGroupId.set(selected.id); this.groupDraft = { displayName: selected.displayName, desiredQuantity: selected.targetPolicy?.desiredQuantity ?? 0, hasTarget: Boolean(selected.targetPolicy), minimumQuantity: selected.targetPolicy?.minimumQuantity ?? 0, trackingUnit: selected.trackingUnit }; } }
+  }
+  private selectedGroupRevision(): number { return this.productGroups().find((group) => group.id === this.selectedGroupId())?.revision ?? 0; }
+  private policy(minimumQuantity: number, desiredQuantity: number, trackingUnit: string): HouseholdV2TargetPolicy { return { consumptionPolicy: "earliest_expiry_first", desiredQuantity, expiryWarningDays: 0, minimumQuantity, trackingUnit }; }
+  private validLimits(hasTarget: boolean, minimumQuantity: number, desiredQuantity: number): boolean { return !hasTarget || (Number.isFinite(minimumQuantity) && Number.isFinite(desiredQuantity) && minimumQuantity >= 0 && desiredQuantity >= minimumQuantity); }
+  private fail(message: string): void { this.errorMessage.set(message); this.logger.log("error", message); }
 }
 
-function createDraft(): ProductDraft {
-  return { acquiredOn: new Date().toISOString().slice(0, 10), createBatch: false, displayName: "", expiryOn: "", quantity: 0, unit: "count" };
-}
+function createGroupDraft(): GroupDraft { return { displayName: "", desiredQuantity: 0, hasTarget: false, minimumQuantity: 0, trackingUnit: "count" }; }
+function createProductDraft(product: HouseholdV2Product | null): ProductDraft { return { catalogProductId: typeof product?.identitySnapshot?.["catalogProductId"] === "string" ? product.identitySnapshot["catalogProductId"] as string : "", desiredQuantity: product?.targetPolicy?.desiredQuantity ?? 0, displayName: product?.displayName ?? "", gtin: typeof product?.identitySnapshot?.["gtin"] === "string" ? product.identitySnapshot["gtin"] as string : "", hasTarget: Boolean(product?.targetPolicy), minimumQuantity: product?.targetPolicy?.minimumQuantity ?? 0, note: product?.note ?? "", productGroupId: product?.productGroupId ?? null }; }
+function createBatchDraft(unit = "count"): BatchDraft { return { acquiredOn: new Date().toISOString().slice(0, 10), expiryOn: "", quantity: 0, unit }; }

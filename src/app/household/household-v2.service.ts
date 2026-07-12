@@ -22,14 +22,29 @@ export class HouseholdV2Service {
     return { status: "ok", workspace: payload.productGroupWorkspace ?? payload.workspace };
   }
 
-  async updateProductIdentity(input: { displayName: string; householdId: string; productId: string; expectedRevision: number }): Promise<{ status: "error" | "ok"; message?: string }> {
-    return await this.write("PATCH", `/api/households/${encodeURIComponent(input.householdId)}/products/${input.productId}`, { displayName: input.displayName, expectedRevision: input.expectedRevision });
+  async updateProductIdentity(input: { catalogProductId?: string | null; defaultTrackingUnit?: string | null; displayName: string; householdId: string; identitySnapshot?: Record<string, unknown>; note?: string | null; productGroupId?: string | null; productId: string; expectedRevision: number; targetPolicy?: HouseholdV2TargetPolicy | null }): Promise<{ status: "error" | "ok"; message?: string }> {
+    return await this.write("PATCH", `/api/households/${encodeURIComponent(input.householdId)}/products/${encodeURIComponent(input.productId)}`, { catalogProductId: input.catalogProductId, defaultTrackingUnit: input.defaultTrackingUnit, displayName: input.displayName, expectedRevision: input.expectedRevision, identitySnapshot: input.identitySnapshot, note: input.note, productGroupId: input.productGroupId, targetPolicy: input.targetPolicy });
   }
-  async createProduct(input: { displayName: string; householdId: string }): Promise<{ message?: string; product?: HouseholdV2Product; status: "error" | "ok" }> {
-    const response = await fetch(buildApiUrl(`/api/households/${encodeURIComponent(input.householdId)}/products`), { body: JSON.stringify({ displayName: input.displayName, identityKind: "manual" }), headers: this.headers(), method: "POST" });
+  async createProduct(input: { defaultTrackingUnit?: string | null; displayName: string; householdId: string; note?: string | null; productGroupId?: string | null; targetPolicy?: HouseholdV2TargetPolicy | null }): Promise<{ message?: string; product?: HouseholdV2Product; status: "error" | "ok" }> {
+    const response = await fetch(buildApiUrl(`/api/households/${encodeURIComponent(input.householdId)}/products`), { body: JSON.stringify({ ...input, identityKind: "manual" }), headers: this.headers(), method: "POST" });
     if (!response.ok) return { message: `Product creation failed (${response.status}).`, status: "error" };
     const payload = await response.json() as { product: HouseholdV2Product };
     return { product: payload.product, status: "ok" };
+  }
+  async loadProductGroups(householdId: string): Promise<{ message?: string; productGroups?: HouseholdV2ProductGroup["group"][]; status: "error" | "ok" }> {
+    const response = await fetch(buildApiUrl(`/api/households/${encodeURIComponent(householdId)}/product-groups`), { headers: { accept: "application/json", ...this.auth.getAuthorizationHeaders() }, method: "GET" });
+    if (!response.ok) return { message: `Product Groups could not be loaded (${response.status}).`, status: "error" };
+    const payload = await response.json() as { productGroups: HouseholdV2ProductGroup["group"][] };
+    return { productGroups: payload.productGroups, status: "ok" };
+  }
+  async createProductGroup(input: { displayName: string; householdId: string; targetPolicy?: HouseholdV2TargetPolicy | null; trackingUnit: string }): Promise<{ message?: string; productGroup?: HouseholdV2ProductGroup["group"]; status: "error" | "ok" }> {
+    const response = await fetch(buildApiUrl(`/api/households/${encodeURIComponent(input.householdId)}/product-groups`), { body: JSON.stringify(input), headers: this.headers(), method: "POST" });
+    if (!response.ok) return { message: `Product Group creation failed (${response.status}).`, status: "error" };
+    const payload = await response.json() as { productGroup: HouseholdV2ProductGroup["group"] };
+    return { productGroup: payload.productGroup, status: "ok" };
+  }
+  async updateProductGroup(input: { displayName: string; expectedRevision: number; householdId: string; groupId: string; targetPolicy?: HouseholdV2TargetPolicy | null; trackingUnit: string }): Promise<{ message?: string; status: "error" | "ok" }> {
+    return await this.write("PATCH", `/api/households/${encodeURIComponent(input.householdId)}/product-groups/${encodeURIComponent(input.groupId)}`, { displayName: input.displayName, expectedRevision: input.expectedRevision, targetPolicy: input.targetPolicy, trackingUnit: input.trackingUnit });
   }
   async createBatch(input: { acquiredOn: string; displayName: string; expiryOn?: string | null; householdId: string; householdProductId: string; quantity: number; unit: string }): Promise<{ message?: string; status: "error" | "ok" }> {
     return await this.write("POST", `/api/households/${encodeURIComponent(input.householdId)}/batches`, { acquiredOn: input.acquiredOn, displayName: input.displayName, expiryOn: input.expiryOn ?? null, householdProductId: input.householdProductId, operationId: crypto.randomUUID(), originalQuantity: input.quantity, requestFingerprint: crypto.randomUUID(), unit: input.unit });
