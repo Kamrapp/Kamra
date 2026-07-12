@@ -77,9 +77,9 @@ export class HouseholdProductEditorComponent {
     this.saving.set(true); this.errorMessage.set("");
     let productId = this.product()?.id;
     if (!productId) {
-      const created = await this.service.createProduct({ displayName: name, householdId: this.householdId(), productGroupId: this.productDraft.productGroupId });
-      if (created.status === "error" || !created.product?.id) { this.saving.set(false); return this.fail(created.message ?? "Product could not be created for the stock."); }
-      productId = created.product.id;
+      const created = await this.service.createProductWithBatch({ batch: { acquiredOn: this.batchDraft.acquiredOn, displayName: name, expiryOn: this.batchDraft.expiryOn || null, originalQuantity: this.batchDraft.quantity, unit: this.batchDraft.unit.trim() }, group: this.productDraft.productGroupId ? null : (this.groupDraft.displayName.trim() ? { displayName: this.groupDraft.displayName.trim(), targetPolicy: this.groupDraft.hasTarget ? this.policy(this.groupDraft.minimumQuantity, this.groupDraft.desiredQuantity, this.groupDraft.trackingUnit) : null, trackingUnit: this.groupDraft.trackingUnit.trim() } : null), householdId: this.householdId(), product: { displayName: name, note: this.productDraft.note || null, productGroupId: this.productDraft.productGroupId, targetPolicy: this.productDraft.hasTarget ? this.policy(this.productDraft.minimumQuantity, this.productDraft.desiredQuantity, this.batchDraft.unit) : null } });
+      this.saving.set(false); if (created.status === "error") return this.fail(created.message ?? "Product and stock could not be created.");
+      this.logger.log("info", "Product and Stock Batch created atomically"); this.changed.emit(); return;
     }
     const result = await this.service.createBatch({ acquiredOn: this.batchDraft.acquiredOn, displayName: name, expiryOn: this.batchDraft.expiryOn || null, householdId: this.householdId(), householdProductId: productId, quantity: this.batchDraft.quantity, unit: this.batchDraft.unit.trim() });
     this.saving.set(false);

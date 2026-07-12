@@ -8,6 +8,7 @@ import { MongoStockTargetRepository } from "../../household/v2/mongo-stock-targe
 import { MongoHouseholdProductRepository } from "../../household/v2/mongo-household-product-repository.js";
 import { MongoProductGroupReadRepository } from "../../household/v2/mongo-product-group-read-repository.js";
 import { MongoProductGroupRepository } from "../../household/v2/mongo-product-group-repository.js";
+import { MongoProductComposerRepository } from "../../household/v2/mongo-product-composer-repository.js";
 import { MongoHouseholdProductConceptRepository } from "../../household/v2/mongo-household-product-concept-repository.js";
 import { schemaVersion, type CreateHouseholdProductRequest, type CreateManualStockBatchRequest, type CreateProductGroupRequest, type CreateStockTargetRequest, type ProductGroup, type StockTarget, type TargetPolicy, type TrackingUnit } from "../../household/v2/contracts.js";
 import { assertCreateHouseholdProductRequest, assertCreateManualStockBatchRequest, assertCreateProductGroupRequest, assertCreateStockTargetRequest, assertProductGroup, assertTargetPolicy, assertTrackingUnit } from "../../household/v2/validation.js";
@@ -127,6 +128,22 @@ export const householdV2ProductGroupMutationRoute: AppRoute = {
       const repository = new MongoProductGroupRepository(database); if (body["parentProductGroupId"] && !(await repository.get(householdId, body["parentProductGroupId"] as string))) return json(404, { error: "parent_product_group_not_found" });
       try { const group = await repository.update({ displayName: (body["displayName"] as string).trim(), expectedRevision: body["expectedRevision"] as number, householdId, id: groupId, parentProductGroupId: body["parentProductGroupId"] as string | null | undefined, targetPolicy: body["targetPolicy"] as TargetPolicy | null | undefined, trackingUnit: body["trackingUnit"] as ProductGroup["trackingUnit"], updatedAt: new Date().toISOString(), updatedByUserId: user.email }); return json(200, { productGroup: group, schemaVersion }); } catch (error) { return commandError(error); }
     });
+  }
+};
+
+export const householdV2ProductComposerRoute: AppRoute = {
+  match: (request) => request.method === "POST" && /^\/api\/households\/[^/]+\/product-composer$/.test(request.path),
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request); if (!user) return unauthorized("apiErrors.signInRequired");
+    const householdId = request.path.match(/^\/api\/households\/([^/]+)\/product-composer$/)?.[1]; const body = parseJsonObject(request.bodyText);
+    const product = body?.["product"] as Record<string, unknown> | undefined; const batch = body?.["batch"] as Record<string, unknown> | undefined; const group = body?.["group"] as Record<string, unknown> | null | undefined;
+    if (!householdId || !body || typeof body["operationId"] !== "string" || typeof body["requestFingerprint"] !== "string" || !product || !batch || typeof product["displayName"] !== "string" || typeof batch["displayName"] !== "string" || typeof batch["acquiredOn"] !== "string" || typeof batch["unit"] !== "string" || typeof batch["originalQuantity"] !== "number") return json(400, { error: "invalid_product_composer_request" });
+    try { assertTrackingUnit(batch["unit"]); if (group) { if (typeof group["displayName"] !== "string" || typeof group["trackingUnit"] !== "string") throw new Error("group details are invalid"); assertTrackingUnit(group["trackingUnit"]); if (group["targetPolicy"] !== undefined && group["targetPolicy"] !== null) assertTargetPolicy(group["targetPolicy"]); } } catch (error) { return json(400, { error: "invalid_product_composer_request", message: error instanceof Error ? error.message : "Product composer request is invalid." }); }
+    if (!Number.isFinite(batch["originalQuantity"]) || (batch["originalQuantity"] as number) <= 0 || !isIsoDate(batch["acquiredOn"]) || (batch["expiryOn"] !== undefined && batch["expiryOn"] !== null && !isIsoDate(batch["expiryOn"]))) return json(400, { error: "invalid_product_composer_request" });
+    if (!context.config.mongodb.uri || !context.config.mongodb.databaseName) return json(503, { error: "household_not_configured" });
+    const client = await context.getMongoClient(context.config.mongodb.uri, context.config.mongodb.dnsServers); const database = client.db(context.config.mongodb.databaseName);
+    const membership = await database.collection<{ householdId: string; status: string; userId: string }>("household_memberships").findOne({ householdId, status: "active", userId: user.email }); if (!membership) return json(403, { error: "household_membership_required" });
+    try { const result = await new MongoProductComposerRepository(database, client).createProductWithBatch({ actorUserId: user.email, batch: { acquiredOn: batch["acquiredOn"] as string, displayName: batch["displayName"] as string, expiryOn: batch["expiryOn"] as string | null | undefined, originalQuantity: batch["originalQuantity"] as number, unit: batch["unit"] as TrackingUnit }, group: group ? { displayName: group["displayName"] as string, targetPolicy: group["targetPolicy"] as TargetPolicy | null | undefined, trackingUnit: group["trackingUnit"] as TrackingUnit } : null, householdId, operationId: body["operationId"], product: { displayName: product["displayName"] as string, note: typeof product["note"] === "string" ? product["note"] : null, productGroupId: typeof product["productGroupId"] === "string" ? product["productGroupId"] : null, targetPolicy: product["targetPolicy"] as TargetPolicy | null | undefined }, requestFingerprint: body["requestFingerprint"] }); return json(201, { result, schemaVersion }); } catch (error) { return commandError(error); }
   }
 };
 
