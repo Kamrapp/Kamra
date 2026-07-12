@@ -4,7 +4,8 @@
 .section-toggle > span:last-child { display: grid; gap: var(--space-1); }
 .section-toggle .ui-kicker, .section-toggle .ui-card-title { margin: 0; }
 .stock-grid-shell { border: 1px solid var(--line-panel); border-radius: var(--radius-ui); overflow: hidden; }
-.stock-grid { align-items: center; display: grid; gap: var(--space-3); grid-template-columns: minmax(12rem, 1.6fr) minmax(5.5rem, .65fr) minmax(5.5rem, .65fr) minmax(9rem, .9fr) auto; min-width: 42rem; padding: .45rem var(--space-3); }
+.stock-grid { align-items: center; display: grid; gap: var(--space-2); grid-template-columns: minmax(12rem, 1.45fr) minmax(4.8rem, .55fr) .8rem minmax(5.2rem, .6fr) .8rem minmax(4.8rem, .55fr) minmax(8rem, .8fr) auto; min-width: 48rem; padding: .45rem var(--space-3); }
+.comparison-column { color: var(--color-text-muted); font-size: .72rem; font-weight: 900; text-align: center; }
 .stock-grid-header { background: color-mix(in srgb, var(--pulse-row-background) 72%, transparent); color: var(--color-text-muted); font-size: .66rem; font-weight: 900; text-transform: uppercase; }
 .stock-grid-body { max-height: 29rem; overflow: auto; }
 .stock-group-row { background: var(--pulse-row-background); border-bottom: 1px solid var(--pulse-row-border); color: var(--pulse-row-text); font-size: .86rem; min-height: 2.5rem; }
