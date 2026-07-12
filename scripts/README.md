@@ -94,7 +94,7 @@ The script refuses database names other than `kamra_dev`, `kamra_test`, or `kamr
 
 ### `stage8-demo-manual-test.md`
 
-Repeatable manual test script for the seeded `usera` demo household. It covers grouped Products and Stock Targets, unassigned batches, expiry-before-acquisition, the permissive/default expired-item policy, corrections, discard, and Product classification inheritance.
+Repeatable manual test script for the seeded `usera` demo household. It covers Product Groups, Products, Batches, expiry-before-acquisition, the permissive/default expired-item policy, corrections, discard, and the remaining Stage 8 browser checks.
 
 Use it after `npm run seed` and only against a disposable local/demo database. Reseeding resets the demo household data.
 
