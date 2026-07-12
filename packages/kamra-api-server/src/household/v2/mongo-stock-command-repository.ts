@@ -104,7 +104,7 @@ export class MongoStockCommandRepository {
       const batch = await this.batches.findOne({ householdId: input.householdId, id: input.batchId }, { session });
       if (!batch) throw new Error("stock_batch_not_found");
       if (batch.revision !== input.expectedBatchRevision) throw new Error("stale_revision");
-      if (!Number.isFinite(input.resultingQuantity) || input.resultingQuantity < 0 || input.resultingQuantity > batch.originalQuantity) throw new Error("invalid_correction_quantity");
+      if (!Number.isFinite(input.resultingQuantity) || input.resultingQuantity < 0) throw new Error("invalid_correction_quantity");
       const allocation = await this.allocations.findOne({ householdId: input.householdId, stockBatchId: batch.id, status: "active" }, { session });
       const delta = input.resultingQuantity - batch.remainingQuantity;
       const now = input.occurredAt;

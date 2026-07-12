@@ -64,7 +64,8 @@ export type HouseholdShoppingListUpdateScope = (typeof householdShoppingListUpda
 
 export const householdFeatureFlagKeys = [
   "allowAutoTickingAllShoppingListEntries",
-  "allowControlledAlphaAccess"
+  "allowControlledAlphaAccess",
+  "useAbbreviatedUiLabels"
 ] as const;
 export type HouseholdFeatureFlagKey = (typeof householdFeatureFlagKeys)[number];
 

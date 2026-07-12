@@ -7,8 +7,8 @@
 .stock-grid-shell { border: 1px solid var(--line-panel); border-radius: var(--radius-ui); display: grid; grid-template-rows: auto minmax(0, 1fr); min-height: 0; overflow: hidden; }
 .stock-grid { align-items: center; display: grid; gap: var(--space-2); grid-template-columns: minmax(12rem, 1.45fr) minmax(4.8rem, .55fr) .8rem minmax(5.2rem, .6fr) .8rem minmax(4.8rem, .55fr) minmax(8rem, .8fr) auto; min-width: 48rem; padding: .45rem var(--space-3); }
 .comparison-column { color: var(--color-text-muted); font-size: .72rem; font-weight: 900; text-align: center; }
-.comparison-good { color: var(--color-status-success-text); }
-.comparison-warning { color: var(--color-status-warning-text); }
+.comparison-good { color: var(--color-accent-leaf-strong); }
+.comparison-warning { color: var(--color-status-warning); }
 .comparison-error, .expired-date { color: var(--color-status-danger-text); font-weight: 900; }
 .stock-grid-header { background: color-mix(in srgb, var(--pulse-row-background) 72%, transparent); color: var(--color-text-muted); font-size: .66rem; font-weight: 900; text-transform: uppercase; }
 .stock-grid-body { min-height: 0; overflow: auto; }

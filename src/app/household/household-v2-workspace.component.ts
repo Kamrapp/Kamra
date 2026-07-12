@@ -22,6 +22,10 @@ export class HouseholdV2WorkspaceComponent {
   readonly editingGroupId = signal<string | null>(null);
   readonly editingProductId = signal<string | null>(null);
   readonly editingGroupName = signal("");
+  readonly editingGroupTrackingUnit = signal("");
+  readonly editingGroupMinimum = signal(0);
+  readonly editingGroupDesired = signal(0);
+  readonly editingGroupHasTarget = signal(false);
   readonly editingProductName = signal("");
   readonly editingProductGroupId = signal("");
   readonly expandedGroupIds = signal<ReadonlySet<string>>(new Set());
@@ -63,8 +67,8 @@ export class HouseholdV2WorkspaceComponent {
     };
     return visit(this.workspace()?.productGroups ?? []);
   }
-  editGroup(group: HouseholdV2ProductGroup): void { this.editingGroupName.set(group.group.displayName); this.editingGroupId.set(group.group.id); this.groupSelected.emit(group); }
-  cancelGroupEdit(): void { this.editingGroupId.set(null); this.editingGroupName.set(""); }
+  editGroup(group: HouseholdV2ProductGroup): void { this.editingGroupName.set(group.group.displayName); this.editingGroupTrackingUnit.set(group.group.trackingUnit); this.editingGroupMinimum.set(group.group.targetPolicy?.minimumQuantity ?? 0); this.editingGroupDesired.set(group.group.targetPolicy?.desiredQuantity ?? 0); this.editingGroupHasTarget.set(Boolean(group.group.targetPolicy)); this.editingGroupId.set(group.group.id); this.groupSelected.emit(group); }
+  cancelGroupEdit(): void { this.editingGroupId.set(null); this.editingGroupName.set(""); this.editingGroupTrackingUnit.set(""); this.editingGroupMinimum.set(0); this.editingGroupDesired.set(0); this.editingGroupHasTarget.set(false); }
   editProduct(product: HouseholdV2Product): void { this.editingProductName.set(product.displayName); this.editingProductGroupId.set(product.productGroupId ?? ""); this.editingProductId.set(product.id); this.productSelected.emit(product); }
   cancelProductEdit(): void { this.editingProductId.set(null); this.editingProductName.set(""); this.editingProductGroupId.set(""); }
   editBatch(batch: HouseholdV2Batch, group: HouseholdV2ProductGroup | null, product: HouseholdV2Product): void { this.editingBatchId.set(batch.id); this.batchSelected.emit({ batch, group, product }); }
@@ -80,10 +84,14 @@ export class HouseholdV2WorkspaceComponent {
   comparisonIs(current: number, reference: number | undefined, kind: "minimum" | "target", state: "good" | "warning" | "error"): boolean { return this.comparisonClass(current, reference, kind) === `comparison-${state}`; }
   availableGroups(): HouseholdV2ProductGroup["group"][] { return this.flattenGroups(this.workspace()?.productGroups ?? []); }
   isExpired(expiryOn: string | null | undefined): boolean { return Boolean(expiryOn && expiryOn < new Date().toISOString().slice(0, 10)); }
-  async saveGroupName(group: HouseholdV2ProductGroup["group"], displayName: string): Promise<void> {
+  async saveGroup(group: HouseholdV2ProductGroup["group"]): Promise<void> {
+    const displayName = this.editingGroupName();
     const name = displayName.trim();
-    if (!name) { this.errorMessage.set("A Product Group needs a name."); return; }
-    const result = await this.service.updateProductGroup({ displayName: name, expectedRevision: group.revision, groupId: group.id, householdId: this.householdId(), targetPolicy: group.targetPolicy ?? null, trackingUnit: group.trackingUnit });
+    const trackingUnit = this.editingGroupTrackingUnit().trim();
+    const minimumQuantity = this.editingGroupMinimum(); const desiredQuantity = this.editingGroupDesired();
+    if (!name || !trackingUnit || !Number.isFinite(minimumQuantity) || !Number.isFinite(desiredQuantity) || minimumQuantity < 0 || desiredQuantity < minimumQuantity) { this.errorMessage.set("Enter a Group name, tracking unit, and valid target quantities."); return; }
+    const targetPolicy = this.editingGroupHasTarget() ? { consumptionPolicy: group.targetPolicy?.consumptionPolicy ?? "earliest_expiry_first", desiredQuantity, expiryWarningDays: group.targetPolicy?.expiryWarningDays ?? 0, minimumQuantity, trackingUnit } : null;
+    const result = await this.service.updateProductGroup({ displayName: name, expectedRevision: group.revision, groupId: group.id, householdId: this.householdId(), targetPolicy, trackingUnit });
     if (result.status === "error") { this.errorMessage.set(result.message ?? "Product Group could not be saved."); this.logger.log("error", "Product Group rename failed", { displayName: group.displayName, groupId: group.id }); return; }
     this.logger.log("info", "Product Group renamed", { displayName: name, groupId: group.id }); this.cancelGroupEdit(); await this.refresh();
   }
