@@ -10,6 +10,7 @@ This is the single source of truth for manual/browser verification carried forwa
 
 ## Stage 8 household foundation
 
+- [ ] Open the Manual from the right rail. Verify the household/shopping guide is available to everyone, the product/ingestion guide is disabled for non-admins and enabled for admins, and both locales use the intended terminology.
 - [ ] Sign in as controlled user A; create a household; confirm anonymous and unauthorized states.
 - [ ] As owner A, invite controlled user B; accept as B; confirm both users see only the shared household and unrelated users remain isolated.
 - [ ] Create a Stock Target without a Product; edit minimum, target, unit, expiry warning, consumption policy, and flat Acceptance Criteria.

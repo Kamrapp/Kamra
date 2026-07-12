@@ -77,6 +77,18 @@ interface ShellMenuItem extends RadialNavigationItem {
         />
 
         <a
+          class="about-rail-card manual-rail-card"
+          routerLink="/manual"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: true }"
+          [attr.aria-label]="loc.t('manual.railTitle')"
+        >
+          <p class="rail-kicker">{{ loc.t("manual.railKicker") }}</p>
+          <p class="about-rail-title">{{ loc.t("manual.railTitle") }}</p>
+          <p class="about-rail-copy">{{ loc.t("manual.railBody") }}</p>
+        </a>
+
+        <a
           class="about-rail-card"
           routerLink="/about"
           routerLinkActive="active"
@@ -473,6 +485,10 @@ export class AppComponent implements OnInit {
 
     if (url.startsWith("/about")) {
       return this.loc.t("about.pageTitle");
+    }
+
+    if (url.startsWith("/manual")) {
+      return this.loc.t("manual.pageTitle");
     }
 
     if (url.startsWith("/dev-admin") || url.startsWith("/health")) {

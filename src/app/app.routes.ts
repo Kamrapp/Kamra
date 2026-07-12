@@ -6,6 +6,7 @@ import { AdminDashboardComponent } from "./dev-admin/admin-dashboard.component";
 import { HouseholdManagementComponent } from "./household/household-management.component";
 import { HomeComponent } from "./home.component";
 import { IngestionAdminComponent } from "./site-admin/ingestion-admin.component";
+import { ManualPageComponent } from "./manual/manual-page.component";
 
 export const routes: Routes = [
   {
@@ -15,6 +16,10 @@ export const routes: Routes = [
   {
     path: "about",
     component: AboutPageComponent
+  },
+  {
+    path: "manual",
+    component: ManualPageComponent
   },
   {
     path: "dev-admin",
