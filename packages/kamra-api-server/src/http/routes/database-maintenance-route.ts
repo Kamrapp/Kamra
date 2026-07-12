@@ -7,6 +7,7 @@ import { MongoClassificationRepository } from "../../catalog/v2/mongo-classifica
 import type { ProductTagAssignmentRecord, ProductTagRecord } from "../../catalog/v1/contracts.js";
 import { MongoStockMigrationRepository } from "../../household/v2/mongo-stock-migration.js";
 import { MongoHouseholdProductRepository } from "../../household/v2/mongo-household-product-repository.js";
+import { MongoProductGroupRepository } from "../../household/v2/mongo-product-group-repository.js";
 import { MongoHouseholdProductConceptRepository } from "../../household/v2/mongo-household-product-concept-repository.js";
 import { describeRequest, json, unauthorized, type AppRoute } from "../app-route-context.js";
 
@@ -218,6 +219,10 @@ async function runValidatorAction(
   if (entryId === "household-products-v1") {
     return await new MongoHouseholdProductRepository(database).setupCollections();
   }
+  if (entryId === "household-product-groups-v1") {
+    await new MongoProductGroupRepository(database).setupCollections();
+    return { status: "ready" };
+  }
   if (entryId === "household-local-classification-v1") {
     return await new MongoHouseholdProductConceptRepository(database).setupCollections();
   }
@@ -262,6 +267,9 @@ async function runMigrationAction(
   }
   if (entryId === "household-products-v1") {
     return await new MongoHouseholdProductRepository(database).migrateLegacy();
+  }
+  if (entryId === "household-product-groups-v1") {
+    return await new MongoProductGroupRepository(database).migrateLegacy();
   }
   if (entryId === "household-local-classification-v1") {
     return { status: "ready", migratedCount: 0 };

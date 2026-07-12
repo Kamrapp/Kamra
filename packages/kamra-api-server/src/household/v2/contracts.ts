@@ -1,4 +1,5 @@
 export const householdV2CollectionNames = [
+  "household_product_groups",
   "household_stock_targets",
   "household_stock_batches",
   "household_stock_allocations",
@@ -64,8 +65,34 @@ export interface HouseholdProduct {
   id: string;
   identityKind: HouseholdProductIdentityKind;
   identitySnapshot: HouseholdProductIdentitySnapshot;
+  note?: string | null;
+  productGroupId?: string | null;
+  targetPolicy?: TargetPolicy | null;
+  defaultTrackingUnit?: TrackingUnit | null;
   revision: number;
   status: "active" | "archived";
+  updatedAt: string;
+  updatedByUserId: string;
+}
+
+export interface TargetPolicy {
+  consumptionPolicy: ConsumptionPolicy;
+  desiredQuantity: number;
+  expiryWarningDays: number;
+  minimumQuantity: number;
+  trackingUnit: TrackingUnit;
+}
+
+export interface ProductGroup {
+  createdAt: string;
+  createdByUserId: string;
+  displayName: string;
+  householdId: string;
+  id: string;
+  parentProductGroupId?: string | null;
+  revision: number;
+  status: LifecycleStatus;
+  targetPolicy?: TargetPolicy | null;
   updatedAt: string;
   updatedByUserId: string;
 }

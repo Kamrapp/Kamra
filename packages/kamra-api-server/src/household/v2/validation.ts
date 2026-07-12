@@ -1,4 +1,4 @@
-import { householdProductIdentityKinds, trackingUnits, type AcceptanceCriteria, type CreateHouseholdProductRequest, type CreateManualStockBatchRequest, type CreateStockTargetRequest, type StockAllocation, type StockBatch, type StockTarget, type TrackingUnit } from "./contracts.js";
+import { householdProductIdentityKinds, trackingUnits, type AcceptanceCriteria, type CreateHouseholdProductRequest, type CreateManualStockBatchRequest, type CreateStockTargetRequest, type ProductGroup, type StockAllocation, type StockBatch, type StockTarget, type TargetPolicy, type TrackingUnit } from "./contracts.js";
 
 function isDate(value: unknown): value is string {
   return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`));
@@ -45,6 +45,27 @@ export function assertStockTarget(value: unknown, label = "stockTarget"): assert
   assertValue(Number.isInteger(target["revision"]) && (target["revision"] as number) >= 0, `${label}.revision is invalid`);
   assertValue(target["status"] === "active" || target["status"] === "archived", `${label}.status is invalid`);
   assertAcceptanceCriteria(target["acceptanceCriteria"]);
+}
+
+export function assertTargetPolicy(value: unknown, label = "targetPolicy"): asserts value is TargetPolicy {
+  assertValue(!!value && typeof value === "object" && !Array.isArray(value), `${label} must be an object`);
+  const policy = value as Record<string, unknown>;
+  assertTrackingUnit(policy["trackingUnit"], `${label}.trackingUnit`);
+  assertValue(isQuantity(policy["minimumQuantity"]) && isQuantity(policy["desiredQuantity"]), `${label} quantities are invalid`);
+  assertValue((policy["desiredQuantity"] as number) >= (policy["minimumQuantity"] as number), `${label}.desiredQuantity must not be below minimumQuantity`);
+  assertValue(Number.isInteger(policy["expiryWarningDays"]) && (policy["expiryWarningDays"] as number) >= 0, `${label}.expiryWarningDays is invalid`);
+  assertValue(policy["consumptionPolicy"] === "earliest_expiry_first" || policy["consumptionPolicy"] === "oldest_acquired_first", `${label}.consumptionPolicy is invalid`);
+}
+
+export function assertProductGroup(value: unknown, label = "productGroup"): asserts value is ProductGroup {
+  assertValue(!!value && typeof value === "object" && !Array.isArray(value), `${label} must be an object`);
+  const group = value as Record<string, unknown>;
+  for (const key of ["id", "householdId", "displayName", "createdByUserId", "updatedByUserId", "createdAt", "updatedAt"]) assertValue(typeof group[key] === "string" && Boolean(group[key]), `${label}.${key} is required`);
+  assertValue(isTimestamp(group["createdAt"]) && isTimestamp(group["updatedAt"]), `${label} timestamps are invalid`);
+  if (group["parentProductGroupId"] !== undefined && group["parentProductGroupId"] !== null) assertValue(typeof group["parentProductGroupId"] === "string" && Boolean(group["parentProductGroupId"]), `${label}.parentProductGroupId is invalid`);
+  if (group["targetPolicy"] !== undefined && group["targetPolicy"] !== null) assertTargetPolicy(group["targetPolicy"], `${label}.targetPolicy`);
+  assertValue(Number.isInteger(group["revision"]) && (group["revision"] as number) >= 0, `${label}.revision is invalid`);
+  assertValue(group["status"] === "active" || group["status"] === "archived", `${label}.status is invalid`);
 }
 
 export function assertStockBatch(value: unknown, label = "stockBatch"): asserts value is StockBatch {

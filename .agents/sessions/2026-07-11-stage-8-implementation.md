@@ -41,6 +41,7 @@
 - Item: Added Stock Target repository CRUD and v2 create/update/archive routes with criteria, quantity, unit, policy, revision, and membership validation.
 - Item: Added the bounded bilingual base classification pack and loader with cycle, parent, translation-parity, and template-criteria validation.
 - Item: Added non-destructive Mongo base-pack sync with seed provenance, repeat-safe unchanged reporting, and customized-record conflict reporting.
+- Item: Added the Product Group/target-policy contract slice: optional embedded target policies on Product Groups and Household Products, direct Product Group membership fields/indexes, Product Group maintenance registry setup, and an idempotent legacy reconciliation that links unambiguous Products, wraps anonymous Batches in generic Products, and reports multi-target Product conflicts. Focused repository tests (4) and typecheck passed.
 
 ## Changed Files
 

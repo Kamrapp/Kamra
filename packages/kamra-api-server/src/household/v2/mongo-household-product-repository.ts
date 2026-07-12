@@ -1,6 +1,6 @@
 import type { MongoCollectionLike, MongoDatabaseLike } from "../../db/mongo-like.js";
 import type { HouseholdLocalProductRecord } from "../v1/contracts.js";
-import type { HouseholdProduct, ProductAttributeRef, ProductConceptRef } from "./contracts.js";
+import type { HouseholdProduct, ProductAttributeRef, ProductConceptRef, TargetPolicy, TrackingUnit } from "./contracts.js";
 
 export class MongoHouseholdProductRepository {
   private readonly products: MongoCollectionLike<HouseholdProduct>;
@@ -13,7 +13,8 @@ export class MongoHouseholdProductRepository {
     await Promise.all([
       this.products.createIndex({ id: 1 }, { name: "household_products_id_unique", unique: true }),
       this.products.createIndex({ householdId: 1, status: 1, displayName: 1 }, { name: "household_products_household_status_display" }),
-      this.products.createIndex({ householdId: 1, catalogProductId: 1 }, { name: "household_products_household_catalog" })
+      this.products.createIndex({ householdId: 1, catalogProductId: 1 }, { name: "household_products_household_catalog" }),
+      this.products.createIndex({ householdId: 1, productGroupId: 1, status: 1, displayName: 1 }, { name: "household_products_household_group_status_display" })
     ]);
   }
 
@@ -44,6 +45,24 @@ export class MongoHouseholdProductRepository {
     if (!current) throw new Error("household_product_not_found");
     if (current.revision !== input.expectedRevision) throw new Error("stale_revision");
     const next: HouseholdProduct = { ...current, ...(input.catalogProductId === undefined ? {} : { catalogProductId: input.catalogProductId }), ...(input.identitySnapshot === undefined ? {} : { identitySnapshot: input.identitySnapshot }), displayName: input.displayName, revision: current.revision + 1, updatedAt: input.updatedAt, updatedByUserId: input.updatedByUserId };
+    await this.products.updateOne({ householdId: input.householdId, id: input.id, revision: input.expectedRevision }, { $set: next });
+    return next;
+  }
+
+  async updateGroupAndPolicy(input: { defaultTrackingUnit?: TrackingUnit | null; householdId: string; id: string; note?: string | null; expectedRevision: number; productGroupId?: string | null; targetPolicy?: TargetPolicy | null; updatedAt: string; updatedByUserId: string }): Promise<HouseholdProduct> {
+    const current = await this.products.findOne({ householdId: input.householdId, id: input.id, status: "active" });
+    if (!current) throw new Error("household_product_not_found");
+    if (current.revision !== input.expectedRevision) throw new Error("stale_revision");
+    const next: HouseholdProduct = {
+      ...current,
+      ...(input.defaultTrackingUnit === undefined ? {} : { defaultTrackingUnit: input.defaultTrackingUnit }),
+      ...(input.note === undefined ? {} : { note: input.note }),
+      ...(input.productGroupId === undefined ? {} : { productGroupId: input.productGroupId }),
+      ...(input.targetPolicy === undefined ? {} : { targetPolicy: input.targetPolicy }),
+      revision: current.revision + 1,
+      updatedAt: input.updatedAt,
+      updatedByUserId: input.updatedByUserId
+    };
     await this.products.updateOne({ householdId: input.householdId, id: input.id, revision: input.expectedRevision }, { $set: next });
     return next;
   }

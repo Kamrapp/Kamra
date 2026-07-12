@@ -36,6 +36,11 @@ export const databaseMaintenanceEntries: readonly DatabaseMaintenanceEntry[] = [
     title: "Household product anchors"
   },
   {
+    details: "Creates Product Group indexes and target-policy-compatible fields for direct Household Product membership. The validator action changes accepted future shapes; the migration action reconciles legacy Stock Targets/Allocations into Product Groups, links unambiguous Products, reports conflicting histories, and preserves legacy allocation/movement evidence.",
+    id: "household-product-groups-v1",
+    title: "Household Product Groups and target policies"
+  },
+  {
     details: "Creates household-local Product Concept indexes. Existing Product classification remains unchanged; this action only enables additive household-owned concept vocabulary.",
     id: "household-local-classification-v1",
     title: "Household Product Concepts"
