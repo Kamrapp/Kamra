@@ -16,7 +16,7 @@ Use `initial-mvp-roadmap.md` as the current staged direction.
 
 Current final planning sequence:
 
-- `2026-07-11-stage-8-coherent-household-mvp-plan.md` — Product Classification, Stock Targets/Batches, Shopping Needs, base content, and adjustable home workspace
+- `2026-07-11-stage-8-coherent-household-mvp-plan.md` — Product Classification, Product Groups with Group/Product target policies, Product-owned Batches, Shopping Needs, base content, and adjustable home workspace
 - `2026-07-11-stage-9-concrete-shopping-catalogue-plan.md` — Shop Products/Price Observations, one-market Shopping Trips, Purchase Ingestion, and stock conversion
 - `2026-07-11-stage-10-alpha-hardening-plan.md` — final terminology migration, verified Crawl Snapshot archive/reprocessing, targeted architecture hardening, and Alpha 1.0 readiness
 

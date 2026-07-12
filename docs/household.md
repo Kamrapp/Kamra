@@ -8,6 +8,22 @@ It is intentionally separate from catalog, crawler, source, and store stock. Sto
 
 Stage 6 makes this loop real enough for a signed-in user to log in, see a low-stock pulse on the home page, add custom household items, generate or manually build shopping lists, and apply purchased items back into household stock.
 
+## Approved Stage 8 Model
+
+The Stage 6 sections below describe the legacy one-row runtime and are retained as historical implementation context. They are not the final household model.
+
+Stage 8 replaces that row with three ownership layers:
+
+- A **Product Group** is a household-owned, optionally nested group of Products. It may have an optional target policy with a tracking unit, minimum, and desired restock quantity.
+- A **Household Product** is a reusable concrete or generic manual product. It belongs to zero or one direct Product Group and may have its own optional target policy.
+- A **Stock Batch** is a physical acquisition beneath one Product. It owns quantity, stocked-at date, expiry, and history. New Batches automatically count with their Product's Group; they are never independently assigned to a separate target during normal use.
+
+Current quantities are derived from Batches. A Product contributes to its direct Group and ancestor Groups once. Target policies are optional properties of Products and Groups—not standalone stock records. Product Concepts remain separate classification/tagging vocabulary and are not the household stock hierarchy.
+
+When both a Product/child Group and its parent Group have targets, shopping planning works bottom-up: fulfil the specific target first, then generate only the parent’s remaining shortage. This prevents the same white-bread quantity from being proposed twice for `White bread` and `Bread`.
+
+The currently deployed allocation-based v2 workspace is an interim migration state. Its `Stock Target` and `Stock Allocation` data are retained as history/migration input until the Product Group cutover reconciles each Product to one Group or reports it for explicit resolution. See [domain language](./domain-language.md) and the active Stage 8 plan for the authoritative migration rules.
+
 ## Current Stage 6 State
 
 Implemented runtime surfaces:

@@ -962,6 +962,20 @@ Keep the right column, but make it a secondary, fully functional composer rather
 
 Manual acceptance for this slice: create a Group, child Group, unassigned Product, Product with a Group, and multiple Batches; move a Product between Groups and to Unassigned; confirm ancestor rollups and Product/Group limits; rename/edit/save/discard at each layer; verify icon expand/collapse states; create each level from both table and composer; verify compound Batch creation is atomic/idempotent; correct/discard a Batch; confirm no Product Concept controls appear; test light/dark, keyboard, mobile, stale revisions, and activity-log messages.
 
+### Final Product Group target-policy model (2026-07-12)
+
+This supersedes the preceding temporary “Stock Group/Stock Target” wording and every earlier Stage 8 planning statement that treats a target as the top-level household entity.
+
+- The first-class household entity is **Product Group**, not Stock Target. A Product Group owns hierarchy, display identity, grouping, and optional target-policy data. `Stock Target` remains only in explicitly named migration/history adapters until the cutover is complete.
+- A **target policy** is an optional embedded value on either `ProductGroup` or `HouseholdProduct`; it is not a separate collection or relation. The policy holds the owner's tracking unit, `minimumQuantity`, `desiredQuantity`, expiry-warning settings, and consumption/replenishment settings. An absent policy is valid and produces a neutral `not_tracked` state rather than a shortage.
+- A Product belongs to zero or one direct `productGroupId`. Every normal Batch belongs to one Product. Product Group aggregation is Product membership plus recursive ancestor rollup; never combine it with current allocation aggregation.
+- Product and Group policies are complementary, not additive Shopping Needs. The Shopping Need generator plans the deepest Product/child-Group deficits first, then calculates each ancestor Group’s residual after those planned contributions. Configuration validation warns when a parent desired/minimum quantity is lower than the converted sum of its tracked children; it does not silently rewrite intentional settings.
+- Product Groups retain a mandatory tracking unit even when their target policy is absent, because Group aggregation must be meaningful. A Product supplies a default tracking unit for new Batches; Group membership requires compatible units or an explicit supported conversion. Existing `g`/`kg` and `ml`/`l` conversion rules remain the only automatic conversions.
+- The old Target Acceptance Criteria are not retained as a live grouping rule. Direct Product Group membership is authoritative. Existing criteria/snapshots are preserved with historical allocations and may later power Product-Concept-based assignment suggestions, never silent grouping or counting.
+- A generated Shopping Need references its target-policy owner through `{ ownerKind: "product_group" | "household_product", ownerId }`, plus an immutable policy/shortage snapshot. It does not reference a standalone Stock Target.
+
+The required collection/contract cutover is therefore `household_stock_targets` → `household_product_groups` (or a documented compatibility successor), `household_products.productGroupId`, optional embedded target policies on both entities, Product-owned Batches, and historical-only allocations. New runtime code, Home copy, manual vocabulary, Stage 9 purchase conversion, and Stage 10 final terminology use **Product Group** and **target policy**.
+
 - Household Stock Targets with combined minimum/target, reorder/expiry policy, and minimal flat typed Product Concept/Attribute Acceptance Criteria.
 - Global cycle-safe concept `is_a` relations, inherited concepts, legacy category-parent migration, qualified household concepts/attributes, and explainable matching.
 - Bounded checked-in JSON base classification/template pack with feature-local English/Hungarian translations, idempotent additive sync through both the seed runner and admin dashboard, and runtime localized-label fallback.

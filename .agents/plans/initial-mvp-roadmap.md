@@ -24,7 +24,7 @@ Roadmap priorities:
 | Stage 5 | Household stock foundation | Completed | User-owned household collections, membership-checked routes, demo household reseed, signed-in home pulse/editor, shopping-scale preview, admin dashboard controls, and durable `docs/household.md` are in place. |
 | Stage 6 | Shopping list and low-stock notices | Completed | Deterministic shopping-list generation, DB-backed auto-tick feature toggle, household workspace refactor, start-fresh flow, read-only product browsing for signed-in users, About page, and logout redirect are implemented; browser/manual verification remains the main closeout task. |
 | Stage 7 | Controlled alpha access and app module shell | Implemented | Admin-created alpha users with database-backed creation/login gating, empty household allocation, and direct product-lookup, household, site-admin, and dev-admin route grouping are implemented. |
-| Stage 8 | Household-domain correctness | Planned | Adds final Product Classification, Stock Targets/Batches/Allocations/Movements, Shopping Needs, localized base content, adjustable home split, migrations, and rollout foundations. |
+| Stage 8 | Household-domain correctness | Planned | Adds final Product Groups with optional Group/Product target policies, Product-owned Batches/Movements, Shopping Needs, localized base content, adjustable home split, migrations, and rollout foundations. Legacy Stock Targets/Allocations are migration-history only after cutover. |
 | Stage 9 | Concrete shopping and catalog connection | Planned after Stage 8 | Adds Shop Markets/Products, one-shop Product/Price Observation matching, Shopping Trips, atomic Purchase-to-stock, Purchase Ingestion, and minimum catalog administration. |
 | Stage 10 | Alpha 1.0 hardening | Planned after Stage 9 | Applies the final domain language, preserves/exports/imports Crawl Snapshots, fixes confirmed parser/data defects, improves demonstrated change-locality problems, and prepares external Alpha review. |
 
@@ -371,14 +371,14 @@ Goal:
 Approved planning direction:
 
 - replace the one-stock-row-per-generic-product assumption with independently dated and linked stock batches
-- keep Stock Targets, Product identity/classification, concrete Stock Batches, and Stock Allocation/counting as distinct concepts
+- make Product Groups, Product identity/classification, and concrete Product-owned Stock Batches distinct concepts; target policy is optional data owned by a Product Group or Product, not a peer entity
 - replace legacy single tag parents with typed, cycle-safe Product Concept `is_a` relations so narrower concepts inherit broader concepts while Product Attributes/Search Keywords remain distinct
-- let households create/move/merge scoped Product Concepts safely and use minimal flat Acceptance Criteria
+- let households create/move/merge scoped Product Concepts safely as classification/tagging vocabulary, without using them as Home stock grouping
 - seed a bounded meaningful base concept/attribute/template pack from checked-in JSON with feature-local English/Hungarian translations through one idempotent CLI/admin sync service
-- aggregate only explicitly allocated stock, with one full-Stock-Batch allocation in Stage 8 so overlapping Stock Targets cannot double-count physical stock
+- aggregate through a Product's single direct Product Group membership and ancestor rollup; legacy Batch allocations are reconciled and retained as history, never combined with membership aggregation
 - add batch/allocation aggregation, explicit consumption/correction/discard actions, immutable movement history, optimistic concurrency, idempotency, and atomic stock commands
 - migrate existing household data through the database maintenance registry with separately tracked validator and data actions
-- connect Stock Targets, Shopping Needs, classifications, and Stock Batches to Products through optional references plus durable snapshots
+- connect Product Group/Product target-policy owners, Shopping Needs, classifications, and Stock Batches through explicit ownership plus durable snapshots
 - preserve manual/unlinked stock and keep catalogue archive/removal from invalidating household history
 - redesign generic demand as Shopping Needs that hand off cleanly to Stage 9 without pretending to complete Purchases
 - add an accessible locally remembered 30/70–70/30 Household/Shopping home divider with 50/50 reset on non-stacked layouts; defer animated tri-state focus/inline quick-action rows
@@ -508,16 +508,16 @@ Without those items Kamra would remain an inventory tracker plus catalogue brows
 
 - **Product Concept (`ProductConcept`):** generic product meaning such as milk, semi-skimmed milk, pasta, or spaghetti. Concept nodes have strong, explicit `is_a` relationships.
 - **Product Attribute (`ProductAttribute`):** independent filter such as gluten-free or 1.5%-fat. It does not become a parent/child concept merely because it classifies a product.
-- **Stock Target Template (`StockTargetTemplate`):** seeded/global suggestion containing stable concepts, attributes, acceptance criteria, and safe tracking-unit defaults; copying it creates an independently editable household stock target.
+- **Product Group Template (`ProductGroupTemplate`):** seeded/global suggestion containing a group name, safe tracking unit, and optional target policy defaults; copying it creates an independently editable household Product Group.
 - **Search Keyword (`SearchKeyword`):** search/matching hint only; never sufficient for eligibility or identity.
-- **Stock Target (`StockTarget`):** household's desired stock pool and policy, such as keep 2 l of any milk. It owns acceptance criteria, minimum/target quantity, unit, expiry warning, and consumption policy.
-- **Acceptance Criteria (`AcceptanceCriteria`):** flat typed concept/attribute conditions deciding whether a batch or product is suitable for a stock target. Do not call this a generic “rule” in new contracts/UI.
+- **Product Group (`ProductGroup`):** household-owned, optionally nested group such as milk or bread. Products belong to at most one direct Group; Group totals roll up from descendant Products.
+- **Target policy (`TargetPolicy`):** optional minimum/desired-restock policy owned by a Product Group or Household Product. It is not a standalone Stock Target.
 - **Product (`Product`):** canonical explicit catalog identity with brand and measurements.
 - **Shop Product (`ShopProduct`):** one shop-market-specific retailer representation of a product. Replaces “product source” as a domain/API term.
 - **Stock Batch (`StockBatch`):** acquired physical quantity with Product/manual snapshot, acquisition/expiry, and remaining amount.
-- **Stock Allocation (`StockAllocation`):** explicit quantity-counting link between a batch and one stock target in Stage 8; prevents overlap double counting.
+- **Legacy Stock Allocation (`StockAllocation`):** historical/migration link from the superseded Batch-to-Stock-Target model; new runtime grouping uses Product membership.
 - **Stock Movement (`StockMovement`):** immutable explanation of acquisition, consumption, correction, discard, expiry/removal, or reversal.
-- **Shopping Need (`ShoppingNeed`):** generic demand derived from a stock target shortage or entered ad hoc. It is not yet a selected product or purchase.
+- **Shopping Need (`ShoppingNeed`):** generic demand derived from a Product Group or Household Product target-policy shortage, or entered ad hoc. It is not yet a selected product or purchase.
 - **Shopping Trip (`ShoppingTrip`):** selected shop/date plus planned/unresolved items and resumable shopping results. Avoid using generic “shopping list” for both needs and trips.
 - **Trip Item (`ShoppingTripItem`):** one need/selection/result line within a shopping trip.
 - **Purchase (`Purchase`) / Purchase Item (`PurchaseItem`):** immutable historical record of what was actually bought, including actual product/manual snapshot, quantity, prices, expiry splits, and stock/ingestion references.
@@ -542,10 +542,10 @@ Vocabulary rules:
 | --- | --- | --- |
 | Narrow concept -> broad concept | Strong explicit `is_a` edge | Cycle-safe; move/merge audited; historical snapshots survive. |
 | Product -> concepts/attributes | Strong classification assignments | Product id remains identity; inherited concepts are derived. |
-| Stock Target -> Product Concepts/Attributes | Strong live Acceptance Criteria + versioned downstream snapshot | Criteria edit flags drift; it does not silently erase allocated stock. |
+| Product Group/Product -> target policy | Optional embedded policy | Missing policy means neutral/not-tracked; policy snapshots drive generated Shopping Needs. |
 | Stock Batch -> Product/Shop Product | Optional reference + immutable acquisition snapshot | Manual/unresolved allowed; catalog archive/merge cannot invalidate history. |
-| Stock Batch -> Stock Target | Explicit Stock Allocation | Aggregates use allocation, never raw match queries. |
-| Shopping Need -> Stock Target | Strong when generated, optional when ad hoc | Preserve Stock Target/Acceptance Criteria/reason snapshot. |
+| Household Product -> Product Group | Zero-or-one direct membership | Batches inherit grouping; ancestor rollup counts a Product once. |
+| Shopping Need -> Product Group/Product | Strong owner reference when generated, optional when ad hoc | Preserve target-policy/shortage snapshot; parent/child planning is residual, not additive. |
 | Trip Item -> selected Shop Product/Price Observation | Optional reference + immutable plan snapshot | Unresolved/no-price allowed; later observations do not rewrite plan. |
 | Purchase -> plan/actual product/batches | Strong historical references plus snapshots | Corrections/reversals append history. |
 | Shopping submission -> catalogue decision | User-confirmed/inferred candidate link | Admin decision affects future catalogue use, not past purchase/stock. |
@@ -555,7 +555,7 @@ Vocabulary rules:
 
 ## Stage Dependencies And Prioritization
 
-1. **Stage 8 — household correctness:** no Stage 9 concrete shopping writes land on the legacy one-row stock model. Complete and reconcile Product Classification, Stock Targets/Batches/Allocations/Movements, Shopping Needs, feature toggles, and logging first.
+1. **Stage 8 — household correctness:** no Stage 9 concrete shopping writes land on the legacy one-row stock model. Complete and reconcile Product Groups with Group/Product target policies, Product-owned Batches/Movements, Shopping Needs, feature toggles, and logging first.
 2. **Stage 9 — MVP usability:** correct Shop Product/Price Observation foundations before automatic matching; then add Shopping Trips, matching, UI, Purchase conversion/Ingestion, and workflow validation.
 3. **Stage 10 — Alpha maintainability:** verify the Crawl Snapshot archive first, apply final-language migration/reset, audit/reprocess actual data, then perform evidence-based cleanup. Move behavior bugs back to the owning feature.
 4. **Post-MVP:** optimize, automate, visualize, predict, and broaden only after internal use validates the loop.

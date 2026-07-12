@@ -12,23 +12,23 @@ This is the single source of truth for manual/browser verification carried forwa
 ## Stage 8 household foundation
 
 - [ ] Open the Manual from the right rail. Verify the household/shopping guide is available to everyone, the product/ingestion guide is disabled for non-admins and enabled for admins, and both locales use the intended terminology.
-- [ ] Use the left-rail Activity console during Product, Stock Target, and Batch actions. Verify concise start/success/failure messages, browser-console mirroring, error forwarding, scroll behavior, and vertical resize from the lower-right corner.
+- [ ] Use the left-rail Activity console during Product Group, Product, and Batch actions. Verify concise start/success/failure messages, browser-console mirroring, error forwarding, scroll behavior, and vertical resize from the lower-right corner.
 - [ ] Sign in as controlled user A; create a household; confirm anonymous and unauthorized states.
 - [ ] As owner A, invite controlled user B; accept as B; confirm both users see only the shared household and unrelated users remain isolated.
-- [ ] Create a Stock Target without a Product; edit minimum, target, unit, expiry warning, consumption policy, and flat Acceptance Criteria.
+- [ ] Create a Product Group without Products; configure its tracking unit and optional target policy. Verify a Group/Product without a target policy remains visible with a neutral not-tracked state.
 - [ ] Create a concrete Household Product first without classification; add two batches; classify the Product later; verify future batches inherit classification while historical batch snapshots remain unchanged.
-- [ ] Create a Stock Target first with an approximate unanchored opening batch; later create/identify concrete Household Products and allocate their batches to the same target without rewriting the opening history.
+- [ ] Create a generic manual Household Product first with an approximate opening Batch; later edit/identify the Product and assign it to a Product Group without rewriting the Batch history.
 - [ ] Create `pasta.spaghetti is_a pasta`; verify inherited matching and explainable failures for missing required, no accepted any-of, and excluded attributes.
 - [ ] Sync the checked-in English/Hungarian classification pack from admin; verify preview is write-free, apply is audited, repeat sync is a no-op, and missing custom locale text falls back without changing stable criteria ids.
 - [ ] Create household-local concepts/attributes; verify they cannot modify global classification or leak across households.
-- [ ] Add generic/manual and explicit-Product batches with separate acquisition/expiry dates; allocate matching batches; leave one batch unassigned.
-- [ ] Verify overlapping Stock Targets do not double-count a physical batch and one batch cannot have two active allocations.
+- [ ] Add generic/manual and explicit-Product Batches with separate acquisition/expiry dates; assign Products to Groups and leave one Product unassigned.
+- [ ] Verify a Product contributes once to its direct Product Group and each ancestor, never to multiple sibling Groups; legacy allocation history does not contribute after cutover.
 - [ ] Verify aggregate quantity, minimum/target status, next expiry, expiring count, no-expiry behavior, and combined low-stock/expiry explanations.
 - [ ] Partially consume across batches using automatic and selected order; verify depleted status, movement history, and idempotent retry behavior.
 - [ ] Correct a batch upward/downward; discard a batch; verify revisions, movements, allocation reconciliation, and stale-tab guidance.
 - [ ] Archive/unpublish a linked catalogue Product; verify household snapshots, stock, and history remain usable.
 - [ ] Generate, edit, skip, restore, and regenerate Shopping Needs after stock changes; verify one active need list and no Shop/Product/Purchase side effects.
-- [ ] Verify Home top-level rows are grouped Stock Targets plus an Unassigned/Unclassified group; expand Product and Batch details; confirm target amount is derived/read-only and batch physical fields remain editable.
+- [ ] Verify Home top-level rows are Product Groups plus an Unassigned group; expand Group/Product/Batch details; confirm target-policy amounts are derived/read-only and Batch physical fields remain editable.
 - [ ] Sign in and manually verify the Stage 8 grouped workspace renders on Home, refreshes, and keeps target/product/batch/unassigned hierarchy visible.
 - [ ] Edit a Household Product identity and verify its existing batch acquisition/expiry/history remains unchanged; verify stale Product revisions are rejected.
 - [ ] From a grouped Product row, click `Add stock`; verify the right editor switches to batch-only mode, keeps Product identity read-only, saves a separate batch, and leaves the Product in its existing group/unassigned state.
@@ -38,13 +38,13 @@ This is the single source of truth for manual/browser verification carried forwa
 - [ ] Create/edit/rename/discard a Stock Group, Product, and Batch from the left table. Verify the fixed action columns expose pencil/save/X, magnifier-plus/minus detail states, product-plus, and stock-plus with keyboard labels/tooltips; no action position changes with row text length.
 - [ ] Use the Product details Group dropdown to move a Product between Groups and to Unassigned. Verify all its Batches move with it, direct/ancestor totals and Product/Group states update once, no duplicate contribution appears, and incompatible-unit/stale failures leave the prior state intact.
 - [ ] Use the three-block right-side composer to add/save each layer independently, then create a Group+Product+Batch through the Batch action. Verify parent creation is atomic/idempotent, pristine-name mirroring never overwrites an edited Product name, Batches have no fake name, selection synchronizes all blocks, and clear/cancel never saves data.
-- [ ] Use the Stock Target-first hierarchy: add/edit a Stock Target, add a Product in its context, add a Batch, and verify an allocation is created only after an explicit validated Target choice.
-- [ ] Create a Stock Target from the table footer; edit its name inline using save/cancel actions, open its details, and edit minimum, target, and unit. Confirm the derived current amount remains read-only.
+- [ ] Use the Product Group hierarchy: add/edit a Product Group, add a Product in its context, add a Batch, and verify every later Batch of that Product automatically contributes through the same Group membership.
+- [ ] Create a Product Group from the table footer; edit its name inline using save/cancel actions, open its details, and edit tracking unit plus optional minimum/desired target. Confirm the derived current amount remains read-only.
 - [ ] Correct a batch quantity and discard a batch from grouped Home; verify the target aggregate refreshes and the batch remains in history/status rather than disappearing silently.
 - [ ] Edit a batch acquisition/expiry date from grouped Home; verify an expiry-before-acquisition date is accepted and valid changes refresh without changing the Product identity.
 - [ ] Verify an expiry date before acquisition is accepted; toggle household `allowExpiredItems` off/on and confirm expired stock remains visible but is excluded/included in derived availability and consumption accordingly. Default must be permissive.
 - [ ] Run the repeatable seeded demo flow in `scripts/stage8-demo-manual-test.md` and record any deviations from the expected grouped data, derived totals, policy behavior, or history behavior.
-- [ ] Verify the grouped workspace API/read model supplies the same hierarchy and does not count unallocated batches in Stock Target totals.
+- [ ] Verify the grouped workspace API/read model supplies the same recursive hierarchy and derives Group totals from Product membership/ancestor rollup rather than legacy allocations.
 - [ ] Check English/Hungarian labels, keyboard operation, narrow mobile layout, loading/empty/error/403/404/409 states, and light/dark themes.
 - [ ] Verify admin flags, audit history, maintenance actions, structured logs, redaction, and effective database name in diagnostics.
 - [ ] Run `npm run smoke:transactions` against `kamra_smoke` or another approved disposable database; record rollback `0`, commit `2`, cleanup, and effective database name.

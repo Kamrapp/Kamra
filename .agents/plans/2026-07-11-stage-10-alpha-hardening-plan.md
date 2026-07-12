@@ -51,13 +51,13 @@ Stage 8 and Stage 9 create new code with these names. Stage 10 removes remaining
 | --- | --- | --- |
 | Product Concept | Inclusive product class connected by `is_a`; e.g. spaghetti is a kind of pasta | category tag, generic tag, taxonomy node |
 | Product Attribute | Independent product characteristic; e.g. gluten-free | facet tag, attribute tag |
-| Stock Target Template | Seeded starting definition copied into a household | requirement template, rule template |
-| Acceptance Criteria | Flat conditions a Product/Stock Batch must satisfy for one Stock Target | rule, filter rule, requirement rule |
+| Product Group Template | Seeded starting definition copied into a household Product Group | requirement template, rule template |
+| Target policy | Optional minimum/desired-restock policy owned by a Product Group or Household Product | standalone target, rule, requirement |
 | Product | Canonical product identity independent of a retailer | catalog item |
 | Shop Product | A Shop Market's representation/listing of a Product | product source, source product |
-| Stock Target | Household policy for desired aggregate quantity | requirement, household entry |
+| Product Group | Household-owned, optionally nested group of Household Products | stock target, stock group, household entry |
 | Stock Batch | Separately dated/identified quantity held by a household | stock item, inventory row |
-| Stock Allocation | Explicit assignment of one Stock Batch to one Stock Target | grouping link |
+| Legacy Stock Allocation | Historical/migration record from the pre-Product-Group model | active grouping link |
 | Stock Movement | Immutable quantity change/history event | movement |
 | Shopping Need | Generic shortage/ad-hoc intent before a shop is selected | shopping-list line, requirement line |
 | Shopping Trip / Trip Item | Concrete one-market shopping plan and its items | shopping list, shopping line |
@@ -170,7 +170,7 @@ Review and improve where evidence supports it:
 - route slices adapt HTTP and delegate; they do not own matching/transaction/domain state machines
 - repositories persist/query their aggregate and do not silently repair legacy data
 - migrations, repair tools, compatibility adapters, and ingestion normalization have named homes and removal conditions
-- catalog Price Observation applicability, household Stock Allocation, and Shopping Trip transitions remain pure/testable domain services
+- catalog Price Observation applicability, household Product Group target-policy planning, and Shopping Trip transitions remain pure/testable domain services
 - frontend services do transport/mapping; components do not duplicate server business policy
 - duplicated browser/server DTOs use a small browser-safe shared contract or fixture parity test, not a new universal SDK
 - error translation and validation are consistent within each boundary without one giant schema
@@ -219,7 +219,7 @@ Not required: production SLOs, HA/DR automation, external APM, penetration testi
 Update only concise, workflow-owned documents:
 
 - root README: value proposition, Alpha status, screenshots/links if available, setup, commands, demo journey, limitations
-- `docs/domain-language.md`: final Product Concepts/Attributes, Stock Targets/Batches/Allocations/Movements, Shopping Needs/Trips, Purchases, shops, ingestion, Crawl Snapshots, and Price Observations
+- `docs/domain-language.md`: final Product Concepts/Attributes, Product Groups/target policies/Batches/Movements, Shopping Needs/Trips, Purchases, shops, ingestion, Crawl Snapshots, and Price Observations
 - environment/configuration and database migration/repair/backup expectations
 - crawler/source policy and data-quality report
 - logging and feature-toggle operations

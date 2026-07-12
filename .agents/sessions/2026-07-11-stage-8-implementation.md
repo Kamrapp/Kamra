@@ -290,6 +290,12 @@ Do not extend the interim allocation-based Home editor. Start the approved Stock
 
 ## Planned Home UI/UX redesign handoff (2026-07-12)
 
+### Final terminology correction: Product Groups own optional target policies
+
+The final first-layer entity is **Product Group**, not Stock Group or Stock Target. A Group and a Household Product each own an optional embedded target policy (tracking unit, minimum, desired restock amount, and relevant policy settings). A missing policy is valid and means neutral/not-tracked. This removes the separate current Stock Target entity from normal runtime ownership.
+
+A Product has zero or one direct `productGroupId`; every normal Batch belongs to a Product. Group totals roll up direct/descendant Product quantities once. Generated Shopping Needs reference the Product Group or Product target-policy owner. Parent/child Group and Product targets must plan bottom-up with a parent residual to avoid duplicate needs. Current `StockTarget`/`StockAllocation` records are cutover/history input only; conflicting legacy multi-target Product histories require explicit resolution and never silently count through both paths.
+
 ### Why the current Home UI does not match the requested rework
 
 The current grouped table and one-block right-side Product editor are an interim Stock Target implementation. They group a Product only through its individual Batch allocations. That model cannot safely provide the requested Product Group dropdown, automatic grouping of later Batches, nested Groups, or the requested three separate right-side blocks. The missing “add Product on Concept row” is also terminology drift: Home must use **Stock Group**, not Product Concept, as its first layer.

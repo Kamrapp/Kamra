@@ -10,11 +10,11 @@ This stage contains work **required for MVP usability** and the catalogue/price 
 
 ## Dependencies
 
-- Stage 8 Stock Targets, reusable Household Product anchors, Product Concept hierarchy, Product Attribute filters, Stock Batch/Stock Allocation model, Stock Movement history, idempotent command protocol, household permissions, Shopping Needs, structured logging, and feature-toggle foundation are complete.
+- Stage 8 Product Groups with optional Group/Product target policies, reusable Household Product anchors, Product Concept hierarchy, Product Attribute filters, Product-owned Stock Batches, Stock Movement history, idempotent command protocol, household permissions, Shopping Needs, structured logging, and feature-toggle foundation are complete.
 - Stage 8 migration reconciliation has passed and v1 stock writes are disabled.
 - Current ingestion/crawler review remains available; Stage 9 extends it rather than creating an unrelated moderation system.
 
-Stage 9 treats `Household Product` as the reusable concrete household identity. A Purchase creates a new Stock Batch for that Household Product (or creates a manual Household Product first); the batch retains its own acquisition/expiry and immutable snapshot. Stage 9 must not collapse Product identity, Household Product identity, Stock Target policy, or Stock Batch history into one line item.
+Stage 9 treats `Household Product` as the reusable concrete household identity. A Purchase creates a new Stock Batch for that Household Product (or creates a manual Household Product first); the batch retains its own acquisition/expiry and immutable snapshot and automatically contributes through its Product Group membership. Stage 9 must not collapse Product identity, Household Product identity, an owner’s target policy, or Stock Batch history into one line item.
 
 ## Open Questions
 
@@ -109,7 +109,7 @@ State transition functions reject impossible combinations. Do not retain indepen
 
 Each Trip Item preserves:
 
-- Stage 8 Stock Target/Shopping Need reference and Acceptance Criteria/reason snapshot
+- Stage 8 Shopping Need target-policy owner (`product_group` or `household_product`), policy/shortage snapshot, and any historical classification reason snapshot
 - required normalized quantity/unit
 - selected Shop Product/Product and direct/effective match explanation
 - package measurement, repeated package count, normalized unit price where calculable, expected applicable package price, and line total snapshot
@@ -123,7 +123,7 @@ Stage 9 uses one manually selected `ShopMarket` and one planned shopping date.
 
 For each non-skipped Shopping Need imported as a Trip Item:
 
-1. Find active Shop Products in that market whose Product satisfies the Stage 8 Acceptance Criteria or an explicit user-confirmed compatibility link.
+1. Prefer active Shop Products for the Household Product already selected or linked by the user. Product Concepts may later suggest compatible alternatives, but Stage 9 does not infer Product Group membership or rewrite target-policy ownership from a classification match.
 2. Require a package measurement convertible to the Shopping Need unit for automatic calculation. Products with unknown/incompatible package quantity remain manual candidates.
 3. Evaluate applicable price and staleness for the shopping date.
 4. For each priced candidate, calculate repeated units of one SKU: `packageCount = ceil(requiredQuantity / packageQuantity)` and expected total. Mixed-SKU/package optimization is deferred.
@@ -149,7 +149,7 @@ The MVP does not compare multiple shops or choose a route.
 - A bought Trip Item can change actual Product, quantity, package count, actual paid price, optional normal shelf price, optional offer price/validity, and one or more expiry Stock Batch splits.
 - An unplanned purchase can be added with the same bounded fields.
 - Unknown/manual product information creates household stock immediately using snapshots; catalogue review is asynchronous.
-- Completing a bought Trip Item is one idempotent transaction: result state, Purchase/Purchase Item, new Stock Batch(es), Stock Allocation(s) or unassigned state, Stock Movement(s), household price snapshot, and a structured Ingestion Submission whenever user-entered Product/shelf/offer facts could affect shared catalogue data. Even a known matched Product's user-entered price remains unvalidated until review; it is not selected as an authoritative applicable price immediately.
+- Completing a bought Trip Item is one idempotent transaction: result state, Purchase/Purchase Item, new Product-owned Stock Batch(es), Stock Movement(s), Product/Group target-policy aggregate refresh, household price snapshot, and a structured Ingestion Submission whenever user-entered Product/shelf/offer facts could affect shared catalogue data. A new Batch inherits its Product Group automatically; it does not create a Stock Allocation. Even a known matched Product's user-entered price remains unvalidated until review; it is not selected as an authoritative applicable price immediately.
 - Repeating the same operation returns the original result. Different content under the same operation id conflicts. Partial failure rolls back the Trip Item transaction.
 - Correcting a completed trip uses explicit correction/reversal commands; it never edits movements or purchase history in place.
 
@@ -221,7 +221,7 @@ Implementation ownership map:
 - shops/catalog: final `ShopChain`, `ShopMarket`, `ShopProduct`, `PriceObservation`, applicability service, and site-admin UI
 - shopping: `ShoppingTrip`, `ShoppingTripItem`, matcher, state machine, completion commands, and household Shopping UX
 - ingestion: `IngestionSource`, `IngestionSubmission`, `ProductCandidate`, review decisions, and promotion adapters
-- household: only the Stage 8 Stock Batch/Allocation/Movement commands invoked by purchase conversion; do not duplicate them in shopping
+- household: only the Stage 8 Product/Group/Batch/Movement commands invoked by purchase conversion; do not duplicate them in shopping
 - database maintenance: validator action, idempotent data action, reconciliation, operator text; route handlers remain thin dispatchers
 
 ### Step 1 - Shop-market and ingestion-source foundation

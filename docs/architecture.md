@@ -232,7 +232,7 @@ External source
 - accepting crawled product candidates should make create-versus-merge behavior explicit to the operator before writing catalog data
 - household inventory concepts should stay separate from store-offer observations even if they share some fields
 - household-local products are the first-class user-owned path for pantry tracking; catalog links are optional enrichment and should not block manual household stock entry
-- household stock group keys should remain stable because future list generation, limits, and consumption estimates need to reason about needs that may span multiple concrete products
+- household Product Groups are stable household-owned containers for Products; their optional target policies and Product-owned target policies drive later list generation without treating Product Concepts as stock hierarchy
 - shared contracts should be designed for reuse by frontend and API first, with generated compatibility for workflow runtimes where needed
 - composition should be modeled explicitly so compound products or household items can reference their parts
 - composition should support quantity plus unit, with ratio represented through the same model instead of a special unrelated relation shape
