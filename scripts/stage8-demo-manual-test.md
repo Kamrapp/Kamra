@@ -52,6 +52,8 @@ Use this against the local/demo database only. Reseeding resets the stable demo 
 - Verify the compact fixed-header grouped table: Product Group rows expose Current, Minimum, and State; Product/Batch rows are visually indented and keep action columns aligned regardless of name or quantity length.
 - Verify Product Groups start expanded, Products start collapsed, and no empty Group/Product shows an inert expansion control. Expand a Product and confirm the stock header labels Quantity, Stocked at, and Expiry.
 - Verify the Household stock section is expanded by default and the empty Shopping list starts as one collapsible header row. Expand it and confirm the existing empty-list content remains available.
+- On a desktop-width viewport, verify the Product Group hierarchy occupies the larger left column and the compact Group/Product/Stock editors occupy the narrower right column; confirm the layout stacks cleanly at narrow widths.
+- Trigger a save, failure, and discard action and confirm the newest Activity console entry is immediately visible at the top.
 - Verify Group, Product, and Stock Batch editors start collapsed, open for the matching edit/add action, use icon-only primary/reset actions with tooltips, and clear/collapse after a successful save.
 - Verify delete confirmations: deleting a Product Group leaves its Products and stock visible under Unassigned; deleting a Product warns that its owned batches will be removed; deleting a Stock Batch uses the existing discard/history behavior and affects only that Batch.
 - Verify Manage household owns household name, default calculated max-limit multiplier, and Allow expired items; invitation remains a visible placeholder.

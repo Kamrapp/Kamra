@@ -10,7 +10,7 @@ import { LocalizationService } from "./localization.service";
     <section class="client-console" [attr.aria-label]="loc.t('clientConsole.title')">
       <header><span>{{ loc.t("clientConsole.title") }}</span><small>{{ loc.t("clientConsole.localOnly") }}</small></header>
       <div class="client-console-scroll" aria-live="polite">
-        @for (entry of activity.entries(); track entry.id) {
+        @for (entry of activity.entries().slice().reverse(); track entry.id) {
           <div class="client-console-row" [class.debug]="entry.level === 'debug'" [class.error]="entry.level === 'error'" [class.info]="entry.level === 'info'" [class.warn]="entry.level === 'warn'"><time>{{ entry.timestamp.slice(11, 16) }}</time><span>{{ entry.message }}</span></div>
         } @empty { <p>{{ loc.t("clientConsole.empty") }}</p> }
       </div>
