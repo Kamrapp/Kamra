@@ -59,7 +59,7 @@ Operational direction:
 - keep Vercel-specific server adapters thin around app logic
 - keep GitHub Actions workflows thin around checked-in scripts
 - keep core logic locally runnable outside hosted-platform wrappers
-- prefer explicit seams for hosting, auth-provider, email-provider, and workflow-entrypoint swaps
+- prefer cheap, explicit seams for hosting, auth-provider, email-provider, and workflow-entrypoint swaps when current work needs them or omission would create a clear near-term dead end
 - avoid burying business logic in workflow YAML, deployment config, or provider-specific glue
 
 ## Data Flow

@@ -40,11 +40,19 @@ How the change should move the project toward the desired architecture or workfl
 
 ## Scope
 
-Included work.
+Required current work. Prefer the smallest solution that satisfies it.
+
+## Optional Work
+
+Useful additions that are safe to omit unless the user approves them.
+
+## Deferred Work
+
+Foreseeable followups that should be recorded rather than implemented now.
 
 ## Non-Goals
 
-Explicitly excluded work.
+Explicitly excluded or speculative work.
 
 ## Assumptions
 
@@ -63,6 +71,8 @@ Useful ideas that are not part of current scope unless approved.
 How the plan changed during discussion, and which earlier assumptions were revised.
 
 ## Implementation Steps
+
+For each step, use existing repository code and native/platform capabilities before proposing a dependency, abstraction, or extension layer. Note the justification when one is necessary.
 
 ### Step 1
 

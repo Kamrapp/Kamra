@@ -12,6 +12,7 @@ Roadmap priorities:
 - keep host and workflow adapters thin so the core app and job logic stay locally runnable
 - add validation when the relevant code exists and the signal is meaningful
 - stay fast enough for hobby-project momentum while leaving clean seams after the MVP rush
+- favor direct, native, and existing repository capabilities over speculative abstractions, dependencies, and infrastructure
 
 ## Milestone Tracking
 
@@ -78,7 +79,7 @@ The intended direction is:
 - Keep legacy code available until useful knowledge is extracted.
 - Do not extend the old backend by default.
 - Prefer small stages that prove one thing at a time.
-- Keep hosting and workflow glue thin so GitHub or Vercel are replaceable later.
+- Keep hosting and workflow glue thin so GitHub or Vercel are replaceable later; add only cheap local seams that current work needs or that avoid an obvious near-term dead end.
 - Prefer checked-in scripts and modules over large workflow files or host-specific handlers.
 - Preserve raw crawl snapshots before transforming data.
 - Keep product query data separate from price history.
@@ -104,7 +105,7 @@ Before implementation, split the active stage into commit-sized or one-shot agen
 - Platform lock-in risk: keep Vercel entrypoints and GitHub workflow files as thin adapters around app code and scripts that can also run locally.
 - CI sprawl risk: add checks only when a repo slice becomes real, and keep them scoped to the changed concern where possible.
 - MVP drag risk: avoid testing, pipeline work, or platform abstraction that exists only to look thorough; tie each addition to an actual code surface or operational risk.
-- Followup sprawl risk: keep seams explicit now and move non-essential ideas to `mvp-followups.md` instead of stretching active stages.
+- Followup sprawl risk: move non-essential ideas to `mvp-followups.md` instead of stretching active stages; do not prebuild their abstractions or configuration surfaces.
 
 ## Stage 1: Legacy Inventory And Extraction
 

@@ -8,6 +8,8 @@ Implementation should start only after the relevant plan is approved by the user
 
 Use `.agents/plan-template.md` by default.
 
+Plans should distinguish required current work from optional work, deliberate deferrals, and speculative exclusions. Thorough planning reduces uncertainty; it does not authorize speculative implementation.
+
 Plans may include a short research gate before approval when current standards, platform behavior, external services, or accepted best practices could materially change the implementation direction.
 
 ## Active Roadmap
@@ -26,7 +28,7 @@ Older bootstrap drafts are archived in `.agents/sessions/zero_init/`.
 
 Prefer the active roadmap and the specific current plan over rediscovering older plans. Read completed or superseded plans only when their decisions are directly relevant.
 
-Roadmap stages are allowed to be larger than one implementation session. Before implementation, split the active stage into commit-sized or one-shot agentic units and move lower-value side ideas to the followups list.
+Roadmap stages are allowed to be larger than one implementation session. Before implementation, split the active stage into commit-sized or one-shot agentic units, implement the highest-value current path first, and move lower-value side ideas to the followups list.
 
 ## Naming
 
