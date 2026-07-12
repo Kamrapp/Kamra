@@ -335,5 +335,6 @@ The full implementation contract, migration behavior, icon semantics, composer r
 ## Notes For Future Agent
 
 - Until the Product Group cutover is migrated, aggregate stock only from active Stock Allocations; never infer counted quantity from classification matches. After the cutover, Group aggregates come only from direct Product membership plus ancestor rollup—never from both allocation and membership paths.
+- Composer context repair: when a Product is created from a selected Product Group, the draft now carries that Group id; when saving a new Product from a Group context, the Group is created first only when needed, then the Product is linked to it. Typecheck and web build passed.
 - `is_a` is child-to-parent and effective concepts are inclusive; attributes remain independent.
 - Keep the manual-check list current when UI or live Mongo behavior is introduced.

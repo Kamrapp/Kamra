@@ -65,6 +65,11 @@ export class HouseholdProductEditorComponent {
     const name = this.productDraft.displayName.trim();
     if (!name || !this.validLimits(this.productDraft.hasTarget, this.productDraft.minimumQuantity, this.productDraft.desiredQuantity)) return this.fail("Enter a Product name and valid target values.");
     this.saving.set(true); this.errorMessage.set("");
+    if (!this.product() && !this.productDraft.productGroupId && this.groupDraft.displayName.trim()) {
+      const groupResult = await this.service.createProductGroup({ displayName: this.groupDraft.displayName.trim(), householdId: this.householdId(), targetPolicy: this.groupDraft.hasTarget ? this.policy(this.groupDraft.minimumQuantity, this.groupDraft.desiredQuantity, this.groupDraft.trackingUnit) : null, trackingUnit: this.groupDraft.trackingUnit.trim() });
+      if (groupResult.status === "error" || !groupResult.productGroup?.id) { this.saving.set(false); return this.fail(groupResult.message ?? "Product Group could not be created for the Product."); }
+      this.productDraft.productGroupId = groupResult.productGroup.id;
+    }
     const policy = this.productDraft.hasTarget ? this.policy(this.productDraft.minimumQuantity, this.productDraft.desiredQuantity, this.batchDraft.unit) : null;
     const identitySnapshot = { gtin: this.productDraft.gtin || null };
     const result = this.product() ? await this.service.updateProductIdentity({ displayName: name, expectedRevision: this.product()!.revision, householdId: this.householdId(), productId: this.product()!.id, productGroupId: this.productDraft.productGroupId, targetPolicy: policy, note: this.productDraft.note || null, catalogProductId: this.productDraft.catalogProductId || null, identitySnapshot }) : await this.service.createProduct({ displayName: name, householdId: this.householdId(), productGroupId: this.productDraft.productGroupId, targetPolicy: policy, note: this.productDraft.note || null });
@@ -91,7 +96,7 @@ export class HouseholdProductEditorComponent {
 
   private async loadGroups(): Promise<void> {
     const householdId = this.householdId(); if (!householdId) return;
-    const result = await this.service.loadProductGroups(householdId); if (result.status === "ok") { this.productGroups.set(result.productGroups ?? []); const selected = result.productGroups?.find((candidate) => candidate.id === (this.product()?.productGroupId ?? this.group()?.group.id)); if (selected) { this.selectedGroupId.set(selected.id); this.groupDraft = { displayName: selected.displayName, desiredQuantity: selected.targetPolicy?.desiredQuantity ?? 0, hasTarget: Boolean(selected.targetPolicy), minimumQuantity: selected.targetPolicy?.minimumQuantity ?? 0, trackingUnit: selected.trackingUnit }; } }
+    const result = await this.service.loadProductGroups(householdId); if (result.status === "ok") { this.productGroups.set(result.productGroups ?? []); const selected = result.productGroups?.find((candidate) => candidate.id === (this.product()?.productGroupId ?? this.group()?.group.id)); if (selected) { this.selectedGroupId.set(selected.id); this.groupDraft = { displayName: selected.displayName, desiredQuantity: selected.targetPolicy?.desiredQuantity ?? 0, hasTarget: Boolean(selected.targetPolicy), minimumQuantity: selected.targetPolicy?.minimumQuantity ?? 0, trackingUnit: selected.trackingUnit }; if (!this.product()) this.productDraft.productGroupId = selected.id; } }
   }
   private selectedGroupRevision(): number { return this.productGroups().find((group) => group.id === this.selectedGroupId())?.revision ?? 0; }
   private policy(minimumQuantity: number, desiredQuantity: number, trackingUnit: string): HouseholdV2TargetPolicy { return { consumptionPolicy: "earliest_expiry_first", desiredQuantity, expiryWarningDays: 0, minimumQuantity, trackingUnit }; }
