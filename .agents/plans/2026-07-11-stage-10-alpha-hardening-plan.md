@@ -6,7 +6,7 @@ Status: Proposed final plan. Requires Stage 9 completion and separate user appro
 
 Turn the working Stage 8-9 product into a credible Alpha 1.0 by freezing one domain language across code/data/UI, preserving and auditing real development Crawl Snapshots, repairing confirmed parser/data problems, tightening architecture where change-locality is demonstrably poor, completing failure-state and non-functional validation, removing temporary compatibility paths, and documenting the contributor/operator workflow.
 
-Stage 10 is **required for maintainability before Alpha 1.0**. It is not authorization for a repository rewrite, formatting campaign, enterprise framework, or speculative abstraction layer.
+Stage 10 is **required for maintainability before Alpha 1.0**. It is not authorization for a repository rewrite, formatting campaign, enterprise framework, speculative abstraction layer, or automatic execution of every possible hardening item. Each change must be tied to observed Alpha friction, a current correctness/security risk, or a documented release requirement.
 
 ## Entry Criteria
 
@@ -42,6 +42,7 @@ Repository inspection already identifies review candidates, not automatic refact
 - No event bus, generic workflow/command framework, DI framework, universal repository, abstract factory family, internal SDK, or elaborate schema-code-generation platform.
 - File size alone is not a defect. Split by responsibility only when the result has a clear owner and improves change locality.
 - Behavior-changing findings return to the owning Stage 8/9 plan/fixer scope if they are required for correctness; do not hide them in “cleanup.”
+- Prefer an existing utility, native platform capability, or a small local correction before adding a new tool, dependency, shared layer, or automation. Record lower-value cleanup as post-MVP instead of consuming Alpha time.
 
 ## Final Domain Language And Rename Boundary
 
@@ -62,8 +63,8 @@ Stage 8 and Stage 9 create new code with these names. Stage 10 removes remaining
 | Shopping Need | Generic shortage/ad-hoc intent before a shop is selected | shopping-list line, requirement line |
 | Shopping Trip / Trip Item | Concrete one-market shopping plan and its items | shopping list, shopping line |
 | Purchase / Purchase Item | Historical bought result | purchase order, completed shopping line |
-| Shop Chain / Shop Market | Retailer identity / country-specific commercial market | store, shop source |
-| Ingestion Source | Adapter/feed that supplies evidence | shop, product source |
+| Shop Market | Country-specific commercial market; a separate Shop Chain exists only if active markets need shared administration | store, shop source |
+| Ingestion Source | Adapter/feed that supplies evidence; a separate record exists only when it needs independent lifecycle/review management | shop, product source |
 | Crawl Snapshot | Immutable raw fetched evidence | crawl content, raw product |
 | Product Candidate | Parsed/reviewable proposed Product/Shop Product facts | staged product |
 | Price Observation | Append-only price evidence | offer record, current price |
@@ -193,7 +194,7 @@ Review and improve where evidence supports it:
 - Check logs for sensitive names/emails/notes/raw payloads and remove duplicate request/repository noise.
 - Verify feature toggles have typed definitions, admin state, audit history, failure behavior, tests, owner/removal condition; remove temporary Stage 8/9 cutover flags.
 - Check bounded pagination/index use on Products, Shop Products, Price Observations, Ingestion Submissions, Stock Movement history, audit records, and Shopping Trip history.
-- Verify base-classification seed drift/conflict reports, English/Hungarian parity, runtime fallback telemetry/state, and purchase-ingestion classification promotion without silently rewriting household history.
+- Verify base-classification seed drift/conflict reports, English/Hungarian parity, runtime fallback telemetry/state, and purchase-ingestion snapshots/review without silently rewriting household history.
 - Run basic realistic-volume timings. Optimize only measured query/UI problems; no distributed cache/platform is planned.
 
 ## Alpha Non-Functional Baseline
@@ -231,7 +232,7 @@ Do not add a code of conduct, governance charter, issue templates, or other cere
 
 ## Ordered Implementation And Commit Boundaries
 
-Execution rule for every step: implement only the named concern, read the listed owning slice and its nearest `AGENTS.md`/README first, add or update tests before crossing into the next step, and stop on a failed prerequisite or unexplained schema conflict. Do not opportunistically rename/refactor outside the current step. Each step ends with its acceptance checks and a reviewable diff; the next step does not begin automatically.
+Execution rule for every step: implement only the named concern, read the listed owning slice and its nearest `AGENTS.md`/README first, add or update focused tests when behavior or risk warrants them, and stop on a failed prerequisite or unexplained schema conflict. Do not opportunistically rename/refactor outside the current step. Each step ends with proportionate acceptance checks and a reviewable diff; the next step does not begin automatically.
 
 Implementation ownership map:
 
@@ -299,7 +300,7 @@ Implementation ownership map:
 
 ### Step 10 - Non-functional and observability hardening
 
-- Close concrete authorization, failure-state, logging/redaction, pagination/index, accessibility/responsive, realistic-volume, and backup/recovery gaps.
+- Close concrete authorization, failure-state, logging/redaction, pagination/index, accessibility/responsive, realistic-volume, and backup/recovery gaps that the Alpha path, observed failures, or release requirements demonstrate; do not add platform/tooling work merely to fill a checklist.
 - Acceptance: Alpha non-functional baseline above passes without production-platform expansion.
 - Commit by concern when independent: `chore: harden alpha operations`
 

@@ -377,7 +377,7 @@ Approved planning direction:
 - let households create/move/merge scoped Product Concepts safely as classification/tagging vocabulary, without using them as Home stock grouping
 - seed a bounded meaningful base concept/attribute/template pack from checked-in JSON with feature-local English/Hungarian translations through one idempotent CLI/admin sync service
 - aggregate through a Product's single direct Product Group membership and ancestor rollup; legacy Batch allocations are reconciled and retained as history, never combined with membership aggregation
-- add batch/allocation aggregation, explicit consumption/correction/discard actions, immutable movement history, optimistic concurrency, idempotency, and atomic stock commands
+- add Product/Group aggregation, explicit consumption/correction/discard actions, immutable movement history, optimistic concurrency, idempotency, and atomic stock commands
 - migrate existing household data through the database maintenance registry with separately tracked validator and data actions
 - connect Product Group/Product target-policy owners, Shopping Needs, classifications, and Stock Batches through explicit ownership plus durable snapshots
 - preserve manual/unlinked stock and keep catalogue archive/removal from invalidating household history
@@ -395,10 +395,10 @@ Implementation plan:
 
 Validation:
 
-- multiple generic/manual and explicit-Product Stock Batches allocated to one Stock Target retain independent acquisition/expiry dates and Product/classification snapshots
+- multiple generic/manual and explicit-Product Stock Batches under one Product Group retain independent acquisition/expiry dates and Product/classification snapshots
 - inherited concepts match inclusively, independent attributes filter correctly, the motivating milk/pasta rules are explainable, and cycles/cross-household relations are rejected
 - base content/template sync is additive, localized, repeatable, admin-previewable, and never overwrites customized/household content silently
-- allocation totals, partial consumption, corrections, depletion, and history remain consistent without overlap double counting under retries and concurrent requests
+- Product/Group rollups, partial consumption, corrections, depletion, and history remain consistent without double counting under retries and concurrent requests
 - Shopping Needs are stable, editable, and do not pretend to be a completed Purchase
 - the desktop/tablet Household/Shopping divider is keyboard/pointer usable, locally remembers a clamped ratio, resets to 50/50, and leaves stacked mobile behavior unchanged
 - warnings are explainable
@@ -417,15 +417,15 @@ Goal:
 
 Scope:
 
-- first-class shop chains and country-specific shop markets, separate from ingestion methods and physical branches
+- one direct country-specific Shop Market, kept separate from source metadata and physical branches; extract a Shop Chain or Ingestion Source only when current data needs independent identities
 - one manually chosen shop and planned date
-- Acceptance-Criteria-compatible Shop Product candidates, package normalization, applicable-Price-Observation selection, and deterministic cheapest repeated-single-SKU choice
+- Product/need-compatible Shop Product candidates, package normalization, applicable-Price-Observation selection, and deterministic cheapest repeated-single-SKU choice
 - manual override/search, skip, unresolved generic, stale/no-price/conditional fallbacks, and match explanations
 - explicit resumable Shopping Trip/Trip Item states instead of ambiguous booleans
 - actual product/quantity/price/expiry and unplanned purchase recording
-- atomic idempotent purchase-to-new-batch/allocation/movement conversion
+- atomic idempotent purchase-to-new-Product-owned-Batch/Movement conversion
 - structured Purchase Ingestion with immediate household use and asynchronous admin review
-- carry qualified seeded/custom classification refs and localized snapshots through purchase ingestion; allow explicit admin mapping/promotion without rewriting household history
+- preserve qualified/custom classification snapshots through purchase ingestion without rewriting household history; defer household-to-global mapping/promotion until reviewed submissions prove the need
 - minimum manual product, shop-product, and price-observation administration required to unblock the flow
 - append-only/correctable price history and immutable shopping calculation snapshots
 
@@ -438,7 +438,7 @@ Validation:
 - one user completes and later repeats the shop-specific workflow without direct database editing
 - expired offers are not current, base/offer prices coexist, stale/no-price states are explicit, and historical plans remain stable
 - retries/partial completion do not duplicate purchases, batches, movements, prices, or ingestion submissions
-- unknown purchases enter household stock immediately and can later be reviewed/promoted without rewriting history
+- unknown purchases enter household stock immediately and can later be reviewed without rewriting history
 
 ## Stage 10: Alpha 1.0 Hardening
 
@@ -448,13 +448,13 @@ Goal:
 
 Scope:
 
-- final dictionary rename across active API/database/code/UI/i18n/logs/docs with an operator-visible maintenance action
+- final dictionary rename across active API/database/code/UI/i18n/logs/docs where a term remains active, with an operator-visible maintenance action
 - verified Crawl Snapshot archive export/import, raw-preserving offline correction overlays, and clean reprocessing into Product Candidates
 - read-only development crawl-data audit followed by confirmed parser fixes and dry-run-first repair/reprocessing tools
-- architecture/change-locality review using concrete future-change probes
+- architecture/change-locality review using concrete change probes; refactor only demonstrated poor locality or dangerous coupling
 - targeted route/repository/service/component responsibility cleanup; no broad rewrite
 - schema/validation consistency and explicit compatibility/migration/repair ownership
-- loading/empty/error/partial/conflict, logging/redaction, permissions, pagination/index, accessibility/responsive, and realistic-volume checks
+- loading/empty/error/partial/conflict, logging/redaction, permissions, pagination/index, accessibility/responsive, and realistic-volume checks proportional to the Alpha path and observed risk
 - dead compatibility/temporary flag removal
 - setup, migration, contribution, security, demo, limitation, and Alpha readiness documentation
 
@@ -477,7 +477,7 @@ The external presentation target is a deliberately engineered **source-available
 
 The smallest additional MVP work found in this final review, beyond the earlier Stage 8 plan, is now explicitly in Stage 9:
 
-- country-specific shop identity separated from ingestion source
+- country-specific shop identity separated from source metadata, with separate chain/source entities only when evidence requires them
 - valid/stale/no-price-aware one-shop product selection
 - resumable manual trip processing and correction
 - append-only price correction/history rather than destructive replacement
@@ -493,7 +493,7 @@ Without those items Kamra would remain an inventory tracker plus catalogue brows
 | Concept hierarchy versus attribute tags | Current `product_tags.parentKey` does not provide typed, cycle-safe inherited relationships. | Required for MVP correctness | 8 |
 | Meaningful initial classification content | Empty taxonomy/rule tables would make the new model technically correct but painful to test/use; destructive reseeding would endanger custom content. | Required for MVP usability | 8 |
 | Runtime domain-content localization | Static Angular resources cannot represent admin/user-created concepts; identity must remain stable while labels resolve/fallback by locale. | Required for MVP usability | 8-9 |
-| Explicit stock allocation | Implicit overlapping filters could count one batch toward several limits. | Required for MVP correctness | 8 |
+| Direct Product Group membership | Batch-level or classification-driven grouping would make later Batches inconsistent or double-counted; Products need one clear Group and ancestor rollup. | Required for MVP correctness | 8 |
 | Safe concept move/merge | Household-created hierarchy states otherwise cannot be corrected or reorganized. | Required for MVP usability | 8 |
 | Shop market identity | `household_shops` mixes country, source names, and store-brand keys; cross-country offers could be conflated. | Required for MVP correctness | 9 |
 | Price applicability | Catalogue hydration selects latest per kind without shopping-date validity/staleness policy. | Required for MVP correctness | 9 |
@@ -522,8 +522,8 @@ Without those items Kamra would remain an inventory tracker plus catalogue brows
 - **Shopping Trip (`ShoppingTrip`):** selected shop/date plus planned/unresolved items and resumable shopping results. Avoid using generic “shopping list” for both needs and trips.
 - **Trip Item (`ShoppingTripItem`):** one need/selection/result line within a shopping trip.
 - **Purchase (`Purchase`) / Purchase Item (`PurchaseItem`):** immutable historical record of what was actually bought, including actual product/manual snapshot, quantity, prices, expiry splits, and stock/ingestion references.
-- **Shop chain / shop market:** global retailer identity and its country-specific market. Physical branch is deferred.
-- **Ingestion Source (`IngestionSource`):** acquisition method/adapter, separate from shop identity.
+- **Shop market:** country-specific retailer market. Extract a separate Shop Chain only when active markets need shared administration; physical branches remain deferred.
+- **Ingestion Source (`IngestionSource`):** acquisition method/adapter, separate from shop identity; introduce a separate persisted record only when it needs independent lifecycle or review management.
 - **Crawl Snapshot (`CrawlSnapshot`):** immutable crawler-captured source payload plus capture/parser provenance.
 - **Ingestion Submission (`IngestionSubmission`):** structured manual/shopping/repair input awaiting trust review.
 - **Product Candidate (`ProductCandidate`):** normalized reviewable interpretation of crawl/submission data before catalog promotion.
@@ -552,7 +552,7 @@ Vocabulary rules:
 | Shopping submission -> catalogue decision | User-confirmed/inferred candidate link | Admin decision affects future catalogue use, not past purchase/stock. |
 | Shop product -> shop market/catalogue product | Strong references | Market is country-specific; ingestion method is separate. |
 | Price observation -> shop product/market | Strong append-only reference | Corrections supersede; do not delete history. |
-| Crawl/purchase input -> ingestion source | Strong provenance | Raw/structured source is untrusted until reviewed. |
+| Crawl/purchase input -> source provenance | Strong provenance | Raw/structured source is untrusted until reviewed; a separate Ingestion Source record is optional. |
 
 ## Stage Dependencies And Prioritization
 
@@ -569,11 +569,11 @@ The Alpha 1.0 release candidate must complete this without direct database editi
 
 1. Sign in as a controlled user and create/access a household.
 2. Preview/sync the checked-in localized base classification pack as admin; verify a repeat sync is unchanged.
-3. Create a Stock Target from a localized Stock Target Template, then create custom household content with a missing-language fallback.
+3. Create a Product Group with an optional target policy from localized guidance, then create custom household content with a missing-language fallback.
 4. Create/move/correct an `is_a` relationship; verify a merge preserves references/history.
-5. Create milk and constrained pasta Stock Targets with units/minimums/targets.
+5. Create milk and constrained pasta Product Groups with units/minimum/desired-restock policies.
 6. Add generic/manual and explicit catalogue stock with multiple acquisition/expiry batches.
-7. Allocate stock once, inspect Stock Batches, and prove overlapping Acceptance Criteria do not double-count.
+7. Assign concrete Household Products to Product Groups, inspect Stock Batches, and prove direct/ancestor rollups count each Product once.
 8. Consume partially, mark fully consumed, correct, discard/void an invalid batch through the right action, and inspect immutable history.
 9. Generate Shopping Needs from shortages and add one ad-hoc unresolved Shopping Need.
 10. Select one country-specific shop market and planned shopping date.
@@ -582,10 +582,10 @@ The Alpha 1.0 release candidate must complete this without direct database editi
 13. Start shopping, save partial results, leave, and resume.
 14. Mark bought/not-bought, adjust actual quantity/price, substitute an actual product, and add an unplanned purchase.
 15. Record separate normal/offer values and validity where known plus batch expiry splits.
-16. Complete the Shopping Trip and verify new Stock Batches/Allocations/Movements and Purchase history were created once.
+16. Complete the Shopping Trip and verify new Product-owned Stock Batches/Movements and Purchase history were created once.
 17. Retry the same completion and verify no duplicate side effect.
 18. Confirm an unknown purchase created household stock immediately and a pending structured ingestion review item carrying classification snapshots.
-19. As site admin, link/create/correct/reject the submission, optionally map/promote useful custom classification, and append price observations without changing household history.
+19. As site admin, link/create/correct/reject the submission and append price observations without changing household history; defer custom classification promotion.
 20. Generate a later trip and verify the trusted shop product/price/classification can be reused.
 21. Archive/merge a referenced catalogue product and verify historical trip, purchase, and stock snapshots still render.
 22. Inspect feature-toggle state, maintenance state, structured logs, and audit records for a deliberately exercised failure.
@@ -616,10 +616,10 @@ The Alpha 1.0 release candidate must complete this without direct database editi
 
 | Major block | Classification |
 | --- | --- |
-| Product Concepts/Attributes, hierarchy move/merge, Stock Targets/Batches/Allocations/Movements, expiry/consumption/correction, migration | Required for MVP correctness |
-| Bounded localized Product Concepts/Attributes/Stock Target Templates plus non-destructive CLI/admin sync and runtime fallback | Required for MVP usability |
+| Product Groups with optional Group/Product target policies, Product-owned Batches/Movements, expiry/consumption/correction, migration | Required for MVP correctness |
+| Bounded localized Product Concepts/Attributes and non-destructive CLI/admin sync/runtime fallback where current workflows use them | Required for MVP usability |
 | Household membership management, inspectable Stock Batches/history, Shopping Needs, usable empty/error/conflict states | Required for MVP usability |
-| Shop Market/Ingestion Source separation, Price Observation applicability/history correction, Shopping Trip state machine, idempotent Purchase conversion, trust boundary for Ingestion Submissions | Required for MVP correctness |
+| Direct Shop Market identity, Price Observation applicability/history correction, Shopping Trip state machine, idempotent Purchase conversion, trust boundary for Ingestion Submissions | Required for MVP correctness |
 | One-shop automatic choice, overrides, unresolved/no-price fallbacks, resumable mobile/manual completion, minimum admin data entry | Required for MVP usability |
 | Final-language maintenance action, verified Crawl Snapshot archive/import/reprocessing, confirmed parser repairs, evidence-based cleanup, Alpha docs | Required for maintainability before Alpha 1.0 |
 | Rich catalogue/offer UX, receipt scanning/OCR, multi-shop optimization, duplicate/merge intelligence, substitution ranking, prediction/notifications/analytics | High-priority post-MVP |
@@ -628,16 +628,16 @@ The Alpha 1.0 release candidate must complete this without direct database editi
 ## Cross-Stage Migration And Compatibility Strategy
 
 - Register stable validator and data actions before changing existing collections; track them independently.
-- Stage 8 migrates legacy category/tag parents to Product Concept edges and legacy household rows to unconstrained Stock Targets, Stock Batches, Stock Allocations, and opening Stock Movements without inventing criteria/history.
+- Stage 8 migrates legacy household rows to Product Groups, Product-owned Stock Batches, and opening Stock Movements where deterministic; legacy Stock Targets/Allocations remain history/migration input and ambiguous Product histories are reported rather than guessed.
 - Stage 8 base-content synchronization is seed-ledger reference-data work, not a structural migration: it adds/updates only checksum-proven seed-owned records and reports customized/archived conflicts.
-- Stage 9 migrates `household_shops` to Shop Chains/Markets, creates final `shop_products`, and changes Price Observation handling from destructive latest-value replacement to append/correct/select. Historical legacy shopping/Purchase snapshots remain readable.
+- Stage 9 migrates `household_shops` to direct Shop Markets, creates final `shop_products`, and changes Price Observation handling from destructive latest-value replacement to append/correct/select. Separate chain/source records are introduced only if the current data needs them. Historical legacy shopping/Purchase snapshots remain readable.
 - Each cutover uses a bounded maintenance/write gate only where required, no indefinite dual writes, idempotent reconciliation, and a documented rollback evidence window.
 - Stage 10 first exports/verifies Crawl Snapshots, then runs `alpha-domain-language-v1`, resets/reseeds disposable derived data where safer, imports/reprocesses raw evidence if using a clean database, and removes dead v1 writes/adapters only after reconciliation. Physical purge always needs a separate explicit maintenance decision.
 - One-time audit/repair tools live outside repositories/runtime paths, default to dry-run, report scope/counts, and document repeat behavior.
 
 ## Cross-Stage Validation, Logging, And Feature-Toggle Strategy
 
-- Pure domain tests own hierarchy closure, requirement matching, allocation conservation, expiry/consumption, price applicability/package math, and trip transitions.
+- Pure domain tests own hierarchy closure, Product Group rollup/residual planning, expiry/consumption, price applicability/package math, and trip transitions.
 - Contract/schema snapshots own persisted/transport shapes; repository/API tests own transactions, concurrency, idempotency, permissions, pagination, and migration reconciliation.
 - Browser acceptance owns the connected user journey and all meaningful loading/empty/error/partial/conflict states.
 - Domain command owners emit one structured event with correlation/operation ids; persistent audit covers privileged hierarchy, stock-history reversal, shop/catalogue, ingestion-review, feature-toggle, and maintenance changes.

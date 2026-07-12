@@ -6,7 +6,7 @@ Status: Proposed final plan. Requires Stage 8 completion and separate user appro
 
 Complete the core Kamra MVP journey by translating Stage 8 generic household demand into a concrete, single-shop shopping trip; letting the user override or leave decisions unresolved; processing the trip manually and resumably; converting purchases into new stock batches atomically; and submitting unknown product/price facts for asynchronous administrative review.
 
-This stage contains work **required for MVP usability** and the catalogue/price corrections **required for MVP correctness**. It deliberately excludes multi-shop optimization, receipt/OCR, sophisticated recommendation ranking, and a complete catalogue-management suite.
+This stage contains work **required for MVP usability** and the catalogue/price corrections **required for MVP correctness**. The required first slice is one manually administered Shop Market, a concrete Product/price choice or explicit unresolved line, a resumable Shopping Trip, and idempotent conversion of bought lines into Product-owned Stock Batches. It deliberately excludes multi-shop optimization, receipt/OCR, sophisticated recommendation ranking, a complete catalogue-management suite, and infrastructure that has not earned its place through the first loop.
 
 ## Dependencies
 
@@ -16,9 +16,11 @@ This stage contains work **required for MVP usability** and the catalogue/price 
 
 Stage 9 treats `Household Product` as the reusable concrete household identity. A Purchase creates a new Stock Batch for that Household Product (or creates a manual Household Product first); the batch retains its own acquisition/expiry and immutable snapshot and automatically contributes through its Product Group membership. Stage 9 must not collapse Product identity, Household Product identity, an owner’s target policy, or Stock Batch history into one line item.
 
-## Open Questions
+## Decision Boundary
 
-None for implementation. MVP choices are fixed: one manually selected Shop Market and planned date per Shopping Trip; deterministic repeated-single-SKU selection; embedded Trip Items/Purchase Items unless document-bound evidence forces replanning; user overrides and unresolved/no-price states; append-only Price Observations; manual review before shared catalog promotion; no receipt/OCR, mixed-SKU, or multi-market optimizer.
+The product decisions are fixed: one manually selected Shop Market and planned date per Shopping Trip; deterministic repeated-single-SKU selection; user overrides and unresolved/no-price states; append-only Price Observations; manual review before a shared catalogue change; no receipt/OCR, mixed-SKU, or multi-market optimizer.
+
+The implementation must still choose the smallest representation that supports those decisions. Do not introduce a separate Shop Chain aggregate, generalized Ingestion Source administration, broad promotion workflow, or a public catalogue API merely because later stages may use them. Add a local seam only when a real configured market/source relationship or current Stage 9 command cannot otherwise be represented clearly.
 
 ## Repository Reality And Required Corrections
 
@@ -36,14 +38,13 @@ None for implementation. MVP choices are fixed: one manually selected Shop Marke
 
 ### Shop and shop market
 
-Use two concepts without implementing physical branches:
+Start with one `ShopMarket` aggregate for the selected country-specific market. It needs a stable id, display name, country, currency, status, and bounded source/provenance metadata. A separate `ShopChain` aggregate is justified only when multiple active markets must share and administratively edit a stable chain identity; physical branches remain post-MVP.
 
-- `ShopChain`: stable global chain identity, display name, aliases, status, audit metadata. Examples: Lidl, SPAR, PENNY, ALDI, Tesco, Auchan.
-- `ShopMarket`: strong `(shopChainId, countryCode)` identity with local display/aliases, default currency, status, and audit metadata.
+- `ShopMarket`: stable direct identity with normalized display/aliases inside one country, default currency, status, audit metadata, and an optional bounded chain label for display/provenance.
 
 Price Observations, Shop Products, and Shopping Trips reference `shopMarketId`, not only a chain name. This prevents Hungarian evidence from being treated as valid in another country. A unique normalized alias within country prevents accidental duplicates. Physical branches, addresses, and branch stock are post-MVP.
 
-`IngestionSource` is separate: id, source kind (`crawler_api`, `crawler_page`, `newsletter`, `pdf`, `manual_admin`, `shopping_completion`, later `receipt`), adapter/source name, optional shop market, status, and provenance. Several sources may feed one market; source type never defines shop identity.
+Keep existing source metadata/provenance on Shop Products and Price Observations in the first slice. Extract a dedicated `IngestionSource` record only when more than one active source needs independent lifecycle or review management for the same market. Source type must never define shop identity.
 
 Do not hard-code a marketing list of “supported” shops. Migration/seed creates active Hungarian markets only for real configured sources that survive the Stage 10 data-quality check (currently candidates include Lidl, PENNY, ALDI, and COOP; synthetic sources remain visibly synthetic). SPAR, Tesco, Auchan, or another chain can be created through admin and enabled when manual/source data exists, but the UI/docs must not imply crawler or price coverage merely because the chain record exists.
 
@@ -54,9 +55,9 @@ Create the final `shop_products` collection and `ShopProduct` contracts. Migrate
 - strong catalogue `productId` and `shopMarketId`
 - retailer/source identifiers and source-local name/page
 - status and last-confirmed/price-checked timestamps
-- provenance from one or more ingestion sources
+- bounded source/provenance metadata
 
-The same Product may have several Shop Products. One Shop Product may receive Price Observations from several Ingestion Sources.
+The same Product may have several Shop Products. One Shop Product may receive Price Observations from several source/provenance records; introduce separate Ingestion Source identities only when their independent lifecycle matters.
 
 ### Price observations and corrections
 
@@ -115,7 +116,7 @@ Each Trip Item preserves:
 - package measurement, repeated package count, normalized unit price where calculable, expected applicable package price, and line total snapshot
 - staleness/validity/conditional warnings
 - actual product, quantity, paid price, optional normal shelf/offer observations, expiry splits, and result state
-- created batch/allocation/movement ids and optional ingestion submission id after processing
+- created batch/movement ids and optional ingestion submission id after processing
 
 ## Matching And Fallback Algorithm
 
@@ -164,19 +165,19 @@ Rules:
 - Household stock creation never waits for admin review.
 - Submission is `pending`, `accepted`, `corrected`, or `rejected`; review changes catalogue links/future matching, never historical purchase/batch snapshots.
 - Admin may link to existing product/shop product, create the minimum new product/shop product, correct structured fields, merge duplicate submissions, or reject.
-- When household custom classification is broadly useful, admin may explicitly map it to an existing global concept/attribute or promote it under a new stable global id with default label and optional translations. Promotion never mutates the household record or historical snapshot; it creates an audited future reconciliation/alias link.
+- Household custom classification mapping/promotion is deliberately deferred. Review may preserve the submitted snapshot and link/create the minimum Product or Shop Product without making the user label globally authoritative.
 - Missing translations do not block review. Admin chooses a canonical default label/locale and may add known translations; automated translation and a rich localization-management surface remain post-MVP.
-- Promotion appends price observations; it never deletes existing history.
+- An accepted review appends price observations where appropriate; it never deletes existing history.
 - Authorization keeps ordinary users within their household. Site admins can review submissions, but UI/logs avoid unnecessary household notes or identity data.
 
 ## Minimum Admin And User UX
 
 ### Site admin
 
-- Manage shop chains and country-specific markets, aliases, status, and ingestion-source associations.
+- Manage the active country-specific Shop Markets, aliases, status, and bounded source metadata needed for the current sources.
 - Create a minimal Product, associate it with a Shop Market as a Shop Product, and append/correct Price Observations.
 - Review shopping submissions alongside crawler candidates using shared candidate/decision primitives where sound.
-- Review custom concept/attribute suggestions carried by purchases and map/promote them without treating user labels as globally authoritative.
+- Preserve custom concept/attribute suggestions as historical evidence without treating user labels as globally authoritative.
 - See current applicable price, warnings, and a small paged observation list; no chart required.
 - Archive rather than hard-delete Products/Shop Products/Shop Markets referenced by history.
 
@@ -193,7 +194,7 @@ Rules:
 
 Register stable maintenance entries before changing populated collections:
 
-- `shop-market-foundation`: validator action creates shop chains/markets/ingestion-source links and compatible shop-product fields; migration maps each valid legacy `household_shops` country/brand grouping to a market, preserves aliases/source links, and reports ambiguous duplicates for operator resolution.
+- `shop-market-foundation`: validator action creates the direct Shop Market and compatible Shop Product fields; migration maps each valid legacy `household_shops` country/brand grouping to a market, preserves bounded source metadata, and reports ambiguous duplicates for operator resolution. A separate chain/source collection is a later migration only when the active data proves it necessary.
 - `price-observation-applicability`: validator action adds correction/status/market fields; migration backfills market references from source/location evidence where deterministic, preserves every observation, and marks unresolved scope rather than guessing. It must remove the destructive crawl-accept replacement behavior before cutover.
 - `shopping-trip-foundation`: creates Shopping Trip, Trip Item, Purchase, Purchase Item, Ingestion Submission, operation, and required audit/index collections. Existing completed/archived legacy shopping lists remain historical; active Stage 8 Shopping Needs are imported by an explicit idempotent trip-create command rather than bulk reinterpreted as Purchases.
 
@@ -201,40 +202,40 @@ Validator and data completion are tracked independently. Migrations are idempote
 
 ### Final persistence and API names
 
-New Stage 9 persistence uses `shop_chains`, `shop_markets`, `ingestion_sources`, `shop_products`, `price_observations`, `household_shopping_trips`, `household_purchases`, `ingestion_submissions`, and existing operation/audit collections. Trip Items and Purchase Items may be embedded in their owning aggregate for MVP atomicity; if document bounds require separate collections, implementation must pause and update this plan rather than choose ad hoc.
+New Stage 9 persistence starts with `shop_markets`, `shop_products`, `price_observations`, `household_shopping_trips`, `household_purchases`, `ingestion_submissions`, and existing operation/audit collections. Add `shop_chains` or `ingestion_sources` only when the current data/commands need their independent identity. Trip Items and Purchase Items may be embedded in their owning aggregate for MVP atomicity; if document bounds require separate collections, implementation must pause and update this plan rather than choose ad hoc.
 
 The resource surface is:
 
-- `/api/admin/shop-chains`, `/api/admin/shop-markets`, `/api/admin/ingestion-sources`
+- `/api/admin/shop-markets`; add chain/source administration routes only if their separate identities are introduced by an approved later slice
 - `/api/admin/products`, `/api/admin/shop-products`, `/api/admin/price-observations`
 - `/api/households/{householdId}/shopping-trips` plus explicit match/start/item-result/complete/cancel/correct commands
-- `/api/admin/ingestion-submissions` plus explicit accept/correct/reject/map-classification commands
+- `/api/admin/ingestion-submissions` plus explicit link/create/correct/reject commands
 
 Do not introduce `/product-sources`, `/shopping-lists`, `/requirements`, or `/shopping-completion` aliases for new clients. Exact command suffixes and status/error codes are locked in Step 4 contract snapshots before Angular implementation.
 
 ## Ordered Implementation And Commit Boundaries
 
-Execution rule for budget-focused implementation models: complete one numbered step only, use the final vocabulary in `docs/domain-language.md`, and inspect only the owning slices listed below plus their nearest `AGENTS.md`/README. Add pure domain/state tests before persistence/routes/UI. Run focused tests, typecheck, and lint for every step; run build and the configured database smoke for every schema/transaction step. Never add multi-market optimization, hidden fallback matching, destructive Price Observation replacement, or automatic Product Candidate promotion. Stop and revise the plan if a required transaction is unsupported, a legacy record cannot map without inventing identity, or an operation cannot be made idempotent.
+Execution rule for budget-focused implementation models: complete one numbered step only, use the final vocabulary in `docs/domain-language.md`, and inspect only the owning slices listed below plus their nearest `AGENTS.md`/README. Add focused domain/state tests where behavior is non-trivial or high risk; do not add scaffolding that only restates framework behavior. Run focused tests, typecheck, and lint for every step; run build and the configured database smoke for every schema/transaction step. Never add multi-market optimization, hidden fallback matching, destructive Price Observation replacement, automatic Product Candidate promotion, or a generalized shop/source framework before the direct one-market path proves it necessary. Stop and revise the plan if a required transaction is unsupported, a legacy record cannot map without inventing identity, or an operation cannot be made idempotent.
 
 Implementation ownership map:
 
-- shops/catalog: final `ShopChain`, `ShopMarket`, `ShopProduct`, `PriceObservation`, applicability service, and site-admin UI
+- shops/catalog: direct `ShopMarket`, `ShopProduct`, `PriceObservation`, applicability service, and the smallest site-admin UI; separate `ShopChain`/`IngestionSource` only when earned
 - shopping: `ShoppingTrip`, `ShoppingTripItem`, matcher, state machine, completion commands, and household Shopping UX
-- ingestion: `IngestionSource`, `IngestionSubmission`, `ProductCandidate`, review decisions, and promotion adapters
+- ingestion: minimum `IngestionSubmission`/review path and Product Candidate reuse where it already fits; no separate source registry or promotion adapter before current evidence needs it
 - household: only the Stage 8 Product/Group/Batch/Movement commands invoked by purchase conversion; do not duplicate them in shopping
 - database maintenance: validator action, idempotent data action, reconciliation, operator text; route handlers remain thin dispatchers
 
-### Step 1 - Shop-market and ingestion-source foundation
+### Step 1 - Direct shop-market foundation
 
-- Add typed shop chain/market/source contracts, validators, repositories, admin API/UI, uniqueness, migration from `household_shops`, and widen hard-coded HU/HUF ingestion boundaries only where the new market contract requires it while keeping existing source adapters explicit.
-- Likely files: catalog/shop contracts and repository slices, ingestion source contracts, database-maintenance registry/actions, site-admin shop-market components/services, locale files, focused tests/docs.
-- Acceptance: aliases cannot create same-country duplicates; sources are many-to-one with markets; disabled markets cannot start new trips; historical references render.
-- Commit: `feat: add country-specific shop markets`
+- Add the direct Shop Market contract, validator, repository, admin API/UI, uniqueness, migration from `household_shops`, and widen hard-coded HU/HUF ingestion boundaries only where the market contract requires it while keeping existing source adapters explicit.
+- Likely files: catalog/shop contracts and repository slices, database-maintenance registry/actions, site-admin shop-market components/services, locale files, focused tests/docs.
+- Acceptance: duplicates cannot create the same active market; disabled markets cannot start new trips; historical references render. Add a separate chain/source entity only if a current record cannot be modeled without ambiguity.
+- Commit: `feat: add country-specific shop market`
 
 ### Step 2 - Correct price-observation history and applicability
 
 - Stop destructive observation replacement; add correction/supersession semantics and pure applicable-price service.
-- Likely files: catalog Price Observation contracts/repository/domain service, crawl-review promotion path, maintenance validator/data action, admin history/correction UI, tests.
+- Likely files: catalog Price Observation contracts/repository/domain service, crawl-review acceptance path, maintenance validator/data action, admin history/correction UI, tests.
 - Acceptance: base and offer coexist, validity is inclusive/date-correct, overlapping observations resolve deterministically, stale/no-price/conditional states are explicit, shopping-date snapshots remain stable.
 - Commit: `fix: preserve and evaluate price observations`
 
@@ -268,21 +269,21 @@ Implementation ownership map:
 
 ### Step 7 - Resumable manual completion and atomic stock conversion
 
-- Add in-progress/partial completion UI and transactional result processing with actual substitutions, quantities, prices, expiry splits, unplanned purchases, new batches/allocations/movements, correction/reversal.
+- Add in-progress/partial completion UI and transactional result processing with actual substitutions, quantities, prices, expiry splits, unplanned purchases, new Product-owned Batches/Movements, correction/reversal.
 - Likely files: shopping completion domain/service/repository/routes/UI, Purchase contracts, household command interface, transaction/idempotency tests.
 - Acceptance: later-expiring purchase creates a new batch; retries never duplicate; injected failures roll back; trip resumes after partial processing.
 - Commit: `feat: process shopping trips into stock`
 
-### Step 8 - Purchase ingestion and review
+### Step 8 - Minimum purchase ingestion and review
 
-- Add structured submissions including classification snapshots, admin candidate review/link/create/correct/reject, optional household-to-global concept/attribute mapping/promotion, history-safe promotion, and audit/log coverage.
-- Likely files: ingestion submission/review slices, site-admin review UI, catalog promotion adapter, locale/audit/authorization tests.
+- Add the smallest structured submission and admin review/link/create/correct/reject path needed for unknown purchases. Preserve snapshots and audit/log coverage; defer household-to-global classification mapping/promotion until real reviewed submissions demonstrate that it is needed.
+- Likely files: ingestion submission/review slices, site-admin review UI, locale/audit/authorization tests.
 - Acceptance: unknown purchase enters stock immediately; later catalogue/classification decision changes future links but not history; base/offer remain separate; missing translation falls back; no raw arbitrary payload or user label becomes authoritative without review.
 - Commit: `feat: review purchase ingestion submissions`
 
 ### Step 9 - Full Stage 9 workflow verification and docs
 
-- Refresh seeds with at least two markets, priced/unpriced/stale/offer/manual cases; update domain/ops docs; remove replaced v1 shopping completion.
+- Refresh seeds with one active market and only the priced/unpriced/stale/offer/manual cases needed to exercise the loop; add a second market only when a concrete Stage 9 behavior needs it. Update domain/ops docs and remove replaced v1 shopping completion.
 - Likely files: seed manifests/fixtures, scripts README, shopping/catalog/domain docs, compatibility removal tests.
 - Acceptance: Alpha scenario through reusable validated purchase data passes without DB editing; full automated/manual validation passes.
 - Commit: `docs: close concrete shopping workflow`
@@ -292,9 +293,9 @@ Implementation ownership map:
 Manual/browser acceptance is tracked centrally in `.agents/plans/stage8-10-manual-acceptance-checklist.md`, including the Stage 8 prerequisite and Stage 9 journey. This plan must not grow a competing checklist.
 
 - Pure tests: price applicability, package math, matching explanations/ties, Shopping Trip/Trip Item transition tables, correction semantics.
-- Contract/schema snapshots: Shop Market, Ingestion Source, Shop Product, Price Observation, Shopping Trip, Trip Item, Purchase, Ingestion Submission.
+- Contract/schema snapshots: Shop Market, Shop Product, Price Observation, Shopping Trip, Trip Item, Purchase, Ingestion Submission, plus Ingestion Source only if it was introduced.
 - Repository/integration: history append, transaction rollback, idempotency, concurrent Trip Item processing, household isolation, admin boundaries, pagination/indexes.
-- Browser: one-shop match/override/unresolved/skip, mobile in-progress use, partial resume, actual substitution, unknown purchase, admin promotion, repeat later trip.
+- Browser: one-shop match/override/unresolved/skip, mobile in-progress use, partial resume, actual substitution, unknown purchase, admin review, repeat later trip.
 - Date/currency: local shopping date boundaries, inclusive offer range, country/currency mismatch, stale threshold.
 - Performance: bounded candidate and observation queries with realistic seeded volumes; no all-observation hydration for each product list.
 
@@ -304,7 +305,7 @@ Manual/browser acceptance is tracked centrally in `.agents/plans/stage8-10-manua
 - Mixed-SKU/package combinatorial optimization: later; repeat one SKU deterministically in MVP.
 - Receipt/barcode/OCR: high-priority post-MVP; manual completion proves the domain first.
 - Full offer timeline/charts and bulk editing: high-priority post-MVP; paged admin history is sufficient.
-- Automated substitution/recommendation ranking: later; MVP matching is Acceptance-Criteria-based and overrideable.
+- Automated substitution/recommendation ranking: later; MVP matching is deterministic, Product/need-compatible, and overrideable.
 - Physical branches and branch stock: later; country-specific chain markets are sufficient.
 - Automatic ingestion promotion: later; manual review protects catalogue trust.
 

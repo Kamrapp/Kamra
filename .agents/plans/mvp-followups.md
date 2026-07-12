@@ -32,7 +32,7 @@ These are the first candidates after internal Alpha use confirms the Stage 8-10 
 - automated substitution ranking and richer preference constraints after override data exists
 - branch-level shops/availability only when country-level chain markets prove too coarse
 - consumption prediction, automatic replenishment, collaborative notifications, and richer household analytics after movement history is substantial
-- Product Classification governance/version publishing and richer Acceptance Criteria expressions when real Product Concept graphs outgrow Stage 8
+- Product Classification governance/version publishing and richer classification query expressions when real Product Concept graphs outgrow the MVP
 - rich runtime classification translation management, translation completeness dashboards, and reviewed household-to-global content promotion beyond the minimal Stage 8-9 flow
 
 ### Optional later enhancements
@@ -67,20 +67,20 @@ Items still listed below retain their individual triage scores; this section is 
 | Household baseline comparison | Suggests commonly missing staples by comparing a household to its own habits or safe sample patterns. | 4/5 | High | Med | Med |
 | Stronger quality, brand, dietary, and preference modeling | Makes recommendations feel personal and trustworthy once product data is rich enough. | 5/5 | High | High | Med |
 
-## Post-MVP Product Classification And Stock Target Extensions
+## Post-MVP Classification And Product Group Extensions
 
-Stage 8 owns the minimum durable foundation: typed global/household Product Concepts, cycle-safe `is_a` relations, independent Product Attributes, inherited matching, flat Stock Target Acceptance Criteria, immutable Stock Batch classification snapshots, and explicit one-full-batch Stock Allocation so overlapping Stock Targets cannot double-count stock. Stage 9 uses those criteria for one-shop matching. The following remain post-MVP unless promoted by a later approved plan:
+Stage 8's final model keeps Product Concepts/Attributes as classification vocabulary, gives each Household Product zero-or-one direct Product Group membership, and keeps Stock Batches beneath Products. Product Groups and Products may own optional target policies; Product Group totals roll up from Product-owned Batches. Classification does not drive Home grouping in the MVP. The following remain post-MVP unless a real usage problem earns a focused plan:
 
 | Followup | Why It Matters | AddedValue | Effort | Complexity | Priority |
 | --- | --- | --- | --- | --- | --- |
 | Versioned taxonomy publishing and materialized closure | Lets admins stage large hierarchy edits, compare versions, invalidate caches safely, and query deep graphs efficiently after the MVP graph grows. | 4/5 | High | High | Med |
 | Rich Product Concept relation vocabulary | Relations such as equivalent/alias, part-of, incompatible-with, certification, and substitute-for need semantics distinct from inclusive `is_a`; adding them prematurely would make matching ambiguous. | 4/5 | High | High | Med |
-| Nested Acceptance Criteria expression language | Multiple nested all/any/none groups, numeric facets, brand/package constraints, and reusable templates can express advanced needs but require a stable grammar, validator, explanation engine, and accessible UI. | 5/5 | High | High | Med |
-| Multi-target Stock Allocation | Splitting one Stock Batch quantity between competing Stock Targets can model reservations and priorities, but needs conservation rules, conflict resolution, and clear consumption behavior. The Stage 8 allocation collection leaves room for it while enforcing one full allocation initially. | 4/5 | High | High | Low |
-| Automatic allocation optimization | Automatically choose which eligible stock satisfies which overlapping requirement using priority, expiry, and preference. It must never change totals without explainable, reversible decisions. | 4/5 | High | High | Low |
+| Rich classification query/expression language | Nested all/any/none groups, numeric facets, brand/package constraints, and reusable query templates can support advanced browsing or matching, but need a stable grammar, validator, explanation path, and accessible UI. | 5/5 | High | High | Med |
+| Multiple Product Group membership | One Product contributing to unrelated Product Groups would complicate totals, shopping residuals, and household mental models. Consider it only if repeated real use shows nested Product Groups cannot model the need. | 3/5 | High | High | Low |
+| Automatic Product Group assignment | Classification or history could suggest Product Group membership, but suggestions must stay explainable, user-confirmed, and must never silently rewrite household grouping or totals. | 4/5 | High | High | Low |
 | Taxonomy governance and merge tooling | Admin review, aliases, deprecation redirects, impact previews, custom/global promotion, and provenance become important once many products and households depend on classification. | 4/5 | High | High | Med |
 | Numeric and certification attributes | Fat percentage, package amount, nutrition, allergen thresholds, and certified dietary claims should become typed Product Attributes where exact/range semantics matter. | 5/5 | High | High | Med |
-| Learned classification and matching | Crawler/manual evidence can propose Product Concepts, Product Attributes, and Stock Target matches with confidence, but trusted assignments and household totals must remain reviewable and deterministic. | 5/5 | High | High | Med |
+| Learned classification and matching | Crawler/manual evidence can propose Product Concepts, Product Attributes, and Product Group suggestions with confidence, but trusted assignments and household totals must remain reviewable and deterministic. | 5/5 | High | High | Med |
 | Rich classification translation administration | Completeness reporting, bulk editing, translation review, import/export, and automated suggestions improve many-language operation, but MVP only needs default-label fallback, EN/HU seed parity, and optional admin-entered translations during promotion. | 4/5 | High | Med | Med |
 | Versioned/community content packs | Importing or publishing independent concept/template packs could broaden domains quickly, but introduces trust, namespace, merge, dependency, and translation-version problems beyond the single checked-in Kamra base pack. | 3/5 | High | High | Low |
 
@@ -132,4 +132,4 @@ Move an item from this file into an approved plan only when:
 - it removes a current operational or security blocker,
 - or the user explicitly decides the added value is worth expanding scope.
 
-When promoting an item, copy only the relevant details into the new plan and keep the implementation split commit-sized.
+When promoting an item, confirm that existing code, native/platform capability, or a small local change cannot satisfy the proven need more cheaply. Copy only the relevant details into the new plan, state what remains deferred, and keep the implementation split commit-sized.
