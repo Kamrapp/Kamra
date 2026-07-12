@@ -23,6 +23,10 @@ import { LocalizationService } from "../shared/localization.service";
             (change)="autoTickChanged.emit($any($event.target).checked)"
           >
         </label>
+        <label class="placeholder-row" for="abbreviated-ui-labels-flag">
+          <span>Use abbreviated labels in compact UI</span>
+          <input id="abbreviated-ui-labels-flag" type="checkbox" [checked]="abbreviatedUiLabelsEnabled()" [disabled]="loading() || !admin()" (change)="abbreviatedUiLabelsChanged.emit($any($event.target).checked)">
+        </label>
       </div>
       <div class="button-row">
         <button class="run-button ui-button" type="button" (click)="saveRequested.emit()" [disabled]="busy() || loading()">
@@ -112,9 +116,11 @@ export class AdminFeatureFlagsCardComponent {
 
   readonly admin = input.required<boolean>();
   readonly autoTickEnabled = input.required<boolean>();
+  readonly abbreviatedUiLabelsEnabled = input.required<boolean>();
   readonly busy = input.required<boolean>();
   readonly loading = input.required<boolean>();
   readonly message = input.required<string>();
   readonly autoTickChanged = output<boolean>();
+  readonly abbreviatedUiLabelsChanged = output<boolean>();
   readonly saveRequested = output<void>();
 }

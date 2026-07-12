@@ -6,6 +6,7 @@ import { ActivatedRoute, RouterLink } from "@angular/router";
 import { HouseholdStockService, type HouseholdListItem } from "./household-stock.service";
 import { HouseholdV2Service } from "./household-v2.service";
 import { LocalizationService } from "../shared/localization.service";
+import { ToastService } from "../shared/toast.service";
 
 @Component({
   selector: "app-household-management",
@@ -117,6 +118,7 @@ export class HouseholdManagementComponent {
   private readonly householdService = inject(HouseholdStockService);
   private readonly householdV2Service = inject(HouseholdV2Service);
   private readonly route = inject(ActivatedRoute);
+  private readonly toast = inject(ToastService);
 
   readonly household = signal<HouseholdListItem | null>(null);
   readonly errorMessage = signal("");
@@ -153,7 +155,8 @@ export class HouseholdManagementComponent {
     if (!household || !this.nameDraft.trim() || !Number.isFinite(this.maxLimitMultiplierDraft) || this.maxLimitMultiplierDraft < 0) return;
     this.errorMessage.set("");
     const result = await this.householdV2Service.updateHouseholdSettings({ allowExpiredItems: this.allowExpiredItemsDraft, defaultCalculatedMaxLimitMultiplier: this.maxLimitMultiplierDraft, householdId: household.id, name: this.nameDraft.trim() });
-    if (result.status === "error") { this.errorMessage.set(result.message ?? "Household settings could not be saved."); return; }
+    if (result.status === "error") { const message = result.message ?? "Household settings could not be saved."; this.errorMessage.set(message); this.toast.push(message, "error"); return; }
     await this.loadHousehold();
+    this.toast.push("Household settings saved.", "success");
   }
 }

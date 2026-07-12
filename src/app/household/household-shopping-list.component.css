@@ -1,9 +1,12 @@
       :host {
         display: block;
+        min-height: 0;
       }
 
       .shopping-card {
         gap: var(--space-4);
+        height: 100%;
+        min-height: 0;
       }
 
       .shopping-section-toggle {

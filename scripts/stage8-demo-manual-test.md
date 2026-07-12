@@ -1,72 +1,63 @@
-# Stage 8 demo household manual test
+# Stage 8 household-stock manual verification
 
-Use this against the local/demo database only. Reseeding resets the stable demo household `household1` and its legacy plus Stage 8 stock data.
+Use a local or disposable demo database only. Reseeding resets the stable demo household `household1`.
 
 ## Prepare
 
-1. Set a disposable demo password in `.env.local`:
+1. Set a disposable demo password in `.env.local`.
 
    ```powershell
    $env:SEED_DEMO_HOUSEHOLD_PASSWORD = "your-local-demo-password"
    ```
 
-2. Reseed the demo data:
+2. Reseed and start the app/API.
 
    ```powershell
    npm run seed
    ```
 
-3. Start the app/API and sign in as `usera` with that password. Open the demo household `Hungarian nature household`.
+3. Sign in as `usera`, open `Hungarian nature household`, and use a desktop-width viewport.
 
-## Expected starting data
+## Product Group workspace
 
-- Stock Target `Tej (bármelyik termék)`: target `3 l`, minimum `1 l`, current derived amount `2.5 l`.
-- Product `Pilos 1.5% tej`: one allocated `1.5 l` batch.
-- Product `Mizo laktózmentes tej`: one allocated `1 l` batch.
-- Product `Kézzel felvitt joghurt`: one visible expired batch with quantity `4 custom:db`; its expiry is intentionally earlier than its acquisition date.
-- `Liszt – még nincs besorolva`: one unassigned `2 custom:db` batch with no expiry and no Household Product.
-- `Allow expired items` is enabled by default.
+1. Confirm the Home workspace uses **Product groups**, not Product Concepts or Stock Targets. Groups start expanded; Products with batches start collapsed. Empty rows have no inert disclosure control.
+2. Expand `Pilos 1.5% tej`; confirm its batches appear below the Product with aligned Quantity, Stocked at, and Expiry columns.
+3. Click the Product pencil. Confirm the name becomes an in-table field, its Product Group dropdown appears, and Save/Discard work. Confirm the right-side Product block also loads the same Product.
+4. Reassign that Product from its inline Product Group dropdown. Save, refresh, and confirm the Product and all of its batches now appear under the selected Group exactly once.
+5. Click a Group pencil. Rename it inline, save, refresh, and confirm its Product rows and batches remain attached.
+6. Click the detail magnifier on a Group and Product. Confirm it toggles between plus/minus and shows the corresponding target/identity details without editing unrelated rows.
+7. Confirm the comparison symbols use muted status colors: Current below Minimum is danger; Current meeting Minimum is good; Current below/at Target is good; Current over Target is warning. Confirm Current itself has the faint emphasis surface.
+8. In Dev Admin, toggle **Use abbreviated labels in compact UI**, refresh Home, and confirm state labels shorten (for example `below min.`). Turn it off again and confirm the full labels return.
 
-## Test sequence
+## Stock batches and expiry
 
-1. Confirm Home groups the two different milk Products under one Stock Target and shows the derived `2.5 l`; do not edit the amount directly.
-2. Rename `Pilos 1.5% tej`. Refresh and confirm its batch remains attached and its dates/quantity are unchanged.
-3. Correct the Pilos batch quantity from `1.5` to `1`. Confirm the target amount becomes `2 l`.
-4. Set that batch expiry to a date before its acquisition date. Save; it must succeed. Confirm the date is retained.
-5. Turn `Allow expired items` off and save. Confirm expired stock stays visible but is excluded from the target amount and cannot be consumed.
-6. Turn the setting back on. Confirm the expired stock becomes eligible again.
-7. Discard the Mizo batch. Confirm the target amount falls to the remaining eligible quantity and the batch is not silently erased from history/status.
-8. Inspect the unassigned group. Confirm the flour batch remains visible and can be corrected without becoming an unrelated top-level household row.
-9. From the Pilos Product row, click **Add stock**. Confirm the right editor switches to **New stock batch**, keeps the Product name read-only, and lets you enter quantity, Stocked at, and Expiry. Save and confirm a second batch appears without changing the Product identity or the first batch snapshot.
-10. Confirm that household Product Concept controls are no longer present in the stock workspace; existing classification data is deliberately deferred from this view.
-11. Use the Product editor to save a Product with no initial Batch. Confirm it appears as an empty Product in Unassigned. Then select it, enable **Create initial stock batch**, enter a positive quantity, and confirm its Batch appears under the Product.
-12. Rename a demo Product and a Stock Target. Confirm both save without a 404 and retain their existing Batch data.
-13. Use **Add Stock Target** in the grouped footer. Confirm the inline draft accepts name, minimum, target, and unit; save it, then use the row edit and details icons to rename it and change its limits. Confirm its current amount remains derived/read-only.
-14. In the left rail, click **Build shopping list**. Confirm checkboxes appear in the temporary selection table and the scale-eligible rows start selected.
-15. Change the shopping scale. Confirm the checked selection resets to that scale's eligible rows; manually select or clear at least one row.
-16. Click **Generate shopping list**. Confirm only checked legacy stock rows are included, then confirm the selection checkboxes disappear. Start Build again and use Cancel; confirm the checkboxes disappear without changing the persisted list.
-17. Re-run `npm run seed` when finished to restore the fixture for the next tester.
+1. Expand a Product and click a Batch pencil. Confirm its quantity, Stocked at, and Expiry turn into fields in that same table row; no extra editor row appears. The matching Stock Batch block on the right also opens.
+2. Change the Pilos Batch quantity and save. Confirm the row refreshes with the new quantity and the Product/Group derived Current updates.
+3. Change the Batch expiry to a date before Stocked at. Save; it must succeed and remain visible after refresh.
+4. Confirm an expired Batch appears before non-expired batches. Its expiry date must use the faded danger color. Non-expired dated Batches follow by earliest expiry; no-expiry Batches are last.
+5. In Manage household, turn off **Allow expired items**, save, and confirm an expired Batch remains visible but stops contributing to Current. Confirm the success toast appears. Turn it back on and confirm its contribution returns.
+6. Click Batch Discard, accept the confirmation, and confirm it is no longer an available row and the derived totals change. It must not report a 404.
+7. From a Product row, click Add stock. Confirm only the Stock Batch block opens; the Group and Product blocks remain collapsed. Save a new Batch and confirm it appears under the same Product without changing identity data.
 
-## Pending workspace refinements
+## Right-side editor and activity
 
-- Verify the compact fixed-header grouped table: Product Group rows expose Current, Minimum, and State; Product/Batch rows are visually indented and keep action columns aligned regardless of name or quantity length.
-- Verify each Product Group/Product row displays `Minimum < Current < Target` in that order, with narrow comparison-symbol columns. Confirm a missing target policy renders placeholders without shifting the state/action columns.
-- Expand a Product and confirm the Stock batch header is horizontally aligned with the Stock batch label/data row beneath it, while Quantity, Stocked at, Expiry, and Edit remain aligned.
-- Verify Product Groups start expanded, Products start collapsed, and no empty Group/Product shows an inert expansion control. Expand a Product and confirm the stock header labels Quantity, Stocked at, and Expiry.
-- Verify the Household stock section is expanded by default and the empty Shopping list starts as one collapsible header row. Expand it and confirm the existing empty-list content remains available.
-- On a desktop-width viewport, verify the Product Group hierarchy occupies the larger left column and the compact Group/Product/Stock editors occupy the narrower right column; confirm the layout stacks cleanly at narrow widths.
-- Trigger a save, failure, and discard action and confirm the newest Activity console entry is immediately visible at the top.
-- Verify Group, Product, and Stock Batch editors start collapsed, open for the matching edit/add action, use icon-only primary/reset actions with tooltips, and clear/collapse after a successful save.
-- From a Product Group row, use Add Product and confirm the Product editor (not the Group editor) opens with that Group preselected.
-- Verify delete confirmations: deleting a Product Group leaves its Products and stock visible under Unassigned; deleting a Product warns that its owned batches will be removed; deleting a Stock Batch uses the existing discard/history behavior and affects only that Batch.
-- Verify Manage household owns household name, default calculated max-limit multiplier, and Allow expired items; invitation remains a visible placeholder.
-- The temporary checkbox selector currently uses the legacy stock table because the grouped v2 workspace still needs its own Shopping Need-to-list bridge. Do not treat it as v2 Target/Batch list generation yet.
+1. Confirm **Active household** remains at the top of the right column above the three editor blocks.
+2. Confirm each Group/Product/Batch editor disclosure uses a right-pointing arrow when closed and a down-pointing arrow when open.
+3. Create a Group, Product without stock, and then a Batch. Confirm the Activity console names the affected Group/Product where possible and shows failures at the top in the error color.
+4. Confirm clicking a Batch name alone does not unexpectedly open an editor; use its pencil. Selecting/editing remains available from the right-side blocks and the inline table.
+
+## Layout and shopping boundary
+
+1. With Household stock expanded and Shopping list collapsed, confirm the stock table grows to use the available height and its inner body scrolls beneath a fixed header.
+2. Expand Shopping list. Confirm the two panels share the available vertical workspace roughly evenly and their inner content scrolls independently.
+3. The shopping-list selection table is legacy transitional UI. Do not treat it as Product Group shopping behavior yet: moving selection checkboxes into the Product Group workspace remains a Stage 8 follow-up before shopping-flow acceptance.
 
 ## Related automated checks
 
 ```powershell
 npm run smoke:transactions
 npm test
+npm run lint
 npm run typecheck
 npm run build:web
 ```

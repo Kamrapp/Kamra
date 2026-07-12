@@ -8,7 +8,7 @@ export interface HouseholdV2Batch { acquiredOn: string; acquisitionSnapshot: { d
 export interface HouseholdV2Aggregate { availableQuantity: number; batchCount: number; nextExpiryOn: string | null; state: "below_minimum" | "at_target" | "between_minimum_and_target" | "not_tracked"; trackingUnit: string | null; }
 export interface HouseholdV2ProductRow { aggregate: HouseholdV2Aggregate; batches: HouseholdV2Batch[]; product: HouseholdV2Product; }
 export interface HouseholdV2ProductGroup { aggregate: HouseholdV2Aggregate; childGroups: HouseholdV2ProductGroup[]; group: { displayName: string; id: string; parentProductGroupId?: string | null; revision: number; targetPolicy?: HouseholdV2TargetPolicy | null; trackingUnit: string }; products: HouseholdV2ProductRow[]; }
-export interface HouseholdV2Workspace { allowExpiredItems: boolean; productGroups: HouseholdV2ProductGroup[]; unassignedBatches: HouseholdV2Batch[]; unassignedProducts: HouseholdV2ProductRow[]; }
+export interface HouseholdV2Workspace { allowExpiredItems: boolean; productGroups: HouseholdV2ProductGroup[]; unassignedBatches: HouseholdV2Batch[]; unassignedProducts: HouseholdV2ProductRow[]; useAbbreviatedUiLabels?: boolean; }
 
 @Injectable({ providedIn: "root" })
 export class HouseholdV2Service {

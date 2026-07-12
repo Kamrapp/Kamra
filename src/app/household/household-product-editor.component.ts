@@ -49,8 +49,8 @@ export class HouseholdProductEditorComponent {
       this.selectedGroupId.set(product?.productGroupId ?? null);
       this.groupDraft = createGroupDraft(selectedGroup?.group);
       this.errorMessage.set("");
-      this.groupOpen.set(Boolean(selectedGroup) && !productCreateMode);
-      this.productOpen.set(Boolean(product) || productCreateMode);
+      this.groupOpen.set(Boolean(selectedGroup) && !productCreateMode && !this.batchOnly());
+      this.productOpen.set((Boolean(product) || productCreateMode) && !this.batchOnly());
       this.batchOpen.set(Boolean(selectedBatch) || this.batchOnly());
       void this.loadGroups();
     });
@@ -68,7 +68,7 @@ export class HouseholdProductEditorComponent {
     const result = this.selectedGroupId() ? await this.service.updateProductGroup({ displayName: name, expectedRevision: this.selectedGroupRevision(), groupId: this.selectedGroupId()!, householdId: this.householdId(), targetPolicy: policy, trackingUnit: this.groupDraft.trackingUnit.trim() }) : await this.service.createProductGroup({ displayName: name, householdId: this.householdId(), targetPolicy: policy, trackingUnit: this.groupDraft.trackingUnit.trim() });
     this.saving.set(false);
     if (result.status === "error") return this.fail(result.message ?? "Product Group could not be saved.");
-    this.logger.log("info", this.selectedGroupId() ? "Product Group saved" : "Product Group created", { displayName: name, groupId: this.selectedGroupId() }); this.clearAll(); this.changed.emit(); await this.loadGroups();
+    this.logger.log("info", `${this.selectedGroupId() ? "Product Group saved" : "Product Group created"}: ${name}`, { displayName: name, groupId: this.selectedGroupId() }); this.clearAll(); this.changed.emit(); await this.loadGroups();
   }
 
   async saveProduct(): Promise<void> {
@@ -85,7 +85,7 @@ export class HouseholdProductEditorComponent {
     const result = this.product() ? await this.service.updateProductIdentity({ defaultTrackingUnit: this.productDraft.trackingUnit.trim(), displayName: name, expectedRevision: this.product()!.revision, householdId: this.householdId(), productId: this.product()!.id, productGroupId: this.productDraft.productGroupId, targetPolicy: policy, note: this.productDraft.note || null, catalogProductId: this.productDraft.catalogProductId || null, identitySnapshot }) : await this.service.createProduct({ defaultTrackingUnit: this.productDraft.trackingUnit.trim(), displayName: name, householdId: this.householdId(), productGroupId: this.productDraft.productGroupId, targetPolicy: policy, note: this.productDraft.note || null });
     this.saving.set(false);
     if (result.status === "error") return this.fail(result.message ?? "Household Product could not be saved.");
-    this.logger.log("info", this.product() ? "Household Product saved" : "Household Product created", { displayName: name, productGroupId: this.productDraft.productGroupId, productId: this.product()?.id }); this.clearAll(); this.changed.emit(); await this.loadGroups();
+    this.logger.log("info", `${this.product() ? "Household Product saved" : "Household Product created"}: ${name}`, { displayName: name, productGroupId: this.productDraft.productGroupId, productId: this.product()?.id }); this.clearAll(); this.changed.emit(); await this.loadGroups();
   }
 
   async saveBatch(): Promise<void> {
@@ -96,18 +96,18 @@ export class HouseholdProductEditorComponent {
       const result = await this.service.correctBatch({ acquiredOn: this.batchDraft.acquiredOn, batchId: this.batch()!.id, expiryOn: this.batchDraft.expiryOn || null, expectedBatchRevision: this.batch()!.revision, householdId: this.householdId(), resultingQuantity: this.batchDraft.quantity });
       this.saving.set(false);
       if (result.status === "error") return this.fail(result.message ?? "Stock Batch could not be saved.");
-      this.logger.log("info", "Stock Batch saved", { batchId: this.batch()!.id, productId: this.product()?.id }); this.clearAll(); this.changed.emit(); return;
+      this.logger.log("info", `Stock Batch saved for ${name}`, { batchId: this.batch()!.id, productId: this.product()?.id }); this.clearAll(); this.changed.emit(); return;
     }
     const productId = this.product()?.id;
     if (!productId) {
       const created = await this.service.createProductWithBatch({ batch: { acquiredOn: this.batchDraft.acquiredOn, displayName: name, expiryOn: this.batchDraft.expiryOn || null, originalQuantity: this.batchDraft.quantity, unit: this.batchDraft.unit.trim() }, group: this.productDraft.productGroupId ? null : (this.groupDraft.displayName.trim() ? { displayName: this.groupDraft.displayName.trim(), targetPolicy: this.groupDraft.hasTarget ? this.policy(this.groupDraft.minimumQuantity, this.groupDraft.desiredQuantity, this.groupDraft.trackingUnit) : null, trackingUnit: this.groupDraft.trackingUnit.trim() } : null), householdId: this.householdId(), product: { defaultTrackingUnit: this.productDraft.trackingUnit.trim(), displayName: name, note: this.productDraft.note || null, productGroupId: this.productDraft.productGroupId, targetPolicy: this.productDraft.hasTarget ? this.policy(this.productDraft.minimumQuantity, this.productDraft.desiredQuantity, this.productDraft.trackingUnit) : null } });
       this.saving.set(false); if (created.status === "error") return this.fail(created.message ?? "Product and stock could not be created.");
-      this.logger.log("info", "Product and Stock Batch created atomically", { displayName: name, productGroupId: this.productDraft.productGroupId }); this.clearAll(); this.changed.emit(); return;
+      this.logger.log("info", `Product and Stock Batch created: ${name}`, { displayName: name, productGroupId: this.productDraft.productGroupId }); this.clearAll(); this.changed.emit(); return;
     }
     const result = await this.service.createBatch({ acquiredOn: this.batchDraft.acquiredOn, displayName: name, expiryOn: this.batchDraft.expiryOn || null, householdId: this.householdId(), householdProductId: productId, quantity: this.batchDraft.quantity, unit: this.batchDraft.unit.trim() });
     this.saving.set(false);
     if (result.status === "error") return this.fail(result.message ?? "Stock Batch could not be saved.");
-    this.logger.log("info", "Stock Batch created", { productId }); this.clearAll(); this.changed.emit();
+    this.logger.log("info", `Stock Batch created for ${name}`, { productId }); this.clearAll(); this.changed.emit();
   }
 
   clearGroup(): void { this.groupDraft = createGroupDraft(); this.selectedGroupId.set(null); this.groupOpen.set(false); }

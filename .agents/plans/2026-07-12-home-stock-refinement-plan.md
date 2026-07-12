@@ -10,8 +10,8 @@ Make the Stage 8 Home stock workflow compact and legible while fixing persisted 
 
 1. Correct encoded entity-id handling and error reporting for Product Group/Product updates; add focused regression coverage.
 2. Add explicit Group/Product/Batch deletion commands with the requested ownership rules.
-3. Refine the existing Home workspace and composer: collapsible stock/shopping sections, compact two-column stock area, child-aware hierarchy expansion, inline row edits, compact detail rows, editor disclosure/clear behavior, and accessible icon actions.
-4. Improve activity/server operation context and update the Stage 8 session and demo manual script.
+3. Refine the existing Home workspace and composer: collapsible stock/shopping sections, compact two-column stock area, child-aware hierarchy expansion, inline row edits, compact detail rows, editor disclosure/clear behavior, accessible icon actions, status-colored comparisons, expiry-first Batch ordering, and visible Current values.
+4. Improve activity/server operation context and update the Stage 8 session and demo manual script. Add the narrow global UI-label abbreviation flag through the existing typed feature-toggle registry and admin surface.
 
 ## Deferred
 

@@ -9,29 +9,31 @@
   <section class="stock-workspace" aria-labelledby="home-title">
     <section class="household-stock-layout">
       <app-household-v2-workspace [householdId]="selectedHouseholdId()" [refreshRevision]="v2WorkspaceRevision()" (newProductRequested)="startV2ProductCreate($event)" (newBatchRequested)="startV2BatchCreate($event)" (productSelected)="selectV2Product($event)" (batchSelected)="selectV2Batch($event)" (groupSelected)="selectV2Group($event)" />
-      <app-household-product-editor [householdId]="selectedHouseholdId()" [product]="selectedV2Product()" [group]="selectedV2Group()" [batch]="selectedV2Batch()" [batchOnly]="v2BatchEditorMode()" [productCreateMode]="v2ProductCreateMode()" [resetRevision]="productEditorRevision()" (changed)="refreshV2Workspace()" />
+      <aside class="household-editor-side">
+        <app-household-stock-panel
+          [errorMessage]="errorMessage()"
+          [existingShoppingLineItemIds]="existingShoppingLineItemIds()"
+          [hasExistingShoppingList]="!!shoppingListPanel?.shoppingList()"
+          [hasHouseholdPage]="!!householdPage()"
+          [households]="households()"
+          [loadState]="loadState()"
+          [selectedHouseholdId]="selectedHouseholdId()"
+          [selectedItemId]="selectedItem()?.id ?? null"
+          [selectedShoppingItemIds]="selectedShoppingItemIds()"
+          [showStockTable]="false"
+          [shoppingSelectionMode]="shoppingSelectionMode()"
+          [statusMessage]="statusMessage()"
+          [stockItems]="stockItemsByPriority()"
+          (createHouseholdRequested)="createHousehold($event)"
+          (householdSelected)="selectHousehold($event)"
+          (itemSelected)="openEditor($event)"
+          (refreshRequested)="refreshHome()"
+          (shoppingListAddRequested)="addStockItemToShoppingList($event, shoppingListPanel)"
+          (shoppingSelectionToggled)="toggleShoppingItem($event)"
+        />
+        <app-household-product-editor [householdId]="selectedHouseholdId()" [product]="selectedV2Product()" [group]="selectedV2Group()" [batch]="selectedV2Batch()" [batchOnly]="v2BatchEditorMode()" [productCreateMode]="v2ProductCreateMode()" [resetRevision]="productEditorRevision()" (changed)="refreshV2Workspace()" />
+      </aside>
     </section>
-    <app-household-stock-panel
-      [errorMessage]="errorMessage()"
-      [existingShoppingLineItemIds]="existingShoppingLineItemIds()"
-      [hasExistingShoppingList]="!!shoppingListPanel?.shoppingList()"
-      [hasHouseholdPage]="!!householdPage()"
-      [households]="households()"
-      [loadState]="loadState()"
-      [selectedHouseholdId]="selectedHouseholdId()"
-      [selectedItemId]="selectedItem()?.id ?? null"
-      [selectedShoppingItemIds]="selectedShoppingItemIds()"
-      [showStockTable]="shoppingSelectionMode()"
-      [shoppingSelectionMode]="shoppingSelectionMode()"
-      [statusMessage]="statusMessage()"
-      [stockItems]="stockItemsByPriority()"
-      (createHouseholdRequested)="createHousehold($event)"
-      (householdSelected)="selectHousehold($event)"
-      (itemSelected)="openEditor($event)"
-      (refreshRequested)="refreshHome()"
-      (shoppingListAddRequested)="addStockItemToShoppingList($event, shoppingListPanel)"
-      (shoppingSelectionToggled)="toggleShoppingItem($event)"
-    />
 
     <app-household-shopping-list
       #shoppingListPanel

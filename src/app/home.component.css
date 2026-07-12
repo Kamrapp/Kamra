@@ -2,6 +2,7 @@
   display: grid;
   gap: var(--space-7);
   min-height: 100%;
+  min-width: 0;
 }
 
 .stock-workspace {
@@ -9,7 +10,11 @@
   display: grid;
   gap: var(--space-5);
   grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  min-height: 0;
 }
+
+.stock-workspace:has(.shopping-collapsed) { grid-template-rows: minmax(0, 1fr) auto; }
 
 .shopping-bottom-row {
   grid-column: 1 / -1;
@@ -21,11 +26,22 @@
   gap: var(--space-5);
   grid-column: 1 / -1;
   grid-template-columns: minmax(0, 1.45fr) minmax(19rem, .75fr);
+  min-height: 0;
+}
+
+.household-editor-side {
+  align-content: start;
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
 }
 
 .household-stock-layout app-household-v2-workspace {
+  height: 100%;
   min-width: 0;
 }
+
+.shopping-bottom-row { min-height: 0; }
 
 @media (min-width: 900px) {
   .stock-workspace {

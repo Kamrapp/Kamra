@@ -19,6 +19,11 @@ export class HouseholdV2WorkspaceComponent {
   readonly errorMessage = signal("");
   readonly loadState = signal<"idle" | "loading" | "ready" | "error">("idle");
   readonly editingBatchId = signal<string | null>(null);
+  readonly editingGroupId = signal<string | null>(null);
+  readonly editingProductId = signal<string | null>(null);
+  readonly editingGroupName = signal("");
+  readonly editingProductName = signal("");
+  readonly editingProductGroupId = signal("");
   readonly expandedGroupIds = signal<ReadonlySet<string>>(new Set());
   readonly expandedProductIds = signal<ReadonlySet<string>>(new Set());
   readonly groupDetailsIds = signal<ReadonlySet<string>>(new Set());
@@ -58,21 +63,49 @@ export class HouseholdV2WorkspaceComponent {
     };
     return visit(this.workspace()?.productGroups ?? []);
   }
-  editBatch(batchId: string): void { this.editingBatchId.set(batchId); }
+  editGroup(group: HouseholdV2ProductGroup): void { this.editingGroupName.set(group.group.displayName); this.editingGroupId.set(group.group.id); this.groupSelected.emit(group); }
+  cancelGroupEdit(): void { this.editingGroupId.set(null); this.editingGroupName.set(""); }
+  editProduct(product: HouseholdV2Product): void { this.editingProductName.set(product.displayName); this.editingProductGroupId.set(product.productGroupId ?? ""); this.editingProductId.set(product.id); this.productSelected.emit(product); }
+  cancelProductEdit(): void { this.editingProductId.set(null); this.editingProductName.set(""); this.editingProductGroupId.set(""); }
+  editBatch(batch: HouseholdV2Batch, group: HouseholdV2ProductGroup | null, product: HouseholdV2Product): void { this.editingBatchId.set(batch.id); this.batchSelected.emit({ batch, group, product }); }
   cancelBatchEdit(): void { this.editingBatchId.set(null); }
-  stateLabel(state: string): string { return state.replaceAll("_", " "); }
+  stateLabel(state: string): string {
+    if (this.workspace()?.useAbbreviatedUiLabels) return state === "below_minimum" ? "below min." : state === "between_minimum_and_target" ? "within min./target" : state === "at_target" ? "at target" : "not tracked";
+    return state === "below_minimum" ? "below minimum" : state === "between_minimum_and_target" ? "between minimum and target" : state.replaceAll("_", " ");
+  }
+  comparisonClass(current: number, reference: number | undefined, kind: "minimum" | "target"): string {
+    if (reference === undefined) return "comparison-neutral";
+    return kind === "minimum" ? current >= reference ? "comparison-good" : "comparison-error" : current <= reference ? "comparison-good" : "comparison-warning";
+  }
+  comparisonIs(current: number, reference: number | undefined, kind: "minimum" | "target", state: "good" | "warning" | "error"): boolean { return this.comparisonClass(current, reference, kind) === `comparison-${state}`; }
+  availableGroups(): HouseholdV2ProductGroup["group"][] { return this.flattenGroups(this.workspace()?.productGroups ?? []); }
+  isExpired(expiryOn: string | null | undefined): boolean { return Boolean(expiryOn && expiryOn < new Date().toISOString().slice(0, 10)); }
+  async saveGroupName(group: HouseholdV2ProductGroup["group"], displayName: string): Promise<void> {
+    const name = displayName.trim();
+    if (!name) { this.errorMessage.set("A Product Group needs a name."); return; }
+    const result = await this.service.updateProductGroup({ displayName: name, expectedRevision: group.revision, groupId: group.id, householdId: this.householdId(), targetPolicy: group.targetPolicy ?? null, trackingUnit: group.trackingUnit });
+    if (result.status === "error") { this.errorMessage.set(result.message ?? "Product Group could not be saved."); this.logger.log("error", "Product Group rename failed", { displayName: group.displayName, groupId: group.id }); return; }
+    this.logger.log("info", "Product Group renamed", { displayName: name, groupId: group.id }); this.cancelGroupEdit(); await this.refresh();
+  }
+  async saveProductRow(product: HouseholdV2Product, displayName: string, productGroupId: string): Promise<void> {
+    const name = displayName.trim();
+    if (!name) { this.errorMessage.set("A Household Product needs a name."); return; }
+    const result = await this.service.updateProductIdentity({ catalogProductId: typeof product.identitySnapshot?.["catalogProductId"] === "string" ? product.identitySnapshot["catalogProductId"] : null, defaultTrackingUnit: product.defaultTrackingUnit ?? null, displayName: name, expectedRevision: product.revision, householdId: this.householdId(), identitySnapshot: product.identitySnapshot, note: product.note ?? null, productGroupId: productGroupId || null, productId: product.id, targetPolicy: product.targetPolicy ?? null });
+    if (result.status === "error") { this.errorMessage.set(result.message ?? "Household Product could not be saved."); this.logger.log("error", "Household Product inline save failed", { displayName: product.displayName, productId: product.id }); return; }
+    this.logger.log("info", "Household Product saved", { displayName: name, productGroupId: productGroupId || null, productId: product.id }); this.cancelProductEdit(); await this.refresh();
+  }
   async correctBatch(batch: { acquiredOn: string; expiryOn?: string | null; id: string; revision: number }, resultingQuantity: number, acquiredOn: string, expiryOn: string): Promise<void> {
     this.logger.log("info", "Correcting stock batch", { batchId: batch.id });
     const result = await this.service.correctBatch({ acquiredOn, batchId: batch.id, expiryOn: expiryOn || null, expectedBatchRevision: batch.revision, householdId: this.householdId(), resultingQuantity });
     if (result.status === "error") { this.errorMessage.set(result.message ?? "Batch could not be corrected."); this.logger.log("error", "Stock batch correction failed", { batchId: batch.id }); return; }
-    this.logger.log("info", "Stock batch corrected", { batchId: batch.id }); await this.refresh();
+    this.logger.log("info", "Stock batch corrected", { batchId: batch.id, resultingQuantity }); this.editingBatchId.set(null); await this.refresh();
   }
   async discardBatch(batch: { id: string; revision: number }): Promise<void> {
     if (!window.confirm("Discard this batch?")) return;
     this.logger.log("info", "Discarding stock batch", { batchId: batch.id });
     const result = await this.service.discardBatch({ batchId: batch.id, expectedBatchRevision: batch.revision, householdId: this.householdId() });
     if (result.status === "error") { this.errorMessage.set(result.message ?? "Batch could not be discarded."); this.logger.log("error", "Stock batch discard failed", { batchId: batch.id }); return; }
-    this.logger.log("info", "Stock batch discarded", { batchId: batch.id }); await this.refresh();
+    this.logger.log("info", "Stock batch discarded", { batchId: batch.id }); this.editingBatchId.set(null); await this.refresh();
   }
   async deleteGroup(group: HouseholdV2ProductGroup["group"]): Promise<void> {
     if (!window.confirm(`Delete Product Group “${group.displayName}”? Its Products will become unassigned.`)) return;
@@ -90,4 +123,5 @@ export class HouseholdV2WorkspaceComponent {
   }
   private toggleSet(target: ReturnType<typeof signal<ReadonlySet<string>>>, id: string): void { target.update((ids) => { const next = new Set(ids); if (next.has(id)) next.delete(id); else next.add(id); return next; }); }
   private groupIds(groups: HouseholdV2ProductGroup[]): string[] { return groups.flatMap((group) => [group.group.id, ...this.groupIds(group.childGroups)]); }
+  private flattenGroups(groups: HouseholdV2ProductGroup[]): HouseholdV2ProductGroup["group"][] { return groups.flatMap((group) => [group.group, ...this.flattenGroups(group.childGroups)]); }
 }

@@ -12,6 +12,13 @@ export const featureFlagDefinitions = {
     owner: "access",
     removalCondition: "Remove when controlled alpha access is no longer operationally needed.",
     scope: "global"
+  },
+  useAbbreviatedUiLabels: {
+    defaultValue: false,
+    failureValue: false,
+    owner: "household",
+    removalCondition: "Reassess after the compact household stock table is stable in Alpha.",
+    scope: "global"
   }
 } as const;
 

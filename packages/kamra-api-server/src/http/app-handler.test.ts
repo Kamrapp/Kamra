@@ -161,6 +161,10 @@ describe("handleAppRequest auth guards", () => {
         {
           enabled: false,
           key: "allowControlledAlphaAccess"
+        },
+        {
+          enabled: false,
+          key: "useAbbreviatedUiLabels"
         }
       ]
     });

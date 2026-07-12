@@ -77,6 +77,7 @@ export class AdminDashboardComponent implements OnInit {
   readonly featureFlagsMessage = signal("");
   readonly featureFlagsState = signal<AsyncActionState>("idle");
   readonly allowAutoTickingAllShoppingListEntriesEnabled = signal(true);
+  readonly useAbbreviatedUiLabelsEnabled = signal(false);
   readonly allowControlledAlphaAccessEnabled = signal(false);
   readonly alphaUserEmail = signal("");
   readonly alphaUserPassword = signal("");
@@ -429,6 +430,9 @@ export class AdminDashboardComponent implements OnInit {
       this.allowControlledAlphaAccessEnabled.set(
         featureFlags.find((flag) => flag.key === "allowControlledAlphaAccess")?.enabled ?? false
       );
+      this.useAbbreviatedUiLabelsEnabled.set(
+        featureFlags.find((flag) => flag.key === "useAbbreviatedUiLabels")?.enabled ?? false
+      );
       this.featureFlagsState.set(response.ok ? "success" : "error");
       this.featureFlagsMessage.set(response.ok ? "" : message);
     } catch (error: unknown) {
@@ -447,6 +451,8 @@ export class AdminDashboardComponent implements OnInit {
   setAllowControlledAlphaAccessEnabled(enabled: boolean): void {
     this.allowControlledAlphaAccessEnabled.set(enabled);
   }
+
+  setUseAbbreviatedUiLabelsEnabled(enabled: boolean): void { this.useAbbreviatedUiLabelsEnabled.set(enabled); }
 
   async saveAlphaAccessFlag(): Promise<void> {
     if (!this.requireAdminAccess(this.featureFlagsState, this.featureFlagsMessage, "health.signInBeforeFeatureFlags")) {
@@ -514,6 +520,7 @@ export class AdminDashboardComponent implements OnInit {
       "allowAutoTickingAllShoppingListEntries",
       this.allowAutoTickingAllShoppingListEntriesEnabled()
     );
+    await this.saveFeatureFlag("useAbbreviatedUiLabels", this.useAbbreviatedUiLabelsEnabled());
   }
 
   private async saveFeatureFlag(key: string, enabled: boolean): Promise<void> {
@@ -546,6 +553,9 @@ export class AdminDashboardComponent implements OnInit {
         this.allowControlledAlphaAccessEnabled.set(
           featureFlags.find((flag) => flag.key === key)?.enabled ?? enabled
         );
+      }
+      if (key === "useAbbreviatedUiLabels") {
+        this.useAbbreviatedUiLabelsEnabled.set(featureFlags.find((flag) => flag.key === key)?.enabled ?? enabled);
       }
       this.featureFlagsState.set(response.ok ? "success" : "error");
       this.featureFlagsMessage.set(response.ok
