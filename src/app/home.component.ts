@@ -97,6 +97,7 @@ export class HomeComponent implements OnDestroy {
   readonly selectedV2Group = signal<HouseholdV2ProductGroup | null>(null);
   readonly selectedV2Batch = signal<HouseholdV2Batch | null>(null);
   readonly v2BatchEditorMode = signal(false);
+  readonly v2ProductCreateMode = signal(false);
   readonly productEditorRevision = signal(0);
   readonly v2WorkspaceRevision = signal(0);
   readonly selectedItemId = signal<string | null>(null);
@@ -463,6 +464,7 @@ export class HomeComponent implements OnDestroy {
 
   selectV2Product(product: HouseholdV2Product): void {
     this.v2BatchEditorMode.set(false);
+    this.v2ProductCreateMode.set(false);
     this.selectedV2Batch.set(null);
     this.selectedV2Group.set(null);
     this.selectedV2Product.set(product);
@@ -471,6 +473,7 @@ export class HomeComponent implements OnDestroy {
 
   selectV2Group(group: HouseholdV2ProductGroup): void {
     this.v2BatchEditorMode.set(false);
+    this.v2ProductCreateMode.set(false);
     this.selectedV2Batch.set(null);
     this.selectedV2Product.set(null);
     this.selectedV2Group.set(group);
@@ -479,6 +482,7 @@ export class HomeComponent implements OnDestroy {
 
   startV2ProductCreate(group: HouseholdV2ProductGroup | null): void {
     this.v2BatchEditorMode.set(false);
+    this.v2ProductCreateMode.set(true);
     this.selectedV2Group.set(group);
     this.selectedV2Product.set(null);
     this.selectedV2Batch.set(null);
@@ -487,6 +491,7 @@ export class HomeComponent implements OnDestroy {
 
   startV2BatchCreate(product: HouseholdV2Product): void {
     this.v2BatchEditorMode.set(true);
+    this.v2ProductCreateMode.set(false);
     this.selectedV2Product.set(product);
     this.selectedV2Batch.set(null);
     this.productEditorRevision.update((revision) => revision + 1);
@@ -494,6 +499,7 @@ export class HomeComponent implements OnDestroy {
 
   selectV2Batch(selection: { batch: HouseholdV2Batch; group: HouseholdV2ProductGroup | null; product: HouseholdV2Product }): void {
     this.v2BatchEditorMode.set(true);
+    this.v2ProductCreateMode.set(false);
     this.selectedV2Product.set(selection.product);
     this.selectedV2Batch.set(selection.batch);
     this.selectedV2Group.set(selection.group);
@@ -502,6 +508,7 @@ export class HomeComponent implements OnDestroy {
 
   refreshV2Workspace(): void {
     this.v2BatchEditorMode.set(false);
+    this.v2ProductCreateMode.set(false);
     this.selectedV2Product.set(null);
     this.selectedV2Group.set(null);
     this.selectedV2Batch.set(null);

@@ -21,6 +21,7 @@ export class HouseholdProductEditorComponent {
   readonly group = input<HouseholdV2ProductGroup | null>(null);
   readonly batch = input<HouseholdV2Batch | null>(null);
   readonly batchOnly = input(false);
+  readonly productCreateMode = input(false);
   readonly resetRevision = input(0);
   readonly changed = output<void>();
   readonly errorMessage = signal("");
@@ -41,14 +42,15 @@ export class HouseholdProductEditorComponent {
       const product = this.product();
       const selectedGroup = this.group();
       const selectedBatch = this.batch();
+      const productCreateMode = this.productCreateMode();
       this.resetRevision();
       this.productDraft = createProductDraft(product);
       this.batchDraft = createBatchDraft(product?.defaultTrackingUnit ?? "count", selectedBatch);
       this.selectedGroupId.set(product?.productGroupId ?? null);
       this.groupDraft = createGroupDraft(selectedGroup?.group);
       this.errorMessage.set("");
-      this.groupOpen.set(Boolean(selectedGroup));
-      this.productOpen.set(Boolean(product));
+      this.groupOpen.set(Boolean(selectedGroup) && !productCreateMode);
+      this.productOpen.set(Boolean(product) || productCreateMode);
       this.batchOpen.set(Boolean(selectedBatch) || this.batchOnly());
       void this.loadGroups();
     });
