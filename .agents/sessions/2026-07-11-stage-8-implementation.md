@@ -348,5 +348,6 @@ The full implementation contract, migration behavior, icon semantics, composer r
 - Home layout refinement: the Product Group hierarchy and the three-block editor now share one responsive two-column container; narrow layouts stack them. The left-rail activity display is newest-first so the most recent action is visible without scroll management. Typecheck and web build passed.
 - Composer action intent: Add Product from a Product Group row now explicitly opens the Product editor with that Group preselected instead of opening the Group editor. Typecheck and web build passed.
 - Stock comparison columns: Group and Product rows now use aligned `Minimum < Current < Target` columns, including the optional desired-restock value; Batch rows retain the same grid with Quantity, Stocked at, and Expiry labels. Typecheck and web build passed.
+- Stock header alignment correction: the nested Stock batch header now applies the same depth indentation as the first batch-row cell, keeping “Stock batch” aligned with its data while preserving the shared grid columns. Typecheck and web build passed.
 - `is_a` is child-to-parent and effective concepts are inclusive; attributes remain independent.
 - Keep the manual-check list current when UI or live Mongo behavior is introduced.

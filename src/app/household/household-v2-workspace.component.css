@@ -12,6 +12,7 @@
 .stock-product-row { background: color-mix(in srgb, var(--pulse-row-background) 82%, transparent); border-bottom: 1px solid var(--line-subtle); color: var(--color-text-muted); font-size: .82rem; min-height: 2.25rem; }
 .stock-batch-row { background: color-mix(in srgb, var(--surface-soft-background) 76%, var(--pulse-row-background)); border-bottom: 1px solid var(--line-subtle); color: var(--color-text-muted); font-size: .8rem; min-height: 2.15rem; }
 .stock-subheader { background: color-mix(in srgb, var(--surface-soft-background) 86%, transparent); border-bottom: 1px solid var(--line-subtle); color: var(--color-text-muted); font-size: .66rem; font-weight: 900; text-transform: uppercase; }
+.stock-subheader > span:first-child { padding-left: calc(var(--space-3) + (var(--row-depth, 0) * 1rem)); }
 .row-name { align-items: center; background: transparent; border: 0; color: inherit; display: flex; font: inherit; gap: var(--space-2); min-width: 0; padding: 0; text-align: left; }
 button.row-name { cursor: pointer; }
 .group-name { padding-left: calc(var(--space-3) + (var(--row-depth, 0) * 1rem)); }

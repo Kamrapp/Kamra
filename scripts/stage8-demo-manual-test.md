@@ -51,6 +51,7 @@ Use this against the local/demo database only. Reseeding resets the stable demo 
 
 - Verify the compact fixed-header grouped table: Product Group rows expose Current, Minimum, and State; Product/Batch rows are visually indented and keep action columns aligned regardless of name or quantity length.
 - Verify each Product Group/Product row displays `Minimum < Current < Target` in that order, with narrow comparison-symbol columns. Confirm a missing target policy renders placeholders without shifting the state/action columns.
+- Expand a Product and confirm the Stock batch header is horizontally aligned with the Stock batch label/data row beneath it, while Quantity, Stocked at, Expiry, and Edit remain aligned.
 - Verify Product Groups start expanded, Products start collapsed, and no empty Group/Product shows an inert expansion control. Expand a Product and confirm the stock header labels Quantity, Stocked at, and Expiry.
 - Verify the Household stock section is expanded by default and the empty Shopping list starts as one collapsible header row. Expand it and confirm the existing empty-list content remains available.
 - On a desktop-width viewport, verify the Product Group hierarchy occupies the larger left column and the compact Group/Product/Stock editors occupy the narrower right column; confirm the layout stacks cleanly at narrow widths.
