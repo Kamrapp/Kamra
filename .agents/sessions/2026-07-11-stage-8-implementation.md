@@ -255,6 +255,7 @@
 - Explicit existing-Product stock entry: grouped Product rows now expose `Add stock`, opening the right-side Product editor in batch-only mode. This creates a separate physical Batch without rewriting Product identity/classification or inferring Target allocation.
 - Empty Product visibility coverage: the workspace read-model test now protects Product-only entries in the Unassigned group.
 - Validation: `npm test -- --run packages/kamra-api-server/src/household/v2/mongo-stock-read-repository.test.ts` passed (3 tests); `npm run typecheck` passed; `npm run build:web` passed.
+- Manual script: `scripts/stage8-demo-manual-test.md` now includes the explicit existing-Product `Add stock` flow and the revised sequence.
 - Seed validator repair: adding `allowExpiredItems` changed an already-completed household validator, so `household-expired-item-policy-v1` now independently upgrades the validator and backfills the permissive default before demo reseeding.
 - API grouped workspace: GET `/api/households/{householdId}/stock-workspace`; verify target totals are derived from active allocations, allocated batches group under their Household Product, and unallocated batches remain visible.
 - Browser Home: sign in, select a household, confirm the grouped Stage 8 workspace appears above the legacy controls, refresh it, and verify target/product/batch/unassigned hierarchy.
