@@ -8,7 +8,7 @@ on:
       - "package-lock.json"
       - "packages/kamra-api-server/src/db/**"
       - "packages/kamra-api-server/src/household/v2/mongo-*-repository.ts"
-      - "packages/kamra-api-server/src/household/v2/run-mongo-transaction.ts"
+      - "packages/kamra-api-server/src/db/mongo-transaction.ts"
       - "scripts/transaction-smoke.ts"
       - "tsconfig*.json"
   workflow_dispatch:

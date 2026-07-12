@@ -172,8 +172,8 @@ describe("handleAppRequest auth guards", () => {
     const updateResponse = await handleAppRequest(
       {
         bodyText: JSON.stringify({
-          enabled: false,
-          key: "allowAutoTickingAllShoppingListEntries"
+          enabled: true,
+          key: "useAbbreviatedUiLabels"
         }),
         headers: {
           authorization: `Bearer ${token}`
@@ -193,11 +193,23 @@ describe("handleAppRequest auth guards", () => {
     expect(JSON.parse(updateResponse.body)).toEqual({
       featureFlags: [
         {
-          enabled: false,
-          key: "allowAutoTickingAllShoppingListEntries"
+          enabled: true,
+          key: "useAbbreviatedUiLabels"
         }
       ]
     });
+  });
+
+  it("corrects and discards an encoded v2 Batch id through the HTTP routes", async () => {
+    vi.stubEnv("AUTH_TOKEN_SECRET", "test-secret"); vi.stubEnv("MONGODB_URI", "mongodb+srv://example.mongodb.net/kamra"); vi.stubEnv("MONGODB_DB_NAME", "kamra_test");
+    const token = createUserToken({ email: "member@kamra.test", maxAgeSeconds: 60, now: new Date(), role: "user", secret: "test-secret" });
+    const batchId = "stock-batch:milk";
+    const db = createFakeDb({ household_memberships: new FakeCollection<Record<string, unknown>>("household_memberships", [{ householdId: "household-1", status: "active", userId: "member@kamra.test" }]), household_stock_batches: new FakeCollection<Record<string, unknown>>("household_stock_batches", [{ acquiredOn: "2026-07-12", acquisitionSnapshot: { displayName: "Milk" }, classificationSnapshot: { capturedAt: "2026-07-12T00:00:00.000Z", directAttributes: [], directConcepts: [], effectiveConcepts: [], source: "manual" }, createdAt: "2026-07-12T00:00:00.000Z", createdByUserId: "member@kamra.test", expiryOn: null, householdId: "household-1", id: batchId, originalQuantity: 1, remainingQuantity: 1, revision: 0, status: "available", unit: "l", updatedAt: "2026-07-12T00:00:00.000Z", updatedByUserId: "member@kamra.test" }]) });
+    const client = { db: () => db, startSession: () => ({ abortTransaction: async () => undefined, commitTransaction: async () => undefined, endSession: async () => undefined, startTransaction: () => undefined }) };
+    const corrected = await handleAppRequest({ bodyText: JSON.stringify({ acquiredOn: "2026-07-12", expectedBatchRevision: 0, expiryOn: "2026-07-10", operationId: "correct-1", requestFingerprint: "correct-1", resultingQuantity: 2 }), headers: { authorization: `Bearer ${token}` }, method: "POST", path: `/api/households/household-1/batches/${encodeURIComponent(batchId)}/correct` }, { getMongoClient: async () => client as never });
+    expect(corrected.status).toBe(200);
+    const discarded = await handleAppRequest({ bodyText: JSON.stringify({ expectedBatchRevision: 1, operationId: "discard-1", requestFingerprint: "discard-1" }), headers: { authorization: `Bearer ${token}` }, method: "POST", path: `/api/households/household-1/batches/${encodeURIComponent(batchId)}/discard` }, { getMongoClient: async () => client as never });
+    expect(discarded.status).toBe(200);
   });
 
   it("creates alpha users with an empty household and blocks their login when disabled", async () => {
