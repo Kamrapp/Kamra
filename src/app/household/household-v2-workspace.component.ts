@@ -74,6 +74,20 @@ export class HouseholdV2WorkspaceComponent {
     if (result.status === "error") { this.errorMessage.set(result.message ?? "Batch could not be discarded."); this.logger.log("error", "Stock batch discard failed", { batchId: batch.id }); return; }
     this.logger.log("info", "Stock batch discarded", { batchId: batch.id }); await this.refresh();
   }
+  async deleteGroup(group: HouseholdV2ProductGroup["group"]): Promise<void> {
+    if (!window.confirm(`Delete Product Group “${group.displayName}”? Its Products will become unassigned.`)) return;
+    this.logger.log("warn", "Deleting Product Group", { displayName: group.displayName, groupId: group.id });
+    const result = await this.service.deleteProductGroup({ expectedRevision: group.revision, groupId: group.id, householdId: this.householdId() });
+    if (result.status === "error") { this.errorMessage.set(result.message ?? "Product Group could not be deleted."); this.logger.log("error", "Product Group deletion failed", { displayName: group.displayName, groupId: group.id }); return; }
+    this.logger.log("info", "Product Group deleted; Products are unassigned", { displayName: group.displayName, groupId: group.id }); await this.refresh();
+  }
+  async deleteProduct(product: HouseholdV2Product): Promise<void> {
+    if (!window.confirm(`Delete Household Product “${product.displayName}” and all of its stock batches?`)) return;
+    this.logger.log("warn", "Deleting Household Product and stock batches", { displayName: product.displayName, productId: product.id });
+    const result = await this.service.deleteProduct({ expectedRevision: product.revision, householdId: this.householdId(), productId: product.id });
+    if (result.status === "error") { this.errorMessage.set(result.message ?? "Household Product could not be deleted."); this.logger.log("error", "Household Product deletion failed", { displayName: product.displayName, productId: product.id }); return; }
+    this.logger.log("info", "Household Product and owned stock batches deleted", { displayName: product.displayName, productId: product.id }); await this.refresh();
+  }
   private toggleSet(target: ReturnType<typeof signal<ReadonlySet<string>>>, id: string): void { target.update((ids) => { const next = new Set(ids); if (next.has(id)) next.delete(id); else next.add(id); return next; }); }
   private groupIds(groups: HouseholdV2ProductGroup[]): string[] { return groups.flatMap((group) => [group.group.id, ...this.groupIds(group.childGroups)]); }
 }

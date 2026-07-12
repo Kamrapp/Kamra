@@ -53,6 +53,7 @@ Use this against the local/demo database only. Reseeding resets the stable demo 
 - Verify Product Groups start expanded, Products start collapsed, and no empty Group/Product shows an inert expansion control. Expand a Product and confirm the stock header labels Quantity, Stocked at, and Expiry.
 - Verify the Household stock section is expanded by default and the empty Shopping list starts as one collapsible header row. Expand it and confirm the existing empty-list content remains available.
 - Verify Group, Product, and Stock Batch editors start collapsed, open for the matching edit/add action, use icon-only primary/reset actions with tooltips, and clear/collapse after a successful save.
+- Verify delete confirmations: deleting a Product Group leaves its Products and stock visible under Unassigned; deleting a Product warns that its owned batches will be removed; deleting a Stock Batch uses the existing discard/history behavior and affects only that Batch.
 - Verify Manage household owns household name, default calculated max-limit multiplier, and Allow expired items; invitation remains a visible placeholder.
 - The temporary checkbox selector currently uses the legacy stock table because the grouped v2 workspace still needs its own Shopping Need-to-list bridge. Do not treat it as v2 Target/Batch list generation yet.
 

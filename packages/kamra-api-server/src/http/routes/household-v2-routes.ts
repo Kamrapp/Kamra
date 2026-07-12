@@ -84,12 +84,14 @@ export const householdV2HouseholdProductClassificationRoute: AppRoute = {
 };
 
 export const householdV2HouseholdProductIdentityRoute: AppRoute = {
-  match: (request) => request.method === "PATCH" && /^\/api\/households\/[^/]+\/products\/[^/]+$/.test(request.path),
+  match: (request) => (request.method === "PATCH" || request.method === "DELETE") && /^\/api\/households\/[^/]+\/products\/[^/]+$/.test(request.path),
   handle: async (request, context) => {
     const user = context.authenticateRequestUser(request);
     if (!user) return unauthorized("apiErrors.signInRequired");
     const match = request.path.match(/^\/api\/households\/([^/]+)\/products\/([^/]+)$/); const householdId = pathSegment(match?.[1]); const productId = pathSegment(match?.[2]); const body = parseJsonObject(request.bodyText);
-    if (!householdId || !productId || !body || !Number.isInteger(body["expectedRevision"]) || (body["expectedRevision"] as number) < 0 || typeof body["displayName"] !== "string" || body["displayName"].trim().length === 0 || (!!body["identitySnapshot"] && (typeof body["identitySnapshot"] !== "object" || Array.isArray(body["identitySnapshot"])))) return json(400, { error: "invalid_household_product_identity_request" });
+    if (!householdId || !productId || !body || !Number.isInteger(body["expectedRevision"]) || (body["expectedRevision"] as number) < 0) return json(400, { error: "invalid_household_product_identity_request" });
+    if (request.method === "DELETE") return await withHouseholdDatabase(context, householdId, user.email, async (database) => { try { return json(200, { result: await new MongoHouseholdProductRepository(database).deleteProduct({ expectedRevision: body["expectedRevision"] as number, householdId, id: productId }), schemaVersion }); } catch (error) { return commandError(error); } });
+    if (typeof body["displayName"] !== "string" || body["displayName"].trim().length === 0 || (!!body["identitySnapshot"] && (typeof body["identitySnapshot"] !== "object" || Array.isArray(body["identitySnapshot"])))) return json(400, { error: "invalid_household_product_identity_request" });
     try { assertCreateHouseholdProductRequest({ displayName: body["displayName"], identityKind: "manual", defaultTrackingUnit: body["defaultTrackingUnit"], note: body["note"], productGroupId: body["productGroupId"], targetPolicy: body["targetPolicy"] }); } catch (error) { return json(400, { error: "invalid_household_product_identity_request", message: error instanceof Error ? error.message : "Household Product details are invalid." }); }
     const displayName = body["displayName"] as string;
     return await withHouseholdDatabase(context, householdId, user.email, async (database) => {
@@ -119,11 +121,13 @@ export const householdV2ProductGroupCollectionRoute: AppRoute = {
 };
 
 export const householdV2ProductGroupMutationRoute: AppRoute = {
-  match: (request) => request.method === "PATCH" && /^\/api\/households\/[^/]+\/product-groups\/[^/]+$/.test(request.path),
+  match: (request) => (request.method === "PATCH" || request.method === "DELETE") && /^\/api\/households\/[^/]+\/product-groups\/[^/]+$/.test(request.path),
   handle: async (request, context) => {
     const user = context.authenticateRequestUser(request); if (!user) return unauthorized("apiErrors.signInRequired");
     const match = request.path.match(/^\/api\/households\/([^/]+)\/product-groups\/([^/]+)$/); const householdId = pathSegment(match?.[1]); const groupId = pathSegment(match?.[2]); const body = parseJsonObject(request.bodyText);
-    if (!householdId || !groupId || !body || !Number.isInteger(body["expectedRevision"]) || typeof body["displayName"] !== "string" || typeof body["trackingUnit"] !== "string") return json(400, { error: "invalid_product_group_request" });
+    if (!householdId || !groupId || !body || !Number.isInteger(body["expectedRevision"])) return json(400, { error: "invalid_product_group_request" });
+    if (request.method === "DELETE") return await withHouseholdDatabase(context, householdId, user.email, async (database) => { try { return json(200, { result: await new MongoProductGroupRepository(database).deleteGroup({ expectedRevision: body["expectedRevision"] as number, householdId, id: groupId }), schemaVersion }); } catch (error) { return commandError(error); } });
+    if (typeof body["displayName"] !== "string" || typeof body["trackingUnit"] !== "string") return json(400, { error: "invalid_product_group_request" });
     try { assertTrackingUnit(body["trackingUnit"]); if (body["targetPolicy"] !== undefined && body["targetPolicy"] !== null) assertTargetPolicy(body["targetPolicy"]); } catch (error) { return json(400, { error: "invalid_product_group_request", message: error instanceof Error ? error.message : "Product Group request is invalid." }); }
     return await withHouseholdDatabase(context, householdId, user.email, async (database) => {
       const repository = new MongoProductGroupRepository(database); if (body["targetPolicy"] && (body["targetPolicy"] as TargetPolicy).trackingUnit !== body["trackingUnit"]) return json(400, { error: "product_group_target_unit_mismatch" }); if (body["parentProductGroupId"] && !(await repository.get(householdId, body["parentProductGroupId"] as string))) return json(404, { error: "parent_product_group_not_found" });

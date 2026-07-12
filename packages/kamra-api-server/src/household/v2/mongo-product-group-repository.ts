@@ -66,6 +66,16 @@ export class MongoProductGroupRepository {
     return next;
   }
 
+  async deleteGroup(input: { expectedRevision: number; householdId: string; id: string }): Promise<{ unassignedProductCount: number }> {
+    const current = await this.groups.findOne({ householdId: input.householdId, id: input.id, status: "active" });
+    if (!current) throw new Error("product_group_not_found");
+    if (current.revision !== input.expectedRevision) throw new Error("stale_revision");
+    const products = await this.database.collection<HouseholdProduct>("household_products").updateMany({ householdId: input.householdId, productGroupId: input.id, status: "active" }, { $set: { productGroupId: null } });
+    await this.groups.updateMany({ householdId: input.householdId, parentProductGroupId: input.id, status: "active" }, { $set: { parentProductGroupId: null } });
+    await this.groups.deleteMany({ householdId: input.householdId, id: input.id, revision: input.expectedRevision });
+    return { unassignedProductCount: products.modifiedCount };
+  }
+
   async migrateLegacy(): Promise<ProductGroupMigrationReport> {
     const targets = await this.database.collection<StockTarget>("household_stock_targets").find({ status: "active" }).toArray();
     const allocations = await this.database.collection<StockAllocation>("household_stock_allocations").find({ status: "active" }).toArray();

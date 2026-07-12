@@ -67,6 +67,15 @@ export class MongoHouseholdProductRepository {
     return next;
   }
 
+  async deleteProduct(input: { expectedRevision: number; householdId: string; id: string }): Promise<{ deletedBatchCount: number }> {
+    const current = await this.products.findOne({ householdId: input.householdId, id: input.id, status: "active" });
+    if (!current) throw new Error("household_product_not_found");
+    if (current.revision !== input.expectedRevision) throw new Error("stale_revision");
+    const batches = await this.database.collection("household_stock_batches").deleteMany({ householdId: input.householdId, householdProductId: input.id });
+    await this.products.deleteMany({ householdId: input.householdId, id: input.id, revision: input.expectedRevision });
+    return { deletedBatchCount: batches.deletedCount ?? 0 };
+  }
+
   async migrateLegacy(): Promise<{ batchesLinked: number; productsCreated: number }> {
     const legacyProducts = await this.database.collection<HouseholdLocalProductRecord>("household_local_products").find({}).toArray();
     let productsCreated = 0;

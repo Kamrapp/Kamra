@@ -46,6 +46,8 @@ export class HouseholdV2Service {
   async updateProductGroup(input: { displayName: string; expectedRevision: number; householdId: string; groupId: string; targetPolicy?: HouseholdV2TargetPolicy | null; trackingUnit: string }): Promise<{ message?: string; status: "error" | "ok" }> {
     return await this.write("PATCH", `/api/households/${encodeURIComponent(input.householdId)}/product-groups/${encodeURIComponent(input.groupId)}`, { displayName: input.displayName, expectedRevision: input.expectedRevision, targetPolicy: input.targetPolicy, trackingUnit: input.trackingUnit });
   }
+  async deleteProductGroup(input: { expectedRevision: number; groupId: string; householdId: string }): Promise<{ message?: string; status: "error" | "ok" }> { return await this.write("DELETE", `/api/households/${encodeURIComponent(input.householdId)}/product-groups/${encodeURIComponent(input.groupId)}`, { expectedRevision: input.expectedRevision }); }
+  async deleteProduct(input: { expectedRevision: number; householdId: string; productId: string }): Promise<{ message?: string; status: "error" | "ok" }> { return await this.write("DELETE", `/api/households/${encodeURIComponent(input.householdId)}/products/${encodeURIComponent(input.productId)}`, { expectedRevision: input.expectedRevision }); }
   async createBatch(input: { acquiredOn: string; displayName: string; expiryOn?: string | null; householdId: string; householdProductId: string; quantity: number; unit: string }): Promise<{ message?: string; status: "error" | "ok" }> {
     return await this.write("POST", `/api/households/${encodeURIComponent(input.householdId)}/batches`, { acquiredOn: input.acquiredOn, displayName: input.displayName, expiryOn: input.expiryOn ?? null, householdProductId: input.householdProductId, operationId: crypto.randomUUID(), originalQuantity: input.quantity, requestFingerprint: crypto.randomUUID(), unit: input.unit });
   }
@@ -72,7 +74,7 @@ export class HouseholdV2Service {
     return await this.write("POST", `/api/households/${encodeURIComponent(input.householdId)}/batches/${encodeURIComponent(input.batchId)}/discard`, { expectedBatchRevision: input.expectedBatchRevision, operationId: crypto.randomUUID(), requestFingerprint: crypto.randomUUID() });
   }
 
-  private async write(method: "PATCH" | "POST", path: string, body: Record<string, unknown>): Promise<{ status: "error" | "ok"; message?: string }> {
+  private async write(method: "DELETE" | "PATCH" | "POST", path: string, body: Record<string, unknown>): Promise<{ status: "error" | "ok"; message?: string }> {
     const response = await fetch(buildApiUrl(path), { body: JSON.stringify(body), headers: this.headers(), method });
     if (!response.ok) {
       const payload = await response.json().catch(() => null) as { error?: string } | null;
@@ -80,8 +82,12 @@ export class HouseholdV2Service {
         ? "Only an active household member can update this household."
         : payload?.error === "household_owner_required"
           ? "Only the household owner can update household settings."
-        : payload?.error === "household_product_not_found" || payload?.error === "stock_target_not_found"
-            ? "This item no longer exists. Refresh and try again."
+        : payload?.error === "household_product_not_found"
+            ? "The Household Product was not found for this operation. Refresh and try again."
+            : payload?.error === "product_group_not_found"
+              ? "The Product Group was not found for this operation. Refresh and try again."
+              : payload?.error === "stock_target_not_found"
+                ? "The legacy Stock Target was not found for this operation. Refresh and try again."
             : payload?.error === "household_concept_already_exists"
               ? "A household concept with this name already exists."
             : `Household update failed (${response.status}).`;
