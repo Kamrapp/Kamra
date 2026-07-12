@@ -1482,6 +1482,11 @@ describe("handleAppRequest auth guards", () => {
           validatorUpdated: false
         },
         {
+          id: "shopping-trip-foundation-v1",
+          migrationCompleted: false,
+          validatorUpdated: false
+        },
+        {
           id: "feature-flag-audit-v1",
           migrationCompleted: false,
           validatorUpdated: false
@@ -1605,6 +1610,8 @@ describe("handleAppRequest auth guards", () => {
       "household-product-groups-v1:migration",
       "household-local-classification-v1:validator",
       "household-local-classification-v1:migration",
+      "shopping-trip-foundation-v1:validator",
+      "shopping-trip-foundation-v1:migration",
       "feature-flag-audit-v1:validator",
       "feature-flag-audit-v1:migration"
       ]

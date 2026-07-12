@@ -46,6 +46,11 @@ export const databaseMaintenanceEntries: readonly DatabaseMaintenanceEntry[] = [
     title: "Household Product Concepts"
   },
   {
+    details: "Creates the direct country-specific Shop Market and Shopping Trip foundation collections and indexes. This is separate from legacy household shop labels and does not migrate or delete historical shopping lists.",
+    id: "shopping-trip-foundation-v1",
+    title: "Shop Markets and Shopping Trips"
+  },
+  {
     details: "Ensures the feature_flag_change_audits collection and its indexes for persisted old/new values, actor, reason, and revision. This is an audit-schema action; it does not change the current value of any feature flag.",
     id: "feature-flag-audit-v1",
     title: "Feature flag audit history"

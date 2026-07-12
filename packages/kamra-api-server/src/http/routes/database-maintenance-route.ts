@@ -9,6 +9,7 @@ import { MongoStockMigrationRepository } from "../../household/v2/mongo-stock-mi
 import { MongoHouseholdProductRepository } from "../../household/v2/mongo-household-product-repository.js";
 import { MongoProductGroupRepository } from "../../household/v2/mongo-product-group-repository.js";
 import { MongoHouseholdProductConceptRepository } from "../../household/v2/mongo-household-product-concept-repository.js";
+import { MongoShopMarketRepository } from "../../household/v2/mongo-shop-market-repository.js";
 import { describeRequest, json, unauthorized, type AppRoute } from "../app-route-context.js";
 
 export const databaseMaintenanceListRoute: AppRoute = {
@@ -226,6 +227,9 @@ async function runValidatorAction(
   if (entryId === "household-local-classification-v1") {
     return await new MongoHouseholdProductConceptRepository(database).setupCollections();
   }
+  if (entryId === "shopping-trip-foundation-v1") {
+    return await new MongoShopMarketRepository(database).setupCollections();
+  }
   if (entryId === "household-expired-item-policy-v1") {
     const repository = context.dependencies.createHouseholdRepository
       ? context.dependencies.createHouseholdRepository(database)
@@ -272,6 +276,9 @@ async function runMigrationAction(
     return await new MongoProductGroupRepository(database).migrateLegacy();
   }
   if (entryId === "household-local-classification-v1") {
+    return { status: "ready", migratedCount: 0 };
+  }
+  if (entryId === "shopping-trip-foundation-v1") {
     return { status: "ready", migratedCount: 0 };
   }
   if (entryId === "household-expired-item-policy-v1") {

@@ -5,7 +5,9 @@ export const householdV2CollectionNames = [
   "household_stock_allocations",
   "household_stock_movements",
   "household_domain_operations",
-  "household_shopping_need_lists"
+  "household_shopping_need_lists",
+  "shop_markets",
+  "household_shopping_trips"
 ] as const;
 
 export type HouseholdV2CollectionName = (typeof householdV2CollectionNames)[number];
@@ -15,6 +17,21 @@ export type SchemaVersion = typeof schemaVersion;
 
 export const lifecycleStatuses = ["active", "archived"] as const;
 export type LifecycleStatus = (typeof lifecycleStatuses)[number];
+
+export interface ShopMarket {
+  aliases: string[];
+  countryCode: string;
+  createdAt: string;
+  createdByUserId: string;
+  currencyCode: string;
+  displayName: string;
+  id: string;
+  metadata?: Record<string, string>;
+  revision: number;
+  status: LifecycleStatus;
+  updatedAt: string;
+  updatedByUserId: string;
+}
 
 export const productConceptScopes = ["catalog", "household"] as const;
 export type ProductConceptScope = (typeof productConceptScopes)[number];
