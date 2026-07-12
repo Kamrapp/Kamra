@@ -2,7 +2,7 @@ import { Component, effect, inject, input, output, signal } from "@angular/core"
 import { FormsModule } from "@angular/forms";
 
 import { BrowserLoggerService } from "../browser-logger.service";
-import { HouseholdV2Service, type HouseholdV2Product, type HouseholdV2ProductGroup, type HouseholdV2TargetPolicy } from "./household-v2.service";
+import { HouseholdV2Service, type HouseholdV2Batch, type HouseholdV2Product, type HouseholdV2ProductGroup, type HouseholdV2TargetPolicy } from "./household-v2.service";
 
 interface GroupDraft { displayName: string; desiredQuantity: number; hasTarget: boolean; minimumQuantity: number; trackingUnit: string; }
 interface ProductDraft { catalogProductId: string; desiredQuantity: number; displayName: string; gtin: string; hasTarget: boolean; minimumQuantity: number; note: string; productGroupId: string | null; }
@@ -19,6 +19,7 @@ export class HouseholdProductEditorComponent {
   readonly householdId = input("");
   readonly product = input<HouseholdV2Product | null>(null);
   readonly group = input<HouseholdV2ProductGroup | null>(null);
+  readonly batch = input<HouseholdV2Batch | null>(null);
   readonly batchOnly = input(false);
   readonly resetRevision = input(0);
   readonly changed = output<void>();
@@ -36,9 +37,10 @@ export class HouseholdProductEditorComponent {
     effect(() => {
       const product = this.product();
       const selectedGroup = this.group();
+      const selectedBatch = this.batch();
       this.resetRevision();
       this.productDraft = createProductDraft(product);
-      this.batchDraft = createBatchDraft(product?.defaultTrackingUnit ?? "count");
+      this.batchDraft = createBatchDraft(product?.defaultTrackingUnit ?? "count", selectedBatch);
       this.selectedGroupId.set(product?.productGroupId ?? null);
       this.groupDraft = createGroupDraft(selectedGroup?.group);
       this.errorMessage.set("");
@@ -82,6 +84,12 @@ export class HouseholdProductEditorComponent {
     const name = this.productDraft.displayName.trim();
     if (!name || this.batchDraft.quantity <= 0 || !this.batchDraft.unit.trim()) return this.fail("Enter a Product and a positive stock quantity.");
     this.saving.set(true); this.errorMessage.set("");
+    if (this.batch()) {
+      const result = await this.service.correctBatch({ acquiredOn: this.batchDraft.acquiredOn, batchId: this.batch()!.id, expiryOn: this.batchDraft.expiryOn || null, expectedBatchRevision: this.batch()!.revision, householdId: this.householdId(), resultingQuantity: this.batchDraft.quantity });
+      this.saving.set(false);
+      if (result.status === "error") return this.fail(result.message ?? "Stock Batch could not be saved.");
+      this.logger.log("info", "Stock Batch saved", { batchId: this.batch()!.id }); this.changed.emit(); return;
+    }
     let productId = this.product()?.id;
     if (!productId) {
       const created = await this.service.createProductWithBatch({ batch: { acquiredOn: this.batchDraft.acquiredOn, displayName: name, expiryOn: this.batchDraft.expiryOn || null, originalQuantity: this.batchDraft.quantity, unit: this.batchDraft.unit.trim() }, group: this.productDraft.productGroupId ? null : (this.groupDraft.displayName.trim() ? { displayName: this.groupDraft.displayName.trim(), targetPolicy: this.groupDraft.hasTarget ? this.policy(this.groupDraft.minimumQuantity, this.groupDraft.desiredQuantity, this.groupDraft.trackingUnit) : null, trackingUnit: this.groupDraft.trackingUnit.trim() } : null), householdId: this.householdId(), product: { displayName: name, note: this.productDraft.note || null, productGroupId: this.productDraft.productGroupId, targetPolicy: this.productDraft.hasTarget ? this.policy(this.productDraft.minimumQuantity, this.productDraft.desiredQuantity, this.batchDraft.unit) : null } });
@@ -106,4 +114,4 @@ export class HouseholdProductEditorComponent {
 
 function createGroupDraft(group?: HouseholdV2ProductGroup["group"]): GroupDraft { return { displayName: group?.displayName ?? "", desiredQuantity: group?.targetPolicy?.desiredQuantity ?? 0, hasTarget: Boolean(group?.targetPolicy), minimumQuantity: group?.targetPolicy?.minimumQuantity ?? 0, trackingUnit: group?.trackingUnit ?? "count" }; }
 function createProductDraft(product: HouseholdV2Product | null): ProductDraft { return { catalogProductId: typeof product?.identitySnapshot?.["catalogProductId"] === "string" ? product.identitySnapshot["catalogProductId"] as string : "", desiredQuantity: product?.targetPolicy?.desiredQuantity ?? 0, displayName: product?.displayName ?? "", gtin: typeof product?.identitySnapshot?.["gtin"] === "string" ? product.identitySnapshot["gtin"] as string : "", hasTarget: Boolean(product?.targetPolicy), minimumQuantity: product?.targetPolicy?.minimumQuantity ?? 0, note: product?.note ?? "", productGroupId: product?.productGroupId ?? null }; }
-function createBatchDraft(unit = "count"): BatchDraft { return { acquiredOn: new Date().toISOString().slice(0, 10), expiryOn: "", quantity: 0, unit }; }
+function createBatchDraft(unit = "count", batch?: HouseholdV2Batch | null): BatchDraft { return { acquiredOn: batch?.acquiredOn ?? new Date().toISOString().slice(0, 10), expiryOn: batch?.expiryOn ?? "", quantity: batch?.remainingQuantity ?? 0, unit: batch?.unit ?? unit }; }

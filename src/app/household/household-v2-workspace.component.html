@@ -18,7 +18,7 @@
             <span class="row-actions">
               <app-table-icon-button ariaLabel="Show Product Group details" titleText="Show Product Group details" (press)="toggleGroupDetails(row.group.group.id)">⌕+</app-table-icon-button>
               <app-table-icon-button ariaLabel="Edit Product Group" titleText="Edit Product Group" (press)="selectGroup(row.group)">✎</app-table-icon-button>
-              <app-table-icon-button ariaLabel="Add Product to Product Group" titleText="Add Product to Product Group" (press)="newProductRequested.emit()">▣+</app-table-icon-button>
+              <app-table-icon-button ariaLabel="Add Product to Product Group" titleText="Add Product to Product Group" (press)="newProductRequested.emit(row.group)">▣+</app-table-icon-button>
             </span>
           </div>
           @if (isGroupDetailsOpen(row.group.group.id)) {
@@ -32,7 +32,7 @@
         }
         <div class="stock-grid stock-group-row unassigned-row">
           <button class="row-name group-name" type="button" (click)="unassignedExpanded.set(!unassignedExpanded())" [attr.aria-expanded]="unassignedExpanded()"><span aria-hidden="true">{{ unassignedExpanded() ? '▾' : '▸' }}</span><strong>Unassigned Products</strong></button>
-          <span>{{ unassignedQuantity() }}</span><span>—</span><span class="ui-copy-muted">{{ current.unassignedProducts.length }} product(s)</span><span class="row-actions"><app-table-icon-button ariaLabel="Add unassigned Product" titleText="Add unassigned Product" (press)="newProductRequested.emit()">▣+</app-table-icon-button></span>
+          <span>{{ unassignedQuantity() }}</span><span>—</span><span class="ui-copy-muted">{{ current.unassignedProducts.length }} product(s)</span><span class="row-actions"><app-table-icon-button ariaLabel="Add unassigned Product" titleText="Add unassigned Product" (press)="newProductRequested.emit(null)">▣+</app-table-icon-button></span>
         </div>
         @if (unassignedExpanded()) {
           @for (productRow of current.unassignedProducts; track productRow.product.id) {
@@ -55,7 +55,7 @@
   </div>
   @if (isProductDetailsOpen(row.product.id)) { <div class="target-editor details-row" [style.--row-depth]="depth"><span>Product id <strong>{{ row.product.id }}</strong></span><span>GTIN <strong>{{ row.product.identitySnapshot?.['gtin'] ?? '—' }}</strong></span><span>Note <strong>{{ row.product.note ?? '—' }}</strong></span><span>Group <strong>{{ row.product.productGroupId ?? 'Unassigned' }}</strong></span></div> }
   @for (batch of row.batches; track batch.id) {
-    <div class="stock-grid stock-batch-row" [style.--row-depth]="depth + 1"><span class="row-name batch-name">{{ batch.remainingQuantity }} {{ batch.unit }}</span><span>{{ batch.acquiredOn }}</span><span>{{ batch.expiryOn ?? 'No expiry' }}</span><span class="ui-copy-muted">Batch</span><span class="row-actions"><app-table-icon-button ariaLabel="Edit Stock Batch" titleText="Edit Stock Batch" (press)="editBatch(batch.id)">✎</app-table-icon-button></span></div>
+    <div class="stock-grid stock-batch-row" [style.--row-depth]="depth + 1"><button class="row-name batch-name" type="button" (click)="batchSelected.emit({ batch, group: workspaceGroup(row.product.productGroupId), product: row.product })"><strong>{{ batch.remainingQuantity }} {{ batch.unit }}</strong></button><span>{{ batch.acquiredOn }}</span><span>{{ batch.expiryOn ?? 'No expiry' }}</span><span class="ui-copy-muted">Batch</span><span class="row-actions"><app-table-icon-button ariaLabel="Edit Stock Batch" titleText="Edit Stock Batch" (press)="editBatch(batch.id)">✎</app-table-icon-button></span></div>
     @if (editingBatchId() === batch.id) { <div class="batch-editor" [style.--row-depth]="depth + 1"><label>Quantity<input class="ui-form-control" #quantity type="number" min="0" [value]="batch.remainingQuantity" /></label><label>Stocked at<input class="ui-form-control" #acquired type="date" [value]="batch.acquiredOn" /></label><label>Expiry<input class="ui-form-control" #expiry type="date" [value]="batch.expiryOn ?? ''" /></label><div class="editor-actions"><button class="ui-button ui-button-sm" type="button" (click)="correctBatch(batch, quantity.valueAsNumber, acquired.value, expiry.value)">Save batch</button><button class="ui-button ui-button-danger ui-button-sm" type="button" (click)="discardBatch(batch)">Discard</button><button class="ui-button ui-button-quiet ui-button-sm" type="button" (click)="cancelBatchEdit()">Close</button></div></div> }
   }
 </ng-template>

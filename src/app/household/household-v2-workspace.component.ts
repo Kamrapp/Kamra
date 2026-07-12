@@ -3,15 +3,16 @@ import { NgTemplateOutlet } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { TableIconButtonComponent } from "../shared/table-icon-button.component";
 import { BrowserLoggerService } from "../browser-logger.service";
-import { HouseholdV2Service, type HouseholdV2Product, type HouseholdV2ProductGroup, type HouseholdV2Workspace } from "./household-v2.service";
+import { HouseholdV2Service, type HouseholdV2Batch, type HouseholdV2Product, type HouseholdV2ProductGroup, type HouseholdV2Workspace } from "./household-v2.service";
 
 @Component({ selector: "app-household-v2-workspace", standalone: true, imports: [FormsModule, NgTemplateOutlet, TableIconButtonComponent], templateUrl: "./household-v2-workspace.component.html", styleUrl: "./household-v2-workspace.component.css" })
 export class HouseholdV2WorkspaceComponent {
   readonly householdId = input("");
   readonly refreshRevision = input(0);
   readonly productSelected = output<HouseholdV2Product>();
+  readonly batchSelected = output<{ batch: HouseholdV2Batch; group: HouseholdV2ProductGroup | null; product: HouseholdV2Product }>();
   readonly newBatchRequested = output<HouseholdV2Product>();
-  readonly newProductRequested = output<void>();
+  readonly newProductRequested = output<HouseholdV2ProductGroup | null>();
   readonly groupSelected = output<HouseholdV2ProductGroup>();
   readonly workspace = signal<HouseholdV2Workspace | null>(null);
   readonly errorMessage = signal("");
@@ -39,6 +40,14 @@ export class HouseholdV2WorkspaceComponent {
   toggleProductDetails(productId: string): void { this.toggleSet(this.productDetailsIds, productId); }
   isProductDetailsOpen(productId: string): boolean { return this.productDetailsIds().has(productId); }
   selectGroup(group: HouseholdV2ProductGroup): void { this.groupSelected.emit(group); }
+  workspaceGroup(groupId: string | null | undefined): HouseholdV2ProductGroup | null {
+    if (!groupId) return null;
+    const visit = (groups: HouseholdV2ProductGroup[]): HouseholdV2ProductGroup | null => {
+      for (const group of groups) { if (group.group.id === groupId) return group; const child = visit(group.childGroups); if (child) return child; }
+      return null;
+    };
+    return visit(this.workspace()?.productGroups ?? []);
+  }
   unassignedQuantity(): number { return (this.workspace()?.unassignedProducts ?? []).reduce((total, row) => total + row.aggregate.availableQuantity, 0); }
   editBatch(batchId: string): void { this.editingBatchId.set(batchId); }
   cancelBatchEdit(): void { this.editingBatchId.set(null); }

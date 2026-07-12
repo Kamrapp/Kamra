@@ -10,7 +10,7 @@
   </div>
 
   <div class="composer-block batch-block">
-    <button class="composer-action" type="button" (click)="saveBatch()" [disabled]="saving() || !productDraft.displayName.trim() || batchDraft.quantity <= 0">← Add stock</button>
+    <button class="composer-action" type="button" (click)="saveBatch()" [disabled]="saving() || !productDraft.displayName.trim() || batchDraft.quantity <= 0">{{ batch() ? '← Save stock' : '← Add stock' }}</button>
     <div class="composer-content"><p class="ui-kicker">Stock Batch</p><h2 class="ui-card-title">{{ productDraft.displayName || 'Stock for Product' }}</h2><p class="ui-copy-muted">A Batch has no separate name. Its quantity and dates remain independent physical history.</p><div class="batch-fields"><label>Quantity<input class="ui-form-control" type="number" min="0" [(ngModel)]="batchDraft.quantity" name="batchQuantity" /></label><label>Unit<input class="ui-form-control" [(ngModel)]="batchDraft.unit" name="batchUnit" /></label><label>Stocked at<input class="ui-form-control" type="date" [(ngModel)]="batchDraft.acquiredOn" name="batchAcquiredOn" /></label><label>Expiry<input class="ui-form-control" type="date" [(ngModel)]="batchDraft.expiryOn" name="batchExpiryOn" /></label></div></div>
   </div>
   @if (errorMessage()) { <p class="ui-copy-error">{{ errorMessage() }}</p> }

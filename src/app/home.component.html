@@ -7,7 +7,7 @@
   />
 } @else {
   <section class="stock-workspace" aria-labelledby="home-title">
-    <app-household-v2-workspace [householdId]="selectedHouseholdId()" [refreshRevision]="v2WorkspaceRevision()" (newProductRequested)="startV2ProductCreate()" (newBatchRequested)="startV2BatchCreate($event)" (productSelected)="selectV2Product($event)" (groupSelected)="selectV2Group($event)" />
+    <app-household-v2-workspace [householdId]="selectedHouseholdId()" [refreshRevision]="v2WorkspaceRevision()" (newProductRequested)="startV2ProductCreate($event)" (newBatchRequested)="startV2BatchCreate($event)" (productSelected)="selectV2Product($event)" (batchSelected)="selectV2Batch($event)" (groupSelected)="selectV2Group($event)" />
     <app-household-stock-panel
       [errorMessage]="errorMessage()"
       [existingShoppingLineItemIds]="existingShoppingLineItemIds()"
@@ -30,7 +30,7 @@
       (shoppingSelectionToggled)="toggleShoppingItem($event)"
     />
 
-    <app-household-product-editor [householdId]="selectedHouseholdId()" [product]="selectedV2Product()" [group]="selectedV2Group()" [batchOnly]="v2BatchEditorMode()" [resetRevision]="productEditorRevision()" (changed)="refreshV2Workspace()" />
+    <app-household-product-editor [householdId]="selectedHouseholdId()" [product]="selectedV2Product()" [group]="selectedV2Group()" [batch]="selectedV2Batch()" [batchOnly]="v2BatchEditorMode()" [resetRevision]="productEditorRevision()" (changed)="refreshV2Workspace()" />
 
     <app-household-shopping-list
       #shoppingListPanel
