@@ -254,9 +254,14 @@ export interface DomainOperation {
 
 export const shoppingNeedStates = ["open", "skipped"] as const;
 export type ShoppingNeedState = (typeof shoppingNeedStates)[number];
+export const shoppingNeedOwnerKinds = ["household_product", "manual", "product_group", "stock_target_legacy"] as const;
+export type ShoppingNeedOwnerKind = (typeof shoppingNeedOwnerKinds)[number];
 export interface ShoppingNeed {
   acceptanceCriteriaSnapshot: AcceptanceCriteria;
   id: string;
+  ownerDisplayNameSnapshot?: string | null;
+  ownerId?: string | null;
+  ownerKind?: ShoppingNeedOwnerKind;
   plannedQuantity: number;
   reasonCode: "below_minimum" | "manual";
   state: ShoppingNeedState;

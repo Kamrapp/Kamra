@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createAdHocShoppingNeed, generateShoppingNeed, transitionShoppingNeed } from "./shopping-needs.js";
+import { createAdHocShoppingNeed, generateShoppingNeed, generateTargetPolicyShoppingNeed, transitionShoppingNeed } from "./shopping-needs.js";
 import type { StockTarget } from "./contracts.js";
 import type { StockTargetAggregate } from "./domain.js";
 
@@ -14,5 +14,9 @@ describe("shopping needs", () => {
   it("supports ad-hoc and revision-checked skip/restore transitions", () => {
     const need = createAdHocShoppingNeed({ id: "manual", plannedQuantity: 2, unit: "count" }); const skipped = transitionShoppingNeed(need, "skipped", 0);
     expect(skipped).toMatchObject({ revision: 1, state: "skipped" }); expect(transitionShoppingNeed(skipped, "open", 1).state).toBe("open"); expect(() => transitionShoppingNeed(skipped, "open", 0)).toThrow("stale_revision");
+  });
+  it("generates a Product Group-owned need from its target policy", () => {
+    const need = generateTargetPolicyShoppingNeed({ aggregate: { availableQuantity: 1, batchCount: 1, nextExpiryOn: null, state: "below_minimum", trackingUnit: "l" }, displayName: "Milk", id: "group:milk", needId: "need:milk", ownerKind: "product_group", policy: { consumptionPolicy: "earliest_expiry_first", desiredQuantity: 3, expiryWarningDays: 0, minimumQuantity: 2, trackingUnit: "l" } });
+    expect(need).toMatchObject({ ownerId: "group:milk", ownerKind: "product_group", plannedQuantity: 2, unit: "l" });
   });
 });
