@@ -11,6 +11,7 @@ import { BrowserLoggerService } from "./browser-logger.service";
 import { AuthService } from "./auth.service";
 import { PageRailService } from "./shared/page-rail.service";
 import { PageRailOutletComponent } from "./shared/page-rail-outlet.component";
+import { ClientConsoleWindowComponent } from "./shared/client-console-window.component";
 import {
   LocalizationService,
   type LanguagePreference
@@ -29,7 +30,7 @@ interface ShellMenuItem extends RadialNavigationItem {
 }
 
 @Component({
-  imports: [PageRailOutletComponent, RadialNavigationComponent, RouterLink, RouterLinkActive, RouterOutlet, ShellAccountPanelComponent, ToastHostComponent],
+  imports: [ClientConsoleWindowComponent, PageRailOutletComponent, RadialNavigationComponent, RouterLink, RouterLinkActive, RouterOutlet, ShellAccountPanelComponent, ToastHostComponent],
   selector: "app-root",
   standalone: true,
   template: `
@@ -55,6 +56,7 @@ interface ShellMenuItem extends RadialNavigationItem {
         </section>
 
         <app-page-rail-outlet [resetToken]="railResetToken()" [sections]="pageRail.sections()" />
+        <app-client-console-window />
       </aside>
 
       <section class="page-body" [attr.aria-label]="loc.t('app.currentPage')">

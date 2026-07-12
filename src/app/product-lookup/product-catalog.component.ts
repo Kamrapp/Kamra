@@ -366,14 +366,17 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
   }
 
   async deleteProduct(id: string): Promise<void> {
+    this.logger.log("info", "Deleting catalog Product", { productId: id });
     const result = await this.catalog.deleteProduct(id);
     if (result.status !== "ok") {
       this.errorMessage.set(result.message);
+      this.logger.log("error", "Catalog Product deletion failed", { productId: id });
       return;
     }
 
     this.products.update((products) => products.filter((product) => product.id !== id));
     this.closeProductEditor();
+    this.logger.log("info", "Catalog Product deleted", { productId: id });
   }
 
   setNameFilter(nameIncludes: string): void {

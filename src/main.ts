@@ -9,12 +9,6 @@ injectSpeedInsights({
   framework: "angular"
 });
 
-logBrowserEvent("info", "Browser app starting", {
-  baseUri: document.baseURI,
-  location: window.location.href,
-  nodeEnv: "browser"
-});
-
 void bootstrapApplication(AppComponent, appConfig).catch((error: unknown) => {
-  logBrowserEvent("error", "Browser bootstrap failed", error);
+  logBrowserEvent({ clientId: "bootstrap", details: error, level: "error", message: "Browser bootstrap failed" });
 });

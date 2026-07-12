@@ -99,6 +99,11 @@
     "tabsLabel": "Kézikönyv szakaszai",
     "title": "Kamra kézikönyv"
   },
+  "clientConsole": {
+    "empty": "Tevékenységre vár…",
+    "localOnly": "helyi tevékenység",
+    "title": "Tevékenység konzol"
+  },
   "apiErrors": {
     "adminRequired": "Az eroforras megtekintesehez admin jogosultsaggal kell bejelentkezni.",
     "preferencesSignInRequired": "A beallitasok frissitesehez be kell jelentkezni.",

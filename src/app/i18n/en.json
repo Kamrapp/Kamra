@@ -99,6 +99,11 @@
     "tabsLabel": "Manual sections",
     "title": "Kamra manual"
   },
+  "clientConsole": {
+    "empty": "Waiting for activity…",
+    "localOnly": "local activity",
+    "title": "Activity console"
+  },
   "apiErrors": {
     "adminRequired": "Sign in as an admin to view this resource.",
     "preferencesSignInRequired": "Sign in to update your preferences.",
