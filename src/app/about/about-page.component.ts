@@ -100,7 +100,7 @@ import { LocalizationService } from "../shared/localization.service";
         display: grid;
         gap: var(--space-4);
         overflow: hidden;
-        padding: clamp(1.15rem, 3vw, 1.8rem);
+        padding: clamp(0.85rem, 2vw, 1.2rem);
         position: relative;
       }
 
@@ -136,7 +136,7 @@ import { LocalizationService } from "../shared/localization.service";
       }
 
       .about-title {
-        font-size: clamp(2.2rem, 5vw, 3.6rem);
+        font-size: clamp(1.8rem, 3.5vw, 2.7rem);
         max-width: 13ch;
       }
 
@@ -226,7 +226,7 @@ import { LocalizationService } from "../shared/localization.service";
 
         .about-hero {
           grid-template-columns: minmax(0, 1.4fr) minmax(18rem, 0.8fr);
-          min-height: min(23rem, 100%);
+          min-height: 0;
         }
 
         .about-grid {

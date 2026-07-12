@@ -58,7 +58,7 @@ import { LocalizationService } from "../shared/localization.service";
   styles: [`
     :host { display: block; min-height: 100%; }
     .manual-page { display: grid; gap: var(--space-4); }
-    .manual-hero { background: radial-gradient(circle at top right, color-mix(in srgb, var(--color-accent-sky) 22%, transparent) 0, transparent 44%), linear-gradient(145deg, color-mix(in srgb, var(--color-accent-leaf) 10%, var(--surface-shell-background)) 0%, var(--surface-shell-background) 54%, color-mix(in srgb, var(--color-accent-sand) 18%, var(--surface-shell-background)) 100%); display: grid; gap: var(--space-3); padding: clamp(1rem, 3vw, 1.6rem); }
+    .manual-hero { background: radial-gradient(circle at top right, color-mix(in srgb, var(--color-accent-sky) 22%, transparent) 0, transparent 44%), linear-gradient(145deg, color-mix(in srgb, var(--color-accent-leaf) 10%, var(--surface-shell-background)) 0%, var(--surface-shell-background) 54%, color-mix(in srgb, var(--color-accent-sand) 18%, var(--surface-shell-background)) 100%); display: grid; gap: var(--space-2); padding: clamp(.85rem, 2vw, 1.2rem); }
     .manual-intro { display: grid; gap: var(--space-3); }
     .manual-hero p, .manual-intro p, .manual-vocabulary h2, .manual-vocabulary p { margin: 0; }
     .manual-tab-section { display: grid; gap: 0; }
