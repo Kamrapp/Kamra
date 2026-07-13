@@ -540,6 +540,22 @@ basic Home shopping experience.
   unindexed full-collection application `id` sort. No new schema action or data write is required. The
   configured audit is now safe to rerun and should remain within the MongoDB sort memory limit on the
   populated environment.
+- The configured audit then completed over 54 runs, 64 snapshots, and 11,310 rows. It reported 74
+  `duplicate_row_identity` issues, all from Lidl HU brochure snapshots; the bounded output showed 25
+  and marked the report truncated. Other active sources reported no issues.
+- The issue is repeated same-page PDF text extraction. Lidl parser `0.1.1` now keeps the first stable
+  page/item identity and has a sanitized repeated-block regression test. Historical snapshots remain
+  unchanged; a bounded, reviewed historical parsed-row repair/reprocessing action is still required
+  before this audit finding can be considered operationally closed.
+
+## Stage 10 Step 5 Lidl parser checkpoint (2026-07-13)
+
+- Added a page-local source-record identity guard to the Lidl HU brochure parser and bumped its parser
+  version from `0.1.0` to `0.1.1`. This removes repeated rows caused by duplicated PDF text extraction
+  without collapsing distinct products across pages.
+- The focused Lidl source suite passes (6 tests), including a sanitized repeated-product-block case.
+- Next safe slice: add the explicit dry-run-first historical parsed-row repair/reprocessing boundary,
+  then rerun local validation. Do not mutate configured MongoDB data automatically.
 
 Historical open-issue entries above describe intermediate checkpoints and are superseded by
 this closeout section where they say the Home bridge is still pending or Stage 8 cannot close.

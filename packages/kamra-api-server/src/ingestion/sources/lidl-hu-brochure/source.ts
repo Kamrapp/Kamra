@@ -7,7 +7,7 @@ import type { ParsedShopProductRow } from "../../v1/contracts.js";
 export const lidlHuBrochureSourceName = "lidl-hu-brochure";
 export const lidlHuBrochureWorkflowName = "lidl-hu-brochure-pdf";
 export const lidlHuBrochureParserName = "LidlHuBrochurePdfParser";
-export const lidlHuBrochureParserVersion = "0.1.0";
+export const lidlHuBrochureParserVersion = "0.1.1";
 export const lidlHuBrochureIndexUrl = "https://www.lidl.hu/c/szorolap/s10013623";
 export const lidlHuLeafletApiBaseUrl = "https://endpoints.leaflets.schwarz/v4/flyer";
 
@@ -172,6 +172,7 @@ function parseLidlHuPageRows(
   observedAt: string
 ): ParsedShopProductRow[] {
   const rows: ParsedShopProductRow[] = [];
+  const sourceRecordIds = new Set<string>();
 
   for (const [index, line] of page.lines.entries()) {
     if (
@@ -195,6 +196,13 @@ function parseLidlHuPageRows(
 
     const price = findPriceAfterItemNumber(page.lines, itemNumberGroup.endIndex);
     const rawText = collectRawContext(page.lines, index);
+    const sourceRecordId = `${brochure.slug}:page-${page.pageNumber}:item-${sourceProductKey}`;
+
+    if (sourceRecordIds.has(sourceRecordId)) {
+      continue;
+    }
+
+    sourceRecordIds.add(sourceRecordId);
 
     rows.push({
       countryCode: "HU",
@@ -236,7 +244,7 @@ function parseLidlHuPageRows(
       rawName: displayName,
       sourceName: lidlHuBrochureSourceName,
       sourceProductKey,
-      sourceRecordId: `${brochure.slug}:page-${page.pageNumber}:item-${sourceProductKey}`,
+      sourceRecordId,
       sourceUrl: brochure.sourceUrl,
       stock: {
         availability: "infinite",

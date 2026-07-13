@@ -221,6 +221,57 @@ describe("Lidl HU brochure source", () => {
     ]);
   });
 
+  it("keeps one row when PDF text extraction repeats a product block on one page", () => {
+    const brochure = {
+      endDate: "2026-07-01",
+      flyerId: "019eeee7-f889-7eb5-9d8d-f146b96e8847",
+      pageNumbers: [24],
+      pdfUrl: "https://example.invalid/lidl.pdf",
+      slug: "akcios-ujsag-26-het-2026",
+      sourceUrl: "https://example.invalid/lidl/26",
+      startDate: "2026-06-25",
+      title: "Akciós újság – 26. hét"
+    };
+
+    const rows = parseLidlHuBrochureRows(
+      brochure,
+      [
+        {
+          pageNumber: 24,
+          lines: [
+            "BALLINO",
+            "Tölcséres jégkrém",
+            "Pisztáciás",
+            "120 g; 1 kg = 1 492 Ft",
+            "5503268",
+            "179",
+            "Ft",
+            "BALLINO",
+            "BALLINO",
+            "Tölcséres j",
+            "Tölcséres j",
+            "Pisztáciás",
+            "Pisztáciás",
+            "120 g; 1 kg = 1 492 Ft",
+            "120 g; 1 kg = 1 492 Ft",
+            "5503268",
+            "5503268",
+            "179",
+            "Lidl Plus-szal"
+          ]
+        }
+      ],
+      "2026-07-02T09:00:00.000Z"
+    );
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      displayName: "BALLINO Tölcséres jégkrém Pisztáciás",
+      sourceProductKey: "5503268",
+      sourceRecordId: "akcios-ujsag-26-het-2026:page-24:item-5503268"
+    });
+  });
+
   it("uses a stable PDF byte hash", () => {
     const bytes = new Uint8Array([1, 2, 3]);
 

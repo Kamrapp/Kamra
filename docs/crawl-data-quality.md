@@ -19,6 +19,20 @@ The report is evidence for a human decision. It does not repair, delete, reproce
 4. an accepted limitation; or
 5. a post-MVP deferral.
 
+## Current configured evidence
+
+The 2026-07-13 read-only audit completed against the populated development database after traversal was
+changed to MongoDB's indexed `_id` sort. It inspected 54 crawl runs, 64 snapshots, and 11,310 parsed
+rows. The bounded report exposed 74 `duplicate_row_identity` issues in Lidl HU brochure snapshots;
+the other active sources reported no issues. The report displayed the first 25 issues and marked the
+result as truncated.
+
+The defect was traced to repeated same-page PDF text extraction, not to distinct products sharing a
+legitimate identity. Lidl parser version `0.1.1` now keeps the first row for a repeated page/item
+identity and has a sanitized regression test. Existing snapshots are historical evidence and are not
+rewritten by the parser fix. Any historical parsed-row repair or reprocessing must be reviewed and run
+as an explicit, bounded operation after the protected archive/checksum step.
+
 ## Correction overlay boundary
 
 Reviewed corrections use the versioned `ingestion-correction-overlay-v1` shape from `packages/kamra-api-server/src/ingestion/audit/ingestion-quality-audit.ts`. An overlay is keyed by raw snapshot id, row index, and source fingerprint. It records the normalized fields to use for a future processing run, the reason, reviewer, and tool/version metadata.

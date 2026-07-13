@@ -1,6 +1,6 @@
 # Stage 10 Alpha 1.0 Hardening Plan
 
-Status: In implementation — Steps 4A, 6, 7, and 8A code slices plus Step 11 release documentation are implemented; configured and browser evidence remain open (2026-07-13). Keep hardening tied to concrete Stage 8/9 findings; do not expand into a rewrite.
+Status: In implementation — Steps 4A, 5, 6, 7, and 8A code slices plus Step 11 release documentation are implemented; configured and browser evidence remain open (2026-07-13). Keep hardening tied to concrete Stage 8/9 findings; do not expand into a rewrite.
 
 ## Objective And Classification
 
@@ -141,7 +141,7 @@ Agentic correction is an offline, human-reviewed workflow. Treat exported conten
 6. Preview and run validator/index action, then data/reset action from the admin dashboard or the equivalent npm command.
 7. Sync the checked-in base classification pack and reconcile final collections.
 8. Import the raw crawl archive only when using a clean database; otherwise verify preserved raw counts and skip duplicate import.
-9. Reprocess raw snapshots with fixed parser versions and reviewed overlays; review/promote Product Candidates.
+9. Reprocess raw snapshots with fixed parser versions and reviewed overlays; review/promote Product Candidates. Historical parsed-row repair remains a separately reviewed write operation.
 10. Run full reconciliation and Alpha smoke checks, then resume writes. Any checksum/count mismatch keeps writes paused.
 
 ## Dedicated Crawl-Data Quality Audit
@@ -340,14 +340,14 @@ Implementation ownership map:
 
 ### Step 5 - Source-specific parser/normalization fixes
 
-- Fix only confirmed defects, bump versions where reprocessing semantics require it, and add targeted real-shaped sanitized tests.
-- Acceptance: fixtures prove the defect/fix; unrelated sources remain stable.
+- Fix only confirmed defects, bump versions where reprocessing semantics require it, and add targeted real-shaped sanitized tests. **Implemented for Lidl HU (2026-07-13):** repeated same-page PDF text now emits only the first stable page/item identity; parser version is `0.1.1` and the regression fixture covers the repeated product block.
+- Acceptance: fixtures prove the defect/fix; unrelated sources remain stable. **Remaining:** review and, if approved, run the bounded historical parsed-row repair/reprocessing operation; the raw payload and current historical snapshots remain unchanged until that explicit action.
 - Commit per independent source: `fix: normalize <source> ingestion data`
 
 ### Step 6 - Crawl import, reprocessing, and approved repair tools
 
 - Implement the shared import service/thin `crawl:import` script, correction-overlay validation/application during reprocessing, and separate dry-run-first idempotent repairs only for approved audit findings. Do not import derived Products/Price Observations. **Implemented foundation (2026-07-13):** manifest/checksum-verified runs/snapshots import, stable identity/content conflict reporting, dry-run default, explicit target/apply guard, repeat no-op behavior, and reviewed overlay application to an in-memory snapshot copy before existing parser processing.
-- Acceptance: import dry run is default; explicit target/apply is required; repeated identical import is a no-op; conflicts do not overwrite; raw truth remains intact; corrected parser output becomes reviewable Product Candidates; post-run reconciliation is proven. **Remaining:** parser-specific regression evidence, approved repair tools, and configured clean-database restore evidence.
+- Acceptance: import dry run is default; explicit target/apply is required; repeated identical import is a no-op; conflicts do not overwrite; raw truth remains intact; corrected parser output becomes reviewable Product Candidates; post-run reconciliation is proven. **Remaining:** the explicit historical parsed-row repair boundary and configured clean-database restore evidence.
 - Commit per repair class: `chore: add <scope> data repair`
 
 ### Step 7 - Targeted backend vertical-slice cleanup
