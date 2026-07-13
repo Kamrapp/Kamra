@@ -53,6 +53,7 @@ This is the single source of truth for manual/browser verification carried forwa
 
 - [ ] On Home, start a concrete Shopping Trip from the compact Trip panel using an active Shop Market id; confirm the draft progresses through matching/ready/in-progress without losing the underlying Shopping Need list.
 - [ ] Mark Trip Items bought and not bought, finalize the Trip, refresh Home, and confirm bought lines create Product-owned Batches while not-bought lines do not create stock.
+- [ ] During an in-progress Trip, choose an existing Household Product as the actual purchased Product, finalize the Trip, and confirm the new Batch belongs to that Product rather than creating a duplicate. Also test the explicit “create a new Household Product” choice for a genuine alternative.
 - [ ] Resume a partially processed Trip and retry the same completion operation; confirm no duplicate Product, Batch, Movement, or Ingestion Submission is created.
 - [ ] As an admin, list pending Ingestion Submissions, accept/reject/correct one with a matching revision, and confirm stale review is rejected while household stock history remains unchanged.
 - [ ] Confirm Trip creation invokes the matcher: a priced candidate shows package count, expected total, selected Price Observation, and explanation; no-price/stale/conditional/incompatible candidates remain explicit rather than silently becoming priced.

@@ -85,6 +85,7 @@ export function updateShoppingTripItem(
     actualQuantity?: number | null;
     actualUnit?: ShoppingTripItem["actualUnit"];
     actualPaidPrice?: number | null;
+    purchaseHouseholdProductId?: string | null;
     createdBatchIds?: string[];
     ingestionSubmissionId?: string | null;
   }

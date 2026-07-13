@@ -1,6 +1,12 @@
 import { Component, Input, inject, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
-import { HouseholdV2Service, type HouseholdShoppingTrip } from "./household-v2.service";
+import {
+  HouseholdV2Service,
+  type HouseholdShoppingTrip,
+  type HouseholdShoppingTripItem,
+  type HouseholdV2Product,
+  type HouseholdV2ProductGroup
+} from "./household-v2.service";
 import { LocalizationService } from "../shared/localization.service";
 import { ToastService } from "../shared/toast.service";
 
@@ -72,6 +78,23 @@ import { ToastService } from "../shared/toast.service";
                   >
                     @for (option of item.matchOptions; track option.shopProductId) {
                       <option [value]="option.shopProductId">{{ option.displayName }}</option>
+                    }
+                  </select>
+                </label>
+              }
+              @if (
+                ["in_progress", "partially_processed"].includes(trip()!.status) &&
+                item.resultStatus !== "not_bought"
+              ) {
+                <label class="trip-match-picker">
+                  <span>{{ loc.t("household.shoppingTripPurchaseProduct") }}</span>
+                  <select
+                    [ngModel]="purchaseProductId(item)"
+                    (ngModelChange)="choosePurchaseProduct(item.id, $event)"
+                  >
+                    <option value="">{{ loc.t("household.shoppingTripCreateProduct") }}</option>
+                    @for (product of productOptions(); track product.id) {
+                      <option [value]="product.id">{{ product.displayName }}</option>
                     }
                   </select>
                 </label>
@@ -184,12 +207,14 @@ export class HouseholdShoppingTripPanelComponent {
   private readonly api = inject(HouseholdV2Service);
   private readonly toast = inject(ToastService);
   readonly trip = signal<HouseholdShoppingTrip | null>(null);
+  readonly productOptions = signal<HouseholdV2Product[]>([]);
   readonly message = signal("");
   marketId = "";
   plannedDate = new Date().toISOString().slice(0, 10);
 
   ngOnInit(): void {
     void this.load();
+    void this.loadProductOptions();
   }
   async load(): Promise<void> {
     const result = await this.api.listShoppingTrips(this.householdId);
@@ -199,6 +224,23 @@ export class HouseholdShoppingTripPanelComponent {
           null
       );
     else this.message.set(result.message ?? "");
+  }
+  async loadProductOptions(): Promise<void> {
+    const result = await this.api.loadWorkspace(this.householdId);
+    if (result.status !== "ok" || !result.workspace) return;
+    const products: HouseholdV2Product[] = [
+      ...result.workspace.unassignedProducts.map((row) => row.product)
+    ];
+    const collect = (group: HouseholdV2ProductGroup): void => {
+      products.push(...group.products.map((row) => row.product));
+      group.childGroups.forEach(collect);
+    };
+    result.workspace.productGroups.forEach(collect);
+    this.productOptions.set(
+      [...new Map(products.map((product) => [product.id, product])).values()].sort((left, right) =>
+        left.displayName.localeCompare(right.displayName)
+      )
+    );
   }
   async start(): Promise<void> {
     const result = await this.api.createShoppingTrip({
@@ -296,6 +338,30 @@ export class HouseholdShoppingTripPanelComponent {
     )
       await this.advance(result.trip);
   }
+  purchaseProductId(item: HouseholdShoppingTripItem): string {
+    if (item.purchaseHouseholdProductId !== undefined) return item.purchaseHouseholdProductId ?? "";
+    return (
+      this.productOptions().find((product) => product.catalogProductId === item.selectedProductId)
+        ?.id ?? ""
+    );
+  }
+  purchaseProductSelection(item: HouseholdShoppingTripItem): string | null | undefined {
+    if (item.purchaseHouseholdProductId !== undefined) return item.purchaseHouseholdProductId;
+    return this.purchaseProductId(item) || undefined;
+  }
+  async choosePurchaseProduct(itemId: string, householdProductId: string): Promise<void> {
+    const current = this.trip();
+    if (!current) return;
+    const result = await this.api.updateShoppingTrip({
+      householdId: this.householdId,
+      tripId: current.id,
+      expectedRevision: current.revision,
+      householdProductId: householdProductId || null,
+      itemId
+    });
+    if (result.status === "ok" && result.trip) this.trip.set(result.trip);
+    else this.message.set(result.message ?? "");
+  }
   priceStateLabel(state: string | null | undefined): string {
     const key =
       state === "applicable"
@@ -343,7 +409,8 @@ export class HouseholdShoppingTripPanelComponent {
         .map((item) => ({
           itemId: item.id,
           resultStatus: item.resultStatus as "bought" | "not_bought",
-          actualQuantity: item.actualQuantity ?? item.requiredQuantity
+          actualQuantity: item.actualQuantity ?? item.requiredQuantity,
+          householdProductId: this.purchaseProductSelection(item)
         }))
     });
     if (result.status === "ok" && result.trip) {

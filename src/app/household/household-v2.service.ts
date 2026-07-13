@@ -10,6 +10,7 @@ export interface HouseholdV2TargetPolicy {
   trackingUnit: string;
 }
 export interface HouseholdV2Product {
+  catalogProductId?: string | null;
   defaultTrackingUnit?: string | null;
   directConcepts?: Array<{ key: string; scope: "catalog" | "household" }>;
   displayName: string;
@@ -84,6 +85,8 @@ export interface HouseholdShoppingTripItem {
   requiredQuantity: number;
   requiredUnit: string;
   resultStatus: "pending" | "bought" | "not_bought";
+  purchaseHouseholdProductId?: string | null;
+  selectedProductId?: string | null;
   selectedShopProductId?: string | null;
 }
 export interface HouseholdShoppingTrip {
@@ -174,6 +177,7 @@ export class HouseholdV2Service {
     expectedRevision: number;
     itemId?: string;
     selectedShopProductId?: string;
+    householdProductId?: string | null;
     resultStatus?: "bought" | "not_bought";
     actualQuantity?: number;
     planStatus?: "selected" | "skipped";
@@ -188,6 +192,7 @@ export class HouseholdV2Service {
           expectedRevision: input.expectedRevision,
           itemId: input.itemId,
           selectedShopProductId: input.selectedShopProductId,
+          householdProductId: input.householdProductId,
           resultStatus: input.resultStatus,
           planStatus: input.planStatus,
           transition: input.transition
@@ -207,6 +212,7 @@ export class HouseholdV2Service {
     tripId: string;
     operationId: string;
     items: Array<{
+      householdProductId?: string | null;
       itemId: string;
       resultStatus: "bought" | "not_bought";
       actualQuantity?: number;

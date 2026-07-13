@@ -398,6 +398,13 @@ basic Home shopping experience.
 - The ordered Stage 10 slices and commit boundaries remain in `2026-07-11-stage-10-alpha-hardening-plan.md`; the new workflow explicitly prohibits amend, push, reset, checkout, force operations, and history rewriting.
 - The central manual acceptance checklist remains the source of truth for Stage 8–10 human verification. Add only concrete newly testable actions there; do not create competing checklists in this session file.
 
+## Stage 9 user-based purchase alternative checkpoint (2026-07-13)
+
+- The current uncommitted slice adds a persisted `purchaseHouseholdProductId` choice to Trip Items. Home loads the household’s existing Products, lets the shopper choose one for the actual purchase, or explicitly choose creation of a new Household Product.
+- Trip completion validates and reuses the chosen Product, records the resulting Product id on the Trip Item, and otherwise reuses a Household Product linked to the matched catalog Product before creating a new identity.
+- Validation passed: 55 test files / 211 tests, `npm run format:check`, `npm run typecheck`, `npm run lint`, `npm run build:web`, and `npm run build:api`.
+- Commit is pending because the managed elevated Git reviewer was unavailable due capacity. Do not use amend, push, reset, checkout, or any workaround; stage these files and create one new commit when the approved additional-commit path is available.
+
 Historical open-issue entries above describe intermediate checkpoints and are superseded by
 this closeout section where they say the Home bridge is still pending or Stage 8 cannot close.
 

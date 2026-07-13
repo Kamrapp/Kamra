@@ -549,6 +549,8 @@
     "shoppingTripChooseMatch": "Choose match",
     "shoppingTripSkip": "Skip line",
     "shoppingTripContinue": "Continue to shopping",
+    "shoppingTripPurchaseProduct": "Stock as Product",
+    "shoppingTripCreateProduct": "Create a new Household Product",
     "stage9Admin": {
       "kicker": "Stage 9 administration",
       "title": "Markets and purchase review",

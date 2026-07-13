@@ -307,6 +307,7 @@ Implementation ownership map:
 - Admin Market and Ingestion Submission review routes are implemented with role/revision checks.
 - Rich admin Market/Shop Product/Price management UI is implemented.
 - Matcher/applicable-price selection is wired into Trip creation and the Home Trip panel. Trip Items now expose selected package/price/stale/no-price explanations, compatible match choices, and an explicit skip path for unresolved lines. Server-side re-selection recalculates the trusted package/price fields under optimistic concurrency.
+- User-based purchase alternatives are wired into Trip completion: the shopper can select an existing Household Product or explicitly create a new one, while the planned Shop Product remains the historical plan snapshot.
 - Remaining Stage 9 work is acceptance evidence: realistic market/Shop Product/Price Observation seed coverage, compatibility retirement checks, and browser/API verification against a configured database. These are closeout and bug-fix activities, not a missing domain slice.
 
 ## Testing Strategy

@@ -1300,7 +1300,12 @@ export const householdV2ShoppingTripRoute: AppRoute = {
               actualQuantity:
                 typeof body["actualQuantity"] === "number" ? body["actualQuantity"] : undefined,
               actualPaidPrice:
-                typeof body["actualPaidPrice"] === "number" ? body["actualPaidPrice"] : undefined
+                typeof body["actualPaidPrice"] === "number" ? body["actualPaidPrice"] : undefined,
+              purchaseHouseholdProductId:
+                body["householdProductId"] === null ||
+                typeof body["householdProductId"] === "string"
+                  ? (body["householdProductId"] as string | null)
+                  : undefined
             });
           }
         }
@@ -1376,8 +1381,24 @@ export const householdV2ShoppingTripCompleteRoute: AppRoute = {
             }
           }
           const operationId = `${body["operationId"]}:${itemId}`;
-          const productId =
-            typeof value["householdProductId"] === "string" ? value["householdProductId"] : null;
+          const hasExplicitPurchaseProduct =
+            typeof value["householdProductId"] === "string" || value["householdProductId"] === null;
+          let productId = hasExplicitPurchaseProduct
+            ? (value["householdProductId"] as string | null)
+            : (item.purchaseHouseholdProductId ?? null);
+          if (!productId && item.purchaseHouseholdProductId)
+            productId = item.purchaseHouseholdProductId;
+          if (
+            !productId &&
+            !hasExplicitPurchaseProduct &&
+            item.purchaseHouseholdProductId === undefined &&
+            item.selectedProductId
+          ) {
+            const matchingProduct = (
+              await new MongoHouseholdProductRepository(database).list(householdId)
+            ).find((candidate) => candidate.catalogProductId === item.selectedProductId);
+            productId = matchingProduct?.id ?? null;
+          }
           let batchId: string;
           if (productId) {
             const product = await new MongoHouseholdProductRepository(database).get(
@@ -1415,7 +1436,9 @@ export const householdV2ShoppingTripCompleteRoute: AppRoute = {
                 remainingQuantity: quantity,
                 revision: 0,
                 shopProductId:
-                  typeof value["shopProductId"] === "string" ? value["shopProductId"] : null,
+                  typeof value["shopProductId"] === "string"
+                    ? value["shopProductId"]
+                    : (item.selectedShopProductId ?? null),
                 shoppingNeedId: item.needId,
                 shoppingNeedListId: updated.sourceShoppingNeedListId,
                 status: "available",
@@ -1445,6 +1468,7 @@ export const householdV2ShoppingTripCompleteRoute: AppRoute = {
               requestFingerprint: JSON.stringify(value)
             });
             batchId = result.batchId;
+            productId = result.productId;
           }
           updated = updateShoppingTripItem(updated, itemId, {
             resultStatus: "bought",
@@ -1452,7 +1476,8 @@ export const householdV2ShoppingTripCompleteRoute: AppRoute = {
             actualUnit: unit,
             actualPaidPrice:
               typeof value["actualPaidPrice"] === "number" ? value["actualPaidPrice"] : null,
-            createdBatchIds: [batchId]
+            createdBatchIds: [batchId],
+            purchaseHouseholdProductId: productId
           });
           await new MongoIngestionSubmissionRepository(database).create({
             id: `ingestion-submission:${updated.id}:${itemId}`,

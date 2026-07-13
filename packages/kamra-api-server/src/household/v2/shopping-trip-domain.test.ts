@@ -67,4 +67,11 @@ describe("Stage 9 Shopping Trip state", () => {
     const trip = transitionShoppingTrip(draft(), "cancelled");
     expect(() => setShoppingTripMarket(trip, "market:hu")).toThrow("locked");
   });
+
+  it("keeps a user-selected purchase Product on the Trip Item", () => {
+    const trip = updateShoppingTripItem(draft(), "one", {
+      purchaseHouseholdProductId: "household-product:household:rye-bread"
+    });
+    expect(trip.items[0]?.purchaseHouseholdProductId).toBe("household-product:household:rye-bread");
+  });
 });

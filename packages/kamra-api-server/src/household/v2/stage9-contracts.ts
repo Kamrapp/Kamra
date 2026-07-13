@@ -68,6 +68,7 @@ export interface ShoppingTripItem {
   actualQuantity?: number | null;
   actualUnit?: TrackingUnit | null;
   actualPaidPrice?: number | null;
+  purchaseHouseholdProductId?: string | null;
   createdBatchIds?: string[];
   ingestionSubmissionId?: string | null;
 }
