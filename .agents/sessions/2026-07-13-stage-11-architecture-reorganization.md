@@ -122,6 +122,10 @@
 - Committed the final shopping quick-add bridge in `a78d96c`: quick-add names now match known
   household Products after a short debounce, align and lock the Product unit, and persist the line
   against that Product so completion updates the existing stock anchor.
+- Fixed the remaining target-comparison mismatch in `68e244e`: the shopping generator and derived
+  target state already treated Current at or above Target as satisfied, but the table still colored
+  above-target symbols yellow. The shared comparison rule now keeps target comparisons good while
+  preserving the below-minimum error state, with focused regression coverage.
 - Rewrote `scripts/stage11-mvp-manual-test.md` as the single manual-only Stage 8–11 runbook. Active
   sections contain executable checks and evidence collection only; accepted prior work is tracked in
   its bottom table, while operator notes and discoveries remain editable.
@@ -313,6 +317,8 @@
   `aeb2078`.
 - The production-template follow-up for ingestion decline actions is `257f07e`; the web build now
   compiles the FormsModule-bound selector successfully.
+- After `68e244e`, the focused comparison test passed with 3 cases, plus typecheck, lint, diff
+  checks, and the production web build.
 
 Run the focused demo seed against the approved disposable database, then rerun
 `npm run smoke:demo-household` before browser verification. Do not use the full seed unless
