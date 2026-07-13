@@ -1,7 +1,7 @@
 # Kamra Alpha release checklist
 
 This checklist is the compact release gate. The detailed human flow remains in
-[`.agents/plans/stage8-10-manual-acceptance-checklist.md](../.agents/plans/stage8-10-manual-acceptance-checklist.md).
+[`scripts/stage11-mvp-manual-test.md`](../scripts/stage11-mvp-manual-test.md).
 
 ## Automated checks
 

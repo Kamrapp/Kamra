@@ -21,7 +21,7 @@
 - Defined the registry-driven feature-flag decision: code owns definitions/defaults/metadata; MongoDB stores overrides and audit history.
 - Defined deterministic local integration tests plus narrowly triggered configured MongoDB integration smoke; neither replaces browser/manual evidence.
 - Folded remaining Stage 8–10 manual evidence and likely UI/data-integrity probes into Stage 11 ownership.
-- Added the live replacement runbook `scripts/stage11-mvp-manual-test.md`; the older Stage 8 script and Stage 8–10 checklist now point to it as historical input.
+- Added the live runbook `scripts/stage11-mvp-manual-test.md`; the former Stage 8 script and Stage 8–10 checklist were reviewed, consolidated, and removed as duplicate acceptance sources.
 - Completed Step 11.8 documentation and CI closeout: normal app checks identify the combined unit/deterministic-integration run, focused integration reruns are documented, and the existing catalog/transaction Smoke workflows now cover the relevant catalog/schema and household transaction/persistence/maintenance paths without adding a duplicate configured workflow.
 - Added a read-only `smoke:demo-household` validator for the seeded V2 fixture. It checks household defaults, required groups/products, target/no-target coverage, expiry permutations, multiple batches, unassigned products, and the no-productless-Batch invariant.
 - Added `mvp:preflight`, a Windows-safe local command that runs deterministic integration tests, the full suite, formatting, lint, typecheck, web build, and API build in one pass. The live runbook now treats those as one automated item and leaves only browser/configured evidence manual.

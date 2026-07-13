@@ -138,14 +138,7 @@ trip completion, admin ingestion/pricing review, maintenance/archive operations,
 and the final evidence/waiver review.
 
 Use it after the implementation slices are complete and update its operator notes in place while
-testing. Do not run the older Stage 8 and Stage 8–10 documents as separate acceptance sessions.
-
-### `stage8-demo-manual-test.md`
-
-Historical Stage 8 source material. Its remaining checks have been consolidated into
-`stage11-mvp-manual-test.md`; keep it for context, not as a second acceptance source.
-
-Use it after `npm run seed` and only against a disposable local/demo database. Reseeding resets the demo household data.
+testing. This is the repository's only manual acceptance document.
 
 ### `generate-catalog-schemas.ts`
 

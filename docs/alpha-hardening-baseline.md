@@ -16,7 +16,7 @@ The current branch passes:
 - `npm run build:web`
 - `npm run build:api`
 
-Configured Mongo smoke, migration/reconciliation, archive/restore, and browser acceptance were not run in this baseline because they require the approved environment and human/browser evidence. Their absence is tracked in `.agents/plans/stage8-10-manual-acceptance-checklist.md`.
+Configured Mongo smoke, migration/reconciliation, archive/restore, and browser acceptance were not run in this baseline because they require the approved environment and human/browser evidence. Their absence is tracked in `scripts/stage11-mvp-manual-test.md`.
 
 ## Runtime and data boundary findings
 

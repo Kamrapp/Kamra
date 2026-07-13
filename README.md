@@ -56,7 +56,7 @@ npm run seed
 ```
 
 The smoke commands require a configured disposable MongoDB environment. They do not replace the
-manual browser acceptance flow in [the Stage 8–10 checklist](./.agents/plans/stage8-10-manual-acceptance-checklist.md).
+manual browser acceptance flow in [the Stage 8–11 MVP runbook](./scripts/stage11-mvp-manual-test.md).
 
 ## Alpha demo journey
 
@@ -69,8 +69,8 @@ manual browser acceptance flow in [the Stage 8–10 checklist](./.agents/plans/s
 5. As an admin, review the resulting Ingestion Submission without rewriting the household's Product
    or Batch history.
 
-Use [scripts/stage8-demo-manual-test.md](./scripts/stage8-demo-manual-test.md) for the current
-household verification script and [docs/alpha-release-checklist.md](./docs/alpha-release-checklist.md)
+Use [scripts/stage11-mvp-manual-test.md](./scripts/stage11-mvp-manual-test.md) for the single
+cross-stage household/admin verification runbook and [docs/alpha-release-checklist.md](./docs/alpha-release-checklist.md)
 for the release gate.
 
 ## Data and operational safety

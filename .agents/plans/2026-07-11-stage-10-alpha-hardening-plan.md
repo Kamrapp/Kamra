@@ -400,7 +400,7 @@ Implementation ownership map:
 
 ## Explicit Deferrals
 
-The cross-stage human verification source of truth is `.agents/plans/stage8-10-manual-acceptance-checklist.md`. Stage 10 closeout must update its evidence log and must not duplicate the checklist elsewhere.
+The cross-stage human verification source of truth is `scripts/stage11-mvp-manual-test.md`. Stage 10 closeout must update its evidence log there and must not duplicate the checklist elsewhere.
 
 - Broad rewrite to a new architecture/framework.
 - Arbitrary file-size limits or repository-wide style churn.

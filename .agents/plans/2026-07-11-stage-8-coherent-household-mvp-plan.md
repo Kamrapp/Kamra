@@ -848,7 +848,7 @@ Execution rule for budget-focused implementation models: implement only the name
 
 ### End-to-end/manual
 
-The human verification list is maintained centrally in `.agents/plans/stage8-10-manual-acceptance-checklist.md`; keep this section aligned with that file rather than creating a second checklist.
+The human verification list is maintained centrally in `scripts/stage11-mvp-manual-test.md`; keep this section aligned with that file rather than creating a second checklist.
 
 - Run a two-user create/invite/join flow.
 - Create `concept.pasta.spaghetti is_a concept.pasta`, then configure “10,000 g pasta; gluten-free; penne/spaghetti/tagliatelle” and verify matching/non-matching product explanations.
@@ -962,7 +962,7 @@ Keep the right column, but make it a secondary, fully functional composer rather
 3. Replace the left table with the three-layer editor and shared accessible icon actions; add focused component tests for draft/reset/selection transitions.
 4. Replace the one-block Product editor with the three-block composer using the same command service; remove the obsolete batch-only and inferred-target paths.
 5. Reseed the demo household with nested Groups, multiple Products and Batches, an Unassigned Product, an expired-but-allowed Batch, and a legacy-allocation migration conflict fixture for automated reconciliation only.
-6. Update the Manual, domain-language documentation, Stage 8 manual checklist, and session evidence. Do not mark Stage 8 complete until the manual flows below pass or are explicitly waived.
+6. Update the Manual, domain-language documentation, Stage 11 runbook, and session evidence. Do not mark Stage 8 complete until the manual flows below pass or are explicitly waived in that runbook.
 
 Manual acceptance for this slice: create a Group, child Group, unassigned Product, Product with a Group, and multiple Batches; move a Product between Groups and to Unassigned; confirm ancestor rollups and Product/Group limits; rename/edit/save/discard at each layer; verify icon expand/collapse states; create each level from both table and composer; verify compound Batch creation is atomic/idempotent; correct/discard a Batch; confirm no Product Concept controls appear; test light/dark, keyboard, mobile, stale revisions, and activity-log messages.
 

@@ -24,8 +24,8 @@ but fail globally, such as:
 
 Stage 11 also replaces fragmented manual verification. Operators should not run separate Stage 8,
 Stage 9, and Stage 10 acceptance sessions after this plan is approved. The final live runbook is
-`scripts/stage11-mvp-manual-test.md`; it combines the existing Stage 8 demo script, the Stage 8–10
-acceptance checklist, and the cross-layer checks introduced here. The operator may add notes and
+`scripts/stage11-mvp-manual-test.md`; it combines the existing Stage 8 demo coverage, the Stage 8–10
+acceptance coverage, and the cross-layer checks introduced here. The operator may add notes and
 discoveries directly to that file. A later fixer session diffs those notes, implements the owned
 changes, updates the runbook, and reruns only the affected sections before the final full pass.
 
@@ -51,10 +51,8 @@ open by Stage 8–10:
   database diagnostics, archive checksum/export/import/repair/reprocessing, and realistic-volume
   behavior.
 
-The old `scripts/stage8-demo-manual-test.md` and `.agents/plans/stage8-10-manual-acceptance-checklist.md`
-remain useful historical inventories while Stage 11 is being implemented. At wrap-up, the new
-Stage 11 runbook supersedes them as the only operator checklist; the older files should link to it
-rather than invite a second independent test session.
+The former Stage 8 demo script and Stage 8–10 checklist were consolidated into the Stage 11 runbook
+and removed. No second manual acceptance source should be recreated.
 
 ## Why this stage is needed now
 

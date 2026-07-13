@@ -1,12 +1,16 @@
 # Kamra Stage 8–11 MVP manual verification
 
-Status: Live integrated runbook, ready for the Stage 11 operator pass. This document is the single
-replacement for `scripts/stage8-demo-manual-test.md` and the Stage 8–10 manual checklist. Do not
-run the older documents as a separate acceptance session.
+Status: Live integrated runbook, ready for the Stage 11 operator pass. This is the repository's
+only manual acceptance document for the complete Stage 8–11 MVP journey.
 
 This file is intentionally operator-editable. Add notes, screenshots, reproduction details, and
 discoveries under the relevant section. Never add credentials, tokens, private household data, or
 raw production exports. A later fixer session must diff operator edits before changing behavior.
+
+The former Stage 8 demo script and Stage 8–10 checklist were reviewed during this consolidation.
+Their still-relevant Product Group, Product, Batch, shopping, admin, maintenance, visual, and
+failure checks are represented below. Obsolete Product Concept/classification workspace checks were
+not carried forward because classification is intentionally outside the current stock-workspace MVP.
 
 ## Run metadata
 
