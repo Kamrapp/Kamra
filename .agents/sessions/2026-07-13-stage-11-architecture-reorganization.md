@@ -351,6 +351,13 @@
   and duplicate-impulse key coverage. It explicitly avoids schema changes, catalogue side effects,
   browser-test infrastructure, and reopening accepted checks. Implementation is approved by the
   current user request and will proceed in the plan's separate commits.
+- Implemented and validated the first two units as `201f567` and `b345e3f`. The configured smoke
+  then exposed a real blocker before the Trip path: Stage 9 `MongoPriceObservationRepository`
+  writes the V2 `PriceObservationCandidate` shape into the catalogue-owned `price_observations`
+  collection, whose live validator requires the catalogue `PriceObservationRecord` shape. The
+  revised plan now has a decision gate; recommended fix is a separate `shop_price_observations`
+  collection with an explicit validator/index maintenance entry. Do not weaken the catalogue
+  validator or commit the currently failing smoke until that ownership decision is approved.
 
 Run the focused demo seed against the approved disposable database, then rerun
 `npm run smoke:demo-household` before browser verification. Do not use the full seed unless

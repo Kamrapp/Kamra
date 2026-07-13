@@ -23,9 +23,9 @@ accepted there unless a later implementation commit touched that behavior.
 ## Research Gate
 
 Not needed. This is a local test-boundary audit against already approved Kamra behavior. No
-external research, new test framework, dependency, or schema change is required by this plan. If
-implementation discovers that a persisted field or validator must change, stop that step and
-create a separate database-maintenance-backed plan.
+external research, new test framework, or dependency is required. Steps 1, 2, 4, and 5 do not
+require a schema change. Step 3 has a database ownership decision gate described below; do not
+weaken a live validator or silently write a second document shape into an existing collection.
 
 ## User Requests
 
@@ -48,6 +48,10 @@ create a separate database-maintenance-backed plan.
   no-price/future/expired/conditional/superseded/incompatible matrix.
 - Stage 9 admin route tests cover active-market listing and ingestion listing only. Repository tests
   do not replace HTTP-boundary validation for admin create/review routes.
+- The first configured smoke attempt exposed a real collection collision: the Stage 9 price
+  repository writes its `PriceObservationCandidate` shape to `price_observations`, while the live
+  catalogue validator requires the catalogue `PriceObservationRecord` shape. The route therefore
+  fails with Mongo validation error 121 before a Trip can be created.
 - Browser feedback, control reset/disable behavior, localized rendering, responsive layout, theme
   treatment, Activity presentation, and configured MongoDB evidence cannot be replaced safely by
   the current unit/integration harness.
@@ -83,6 +87,20 @@ create a separate database-maintenance-backed plan.
   component without changing behavior.
 - Rewrite or remove only deterministic clauses directly covered by new tests, then record the exact
   automated/manual boundary in the Stage 11 session handoff.
+
+### Step 3 decision gate
+
+The configured Shopping Trip smoke cannot be completed safely until Stage 9 price-observation
+collection ownership is decided. The recommended implementation is a new
+`shop_price_observations` collection with its own validator/index maintenance entry, keeping
+catalogue `price_observations` owned by the catalogue schema. Then update the Stage 9 repository,
+route consumers, smoke fixture, and documentation to use the new collection. This is a small,
+clean database-boundary change but requires an explicit maintenance-registry entry and operator
+execution before the configured smoke can pass.
+
+The alternative is to remodel Stage 9 around the existing catalogue observation schema and source
+records. That couples Shop Products to catalogue Product Sources and is outside this test-only
+plan. Stop at this gate rather than choosing it silently.
 
 ### Deferred or manual-only
 
@@ -128,9 +146,10 @@ create a separate database-maintenance-backed plan.
 - Validation: focused integration suite, typecheck, lint, formatting check.
 - Commit: `test: cover Shopping Trip persistence and retries`
 
-### Step 3 — Configured Shopping Trip MongoDB smoke
+### Step 3 — Configured Shopping Trip MongoDB smoke (blocked by the decision gate)
 
-- Add `npm run smoke:shopping-trip` as a locally runnable configured smoke. It must refuse databases
+- After the collection decision and maintenance entry are approved, add `npm run smoke:shopping-trip`
+  as a locally runnable configured smoke. It must refuse databases
   outside `kamra_dev`, `kamra_test`, and `kamra_smoke`; use one unique run prefix for every temporary
   document; and delete only that prefix in `finally`, failing if cleanup cannot complete.
 - Exercise the real app handler and MongoDB collections for one active-market Trip, one bought and
