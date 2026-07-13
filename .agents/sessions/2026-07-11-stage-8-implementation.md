@@ -644,3 +644,9 @@ Stage 9 remains in implementation. At this checkpoint, the next required slice i
 - No further safe implementation unit is implied by the remaining plan text. Catalogue/price-history pagination is intentionally conditional on a concrete UI/query need; broad CSS/layout redesign and compatibility deletion remain post-MVP/configured-evidence decisions.
 - Stage 10 is implementation-complete but not release-complete. Remaining work is operator-controlled or browser-only: export/check an archive, review/apply the bounded Lidl repair, process the four pending snapshots and reprocess Lidl, rerun audit/processed-ingestion/smoke checks, perform clean-target restore/reconciliation, and complete the Stage 8–10 two-user/manual matrix.
 - Do not mark Stage 10 or MVP closure complete from this commit. If a configured operation reports a conflict or a browser walk reveals a defect, create a narrow follow-up commit owned by the relevant stage.
+
+## Stage 10 admin failure-state hardening (2026-07-13)
+
+- Added localized operator feedback to the Stage 9 admin market, Shop Product, Price Observation, and Ingestion Submission review surface. Failed HTTP/network requests now remain visible as errors and are sent to the Activity console; successful writes show a status message after the refreshed data is loaded.
+- Added lightweight client validation for required market/product fields, positive package quantity, non-negative price, and ordered price validity dates. While a request is active, overlapping admin actions are disabled.
+- Validation passed: `npm test` (64 files/231 tests), format check, zero-warning lint, typecheck, and `npm run build:web`. Manual confirmation of the admin failure/success states remains in the central checklist.
