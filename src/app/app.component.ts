@@ -57,6 +57,7 @@ interface ShellMenuItem extends RadialNavigationItem {
         <div class="rail-bottom-tools">
           <section class="rail-navigation" [attr.aria-label]="loc.t('app.navigation')">
             <button
+              class="rail-navigation-button"
               type="button"
               [disabled]="!navigationHistory.canGoBack()"
               [attr.aria-label]="loc.t('app.navigateBack')"
@@ -66,6 +67,7 @@ interface ShellMenuItem extends RadialNavigationItem {
             </button>
             <span>{{ loc.t("app.navigation") }}</span>
             <button
+              class="rail-navigation-button"
               type="button"
               [disabled]="!navigationHistory.canGoForward()"
               [attr.aria-label]="loc.t('app.navigateForward')"
@@ -186,7 +188,7 @@ interface ShellMenuItem extends RadialNavigationItem {
         margin-top: auto;
       }
 
-      .rail-navigation button {
+      .rail-navigation-button {
         background: var(--surface-soft-background);
         border: 1px solid var(--line-subtle);
         border-radius: var(--radius-ui);

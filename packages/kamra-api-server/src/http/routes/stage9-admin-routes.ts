@@ -46,7 +46,8 @@ export const adminShopMarketsRoute: AppRoute = {
     };
     try {
       return json(201, { market: await repository.create(market) });
-    } catch {
+    } catch (error) {
+      if (!isDuplicateKeyError(error)) throw error;
       return json(409, { error: "shop_market_already_exists" });
     }
   }
@@ -92,9 +93,11 @@ export const adminIngestionSubmissionsRoute: AppRoute = {
         })
       });
     } catch (error) {
-      return json(409, {
-        error: error instanceof Error ? error.message : "ingestion_review_failed"
-      });
+      if (isIngestionReviewConflict(error))
+        return json(409, {
+          error: error.message
+        });
+      throw error;
     }
   }
 };
@@ -140,7 +143,8 @@ export const adminShopProductsRoute: AppRoute = {
     };
     try {
       return json(201, { product: await repository.create(product) });
-    } catch {
+    } catch (error) {
+      if (!isDuplicateKeyError(error)) throw error;
       return json(409, { error: "shop_product_already_exists" });
     }
   }
@@ -177,8 +181,12 @@ export const adminPriceObservationsRoute: AppRoute = {
       return json(201, {
         observation: await repository.append(body as unknown as PriceObservationCandidate)
       });
-    } catch {
-      return json(400, { error: "invalid_price_observation" });
+    } catch (error) {
+      if (error instanceof Error && error.message === "invalid_price_observation")
+        return json(400, { error: "invalid_price_observation" });
+      if (isDuplicateKeyError(error))
+        return json(409, { error: "price_observation_already_exists" });
+      throw error;
     }
   }
 };
@@ -205,6 +213,24 @@ function isString(value: unknown): value is string {
 }
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
+}
+function isDuplicateKeyError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: unknown }).code === 11000
+  );
+}
+function isIngestionReviewConflict(error: unknown): error is Error {
+  return (
+    error instanceof Error &&
+    [
+      "ingestion_submission_already_reviewed",
+      "ingestion_submission_not_found",
+      "ingestion_submission_revision_conflict"
+    ].includes(error.message)
+  );
 }
 function queryValue(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;

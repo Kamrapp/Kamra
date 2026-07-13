@@ -20,7 +20,9 @@ export interface ShellLoginCredentials {
       @if (user(); as signedInUser) {
         <div class="user-chip">
           <span>{{ signedInUser.email }}</span>
-          <button type="button" (click)="logoutRequested.emit()">{{ loc.t("app.logout") }}</button>
+          <button class="ui-button ui-button-sm" type="button" (click)="logoutRequested.emit()">
+            {{ loc.t("app.logout") }}
+          </button>
         </div>
         @if (invitationService.pendingInvitations().length > 0) {
           <div class="pending-invitations">
@@ -35,6 +37,7 @@ export interface ShellLoginCredentials {
                   }}
                 </span>
                 <button
+                  class="ui-button ui-button-sm"
                   type="button"
                   [disabled]="acceptingInvitationId === invitation.id"
                   (click)="acceptInvitation(invitation.id)"
@@ -55,6 +58,7 @@ export interface ShellLoginCredentials {
         }
         <form class="login-form" (ngSubmit)="submitAuth()">
           <input
+            class="ui-form-control"
             autocomplete="username"
             name="email"
             [placeholder]="loc.t('app.email')"
@@ -63,6 +67,7 @@ export interface ShellLoginCredentials {
             [disabled]="loginLoading()"
           />
           <input
+            class="ui-form-control"
             [autocomplete]="registerMode ? 'new-password' : 'current-password'"
             name="password"
             [placeholder]="loc.t('app.password')"
@@ -70,7 +75,7 @@ export interface ShellLoginCredentials {
             [(ngModel)]="loginPassword"
             [disabled]="loginLoading()"
           />
-          <button type="submit" [disabled]="loginLoading()">
+          <button class="ui-button ui-button-sm" type="submit" [disabled]="loginLoading()">
             {{
               loginLoading()
                 ? registerMode
@@ -89,7 +94,12 @@ export interface ShellLoginCredentials {
 
       <label class="preference-field">
         <span>{{ loc.t("app.theme") }}</span>
-        <select name="theme" [ngModel]="theme()" (ngModelChange)="setTheme($event)">
+        <select
+          class="ui-form-control"
+          name="theme"
+          [ngModel]="theme()"
+          (ngModelChange)="setTheme($event)"
+        >
           <option value="light">{{ loc.t("app.light") }}</option>
           <option value="dark">{{ loc.t("app.dark") }}</option>
         </select>
@@ -97,7 +107,12 @@ export interface ShellLoginCredentials {
 
       <label class="preference-field">
         <span>{{ loc.t("app.language.label") }}</span>
-        <select name="language" [ngModel]="language()" (ngModelChange)="setLanguage($event)">
+        <select
+          class="ui-form-control"
+          name="language"
+          [ngModel]="language()"
+          (ngModelChange)="setLanguage($event)"
+        >
           <option value="en">{{ loc.t("app.language.english") }}</option>
           <option value="hu">{{ loc.t("app.language.hungarian") }}</option>
         </select>
@@ -129,15 +144,8 @@ export interface ShellLoginCredentials {
         margin: 0 0 var(--space-2);
       }
 
-      .login-form input,
-      .preference-field select {
-        background: var(--form-field-background);
-        border: 1px solid var(--line-panel);
-        border-radius: var(--radius-ui);
-        color: var(--color-text);
-        font: inherit;
-        min-height: 2.15rem;
-        padding: 0.45rem 0.62rem;
+      .login-form .ui-form-control,
+      .preference-field .ui-form-control {
         width: 100%;
       }
 
@@ -152,20 +160,7 @@ export interface ShellLoginCredentials {
         text-transform: uppercase;
       }
 
-      .login-form button,
-      .user-chip button {
-        background: var(--control-primary-background);
-        border: 1px solid var(--control-primary-border);
-        border-radius: var(--radius-ui);
-        color: white;
-        cursor: pointer;
-        font: inherit;
-        font-weight: 700;
-        min-height: 2.15rem;
-        padding: 0.45rem 0.7rem;
-      }
-
-      .login-form button:disabled {
+      .login-form .ui-button:disabled {
         cursor: progress;
         opacity: 0.72;
       }
@@ -208,18 +203,6 @@ export interface ShellLoginCredentials {
         font-size: 0.78rem;
       }
 
-      .pending-invitation button {
-        background: var(--control-primary-background);
-        border: 1px solid var(--control-primary-border);
-        border-radius: var(--radius-ui);
-        color: white;
-        cursor: pointer;
-        font: inherit;
-        font-size: 0.72rem;
-        font-weight: 700;
-        padding: 0.3rem 0.45rem;
-      }
-
       .user-chip {
         background: color-mix(in srgb, var(--color-surface) 82%, white 18%);
         border: 1px solid var(--line-panel);
@@ -246,15 +229,15 @@ export interface ShellLoginCredentials {
           justify-content: flex-end;
         }
 
-        .login-form input,
-        .preference-field select {
+        .login-form .ui-form-control,
+        .preference-field .ui-form-control {
           width: min(11rem, 28vw);
         }
       }
 
       @media (max-width: 520px) {
-        .login-form input,
-        .preference-field select {
+        .login-form .ui-form-control,
+        .preference-field .ui-form-control {
           width: min(100%, 11rem);
         }
 

@@ -130,23 +130,30 @@ export class HouseholdV2Service {
   ): Promise<{ message?: string; status: "error" | "ok"; workspace?: HouseholdV2Workspace }> {
     if (!this.auth.token())
       return { message: "Sign in before loading household stock.", status: "error" };
-    const response = await fetch(
-      buildApiUrl(`/api/households/${encodeURIComponent(householdId)}/stock-workspace`),
-      {
-        headers: { accept: "application/json", ...this.auth.getAuthorizationHeaders() },
-        method: "GET"
-      }
-    );
-    if (!response.ok)
-      return {
-        message: `Household workspace could not be loaded (${response.status}).`,
-        status: "error"
+    try {
+      const response = await fetch(
+        buildApiUrl(`/api/households/${encodeURIComponent(householdId)}/stock-workspace`),
+        {
+          headers: { accept: "application/json", ...this.auth.getAuthorizationHeaders() },
+          method: "GET"
+        }
+      );
+      if (!response.ok)
+        return {
+          message: `Household workspace could not be loaded (${response.status}).`,
+          status: "error"
+        };
+      const payload = (await response.json()) as {
+        productGroupWorkspace?: HouseholdV2Workspace;
+        workspace?: HouseholdV2Workspace;
       };
-    const payload = (await response.json()) as {
-      productGroupWorkspace?: HouseholdV2Workspace;
-      workspace?: HouseholdV2Workspace;
-    };
-    return { status: "ok", workspace: payload.productGroupWorkspace ?? payload.workspace };
+      const workspace = payload.productGroupWorkspace ?? payload.workspace;
+      return workspace
+        ? { status: "ok", workspace }
+        : { message: this.loc.t("household.workspaceLoadFailure"), status: "error" };
+    } catch {
+      return { message: this.loc.t("household.workspaceLoadFailure"), status: "error" };
+    }
   }
 
   async listShoppingTrips(
@@ -619,31 +626,35 @@ export class HouseholdV2Service {
     path: string,
     body: Record<string, unknown>
   ): Promise<{ status: "error" | "ok"; message?: string }> {
-    const response = await fetch(buildApiUrl(path), {
-      body: JSON.stringify(body),
-      headers: this.headers(),
-      method
-    });
-    if (!response.ok) {
-      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-      const message =
-        payload?.error === "stale_revision"
-          ? this.loc.t("household.staleWriteFailure")
-          : payload?.error === "household_membership_required"
-            ? "Only an active household member can update this household."
-            : payload?.error === "household_owner_required"
-              ? "Only the household owner can update household settings."
-              : payload?.error === "household_product_not_found"
-                ? "The Household Product was not found for this operation. Refresh and try again."
-                : payload?.error === "product_group_not_found"
-                  ? "The Product Group was not found for this operation. Refresh and try again."
-                  : payload?.error === "stock_target_not_found"
-                    ? "The legacy Stock Target was not found for this operation. Refresh and try again."
-                    : payload?.error === "household_concept_already_exists"
-                      ? "A household concept with this name already exists."
-                      : `Household update failed (${response.status}).`;
-      return { message, status: "error" };
+    try {
+      const response = await fetch(buildApiUrl(path), {
+        body: JSON.stringify(body),
+        headers: this.headers(),
+        method
+      });
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+        const message =
+          payload?.error === "stale_revision"
+            ? this.loc.t("household.staleWriteFailure")
+            : payload?.error === "household_membership_required"
+              ? "Only an active household member can update this household."
+              : payload?.error === "household_owner_required"
+                ? "Only the household owner can update household settings."
+                : payload?.error === "household_product_not_found"
+                  ? "The Household Product was not found for this operation. Refresh and try again."
+                  : payload?.error === "product_group_not_found"
+                    ? "The Product Group was not found for this operation. Refresh and try again."
+                    : payload?.error === "stock_target_not_found"
+                      ? "The legacy Stock Target was not found for this operation. Refresh and try again."
+                      : payload?.error === "household_concept_already_exists"
+                        ? "A household concept with this name already exists."
+                        : `Household update failed (${response.status}).`;
+        return { message, status: "error" };
+      }
+      return { status: "ok" };
+    } catch {
+      return { message: this.loc.t("household.saveFailure"), status: "error" };
     }
-    return { status: "ok" };
   }
 }

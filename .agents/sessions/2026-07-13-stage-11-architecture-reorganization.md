@@ -256,6 +256,46 @@
   become input to the final fixer session. The shortened manual pass should start with
   `npm run mvp:preflight`, then the fixture/configured smokes, then browser-only checks.
 
+## Review closeout (2026-07-13)
+
+- Re-reviewed the committed application without changing CSS or normal UI behavior.
+- Hardened the Household V2 client so a network failure or malformed successful workspace response
+  returns the existing localized error state instead of leaving a blank ready workspace. Shared
+  write calls now also turn network failures into the existing localized save failure result.
+- Hardened auth response handling to fail closed on malformed current-user, login, registration, or
+  preference payloads rather than throwing or persisting an invalid token.
+- Corrected Stage 9 admin error classification: only duplicate-key writes return duplicate conflicts;
+  known ingestion-review conflicts and invalid price observations retain their client errors, while
+  unexpected database failures reach the shared 500 handler instead of being mislabeled.
+- Validation after the review: 71 test files/255 tests, 7 integration tests, typecheck, lint, format
+  check, web/API build, and diff check passed. The unsupported Vitest `--runInBand` attempt was a
+  command error; the normal `npm test` run passed.
+- These review changes are currently uncommitted and intentionally left for operator review.
+
+### Review follow-ups intentionally left unchanged
+
+- User deletion still needs a larger transaction-boundary review because it spans household cleanup,
+  owner promotion, memberships, invitations, and the user record.
+- Shopping-trip completion intentionally has resumable per-item writes; changing that to one global
+  transaction would require an explicit idempotency and partial-failure decision.
+- Feature-flag writes and audit append still deserve a concurrency/CAS review; this was outside the
+  low-risk hardening boundary.
+- Several API clients still trust successful JSON shapes; the auth and workspace paths were hardened
+  because they are security or primary-workspace boundaries. Broader contract validation should be a
+  planned follow-up rather than a scattered one-off change.
+
+## Styling consistency review (2026-07-13)
+
+- Centralized the duplicated shopping-scale track and thumb gradients as theme-aware global tokens;
+  the rail now consumes one shared definition for both browser slider implementations.
+- Added a shared keyboard focus ring for links and native controls, and classified the rail history,
+  toast dismissal, stock stepper, and account controls with explicit component/shared classes.
+- Reused the shared UI form/button tokens for account controls and removed the duplicate account
+  control declarations. Other native fields were intentionally left under their existing scoped
+  selectors because they are already styled and broad markup churn would risk layout regressions.
+- No frontend behavior or layout structure was changed intentionally. Validation passed after this
+  review: formatting, lint, app/API typecheck, web build, and diff check.
+
 ## Next Step
 
 Run the focused demo seed against the approved disposable database, then rerun

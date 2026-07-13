@@ -78,10 +78,11 @@ export interface RadialNavigationItem {
           var(--color-accent-leaf-strong) 82%,
           var(--color-wood-deep) 18%
         );
-        border: 1px solid color-mix(in srgb, var(--color-accent-leaf-strong) 55%, white 45%);
+        border: 1px solid
+          color-mix(in srgb, var(--color-accent-leaf-strong) 55%, var(--control-primary-text) 45%);
         border-radius: var(--radius-pill);
         box-shadow: 0 1rem 2.6rem rgb(48 43 50 / 22%);
-        color: white;
+        color: var(--control-primary-text);
         cursor: pointer;
         display: inline-flex;
         height: 4.3rem;
@@ -111,7 +112,7 @@ export interface RadialNavigationItem {
       }
 
       .radial-menu-button svg {
-        color: white;
+        color: var(--control-primary-text);
         height: 1.55rem;
         width: 1.55rem;
       }
@@ -123,7 +124,7 @@ export interface RadialNavigationItem {
 
       .radial-nav-item {
         align-items: center;
-        background: color-mix(in srgb, var(--color-surface) 92%, white 8%);
+        background: color-mix(in srgb, var(--color-surface) 92%, var(--control-primary-text) 8%);
         border: 1px solid var(--line-strong);
         border-radius: var(--radius-pill);
         box-shadow: 0 0.45rem 1.2rem rgb(48 43 50 / 16%);

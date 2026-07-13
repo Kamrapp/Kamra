@@ -22,6 +22,7 @@ import { ToastService } from "./toast.service";
         >
           <p>{{ toast.message }}</p>
           <button
+            class="toast-dismiss-button"
             type="button"
             [attr.aria-label]="loc.t('common.dismissNotification')"
             (click)="toastService.dismiss(toast.id)"
@@ -69,7 +70,7 @@ import { ToastService } from "./toast.service";
         overflow-wrap: anywhere;
       }
 
-      .toast button {
+      .toast-dismiss-button {
         background: transparent;
         border: 0;
         color: var(--toast-text-muted);

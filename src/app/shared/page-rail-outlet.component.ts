@@ -493,17 +493,7 @@ import type { PageRailSection } from "./page-rail.service";
       }
 
       .rail-scale-slider::-webkit-slider-runnable-track {
-        background: linear-gradient(
-          to top,
-          #75a547 0%,
-          #75a547 24%,
-          #ffe6a3 24%,
-          #ffe6a3 48%,
-          #f3ad54 48%,
-          #f3ad54 72%,
-          #d94c3c 72%,
-          #d94c3c 100%
-        );
+        background: var(--shopping-scale-track-background);
         border: 1px solid color-mix(in srgb, var(--line-panel) 70%, transparent);
         border-radius: var(--radius-pill);
         box-shadow: inset 0 0.08rem 0.18rem rgb(40 31 21 / 18%);
@@ -512,17 +502,7 @@ import type { PageRailSection } from "./page-rail.service";
       }
 
       .rail-scale-slider::-moz-range-track {
-        background: linear-gradient(
-          to top,
-          #75a547 0%,
-          #75a547 24%,
-          #ffe6a3 24%,
-          #ffe6a3 48%,
-          #f3ad54 48%,
-          #f3ad54 72%,
-          #d94c3c 72%,
-          #d94c3c 100%
-        );
+        background: var(--shopping-scale-track-background);
         border: 1px solid color-mix(in srgb, var(--line-panel) 70%, transparent);
         border-radius: var(--radius-pill);
         box-shadow: inset 0 0.08rem 0.18rem rgb(40 31 21 / 18%);
@@ -532,11 +512,7 @@ import type { PageRailSection } from "./page-rail.service";
 
       .rail-scale-slider::-webkit-slider-thumb {
         appearance: none;
-        background: linear-gradient(
-          180deg,
-          #ffffff,
-          color-mix(in srgb, var(--color-accent-leaf) 32%, #ffffff)
-        );
+        background: var(--shopping-scale-thumb-background);
         border: 2px solid var(--color-accent-leaf);
         border-radius: 0.32rem;
         box-shadow: 0 0.35rem 0.8rem rgb(40 31 21 / 22%);
@@ -546,11 +522,7 @@ import type { PageRailSection } from "./page-rail.service";
       }
 
       .rail-scale-slider::-moz-range-thumb {
-        background: linear-gradient(
-          180deg,
-          #ffffff,
-          color-mix(in srgb, var(--color-accent-leaf) 32%, #ffffff)
-        );
+        background: var(--shopping-scale-thumb-background);
         border: 2px solid var(--color-accent-leaf);
         border-radius: 0.32rem;
         box-shadow: 0 0.35rem 0.8rem rgb(40 31 21 / 22%);

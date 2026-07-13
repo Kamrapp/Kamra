@@ -87,7 +87,11 @@ export class AuthService {
       return;
     }
 
-    const payload = (await response.json()) as CurrentUserResponse;
+    const payload = (await response.json().catch(() => null)) as unknown;
+    if (!isCurrentUserResponse(payload)) {
+      this.clearToken();
+      return;
+    }
     this.user.set(this.normalizeUser(payload.user));
   }
 
@@ -123,7 +127,13 @@ export class AuthService {
       };
     }
 
-    const payload = (await response.json()) as LoginResponse;
+    const payload = (await response.json().catch(() => null)) as unknown;
+    if (!isLoginResponse(payload)) {
+      return {
+        message: this.loc.t("app.loginFailure"),
+        status: "error"
+      };
+    }
     this.storeToken(payload.token);
     this.user.set(this.normalizeUser(payload.user));
 
@@ -161,7 +171,13 @@ export class AuthService {
       };
     }
 
-    const payload = (await response.json()) as LoginResponse;
+    const payload = (await response.json().catch(() => null)) as unknown;
+    if (!isLoginResponse(payload)) {
+      return {
+        message: this.loc.t("app.registrationFailure"),
+        status: "error"
+      };
+    }
     this.storeToken(payload.token);
     this.user.set(this.normalizeUser(payload.user));
 
@@ -199,8 +215,8 @@ export class AuthService {
       return;
     }
 
-    const payload = (await response.json()) as UserPreferencesResponse;
-    this.user.set(this.normalizeUser(payload.user));
+    const payload = (await response.json().catch(() => null)) as unknown;
+    if (isUserPreferencesResponse(payload)) this.user.set(this.normalizeUser(payload.user));
   }
 
   async updateThemePreference(theme: ThemePreference): Promise<void> {
@@ -232,4 +248,35 @@ export class AuthService {
       role: user.role
     };
   }
+}
+
+function isCurrentUserResponse(value: unknown): value is CurrentUserResponse {
+  return isRecord(value) && isAuthenticatedUser(value["user"]);
+}
+
+function isLoginResponse(value: unknown): value is LoginResponse {
+  return (
+    isRecord(value) &&
+    typeof value["token"] === "string" &&
+    value["token"].length > 0 &&
+    value["tokenType"] === "Bearer" &&
+    isAuthenticatedUser(value["user"])
+  );
+}
+
+function isUserPreferencesResponse(value: unknown): value is UserPreferencesResponse {
+  return isRecord(value) && isAuthenticatedUser(value["user"]);
+}
+
+function isAuthenticatedUser(value: unknown): value is AuthenticatedUser {
+  return (
+    isRecord(value) &&
+    typeof value["email"] === "string" &&
+    (value["role"] === "admin" || value["role"] === "user") &&
+    isRecord(value["profile"])
+  );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

@@ -60,6 +60,7 @@ export interface HouseholdStockDraft {
             <span>{{ loc.t("household.minLimit") }}</span>
             <span class="amount-stepper">
               <button
+                class="stepper-button"
                 type="button"
                 [attr.aria-label]="loc.t('household.decreaseMinLimit')"
                 (click)="adjustMinLimit(-1)"
@@ -74,6 +75,7 @@ export interface HouseholdStockDraft {
                 (ngModelChange)="patchDraft({ minLimit: coerceNumber($event) })"
               />
               <button
+                class="stepper-button"
                 type="button"
                 [attr.aria-label]="loc.t('household.increaseMinLimit')"
                 (click)="adjustMinLimit(1)"
@@ -318,7 +320,7 @@ export interface HouseholdStockDraft {
         grid-template-columns: 2.35rem minmax(0, 1fr) 2.35rem;
       }
 
-      .amount-stepper button {
+      .amount-stepper .stepper-button {
         background: var(--control-quiet-background);
         border: 1px solid var(--control-quiet-border);
         border-radius: var(--radius-ui);
@@ -331,8 +333,8 @@ export interface HouseholdStockDraft {
         padding: 0;
       }
 
-      .amount-stepper button:hover,
-      .amount-stepper button:focus-visible {
+      .amount-stepper .stepper-button:hover,
+      .amount-stepper .stepper-button:focus-visible {
         border-color: var(--line-strong);
       }
 

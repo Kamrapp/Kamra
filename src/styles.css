@@ -57,6 +57,26 @@
   --control-warm-background: color-mix(in srgb, var(--color-wood) 76%, var(--color-card-tint) 24%);
   --control-warm-border: color-mix(in srgb, var(--color-wood) 68%, var(--color-wood-deep) 32%);
   --control-warm-text: var(--color-on-soft-accent);
+  --shopping-scale-good: #75a547;
+  --shopping-scale-watch: #ffe6a3;
+  --shopping-scale-warning: #f3ad54;
+  --shopping-scale-danger: #d94c3c;
+  --shopping-scale-track-background: linear-gradient(
+    to top,
+    var(--shopping-scale-good) 0%,
+    var(--shopping-scale-good) 24%,
+    var(--shopping-scale-watch) 24%,
+    var(--shopping-scale-watch) 48%,
+    var(--shopping-scale-warning) 48%,
+    var(--shopping-scale-warning) 72%,
+    var(--shopping-scale-danger) 72%,
+    var(--shopping-scale-danger) 100%
+  );
+  --shopping-scale-thumb-background: linear-gradient(
+    180deg,
+    var(--control-primary-text),
+    color-mix(in srgb, var(--color-accent-leaf) 32%, var(--control-primary-text))
+  );
   --danger-soft-background: color-mix(
     in srgb,
     var(--color-status-danger) 16%,
@@ -495,6 +515,11 @@ samp {
 .ui-action-button:disabled {
   cursor: progress;
   opacity: 0.72;
+}
+
+:is(button, input, select, textarea, a):focus-visible {
+  outline: 2px solid var(--color-accent-leaf);
+  outline-offset: 2px;
 }
 
 .ui-token {
