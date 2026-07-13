@@ -1,0 +1,106 @@
+<section class="page-shell admin-users-page" aria-labelledby="admin-users-title">
+  <div class="page-intro admin-users-intro">
+    <p class="ui-kicker">{{ loc.t("health.adminUsersKicker") }}</p>
+    <h1 id="admin-users-title" class="page-title">{{ loc.t("health.adminUsersTitle") }}</h1>
+    <p class="page-lead">{{ loc.t("health.adminUsersDescription") }}</p>
+    <a class="ui-button ui-button-quiet back-link" routerLink="/dev-admin">
+      {{ loc.t("health.backToAdmin") }}
+    </a>
+  </div>
+
+  @if (auth.user()?.role !== "admin") {
+    <section class="ui-panel-card status-panel" aria-live="polite">
+      <p class="ui-kicker">{{ loc.t("common.adminOnly") }}</p>
+      <p class="status-summary">{{ loc.t("health.adminOnlyDescription") }}</p>
+    </section>
+  } @else {
+    <section class="ui-panel-card users-card">
+      <div class="users-heading">
+        <div>
+          <p class="ui-kicker">{{ loc.t("health.adminUsersKicker") }}</p>
+          <h2 class="ui-card-title">{{ loc.t("health.adminUsersTitle") }}</h2>
+        </div>
+        <button class="ui-button ui-button-quiet" type="button" (click)="loadUsers()">
+          {{ loc.t("common.refresh") }}
+        </button>
+      </div>
+
+      @if (loadState() === "loading") {
+        <p class="ui-copy-muted">{{ loc.t("common.loading") }}</p>
+      } @else if (message()) {
+        <p class="ui-copy-error" aria-live="polite">{{ message() }}</p>
+      } @else if (users().length === 0) {
+        <p class="ui-copy-muted">{{ loc.t("health.adminUsersEmpty") }}</p>
+      } @else {
+        <div class="users-table-shell">
+          <table class="users-table">
+            <thead>
+              <tr>
+                <th>{{ loc.t("health.adminUserEmail") }}</th>
+                <th>{{ loc.t("health.adminUserRole") }}</th>
+                <th>{{ loc.t("health.adminUserHouseholds") }}</th>
+                <th>{{ loc.t("health.adminUserPassword") }}</th>
+                <th>{{ loc.t("household.actions") }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (user of users(); track user.email) {
+                <tr>
+                  <td>
+                    <strong>{{ user.email }}</strong>
+                    <small>{{ user.status }}</small>
+                  </td>
+                  <td>{{ user.role }}</td>
+                  <td>
+                    @if (user.households.length) {
+                      <ul>
+                        @for (household of user.households; track household.householdId) {
+                          <li>{{ household.householdName }} ({{ household.role }})</li>
+                        }
+                      </ul>
+                    } @else {
+                      <span class="ui-copy-muted">{{ loc.t("health.adminUserNoHousehold") }}</span>
+                    }
+                  </td>
+                  <td>
+                    <label class="sr-only" [attr.for]="'password-' + user.email">
+                      {{ loc.t("health.adminUserPassword") }}
+                    </label>
+                    <input
+                      [id]="'password-' + user.email"
+                      type="password"
+                      autocomplete="new-password"
+                      [value]="passwordFor(user.email)"
+                      [placeholder]="loc.t('health.adminUserPasswordPlaceholder')"
+                      (input)="setPassword(user.email, $any($event.target).value)"
+                    />
+                  </td>
+                  <td>
+                    <div class="user-actions">
+                      <button
+                        class="ui-button ui-button-quiet"
+                        type="button"
+                        [disabled]="busyEmail() === user.email"
+                        (click)="savePassword(user)"
+                      >
+                        {{ loc.t("health.adminUserResetPassword") }}
+                      </button>
+                      <button
+                        class="ui-button ui-button-danger"
+                        type="button"
+                        [disabled]="isCurrentUser(user) || busyEmail() === user.email"
+                        (click)="deleteUser(user)"
+                      >
+                        {{ loc.t("health.adminUserDelete") }}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  }
+</section>

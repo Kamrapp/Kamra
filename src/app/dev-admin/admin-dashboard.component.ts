@@ -18,6 +18,7 @@ import {
   type AdminFeatureFlagChange,
   type AdminFeatureFlagViewModel
 } from "./feature-flags/index";
+import { RouterLink } from "@angular/router";
 import { LocalizationService, type TranslationKey } from "../shared/localization.service";
 import { ToastService } from "../shared/toast.service";
 
@@ -62,7 +63,8 @@ type AsyncActionState = "idle" | "loading" | "error" | "success";
     AdminAlphaAccessCardComponent,
     AdminFeatureFlagsCardComponent,
     AdminHealthCardComponent,
-    DatabaseMaintenanceComponent
+    DatabaseMaintenanceComponent,
+    RouterLink
   ],
   templateUrl: "./admin-dashboard.component.html",
   styleUrl: "./admin-dashboard.component.css"

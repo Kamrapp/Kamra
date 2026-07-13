@@ -1,4 +1,5 @@
 import type { Db } from "mongodb";
+import type { MongoTransactionClientLike } from "../db/mongo-like.js";
 
 import type { AuthenticatedUser, UserRepository } from "../auth/user-auth.js";
 import { verifyUserToken } from "../auth/user-token.js";
@@ -189,7 +190,10 @@ export interface AppHandlerDependencies {
       updatedAt: string;
     }): Promise<boolean>;
   };
-  createUserRepository?: (database: Db) => UserRepository;
+  createUserRepository?: (
+    database: Db,
+    transactionClient?: MongoTransactionClientLike
+  ) => UserRepository;
   getMongoClient?: typeof getMongoClient;
 }
 

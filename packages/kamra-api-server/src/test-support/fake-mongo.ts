@@ -278,6 +278,10 @@ function matchesFilter(doc: PlainDoc, filter: MongoFilter<any>): boolean {
         return condition["$in"].includes(value);
       }
 
+      if ("$ne" in condition) {
+        return value !== condition["$ne"];
+      }
+
       if ("$exists" in condition) {
         return condition["$exists"] ? value !== undefined : value === undefined;
       }

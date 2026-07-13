@@ -60,6 +60,17 @@
         }
       </article>
 
+      <article class="ui-panel-card status-panel utility-card">
+        <div class="status-heading">
+          <p class="ui-kicker">{{ loc.t("health.adminUsersKicker") }}</p>
+          <p class="status-summary">{{ loc.t("health.manageUsers") }}</p>
+        </div>
+        <p class="status-message">{{ loc.t("health.manageUsersDescription") }}</p>
+        <a class="run-button ui-button" routerLink="/dev-admin/users">
+          {{ loc.t("health.manageUsers") }}
+        </a>
+      </article>
+
       <app-admin-health-card
         [checks]="healthChecks()"
         [loading]="healthState() === 'loading'"

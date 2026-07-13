@@ -19,8 +19,16 @@ import {
   adminShopMarketsRoute,
   adminShopProductsRoute
 } from "../stage9-admin-routes.js";
+import {
+  adminUserDeleteRoute,
+  adminUserListRoute,
+  adminUserPasswordRoute
+} from "../admin-user-routes.js";
 
 export const adminRoutes: AppRoute[] = [
+  adminUserListRoute,
+  adminUserPasswordRoute,
+  adminUserDeleteRoute,
   adminShopMarketsRoute,
   adminIngestionSubmissionsRoute,
   adminShopProductsRoute,

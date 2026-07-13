@@ -99,6 +99,10 @@
   action positions. Batch editing now keeps Save, Cancel, an intentional empty child-action slot,
   and Discard aligned; Product state badges use the same rounded token treatment as Group badges.
   Light-theme Product and Batch surfaces now use the requested intermediate contrast.
+- Added admin user management: admins can list users without password fields, set a new password,
+  and delete a user with confirmation. Sole-owner households are deleted with their content; shared
+  households remain and the next active member is promoted. Current-admin self-deletion is blocked,
+  and repository/route tests cover password, deletion, cleanup, and promotion behavior.
 
 ## Changed Files
 
