@@ -3,7 +3,7 @@
 - Date: 2026-07-13
 - Plan: `.agents/plans/2026-07-13-stage-11-vertical-slice-locality-plan.md`
 - Branch: `dev/bg/stage-9-10`
-- Current objective: Design and execute a bounded vertical-slice reorganization, integration-test layer, and single Stage 8–11 MVP closure pass after Stage 10 implementation.
+- Current objective: Finish the bounded vertical-slice reorganization and hand the complete Stage 8–11 MVP verification to one operator runbook.
 
 ## Completed
 
@@ -22,6 +22,7 @@
 - Defined deterministic local integration tests plus narrowly triggered configured MongoDB integration smoke; neither replaces browser/manual evidence.
 - Folded remaining Stage 8–10 manual evidence and likely UI/data-integrity probes into Stage 11 ownership.
 - Added the live replacement runbook `scripts/stage11-mvp-manual-test.md`; the older Stage 8 script and Stage 8–10 checklist now point to it as historical input.
+- Completed Step 11.8 documentation and CI closeout: normal app checks identify the combined unit/deterministic-integration run, focused integration reruns are documented, and the existing catalog/transaction Smoke workflows now cover the relevant catalog/schema and household transaction/persistence/maintenance paths without adding a duplicate configured workflow.
 
 ## Changed Files
 
@@ -53,12 +54,16 @@
 - `src/app/app.routes.ts`
 - `src/app/dev-admin/admin-dashboard.component.ts`
 - `scripts/stage11-mvp-manual-test.md`
+- `.github/workflows/app-checks.yml`
+- `.github/workflows/transaction-smoke.yml`
+- `scripts/README.md`
 
 ## Validation
 
-- Ran: `npm run test:integration`, `npm test`, `npm run lint -- --no-warn-ignored`, `npm run typecheck`, `npm run format:check`, `npm run build:api`, and `git diff --check`.
+- Ran before this closeout: `npm run test:integration`, `npm test`, `npm run lint -- --no-warn-ignored`, `npm run typecheck`, `npm run format:check`, `npm run build:api`, and `git diff --check`.
 - Result: 7 focused integration tests, 65 test files/239 tests, lint, typecheck, formatting, API build, and diff checks passed.
 - Note: an initial full-test attempt included the unsupported Vitest flag `--runInBand`; the corrected `npm test` run passed.
+- Closeout validation is pending after the documentation/workflow edits; it must include the focused integration suite, full tests, formatting, lint, typecheck, API build, and diff checks.
 
 ## Decisions
 
@@ -66,13 +71,15 @@
 - Reason: database overrides need safe defaults, ownership, authorization, and lifecycle behavior that data alone must not invent.
 - Decision: reorganize incrementally by route/UI clusters and keep already-coherent domain directories intact.
 - Reason: the goal is locality and integration signal, not broad file churn or a framework rewrite.
+- Decision: reuse the existing configured catalog and transaction Smoke workflows instead of adding a third configured integration workflow.
+- Reason: those workflows already exercise real MongoDB validator/index and transaction behavior; a duplicate fake-backed CI job would add cost without a new signal.
 
 ## Open Issues
 
-- Stage 11 implementation has started with Step 11.8; Steps 11.1–11.7 are complete.
+- Steps 11.1–11.9 are implementation-complete. The integrated manual pass and any narrow findings remain.
 - Stage 10 configured/browser release evidence remains open and is not waived by this plan.
 - The operator must edit the live runbook with actual findings during the final pass; those edits become input to the final fixer session.
 
 ## Next Step
 
-Implement Step 11.8 by finalizing CI selection/documentation and the single live Stage 8–11 runbook, then continue through the final runbook/fix loop without separate Stage 8–10 acceptance sessions.
+Run the closeout validation for Step 11.8, commit it separately, then pause for the operator to execute `scripts/stage11-mvp-manual-test.md`. Treat the operator-edited runbook as the only source for Step 11.10 fixes; do not restart separate Stage 8–10 acceptance sessions.

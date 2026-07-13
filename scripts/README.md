@@ -92,9 +92,30 @@ npm run smoke:transactions
 
 The script refuses database names other than `kamra_dev`, `kamra_test`, or `kamra_smoke`. Use a disposable/local or smoke database; it does not run against production-named databases.
 
+### Automated validation levels
+
+- `npm test` runs the complete unit and deterministic integration suite used by the normal app
+  checks.
+- `npm run test:integration` reruns only the cross-layer handler scenarios when working inside a
+  capability seam.
+- `npm run smoke:catalog` and `npm run smoke:transactions` require the configured `Smoke`
+  environment or an explicitly approved disposable MongoDB database. They provide signals that a
+  fake database cannot: current validators/index setup and real transaction support.
+
+### `stage11-mvp-manual-test.md`
+
+The single live manual verification runbook for the complete Stage 8–11 MVP journey. It covers
+the seeded `usera` demo household, two-user access, Product Groups/Products/Batches, shopping and
+trip completion, admin ingestion/pricing review, maintenance/archive operations, visual checks,
+and the final evidence/waiver review.
+
+Use it after the implementation slices are complete and update its operator notes in place while
+testing. Do not run the older Stage 8 and Stage 8–10 documents as separate acceptance sessions.
+
 ### `stage8-demo-manual-test.md`
 
-Repeatable manual test script for the seeded `usera` demo household. It covers Product Groups, Products, Batches, expiry-before-acquisition, the permissive/default expired-item policy, corrections, discard, and the remaining Stage 8 browser checks.
+Historical Stage 8 source material. Its remaining checks have been consolidated into
+`stage11-mvp-manual-test.md`; keep it for context, not as a second acceptance source.
 
 Use it after `npm run seed` and only against a disposable local/demo database. Reseeding resets the demo household data.
 

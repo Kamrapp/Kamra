@@ -211,15 +211,25 @@ data a prerequisite for household stock management.
 ## Vertical-slice locality and integration testing
 
 The post-Stage-10 locality direction is documented in [docs/vertical-slice-map.md](./vertical-slice-map.md)
-and planned in the Stage 11 plan. Existing domain directories are treated as real ownership
-boundaries; the work is incremental and does not authorize a repository-wide folder rewrite.
+and implemented incrementally through the Stage 11 plan. Existing domain directories are treated
+as real ownership boundaries; the work does not authorize a repository-wide folder rewrite.
 
 Each capability should make its contracts, pure policy, persistence adapter, HTTP adapter, UI
 adapter, and integration tests discoverable from a bounded set of paths. HTTP and hosting glue
 remain thin, while cross-capability workflows are tested through the real app handler and explicit
 fixtures. Deterministic local integration tests complement unit tests; configured disposable
 MongoDB smokes remain necessary for validators, indexes, transactions, maintenance actions, and
-recovery behavior.
+recovery behavior. The normal `npm test` command includes the deterministic integration tests;
+`npm run test:integration` selects only those cross-layer tests for focused work. The configured
+`catalog-smoke.yml` and `transaction-smoke.yml` workflows provide the private-environment signal
+only when their narrow catalog/schema or household transaction/persistence/maintenance path filters
+match. Ordinary pull requests do not require MongoDB credentials.
+
+The local harness lives under `packages/kamra-api-server/src/test-support/integration/`. It runs
+the shared app handler with explicit authenticated fixtures and a named fake database. Its session
+lifecycle is intentionally limited: it proves route/auth/repository wiring and persisted side
+effects, but it does not claim to emulate MongoDB rollback or isolation. Those claims belong to the
+configured transaction smoke and the final operator runbook.
 
 Pattern-based UI and API lists should be registry-driven. In particular, the checked-in feature-flag
 registry owns definitions and defaults, while MongoDB stores overrides/audits and the admin UI

@@ -1,6 +1,6 @@
 # Stage 11 Vertical-Slice Locality And Integration Contracts
 
-Status: Implementation in progress. This is the single technical and manual wrap-up stage
+Status: Implementation complete; integrated manual closure pending. This is the single technical and manual wrap-up stage
 for the MVP: it absorbs the remaining Stage 8–10 evidence, suspected UI/data-integrity checks,
 and narrowly scoped fixes while preserving the Stage 10 release gate. Implementation must remain
 commit-sized and must not reopen the Stage 8–10 domain model without a concrete finding.
@@ -172,7 +172,7 @@ Commit: `test: add vertical slice integration harness`
 
 ### Step 11.3 — First cross-layer integration contracts
 
-Status: In progress; the feature-flag → household-workspace, Product Group → Product → Batch,
+Status: Complete; the feature-flag → household-workspace, Product Group → Product → Batch,
 partial shopping-trip completion, and raw-ingestion → review-candidate contracts are complete in
 separate Step 11.3 commits.
 
@@ -271,9 +271,13 @@ Commit per cluster: `refactor: localize <capability> frontend module`
 
 ### Step 11.8 — CI selection and documentation closeout
 
-- Add local integration tests to the normal app check once they are deterministic and fast.
-- Add a narrowly path-filtered configured integration workflow only for API/domain/schema/maintenance
-  changes; reuse the existing `Smoke` environment and cleanup conventions.
+Status: Complete in the current documentation/CI closeout commit.
+
+- Keep the deterministic integration suite inside the normal app check once it is deterministic and
+  fast; expose `npm run test:integration` for focused local reruns.
+- Reuse and widen the existing narrowly path-filtered catalog and transaction smoke workflows for
+  API/domain/schema/maintenance changes. Do not add a duplicate configured workflow with no new
+  signal; both existing workflows use the `Smoke` environment.
 - Update `docs/architecture.md`, `docs/vertical-slice-map.md`, `scripts/README.md`, the roadmap,
   and the Stage 11 session handoff with commands and stop conditions.
 - Record any compatibility adapter that remains and its removal evidence; do not delete legacy
@@ -286,6 +290,8 @@ checks.
 Commit: `docs: document Stage 11 integration workflow`
 
 ### Step 11.9 — Complete the single Stage 8–11 manual runbook
+
+Status: Complete in `196c83d`; the runbook remains live and must receive operator evidence.
 
 - Create and maintain `scripts/stage11-mvp-manual-test.md` as a live operator document. It must
   include preparation/safety, two-user setup, seeded household coverage, Home CRUD and layout,
@@ -368,9 +374,10 @@ Commit: `docs: close Stage 11 MVP evidence`
 - No broad CSS/HTML redesign, model redesign, or ingestion-policy expansion.
 - No replacing configured/browsers acceptance with tests that only use fakes.
 
-## Approval checkpoint
+## Implementation boundary
 
-Approve the plan before Step 11.1 implementation. During implementation, pause if a proposed move
-changes a public contract, persistence shape, authorization boundary, or lifecycle ownership in a
-way this plan does not define. Stage 10 remains implementation-complete but release closure still
-depends on its configured/browser evidence; Stage 11 does not waive that gate.
+The planned implementation work is complete through Step 11.9. Pause before changing a public
+contract, persistence shape, authorization boundary, or lifecycle ownership in response to the
+operator runbook unless that finding is recorded as a narrow Step 11.10 fix. Stage 10 remains
+implementation-complete but release closure still depends on its configured/browser evidence; Stage
+11 does not waive that gate.
