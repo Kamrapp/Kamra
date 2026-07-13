@@ -1,6 +1,6 @@
 # Stage 10 Alpha 1.0 Hardening Plan
 
-Status: In implementation — Steps 4A, 5, 6, 7, and 8A code slices plus Step 11 release documentation are implemented; configured and browser evidence remain open (2026-07-13). Keep hardening tied to concrete Stage 8/9 findings; do not expand into a rewrite.
+Status: Implementation complete — all approved code-addressable slices, including Step 4A, Steps 5–10, and Step 11 release documentation, are committed; configured and browser evidence remain open (2026-07-13). Do not expand into a rewrite while closing those gates.
 
 ## Objective And Classification
 
@@ -334,20 +334,20 @@ Implementation ownership map:
 ### Step 4A - MVP-hole closure gate
 
 - Close the revalidated Stage 9 gaps before calling the Alpha user loop complete: add a household-visible active Shop Market picker, expose actual purchase result fields (quantity, unit, paid price, acquisition/expiry, Product/new-product choice), support unplanned purchases, bound match options with truncation state, add focused catalog-to-Household Product lookup, and prove the legacy Shopping Need/list boundary does not bypass Trip completion. Keep matching/completion policy in focused services rather than expanding the route.
-- Acceptance: route/domain tests cover every new command and failure path; the browser panel can select a valid market, resolve/skip matches, record an actual result, finalize it into Product-owned Batches and Ingestion Submissions, retry without duplicates, and recover from stale revisions. Update the central manual checklist and return any behavior regression to Stage 9. **In progress (2026-07-13):** the household-visible Trip safety slice is implemented; remaining acceptance is the legacy-list boundary plus configured/browser evidence.
+- Acceptance: route/domain tests cover every new command and failure path; the browser panel can select a valid market, resolve/skip matches, record an actual result, finalize it into Product-owned Batches and Ingestion Submissions, retry without duplicates, and recover from stale revisions. Update the central manual checklist and return any behavior regression to Stage 9. **Code complete (2026-07-13):** the household-visible Trip safety slice is implemented; remaining acceptance is equivalence/retirement evidence for the legacy list plus configured/browser evidence.
 - Stop condition: if the active-market ownership model, unplanned-purchase identity, or legacy-list retirement would materially change the approved domain, pause for a decision rather than infer one.
 - Commit per independent concern: `fix: close <trip or completion> MVP gap`.
 
 ### Step 5 - Source-specific parser/normalization fixes
 
 - Fix only confirmed defects, bump versions where reprocessing semantics require it, and add targeted real-shaped sanitized tests. **Implemented for Lidl HU (2026-07-13):** repeated same-page PDF text now emits only the first stable page/item identity; parser version is `0.1.1` and the regression fixture covers the repeated product block.
-- Acceptance: fixtures prove the defect/fix; unrelated sources remain stable. **Remaining:** review and, if approved, run the bounded historical parsed-row repair/reprocessing operation; the raw payload and current historical snapshots remain unchanged until that explicit action.
+- Acceptance: fixtures prove the defect/fix; unrelated sources remain stable. **Code complete:** review and, if approved, run the bounded historical parsed-row repair/reprocessing operation; the raw payload and current historical snapshots remain unchanged until that explicit operator action.
 - Commit per independent source: `fix: normalize <source> ingestion data`
 
 ### Step 6 - Crawl import, reprocessing, and approved repair tools
 
 - Implement the shared import service/thin `crawl:import` script, correction-overlay validation/application during reprocessing, and separate dry-run-first idempotent repairs only for approved audit findings. Do not import derived Products/Price Observations. **Implemented foundation (2026-07-13):** manifest/checksum-verified runs/snapshots import, stable identity/content conflict reporting, dry-run default, explicit target/apply guard, repeat no-op behavior, and reviewed overlay application to an in-memory snapshot copy before existing parser processing.
-- Acceptance: import dry run is default; explicit target/apply is required; repeated identical import is a no-op; conflicts do not overwrite; raw truth remains intact; corrected parser output becomes reviewable Product Candidates; post-run reconciliation is proven. **Implemented foundation (2026-07-13):** the Lidl historical parsed-row repair is dry-run-first, bounded by source/parser/version and optional snapshot id, requires exact target/operator confirmation for writes, and uses a content-hash compare-and-set update. **Remaining:** configured clean-database restore evidence.
+- Acceptance: import dry run is default; explicit target/apply is required; repeated identical import is a no-op; conflicts do not overwrite; raw truth remains intact; corrected parser output becomes reviewable Product Candidates; post-run reconciliation is proven. **Code complete (2026-07-13):** the Lidl historical parsed-row repair is dry-run-first, bounded by source/parser/version and optional snapshot id, requires exact target/operator confirmation for writes, and uses a content-hash compare-and-set update. Remaining work is configured clean-database restore evidence.
 - Commit per repair class: `chore: add <scope> data repair`
 
 ### Step 7 - Targeted backend vertical-slice cleanup
@@ -373,14 +373,14 @@ Implementation ownership map:
 
 - Consolidate domain-specific fragments, document/remove dead adapters and flags, move all one-time glue out of runtime repositories, verify registry/reconciliation.
 - **Implemented slice (2026-07-13):** corrected `shopping-trip-foundation-v1` so its validator action initializes Shop Markets, Shopping Needs, Shopping Trips, and Ingestion Submissions together. A focused maintenance test protects the collection boundary.
-- Acceptance: every remaining compatibility path has owner/removal condition; normal reads do no repair work. Remaining compatibility cleanup still depends on configured data/conflict evidence.
+- Acceptance: every remaining compatibility path has owner/removal condition; normal reads do no repair work. **Code complete:** remaining compatibility cleanup and any legacy-write retirement depend on configured data/conflict evidence, not another unreviewed code slice.
 - Commit: `refactor: isolate schema migration compatibility`
 
 ### Step 10 - Non-functional and observability hardening
 
 - Close concrete authorization, failure-state, logging/redaction, pagination/index, accessibility/responsive, realistic-volume, and backup/recovery gaps that the Alpha path, observed failures, or release requirements demonstrate; do not add platform/tooling work merely to fill a checklist.
 - **Implemented slice (2026-07-13):** Shopping Trip and admin Ingestion Submission history GET routes now use bounded, indexed page reads with explicit `page`, `pageSize`, and `hasNextPage` metadata. Focused repository coverage protects the limit/overflow contract.
-- Acceptance: Alpha non-functional baseline above passes without production-platform expansion. Remaining catalogue/price-history paging and configured realistic-volume evidence require a concrete UI/query need before implementation. The configured audit must pass on the current populated data; raw archive/audit traversal must use an indexed sort path. **Current evidence (2026-07-13):** audit traversal passes over 55 runs, 66 snapshots, and 12,172 rows; it reports 78 persisted Lidl duplicate identities. The dry-run repair predicts zero after reparsing, but configured write/reconciliation evidence is still open.
+- Acceptance: Alpha non-functional baseline above passes without production-platform expansion. Remaining catalogue/price-history paging and configured realistic-volume evidence require a concrete UI/query need before implementation. The configured audit must pass on the current populated data; raw archive/audit traversal must use an indexed sort path. **Code complete (2026-07-13):** audit traversal passes over 55 runs, 66 snapshots, and 12,172 rows; it reports 78 persisted Lidl duplicate identities. The dry-run repair predicts zero after reparsing, but configured write/reconciliation evidence is still open.
 - The locale/parity portion of the automated baseline now has a focused browser-resource test: English and Hungarian translation leaf keys must match and remain non-empty.
 - Commit by concern when independent: `chore: harden alpha operations`
 

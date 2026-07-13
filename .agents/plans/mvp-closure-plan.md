@@ -1,6 +1,6 @@
 # MVP Closure Plan
 
-Status: Planned after Stage 10. Implementation is complete enough to enter closure once the configured
+Status: Ready after Stage 10 implementation. The code-addressable hardening is complete; enter closure once the configured
 operator and browser evidence below is completed. This is a release-validation stage, not a new product layer.
 
 ## Objective
