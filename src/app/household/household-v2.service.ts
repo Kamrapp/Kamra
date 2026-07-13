@@ -1,6 +1,7 @@
 import { Injectable, inject } from "@angular/core";
 import { buildApiUrl } from "../api-url";
 import { AuthService } from "../auth.service";
+import { LocalizationService } from "../shared/localization.service";
 
 export interface HouseholdV2TargetPolicy {
   consumptionPolicy: "earliest_expiry_first" | "oldest_acquired_first";
@@ -114,6 +115,7 @@ export interface HouseholdV2ShopMarket {
 @Injectable({ providedIn: "root" })
 export class HouseholdV2Service {
   private readonly auth = inject(AuthService);
+  private readonly loc = inject(LocalizationService);
   private headers(): HeadersInit {
     return {
       accept: "application/json",
@@ -605,19 +607,21 @@ export class HouseholdV2Service {
     if (!response.ok) {
       const payload = (await response.json().catch(() => null)) as { error?: string } | null;
       const message =
-        payload?.error === "household_membership_required"
-          ? "Only an active household member can update this household."
-          : payload?.error === "household_owner_required"
-            ? "Only the household owner can update household settings."
-            : payload?.error === "household_product_not_found"
-              ? "The Household Product was not found for this operation. Refresh and try again."
-              : payload?.error === "product_group_not_found"
-                ? "The Product Group was not found for this operation. Refresh and try again."
-                : payload?.error === "stock_target_not_found"
-                  ? "The legacy Stock Target was not found for this operation. Refresh and try again."
-                  : payload?.error === "household_concept_already_exists"
-                    ? "A household concept with this name already exists."
-                    : `Household update failed (${response.status}).`;
+        payload?.error === "stale_revision"
+          ? this.loc.t("household.staleWriteFailure")
+          : payload?.error === "household_membership_required"
+            ? "Only an active household member can update this household."
+            : payload?.error === "household_owner_required"
+              ? "Only the household owner can update household settings."
+              : payload?.error === "household_product_not_found"
+                ? "The Household Product was not found for this operation. Refresh and try again."
+                : payload?.error === "product_group_not_found"
+                  ? "The Product Group was not found for this operation. Refresh and try again."
+                  : payload?.error === "stock_target_not_found"
+                    ? "The legacy Stock Target was not found for this operation. Refresh and try again."
+                    : payload?.error === "household_concept_already_exists"
+                      ? "A household concept with this name already exists."
+                      : `Household update failed (${response.status}).`;
       return { message, status: "error" };
     }
     return { status: "ok" };

@@ -459,6 +459,7 @@
     "productAndBatchCreateFailure": "A termék és a készlettétel létrehozása nem sikerült.",
     "batchCorrectionFailure": "A készlettétel javítása nem sikerült.",
     "batchDiscardFailure": "A készlettétel elvetése nem sikerült.",
+    "staleWriteFailure": "Ezt a tételt közben máshol módosították. Frissítsd a háztartási munkaterületet, majd próbáld újra.",
     "discardBatchConfirm": "Elveted ezt a készlettételt?",
     "deleteProductGroupConfirm": "Törlöd a(z) „{name}” termékcsoportot? A termékek csoport nélküliek lesznek.",
     "groupDeleteFailure": "A termékcsoport törlése nem sikerült.",

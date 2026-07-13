@@ -459,6 +459,7 @@
     "productAndBatchCreateFailure": "Product and Stock Batch could not be created.",
     "batchCorrectionFailure": "Stock Batch could not be corrected.",
     "batchDiscardFailure": "Stock Batch could not be discarded.",
+    "staleWriteFailure": "This item was changed elsewhere. Refresh the household workspace before saving again.",
     "discardBatchConfirm": "Discard this Stock Batch?",
     "deleteProductGroupConfirm": "Delete Product Group “{name}”? Its Products will become unassigned.",
     "groupDeleteFailure": "Product Group could not be deleted.",

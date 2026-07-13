@@ -323,8 +323,9 @@ export class HouseholdV2WorkspaceComponent {
       trackingUnit
     });
     if (result.status === "error") {
-      this.errorMessage.set(result.message ?? this.loc.t("household.groupSaveFailure"));
-      this.logger.log("error", "Product Group rename failed", {
+      const message = result.message ?? this.loc.t("household.groupSaveFailure");
+      this.errorMessage.set(message);
+      this.logger.log("error", message, {
         displayName: group.displayName,
         groupId: group.id
       });
@@ -363,8 +364,9 @@ export class HouseholdV2WorkspaceComponent {
       targetPolicy: product.targetPolicy ?? null
     });
     if (result.status === "error") {
-      this.errorMessage.set(result.message ?? this.loc.t("household.productSaveFailure"));
-      this.logger.log("error", "Household Product inline save failed", {
+      const message = result.message ?? this.loc.t("household.productSaveFailure");
+      this.errorMessage.set(message);
+      this.logger.log("error", message, {
         displayName: product.displayName,
         productId: product.id
       });
@@ -395,8 +397,9 @@ export class HouseholdV2WorkspaceComponent {
       resultingQuantity
     });
     if (result.status === "error") {
-      this.errorMessage.set(result.message ?? this.loc.t("household.batchCorrectionFailure"));
-      this.logger.log("error", "Stock batch correction failed", { batchId: batch.id });
+      const message = result.message ?? this.loc.t("household.batchCorrectionFailure");
+      this.errorMessage.set(message);
+      this.logger.log("error", message, { batchId: batch.id });
       return;
     }
     this.logger.log("info", "Stock batch corrected", { batchId: batch.id, resultingQuantity });
