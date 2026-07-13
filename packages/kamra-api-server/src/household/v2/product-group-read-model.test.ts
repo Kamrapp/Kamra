@@ -121,4 +121,33 @@ describe("buildProductGroupWorkspace", () => {
       "none"
     ]);
   });
+
+  it("keeps active expired batches in the count while excluding them from current", () => {
+    const expired = { ...batch("expired", "p1", 1), expiryOn: "2026-07-10" };
+    const result = buildProductGroupWorkspace({
+      allowExpiredItems: false,
+      batches: [expired],
+      groups: [],
+      products: [
+        {
+          ...product("p1", "Milk", null),
+          targetPolicy: {
+            consumptionPolicy: "earliest_expiry_first",
+            desiredQuantity: 2,
+            expiryWarningDays: 0,
+            minimumQuantity: 1,
+            trackingUnit: "count"
+          }
+        }
+      ],
+      today: "2026-07-12"
+    });
+
+    expect(result.unassignedProducts[0]?.batches.map((entry) => entry.id)).toEqual(["expired"]);
+    expect(result.unassignedProducts[0]?.aggregate).toMatchObject({
+      availableQuantity: 0,
+      batchCount: 1,
+      state: "below_minimum"
+    });
+  });
 });

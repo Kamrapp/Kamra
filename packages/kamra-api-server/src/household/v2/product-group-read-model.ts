@@ -130,9 +130,9 @@ function summarizeProduct(
   allowExpiredItems: boolean,
   today: string
 ): ProductStockAggregate {
-  const available = batches.filter(
+  const activeBatches = batches.filter((batch) => batch.status === "available");
+  const available = activeBatches.filter(
     (batch) =>
-      batch.status === "available" &&
       (allowExpiredItems || !batch.expiryOn || batch.expiryOn >= today)
   );
   const trackingUnit = policy?.trackingUnit ?? defaultTrackingUnit ?? available[0]?.unit ?? null;
@@ -151,7 +151,7 @@ function summarizeProduct(
     available,
     quantity,
     today,
-    available.length,
+    activeBatches.length,
     nextExpiry(available, today),
     trackingUnit
   );
