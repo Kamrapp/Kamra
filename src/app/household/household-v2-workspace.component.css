@@ -237,12 +237,14 @@ button.row-name {
 .manual-source {
   font-style: italic;
 }
-.group-unit-editor {
+.group-unit-editor,
+.tracking-unit-editor {
   align-items: center;
   display: flex;
   gap: var(--space-2);
 }
-.group-unit-editor .inline-group-select {
+.group-unit-editor .inline-group-select,
+.tracking-unit-editor .inline-group-select {
   flex: 0 0 7rem;
 }
 .custom-unit-slot {
@@ -282,6 +284,9 @@ button.row-name {
 .product-details .product-id-detail {
   flex: 0 1 14rem;
   min-width: 9rem;
+}
+.product-details .product-unit-detail {
+  flex: 0 1 15rem;
 }
 .product-details .product-id-detail strong {
   color: var(--color-text-muted);

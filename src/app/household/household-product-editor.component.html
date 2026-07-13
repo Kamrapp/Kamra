@@ -52,7 +52,28 @@
         </label>
         <label>
           {{ loc.t("household.trackingUnit") }}
-          <input class="ui-form-control" [(ngModel)]="groupDraft.trackingUnit" name="groupUnit" />
+          <div class="tracking-unit-editor">
+            <select
+              class="ui-form-control"
+              [ngModel]="groupTrackingUnitOption()"
+              (ngModelChange)="setGroupTrackingUnitOption($event)"
+              name="groupUnit"
+            >
+              @for (unit of trackingUnitOptions; track unit) {
+                <option [ngValue]="unit">{{ unit }}</option>
+              }
+              <option [ngValue]="'custom'">{{ loc.t("household.customUnit") }}</option>
+            </select>
+            <input
+              class="ui-form-control"
+              [class.tracking-unit-placeholder]="groupTrackingUnitOption() !== 'custom'"
+              [ngModel]="groupCustomUnit()"
+              (ngModelChange)="setGroupCustomUnit($event)"
+              [disabled]="groupTrackingUnitOption() !== 'custom'"
+              [attr.aria-label]="loc.t('household.customUnitSuffix')"
+              [placeholder]="loc.t('household.customUnitSuffix')"
+            />
+          </div>
         </label>
         <label class="checkbox-row">
           <input type="checkbox" [(ngModel)]="groupDraft.hasTarget" name="groupHasTarget" />
@@ -151,11 +172,28 @@
           </label>
           <label>
             {{ loc.t("household.trackingUnit") }}
-            <input
-              class="ui-form-control"
-              [(ngModel)]="productDraft.trackingUnit"
-              name="productTrackingUnit"
-            />
+            <div class="tracking-unit-editor">
+              <select
+                class="ui-form-control"
+                [ngModel]="productTrackingUnitOption()"
+                (ngModelChange)="setProductTrackingUnitOption($event)"
+                name="productTrackingUnit"
+              >
+                @for (unit of trackingUnitOptions; track unit) {
+                  <option [ngValue]="unit">{{ unit }}</option>
+                }
+                <option [ngValue]="'custom'">{{ loc.t("household.customUnit") }}</option>
+              </select>
+              <input
+                class="ui-form-control"
+                [class.tracking-unit-placeholder]="productTrackingUnitOption() !== 'custom'"
+                [ngModel]="productCustomUnit()"
+                (ngModelChange)="setProductCustomUnit($event)"
+                [disabled]="productTrackingUnitOption() !== 'custom'"
+                [attr.aria-label]="loc.t('household.customUnitSuffix')"
+                [placeholder]="loc.t('household.customUnitSuffix')"
+              />
+            </div>
           </label>
         </div>
         <details>

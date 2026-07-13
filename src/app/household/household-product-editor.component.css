@@ -104,6 +104,18 @@ label {
   gap: var(--space-2);
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
+.tracking-unit-editor {
+  align-items: center;
+  display: flex;
+  gap: var(--space-2);
+}
+.tracking-unit-editor > * {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.tracking-unit-placeholder {
+  visibility: hidden;
+}
 details {
   border-top: 1px solid var(--line-subtle);
   padding-top: var(--space-2);

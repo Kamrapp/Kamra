@@ -4,6 +4,12 @@ import { FormsModule } from "@angular/forms";
 import { BrowserLoggerService } from "../browser-logger.service";
 import { LocalizationService } from "../shared/localization.service";
 import {
+  composeTrackingUnit,
+  householdTrackingUnitOptions,
+  splitTrackingUnit,
+  type HouseholdTrackingUnitOption
+} from "./household-tracking-units";
+import {
   HouseholdV2Service,
   type HouseholdV2Batch,
   type HouseholdV2Product,
@@ -55,6 +61,7 @@ export class HouseholdProductEditorComponent {
   readonly errorMessage = signal("");
   readonly saving = signal(false);
   readonly productGroups = signal<HouseholdV2ProductGroup["group"][]>([]);
+  readonly trackingUnitOptions = householdTrackingUnitOptions;
   readonly selectedGroupId = signal<string | null>(null);
   readonly groupOpen = signal(false);
   readonly productOpen = signal(false);
@@ -88,6 +95,38 @@ export class HouseholdProductEditorComponent {
   groupNameChanged(): void {
     if (!this.product() && !this.productDraft.displayName)
       this.productDraft.displayName = this.groupDraft.displayName;
+  }
+
+  groupTrackingUnitOption(): HouseholdTrackingUnitOption {
+    return splitTrackingUnit(this.groupDraft.trackingUnit).option;
+  }
+
+  groupCustomUnit(): string {
+    return splitTrackingUnit(this.groupDraft.trackingUnit).customSuffix;
+  }
+
+  setGroupTrackingUnitOption(option: HouseholdTrackingUnitOption): void {
+    this.groupDraft.trackingUnit = composeTrackingUnit(option, this.groupCustomUnit()) ?? "";
+  }
+
+  setGroupCustomUnit(value: string): void {
+    this.groupDraft.trackingUnit = composeTrackingUnit("custom", value) ?? "";
+  }
+
+  productTrackingUnitOption(): HouseholdTrackingUnitOption {
+    return splitTrackingUnit(this.productDraft.trackingUnit).option;
+  }
+
+  productCustomUnit(): string {
+    return splitTrackingUnit(this.productDraft.trackingUnit).customSuffix;
+  }
+
+  setProductTrackingUnitOption(option: HouseholdTrackingUnitOption): void {
+    this.productDraft.trackingUnit = composeTrackingUnit(option, this.productCustomUnit()) ?? "";
+  }
+
+  setProductCustomUnit(value: string): void {
+    this.productDraft.trackingUnit = composeTrackingUnit("custom", value) ?? "";
   }
 
   async saveGroup(): Promise<void> {
@@ -346,6 +385,7 @@ export class HouseholdProductEditorComponent {
       this.productDraft.catalogProductId ||
       this.productDraft.note ||
       this.productDraft.productGroupId ||
+      this.productDraft.trackingUnit !== "count" ||
       this.productDraft.hasTarget
     );
   }

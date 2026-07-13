@@ -63,6 +63,8 @@ export class HouseholdV2WorkspaceComponent {
   readonly editingGroupDesired = signal<number | null>(null);
   readonly editingGroupHasTarget = signal(false);
   readonly editingProductName = signal("");
+  readonly editingProductUnitOption = signal<HouseholdTrackingUnitOption>("count");
+  readonly editingProductCustomUnit = signal("");
   readonly editingProductGtin = signal("");
   readonly editingProductNote = signal("");
   readonly editingProductGroupId = signal("");
@@ -267,7 +269,12 @@ export class HouseholdV2WorkspaceComponent {
     this.editingGroupHasTarget.set(false);
   }
   editProduct(product: HouseholdV2Product): void {
+    const trackingUnit = splitTrackingUnit(
+      product.targetPolicy?.trackingUnit ?? product.defaultTrackingUnit ?? "count"
+    );
     this.editingProductName.set(product.displayName);
+    this.editingProductUnitOption.set(trackingUnit.option);
+    this.editingProductCustomUnit.set(trackingUnit.customSuffix);
     this.editingProductGtin.set(
       typeof product.identitySnapshot?.["gtin"] === "string" ? product.identitySnapshot["gtin"] : ""
     );
@@ -283,6 +290,8 @@ export class HouseholdV2WorkspaceComponent {
   cancelProductEdit(): void {
     this.editingProductId.set(null);
     this.editingProductName.set("");
+    this.editingProductUnitOption.set("count");
+    this.editingProductCustomUnit.set("");
     this.editingProductGtin.set("");
     this.editingProductNote.set("");
     this.editingProductGroupId.set("");
@@ -437,8 +446,16 @@ export class HouseholdV2WorkspaceComponent {
     desired: number | null
   ): Promise<void> {
     const name = displayName.trim();
+    const trackingUnit = composeTrackingUnit(
+      this.editingProductUnitOption(),
+      this.editingProductCustomUnit()
+    );
     if (!name) {
       this.errorMessage.set(this.loc.t("household.productNameRequired"));
+      return;
+    }
+    if (!trackingUnit) {
+      this.errorMessage.set(this.loc.t("household.productSaveInvalid"));
       return;
     }
     const targetPolicyValues = this.editingProductHasTarget()
@@ -453,7 +470,7 @@ export class HouseholdV2WorkspaceComponent {
         typeof product.identitySnapshot?.["catalogProductId"] === "string"
           ? product.identitySnapshot["catalogProductId"]
           : null,
-      defaultTrackingUnit: product.defaultTrackingUnit ?? null,
+      defaultTrackingUnit: trackingUnit,
       displayName: name,
       expectedRevision: product.revision,
       householdId: this.householdId(),
@@ -467,8 +484,7 @@ export class HouseholdV2WorkspaceComponent {
             desiredQuantity: targetPolicyValues.desiredQuantity,
             expiryWarningDays: product.targetPolicy?.expiryWarningDays ?? 0,
             minimumQuantity: targetPolicyValues.minimumQuantity,
-            trackingUnit:
-              product.targetPolicy?.trackingUnit ?? product.defaultTrackingUnit ?? "count"
+            trackingUnit
           }
         : null
     });
