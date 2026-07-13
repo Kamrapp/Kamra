@@ -23,12 +23,14 @@ export function createShoppingTrip(input: {
   sourceShoppingNeedListId: string;
   updatedAt: string;
   updatedByUserId: string;
+  shopNameSnapshot?: string | null;
 }): ShoppingTrip {
   if (input.items.length === 0) throw new Error("shopping_trip_requires_item");
   return {
     ...input,
     revision: 0,
     shopMarketId: null,
+    shopNameSnapshot: input.shopNameSnapshot ?? null,
     status: "draft",
     items: input.items.map((item) => ({ ...item, resultStatus: "pending" }))
   };
@@ -50,12 +52,21 @@ export function transitionShoppingTrip(trip: ShoppingTrip, next: ShoppingTripSta
     throw new Error(`invalid_shopping_trip_transition:${trip.status}:${next}`);
   if (
     next === "ready" &&
-    (!trip.shopMarketId || trip.items.some((item) => item.planStatus === "unresolved"))
+    ((!trip.shopMarketId && !trip.shopNameSnapshot) ||
+      trip.items.some((item) => item.planStatus === "unresolved"))
   )
     throw new Error("shopping_trip_not_ready");
   if (next === "completed" && trip.items.some((item) => !processedItem(item)))
     throw new Error("shopping_trip_items_incomplete");
   return { ...trip, status: next, revision: trip.revision + 1 };
+}
+
+export function setShoppingTripCustomShop(trip: ShoppingTrip, shopName: string): ShoppingTrip {
+  if (!["draft", "matching", "ready"].includes(trip.status))
+    throw new Error("shopping_trip_market_locked");
+  const trimmed = shopName.trim();
+  if (!trimmed) throw new Error("shop_name_required");
+  return { ...trip, revision: trip.revision + 1, shopMarketId: null, shopNameSnapshot: trimmed };
 }
 
 export function setShoppingTripMarket(
@@ -66,7 +77,13 @@ export function setShoppingTripMarket(
   if (!["draft", "matching", "ready"].includes(trip.status))
     throw new Error("shopping_trip_market_locked");
   if (!shopMarketId.trim()) throw new Error("shop_market_required");
-  return { ...trip, shopMarketId, plannedDate, revision: trip.revision + 1 };
+  return {
+    ...trip,
+    plannedDate,
+    revision: trip.revision + 1,
+    shopMarketId,
+    shopNameSnapshot: null
+  };
 }
 
 export function addShoppingTripItem(

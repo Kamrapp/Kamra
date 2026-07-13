@@ -144,6 +144,7 @@ export type ShoppingListLineChange =
       .shopping-line-row {
         align-items: center;
         display: grid;
+        background: var(--shopping-line-background, transparent);
         gap: 0.55rem;
         grid-template-columns:
           minmax(10rem, 1fr) minmax(4.8rem, 6.5rem) minmax(4.8rem, 6.5rem)

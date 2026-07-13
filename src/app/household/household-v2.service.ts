@@ -103,6 +103,7 @@ export interface HouseholdShoppingTrip {
   plannedDate: string;
   revision: number;
   shopMarketId: string | null;
+  shopNameSnapshot?: string | null;
   status: string;
 }
 export interface HouseholdV2ShopMarket {
@@ -171,7 +172,8 @@ export class HouseholdV2Service {
   async createShoppingTrip(input: {
     householdId: string;
     plannedDate: string;
-    shopMarketId: string;
+    shopMarketId: string | null;
+    shopNameSnapshot?: string | null;
   }): Promise<{ message?: string; status: "error" | "ok"; trip?: HouseholdShoppingTrip }> {
     const response = await fetch(
       buildApiUrl(`/api/households/${encodeURIComponent(input.householdId)}/shopping-trips`),

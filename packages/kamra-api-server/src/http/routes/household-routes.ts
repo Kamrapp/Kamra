@@ -928,6 +928,7 @@ async function applyV2CompatibleShoppingList(input: {
   const updated = {
     ...input.shoppingList,
     items,
+    status: "completed" as const,
     stockAppliedAt: input.stockAppliedAt,
     updatedAt: now,
     updatedByUserId: input.userId
@@ -939,6 +940,7 @@ async function applyV2CompatibleShoppingList(input: {
       {
         $set: {
           items: updated.items,
+          status: updated.status,
           stockAppliedAt: updated.stockAppliedAt,
           updatedAt: updated.updatedAt,
           updatedByUserId: updated.updatedByUserId

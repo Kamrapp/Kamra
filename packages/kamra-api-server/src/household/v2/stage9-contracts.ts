@@ -92,6 +92,7 @@ export interface ShoppingTrip {
   id: string;
   householdId: string;
   shopMarketId: string | null;
+  shopNameSnapshot?: string | null;
   plannedDate: string;
   status: ShoppingTripStatus;
   sourceShoppingNeedListId: string;

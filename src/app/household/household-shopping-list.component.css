@@ -141,12 +141,25 @@
 }
 
 .shopping-line {
-  background: var(--pulse-row-background);
+  background: var(--shopping-line-background, var(--pulse-row-background));
   border: 1px solid var(--pulse-row-border);
   border-radius: var(--radius-ui);
   display: grid;
-  gap: 0.55rem;
-  padding: 0.55rem 0.65rem;
+  gap: 0.35rem;
+  padding: 0.4rem 0.55rem;
+}
+.shopping-line-product {
+  --shopping-line-background: var(--household-product-row-background);
+}
+.shopping-line-group {
+  --shopping-line-background: var(--household-group-row-background);
+}
+.shopping-line-impulse {
+  --shopping-line-background: color-mix(
+    in srgb,
+    var(--household-group-row-background) 52%,
+    var(--surface-soft-background)
+  );
 }
 
 .shopping-line-ticked {

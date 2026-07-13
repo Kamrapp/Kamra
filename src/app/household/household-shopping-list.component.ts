@@ -121,6 +121,15 @@ export class HouseholdShoppingListComponent implements OnChanges {
   isReadOnly(): boolean {
     return this.demoShoppingList !== null;
   }
+  isGroupShoppingLine(item: HouseholdShoppingListLine): boolean {
+    return !item.householdProductId && Boolean(item.productGroupId);
+  }
+  isImpulseShoppingLine(item: HouseholdShoppingListLine): boolean {
+    return item.sourceKind === "manual" && !item.householdProductId;
+  }
+  isProductShoppingLine(item: HouseholdShoppingListLine): boolean {
+    return !this.isGroupShoppingLine(item) && !this.isImpulseShoppingLine(item);
+  }
 
   async addManualLine(): Promise<void> {
     if (this.isReadOnly()) {
@@ -141,8 +150,44 @@ export class HouseholdShoppingListComponent implements OnChanges {
 
     const displayName = draft.displayName.trim();
     const stockGroupKey = normalizeStockGroupKey(displayName);
-    if (list.items.some((item) => normalizeStockGroupKey(item.displayName) === stockGroupKey)) {
-      this.logger.log("info", "Shopping list item already added", { displayName });
+    const existing = list.items.find(
+      (item) => normalizeStockGroupKey(item.displayName) === stockGroupKey
+    );
+    if (existing) {
+      if (normalizeUnit(existing.unit) !== normalizeUnit(draft.unit)) {
+        this.logger.log("warn", "Shopping list item unit conflict", {
+          displayName,
+          existingUnit: existing.unit,
+          requestedUnit: draft.unit.trim()
+        });
+        this.toast.push(this.loc.t("household.quickAddUnitConflict"), "warning");
+        return;
+      }
+      const addedAmount = coerceNumber(draft.purchasedAmount, 1);
+      if (addedAmount <= 0) {
+        this.toast.push(this.loc.t("household.quickAddInvalid"), "warning");
+        return;
+      }
+      const nextItems = list.items.map((item) =>
+        item.id === existing.id
+          ? {
+              ...item,
+              plannedAmount: item.plannedAmount + addedAmount,
+              purchasedAmount: item.purchasedAmount + addedAmount,
+              suggestedBuyAmount: item.suggestedBuyAmount + addedAmount,
+              targetAmount: item.targetAmount + addedAmount
+            }
+          : item
+      );
+      this.logger.log("info", "Shopping list item amount increased", {
+        addedAmount,
+        displayName,
+        lineId: existing.id
+      });
+      await this.persistShoppingList(
+        { ...list, items: nextItems },
+        this.loc.t("household.quickAddIncreased", { amount: addedAmount, name: displayName })
+      );
       return;
     }
 
@@ -217,11 +262,12 @@ export class HouseholdShoppingListComponent implements OnChanges {
     }
 
     this.pendingConfirmation.set(null);
-    this.shoppingList.set(result.shoppingList);
-    this.sectionCollapsed.set(false);
+    this.shoppingList.set(null);
+    this.sectionCollapsed.set(true);
+    this.stockAppliedAt.set(todayDateInputValue());
     this.stockPageUpdated.emit(result.householdStockPage);
     this.statusMessage.set(
-      this.loc.t("household.shoppingListApplySuccess", { count: result.appliedLineCount })
+      this.loc.t("household.shoppingListFinished", { count: result.appliedLineCount })
     );
   }
 
@@ -644,6 +690,10 @@ function normalizeStockGroupKey(value: string): string {
     .slice(0, 80);
 
   return slug || "item";
+}
+
+function normalizeUnit(value: string): string {
+  return value.trim().toLocaleLowerCase("hu-HU");
 }
 
 function readPreferredStockAppliedAt(stockAppliedAt: string | null | undefined): string {

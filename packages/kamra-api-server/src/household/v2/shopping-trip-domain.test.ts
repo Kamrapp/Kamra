@@ -3,6 +3,7 @@ import {
   addShoppingTripItem,
   createShoppingTrip,
   nextProcessingStatus,
+  setShoppingTripCustomShop,
   setShoppingTripMarket,
   transitionShoppingTrip,
   updateShoppingTripItem
@@ -42,6 +43,17 @@ describe("Stage 9 Shopping Trip state", () => {
     trip = updateShoppingTripItem(trip, "one", { planStatus: "selected" });
     trip = updateShoppingTripItem(trip, "two", { planStatus: "skipped" });
     expect(transitionShoppingTrip(trip, "ready").status).toBe("ready");
+  });
+  it("accepts a custom shop snapshot as the trip location", () => {
+    let trip = setShoppingTripCustomShop(draft(), "Saturday market");
+    trip = updateShoppingTripItem(trip, "one", { planStatus: "selected" });
+    trip = updateShoppingTripItem(trip, "two", { planStatus: "skipped" });
+    trip = transitionShoppingTrip(trip, "matching");
+    expect(transitionShoppingTrip(trip, "ready")).toMatchObject({
+      shopMarketId: null,
+      shopNameSnapshot: "Saturday market",
+      status: "ready"
+    });
   });
 
   it("supports partial processing and prevents impossible terminal edits", () => {

@@ -25,6 +25,7 @@ import { buildShoppingTripItems } from "../../household/v2/shopping-trip-plannin
 import {
   addShoppingTripItem,
   createShoppingTrip,
+  setShoppingTripCustomShop,
   setShoppingTripMarket,
   transitionShoppingTrip,
   updateShoppingTripItem
@@ -1173,15 +1174,19 @@ export const householdV2ShoppingTripsRoute: AppRoute = {
           ? (body!["shoppingNeedListId"] as string)
           : `shopping-needs:${householdId}`;
       const marketId = typeof body!["shopMarketId"] === "string" ? body!["shopMarketId"] : null;
-      if (!marketId) return json(400, { error: "shop_market_required" });
-      const market = await new MongoShopMarketRepository(database).get(marketId);
-      if (!market) return json(400, { error: "shop_market_not_found" });
+      const customShopName =
+        typeof body!["shopNameSnapshot"] === "string" ? body!["shopNameSnapshot"].trim() : "";
+      if (!marketId && !customShopName) return json(400, { error: "shop_market_required" });
+      const market = marketId ? await new MongoShopMarketRepository(database).get(marketId) : null;
+      if (marketId && !market) return json(400, { error: "shop_market_not_found" });
       const needs = await database
         .collection<ShoppingNeedList>("household_shopping_need_lists")
         .findOne({ householdId, id: needListId });
       if (!needs) return json(404, { error: "shopping_need_list_not_found" });
       const now = new Date().toISOString();
-      const shopProducts = await new MongoShopProductRepository(database).list(marketId);
+      const shopProducts = marketId
+        ? await new MongoShopProductRepository(database).list(marketId)
+        : [];
       const prices = new MongoPriceObservationRepository(database);
       const priceObservationsByShopProductId = new Map(
         await Promise.all(
@@ -1189,7 +1194,7 @@ export const householdV2ShoppingTripsRoute: AppRoute = {
         )
       );
       const matchedItems = buildShoppingTripItems({
-        currencyCode: market.currencyCode,
+        currencyCode: market?.currencyCode ?? "HUF",
         needs,
         plannedDate: body!["plannedDate"] as string,
         priceObservationsByShopProductId,
@@ -1199,14 +1204,16 @@ export const householdV2ShoppingTripsRoute: AppRoute = {
         createdAt: now,
         createdByUserId: user.email,
         householdId,
-        id: `shopping-trip:${householdId}:${needListId}:${body!["plannedDate"]}:${marketId}`,
+        id: `shopping-trip:${householdId}:${needListId}:${body!["plannedDate"]}:${marketId ?? `custom-${slug(customShopName)}`}`,
         items: matchedItems,
         plannedDate: body!["plannedDate"] as string,
         sourceShoppingNeedListId: needListId,
         updatedAt: now,
         updatedByUserId: user.email
       });
-      const selected = setShoppingTripMarket(trip, marketId);
+      const selected = marketId
+        ? setShoppingTripMarket(trip, marketId)
+        : setShoppingTripCustomShop(trip, customShopName);
       return json(201, { result: await repository.create(selected), schemaVersion });
     });
   }

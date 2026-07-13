@@ -480,6 +480,7 @@ export class HomeComponent implements OnDestroy {
 
   applyShoppingListStockPage(page: HouseholdStockPage): void {
     this.applyLoadedPage(page);
+    this.refreshV2Workspace();
     this.statusMessage.set(this.loc.t("household.shoppingListAppliedAndStockRefreshed"));
   }
 

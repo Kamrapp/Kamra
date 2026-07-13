@@ -1,4 +1,11 @@
-import { Component, Input, inject, signal } from "@angular/core";
+import {
+  Component,
+  Input,
+  inject,
+  signal,
+  type OnChanges,
+  type SimpleChanges
+} from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import {
   HouseholdV2Service,
@@ -41,8 +48,9 @@ interface TripResultDraft {
         <div class="trip-start-form">
           <label>
             <span>{{ loc.t("household.shoppingTripMarket") }}</span>
-            <select [(ngModel)]="marketId">
+            <select [ngModel]="marketId" (ngModelChange)="selectMarket($event)">
               <option value="">{{ loc.t("household.shoppingTripChooseMarket") }}</option>
+              <option value="__custom__">{{ loc.t("household.shoppingTripCustomMarket") }}</option>
               @for (market of markets(); track market.id) {
                 <option [value]="market.id">
                   {{ market.displayName }} · {{ market.countryCode }}
@@ -50,6 +58,12 @@ interface TripResultDraft {
               }
             </select>
           </label>
+          @if (marketId === "__custom__") {
+            <label>
+              <span>{{ loc.t("household.shoppingTripCustomMarketName") }}</span>
+              <input [(ngModel)]="customShopName" />
+            </label>
+          }
           <label>
             <span>{{ loc.t("household.shoppingTripDate") }}</span>
             <input type="date" [(ngModel)]="plannedDate" />
@@ -336,7 +350,7 @@ interface TripResultDraft {
     `
   ]
 })
-export class HouseholdShoppingTripPanelComponent {
+export class HouseholdShoppingTripPanelComponent implements OnChanges {
   @Input({ required: true }) householdId = "";
   readonly loc = inject(LocalizationService);
   private readonly api = inject(HouseholdV2Service);
@@ -347,20 +361,27 @@ export class HouseholdShoppingTripPanelComponent {
   readonly message = signal("");
   readonly drafts: Record<string, TripResultDraft> = {};
   marketId = "";
+  customShopName = "";
   plannedDate = new Date().toISOString().slice(0, 10);
   unplannedName = "";
   unplannedQuantity = 1;
   unplannedUnit = "count";
 
-  ngOnInit(): void {
-    void this.load();
-    void this.loadProductOptions();
-    void this.loadMarkets();
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes["householdId"]?.currentValue) {
+      void this.load();
+      void this.loadProductOptions();
+      void this.loadMarkets();
+    }
   }
   private setTrip(next: HouseholdShoppingTrip | null): void {
     this.trip.set(next);
     if (!next) return;
     if (next.shopMarketId) this.marketId = next.shopMarketId;
+    else if (next.shopNameSnapshot) {
+      this.marketId = "__custom__";
+      this.customShopName = next.shopNameSnapshot;
+    }
     const market = this.markets().find((candidate) => candidate.id === next.shopMarketId);
     for (const item of next.items) {
       if (this.drafts[item.id]) continue;
@@ -375,6 +396,7 @@ export class HouseholdShoppingTripPanelComponent {
     }
   }
   async load(): Promise<void> {
+    if (!this.householdId) return;
     const result = await this.api.listShoppingTrips(this.householdId);
     if (result.status === "ok")
       this.setTrip(
@@ -384,11 +406,13 @@ export class HouseholdShoppingTripPanelComponent {
     else this.message.set(result.message ?? "");
   }
   async loadMarkets(): Promise<void> {
+    if (!this.householdId) return;
     const result = await this.api.listShopMarkets(this.householdId);
     if (result.status === "ok") this.markets.set(result.markets);
     else this.message.set(result.message ?? "");
   }
   async loadProductOptions(): Promise<void> {
+    if (!this.householdId) return;
     const result = await this.api.loadWorkspace(this.householdId);
     if (result.status !== "ok" || !result.workspace) return;
     const products: HouseholdV2Product[] = [
@@ -406,10 +430,12 @@ export class HouseholdShoppingTripPanelComponent {
     );
   }
   async start(): Promise<void> {
+    const customShop = this.marketId === "__custom__";
     const result = await this.api.createShoppingTrip({
       householdId: this.householdId,
       plannedDate: this.plannedDate,
-      shopMarketId: this.marketId.trim()
+      shopMarketId: customShop ? null : this.marketId.trim() || null,
+      shopNameSnapshot: customShop ? this.customShopName.trim() : null
     });
     if (result.status !== "ok" || !result.trip) {
       this.message.set(result.message ?? "");
@@ -445,6 +471,9 @@ export class HouseholdShoppingTripPanelComponent {
     this.setTrip(current);
     if (!current.items.some((item) => item.planStatus === "unresolved"))
       await this.advance(current);
+  }
+  selectMarket(value: string): void {
+    this.marketId = value;
   }
   async advance(current: HouseholdShoppingTrip): Promise<void> {
     let nextTrip = current;

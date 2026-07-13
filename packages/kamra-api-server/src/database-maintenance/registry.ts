@@ -73,7 +73,7 @@ export const databaseMaintenanceEntries: readonly DatabaseMaintenanceEntry[] = [
   },
   {
     details:
-      "Creates the direct country-specific Shop Market, Shopping Need, Shopping Trip, and Ingestion Submission foundation collections and indexes. This is separate from legacy household shop labels and does not migrate or delete historical shopping lists.",
+      "Creates the direct country-specific Shop Market, Shopping Need, Shopping Trip, and Ingestion Submission foundation collections and indexes. Shopping Trips may also store an optional custom shop-name snapshot when no configured market exists; older documents remain valid and need no backfill. This is separate from legacy household shop labels and does not migrate or delete historical shopping lists.",
     id: "shopping-trip-foundation-v1",
     title: "Shop Markets and Shopping Trips"
   },

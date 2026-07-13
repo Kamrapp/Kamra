@@ -83,7 +83,12 @@
             <div class="shopping-list-shell">
               @if (pendingItems().length) {
                 @for (item of pendingItems(); track item.id) {
-                  <article class="shopping-line">
+                  <article
+                    class="shopping-line"
+                    [class.shopping-line-group]="isGroupShoppingLine(item)"
+                    [class.shopping-line-impulse]="isImpulseShoppingLine(item)"
+                    [class.shopping-line-product]="isProductShoppingLine(item)"
+                  >
                     <app-shopping-list-line
                       [defaultCurrencyCode]="defaultCurrencyCode"
                       [item]="item"
@@ -120,7 +125,12 @@
                   @if (!purchasedSectionCollapsed()) {
                     <div class="purchased-shell">
                       @for (item of purchasedItems(); track item.id) {
-                        <article class="shopping-line shopping-line-ticked">
+                        <article
+                          class="shopping-line shopping-line-ticked"
+                          [class.shopping-line-group]="isGroupShoppingLine(item)"
+                          [class.shopping-line-impulse]="isImpulseShoppingLine(item)"
+                          [class.shopping-line-product]="isProductShoppingLine(item)"
+                        >
                           <app-shopping-list-line
                             [defaultCurrencyCode]="defaultCurrencyCode"
                             [item]="item"
