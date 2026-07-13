@@ -23,6 +23,10 @@ import {
 } from "./household-v2.service";
 import { householdDomainIcons } from "./household-domain-icons";
 import { householdAmountComparisonClass } from "./household-amount-comparison";
+import {
+  isHouseholdShoppingSelectionEligible,
+  type HouseholdShoppingSelectionScale
+} from "./household-shopping-selection";
 
 @Component({
   selector: "app-household-v2-workspace",
@@ -46,7 +50,7 @@ export class HouseholdV2WorkspaceComponent {
   readonly changed = output<void>();
   readonly shoppingSelectionMode = input(false);
   readonly selectedShoppingOwnerIds = input<ReadonlySet<string>>(new Set());
-  readonly shoppingSelectionScale = input<ShoppingSelectionScale>("keep_it_chill");
+  readonly shoppingSelectionScale = input<HouseholdShoppingSelectionScale>("keep_it_chill");
   readonly shoppingSelectionToggled = output<string>();
   readonly shoppingSelectionCandidatesChanged = output<readonly string[]>();
   readonly shoppingSelectionDefaultsChanged = output<readonly string[]>();
@@ -710,16 +714,9 @@ export class HouseholdV2WorkspaceComponent {
   private isShoppingSelectionEligible(
     aggregate: HouseholdV2ProductRow["aggregate"],
     policy: HouseholdV2TargetPolicy | null,
-    scale: ShoppingSelectionScale
+    scale: HouseholdShoppingSelectionScale
   ): boolean {
-    if (!policy || aggregate.state === "not_tracked") return false;
-    if (scale === "start_fresh") return false;
-    if (scale === "stock_em_up") return true;
-    if (aggregate.state === "below_minimum") return true;
-    if (scale === "business_as_usual") return false;
-    if (aggregate.state === "between_minimum_and_target") return true;
-
-    return isExpiryWithinWarningWindow(aggregate.nextExpiryOn, policy.expiryWarningDays);
+    return isHouseholdShoppingSelectionEligible(aggregate, policy, scale);
   }
   private toggleSet(target: ReturnType<typeof signal<ReadonlySet<string>>>, id: string): void {
     target.update((ids) => {
@@ -741,16 +738,4 @@ function readOptionalAmount(value: number | string): number | null {
   if (value === "" || value === null) return null;
   const amount = typeof value === "number" ? value : Number(value);
   return Number.isFinite(amount) ? amount : null;
-}
-
-type ShoppingSelectionScale = "business_as_usual" | "keep_it_chill" | "start_fresh" | "stock_em_up";
-
-function isExpiryWithinWarningWindow(expiryOn: string | null, warningDays: number): boolean {
-  if (!expiryOn || warningDays <= 0) return false;
-  const today = new Date();
-  const todayValue = today.toISOString().slice(0, 10);
-  if (expiryOn < todayValue) return false;
-  const warningEnd = new Date(`${todayValue}T00:00:00.000Z`);
-  warningEnd.setUTCDate(warningEnd.getUTCDate() + warningDays);
-  return expiryOn <= warningEnd.toISOString().slice(0, 10);
 }
