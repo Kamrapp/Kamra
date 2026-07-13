@@ -457,6 +457,14 @@ basic Home shopping experience.
 - Validation for this unit: focused domain/matcher/repository tests pass, `npm run typecheck`, `npm run lint -- --max-warnings=0`, and Prettier formatting pass. Full suite/build and the authenticated browser/configured Mongo checks remain next evidence.
 - Next safe slice: run full validation and commit this unit, then prove/isolate the legacy Shopping Need/list boundary before the Step 8A frontend-only facelift.
 
+## Stage 10 Step 6 archive import checkpoint (2026-07-13)
+
+- `packages/kamra-api-server/src/ingestion/archive/crawl-archive-import.ts` and `npm run crawl:import` now provide a dry-run-first importer for the verified Crawl Snapshot archive. It verifies the manifest, exact archive file names, gzip JSONL checksums, and record counts before planning writes.
+- Import is limited to `ingestion_runs` and `ingestion_raw_snapshots`; identical records are skipped, stable run/snapshot identity or content conflicts are reported without writes, and apply requires both `--apply` and an exact `--target=<database>` match. Derived Products and Price Observations are intentionally excluded.
+- Focused archive tests cover dry run, apply, repeat no-op behavior, checksum-backed export/import, and raw identity conflict protection. Typecheck passes.
+- Remaining Step 6 work is correction-overlay application/parser reprocessing and configured clean-database restore evidence; no archive was imported into a real database in this session.
+- Next safe slice: add overlay-aware reprocessing into the existing source processing pipeline, or stop if a concrete parser/data defect requires a configured audit report first.
+
 Historical open-issue entries above describe intermediate checkpoints and are superseded by
 this closeout section where they say the Home bridge is still pending or Stage 8 cannot close.
 

@@ -5,6 +5,7 @@ import { promisify } from "node:util";
 import { describe, expect, it } from "vitest";
 import { createFakeDb, FakeCollection } from "../../test-support/fake-mongo.js";
 import { exportCrawlArchive, stableStringify } from "./crawl-archive.js";
+import { importCrawlArchive } from "./crawl-archive-import.js";
 
 const gunzipAsync = promisify(gunzip);
 
@@ -58,5 +59,123 @@ describe("crawl archive export", () => {
       exportCrawlArchive({ database, databaseLabel: "test", outputDirectory })
     ).rejects.toThrow("archive_output_directory_must_be_empty");
     await rm(outputDirectory, { recursive: true, force: true });
+  });
+
+  it("dry-runs and idempotently imports verified raw records", async () => {
+    const outputDirectory = await mkdtemp("kamra-crawl-archive-import-");
+    const database = createFakeDb({
+      ingestion_runs: new FakeCollection("ingestion_runs", [
+        { id: "run-existing", crawlRunId: "run-existing", status: "completed" }
+      ]),
+      ingestion_raw_snapshots: new FakeCollection("ingestion_raw_snapshots")
+    });
+    const sourceDatabase = createFakeDb({
+      ingestion_runs: new FakeCollection("ingestion_runs", [
+        { id: "run-new", crawlRunId: "run-new", status: "completed" }
+      ]),
+      ingestion_raw_snapshots: new FakeCollection("ingestion_raw_snapshots", [
+        {
+          capturedAt: "2026-07-13T00:00:00.000Z",
+          contentHash: "hash",
+          contentType: "text/html",
+          crawlDate: "2026-07-13",
+          crawlRunId: "run-new",
+          id: "snapshot-new",
+          parserName: "test",
+          parserVersion: "1",
+          parsedRows: [],
+          payloadText: "raw",
+          sourceName: "synthetic",
+          sourceRecordId: "record-new",
+          workflowName: "test"
+        }
+      ])
+    });
+
+    try {
+      await exportCrawlArchive({
+        database: sourceDatabase,
+        databaseLabel: "source",
+        outputDirectory
+      });
+      const dryRun = await importCrawlArchive({ archiveDirectory: outputDirectory, database });
+      expect(dryRun).toMatchObject({ dryRun: true, insertedRuns: 0, insertedSnapshots: 0 });
+      expect(dryRun.conflicts).toEqual([]);
+      const applied = await importCrawlArchive({
+        apply: true,
+        archiveDirectory: outputDirectory,
+        database
+      });
+      expect(applied).toMatchObject({ insertedRuns: 1, insertedSnapshots: 1 });
+      const repeated = await importCrawlArchive({
+        apply: true,
+        archiveDirectory: outputDirectory,
+        database
+      });
+      expect(repeated).toMatchObject({ skippedRuns: 1, skippedSnapshots: 1 });
+    } finally {
+      await rm(outputDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it("reports raw identity conflicts without applying inserts", async () => {
+    const outputDirectory = await mkdtemp("kamra-crawl-archive-conflict-");
+    const sourceDatabase = createFakeDb({
+      ingestion_runs: new FakeCollection("ingestion_runs"),
+      ingestion_raw_snapshots: new FakeCollection("ingestion_raw_snapshots", [
+        {
+          capturedAt: "2026-07-13T00:00:00.000Z",
+          contentHash: "new-hash",
+          contentType: "text/html",
+          crawlDate: "2026-07-13",
+          crawlRunId: "run-new",
+          id: "snapshot-new",
+          parserName: "test",
+          parserVersion: "1",
+          parsedRows: [],
+          payloadText: "new",
+          sourceName: "synthetic",
+          sourceRecordId: "record-new",
+          workflowName: "test"
+        }
+      ])
+    });
+    const database = createFakeDb({
+      ingestion_runs: new FakeCollection("ingestion_runs"),
+      ingestion_raw_snapshots: new FakeCollection("ingestion_raw_snapshots", [
+        {
+          capturedAt: "2026-07-13T00:00:00.000Z",
+          contentHash: "old-hash",
+          contentType: "text/html",
+          crawlDate: "2026-07-13",
+          crawlRunId: "run-old",
+          id: "snapshot-old",
+          parserName: "test",
+          parserVersion: "1",
+          parsedRows: [],
+          payloadText: "old",
+          sourceName: "synthetic",
+          sourceRecordId: "record-new",
+          workflowName: "test"
+        }
+      ])
+    });
+
+    try {
+      await exportCrawlArchive({
+        database: sourceDatabase,
+        databaseLabel: "source",
+        outputDirectory
+      });
+      const result = await importCrawlArchive({
+        apply: true,
+        archiveDirectory: outputDirectory,
+        database
+      });
+      expect(result.conflicts).toEqual(["snapshot:snapshot-new"]);
+      expect(result.insertedSnapshots).toBe(0);
+    } finally {
+      await rm(outputDirectory, { recursive: true, force: true });
+    }
   });
 });

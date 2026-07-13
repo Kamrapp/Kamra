@@ -251,6 +251,17 @@ npm run crawl:export
 npm run crawl:export -- --output=.artifacts/crawl-archives/dev-2026-07-13
 ```
 
+Import a verified archive into a clean or disposable target with a dry run first. The importer
+reads only `ingestion_runs` and `ingestion_raw_snapshots`, verifies the manifest/checksums, skips
+identical stable records, and reports identity/content conflicts without overwriting. It never
+imports derived Products or Price Observations. Apply requires the explicit configured database
+name and is refused when conflicts exist:
+
+```bash
+npm run crawl:import -- --archive=.artifacts/crawl-archives/dev-2026-07-13
+npm run crawl:import -- --archive=.artifacts/crawl-archives/dev-2026-07-13 --apply --target=kamra_clean
+```
+
 The default output is under `.artifacts/crawl-archives/`, which is ignored by Git. Treat archives as operational data: keep them outside the repository when they contain real crawl payloads, protect them from public distribution, and never use this command with an `--apply` or mutation mode because none exists.
 
 ### `maintenance-alpha-domain-language.ts`
