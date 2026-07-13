@@ -346,6 +346,11 @@
   than repeated. Active work is limited to the post-`257f07e` expiry/count and target-comparison
   retests, the previously skipped Shopping Trip/pricing/ingestion work, configured archive/repair,
   final evidence, and the remaining idempotency probe.
+- Revised the generated manual-test automation plan to a bounded, executable scope: matcher matrix,
+  Trip persistence assertions, Stage 9 HTTP contracts, one run-scoped Shopping Trip Mongo smoke,
+  and duplicate-impulse key coverage. It explicitly avoids schema changes, catalogue side effects,
+  browser-test infrastructure, and reopening accepted checks. Implementation is approved by the
+  current user request and will proceed in the plan's separate commits.
 
 Run the focused demo seed against the approved disposable database, then rerun
 `npm run smoke:demo-household` before browser verification. Do not use the full seed unless
