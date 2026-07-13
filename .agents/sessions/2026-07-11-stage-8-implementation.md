@@ -598,6 +598,24 @@ basic Home shopping experience.
   restore) and the browser/two-user acceptance matrix; no further safe code change is implied by those
   checks without a concrete finding.
 
+## Stage 10 operator handoff (2026-07-13)
+
+Use an approved disposable/configured database and preserve the crawl archive before writes:
+
+1. Export the Crawl Snapshot archive and independently verify its manifest/checksums.
+2. Review the already-validated dry run, then apply the Lidl repair with the exact configured database
+   and operator identity: `npm run repair:lidl-brochure -- --apply --target=<configured-db> --operator=<id> --limit=50`.
+3. Process the four pending snapshots reported by `validate:processed-ingestion`: ALDI and PENNY with
+   their source filters and the two Lidl brochures with `--source=lidl-hu-brochure --limit=50`.
+4. Reprocess Lidl with `--reprocess --source=lidl-hu-brochure --limit=50` so corrected parsed rows reach
+   the catalogue; keep the raw payload unchanged.
+5. Rerun `npm run audit:ingestion-quality -- --issue-limit=1000` and
+   `npm run validate:processed-ingestion`, then repeat catalogue/transaction smoke as appropriate.
+
+Do not mark Stage 10 or MVP closure complete from the code commits alone. The remaining browser/two-user
+matrix, clean-target archive restore, and any repair/reconciliation result belong in the central manual
+acceptance checklist with an explicit waiver if they cannot be run.
+
 Historical open-issue entries above describe intermediate checkpoints and are superseded by
 this closeout section where they say the Home bridge is still pending or Stage 8 cannot close.
 
