@@ -438,17 +438,6 @@
     </span>
     <span class="row-actions">
       @if (editingProductId() === row.product.id) {
-        <select
-          class="inline-group-select"
-          [ngModel]="editingProductGroupId()"
-          (ngModelChange)="editingProductGroupId.set($event)"
-          [attr.aria-label]="loc.t('household.productGroup')"
-        >
-          <option [ngValue]="''">{{ loc.t("household.unassigned") }}</option>
-          @for (group of availableGroups(); track group.id) {
-            <option [ngValue]="group.id">{{ group.displayName }}</option>
-          }
-        </select>
         <app-table-icon-button
           [ariaLabel]="loc.t('household.saveHouseholdProduct')"
           [titleText]="loc.t('household.saveHouseholdProduct')"
@@ -505,11 +494,11 @@
   </div>
   @if (isProductDetailsOpen(row.product.id)) {
     <div class="details-row product-details" [style.--row-depth]="depth">
-      <span>
+      <span class="product-id-detail">
         <small>{{ loc.t("household.productId") }}</small>
         <strong>{{ row.product.id }}</strong>
       </span>
-      <span>
+      <span class="product-gtin-detail">
         <small>{{ loc.t("household.gtin") }}</small>
         @if (editingProductId() === row.product.id) {
           <input
@@ -522,7 +511,7 @@
           <strong>{{ row.product.identitySnapshot?.["gtin"] ?? "—" }}</strong>
         }
       </span>
-      <span>
+      <span class="product-note-detail">
         <small>{{ loc.t("household.note") }}</small>
         @if (editingProductId() === row.product.id) {
           <textarea
@@ -535,9 +524,23 @@
           <strong>{{ row.product.note ?? "—" }}</strong>
         }
       </span>
-      <span>
+      <span class="product-group-detail">
         <small>{{ loc.t("household.productGroup") }}</small>
-        <strong>{{ row.product.productGroupId ?? loc.t("household.unassigned") }}</strong>
+        @if (editingProductId() === row.product.id) {
+          <select
+            class="inline-group-select"
+            [ngModel]="editingProductGroupId()"
+            (ngModelChange)="editingProductGroupId.set($event)"
+            [attr.aria-label]="loc.t('household.productGroup')"
+          >
+            <option [ngValue]="''">{{ loc.t("household.unassigned") }}</option>
+            @for (group of availableGroups(); track group.id) {
+              <option [ngValue]="group.id">{{ group.displayName }}</option>
+            }
+          </select>
+        } @else {
+          <strong>{{ productGroupLabel(row.product.productGroupId) }}</strong>
+        }
       </span>
     </div>
   }
@@ -546,7 +549,12 @@
       <div class="stock-grid stock-batch-row" [style.--row-depth]="depth + 1">
         <span class="row-name batch-name">
           @if (editingBatchId() === batch.id) {
-            <strong>{{ icons.batch }} {{ batchSourceLabel(batch) }}</strong>
+            <strong>
+              {{ icons.batch }}
+              <span [class.manual-source]="isManualBatch(batch)">
+                {{ batchSourceLabel(batch) }}
+              </span>
+            </strong>
             <input
               class="inline-date-input batch-title-date"
               type="date"
@@ -555,7 +563,13 @@
               [attr.aria-label]="loc.t('household.stockedAt')"
             />
           } @else {
-            <strong>{{ icons.batch }} {{ batchTitle(batch) }}</strong>
+            <strong>
+              {{ icons.batch }}
+              <span [class.manual-source]="isManualBatch(batch)">
+                {{ batchSourceLabel(batch) }}
+              </span>
+              ({{ batch.acquiredOn }})
+            </strong>
           }
         </span>
         @if (editingBatchId() === batch.id) {

@@ -174,6 +174,7 @@ export class HouseholdV2WorkspaceComponent {
     this.editingGroupDesired.set(group.group.targetPolicy?.desiredQuantity ?? 0);
     this.editingGroupHasTarget.set(Boolean(group.group.targetPolicy));
     this.editingGroupId.set(group.group.id);
+    this.groupDetailsIds.update((ids) => new Set(ids).add(group.group.id));
     this.groupSelected.emit(group);
   }
   cancelGroupEdit(): void {
@@ -253,6 +254,16 @@ export class HouseholdV2WorkspaceComponent {
   }
   batchSourceLabel(batch: HouseholdV2Batch): string {
     return batch.acquisitionSnapshot.sourceName?.trim() || this.loc.t("household.manualSource");
+  }
+  isManualBatch(batch: HouseholdV2Batch): boolean {
+    return !batch.acquisitionSnapshot.sourceName?.trim();
+  }
+  productGroupLabel(groupId: string | null | undefined): string {
+    if (!groupId) return this.loc.t("household.unassigned");
+    return (
+      this.availableGroups().find((group) => group.id === groupId)?.displayName ??
+      this.loc.t("household.unassigned")
+    );
   }
   batchTitle(batch: HouseholdV2Batch): string {
     return `${this.batchSourceLabel(batch)} (${batch.acquiredOn})`;
