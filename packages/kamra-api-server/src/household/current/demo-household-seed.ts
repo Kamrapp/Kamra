@@ -162,6 +162,7 @@ export class MongoHouseholdDemoSeedRepository implements DemoHouseholdSeedReposi
 
   async setup(): Promise<{ databaseName: string; ensuredCollections: string[] }> {
     const householdSetup = await this.householdRepository.setupCollections();
+    await assertCurrentHouseholdValidator(this.database);
 
     await Promise.all([
       this.usersCollection.createIndex({ email: 1 }, { name: "users_email_unique", unique: true }),
@@ -319,6 +320,42 @@ export class MongoHouseholdDemoSeedRepository implements DemoHouseholdSeedReposi
       })
     );
   }
+}
+
+async function assertCurrentHouseholdValidator(database: MongoDatabaseLike): Promise<void> {
+  const result = await database.command({ listCollections: 1 });
+  const cursor = isRecord(result["cursor"]) ? result["cursor"] : null;
+  const firstBatch = Array.isArray(cursor?.["firstBatch"]) ? cursor["firstBatch"] : [];
+  const householdCollection = firstBatch.find(
+    (entry) => isRecord(entry) && entry["name"] === "households"
+  );
+  if (!isRecord(householdCollection)) {
+    return;
+  }
+
+  const options = isRecord(householdCollection["options"]) ? householdCollection["options"] : null;
+  const validator = options && isRecord(options["validator"]) ? options["validator"] : null;
+  const jsonSchema =
+    validator && isRecord(validator["$jsonSchema"]) ? validator["$jsonSchema"] : null;
+  const properties =
+    jsonSchema && isRecord(jsonSchema["properties"]) ? jsonSchema["properties"] : null;
+  if (!properties) {
+    return;
+  }
+
+  const requiredProperties = ["allowExpiredItems", "groupTargetShoppingMode"];
+  const missingProperties = requiredProperties.filter((property) => !(property in properties));
+  if (missingProperties.length === 0) {
+    return;
+  }
+
+  throw new Error(
+    `Demo household seed requires the current households validator in database '${database.databaseName}'. Missing validator properties: ${missingProperties.join(", ")}. Run the database-maintenance validator action for household-group-shopping-policy-v1 (do not only mark it complete), then retry npm run seed:demo-household.`
+  );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 export function createDemoHouseholdSeedDataset(

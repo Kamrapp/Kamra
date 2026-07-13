@@ -67,4 +67,39 @@ describe("runDemoHouseholdSeed", () => {
     expect(db.__collections["household_stock_batches"]!.docs).toHaveLength(0);
     expect(db.__collections["seed_ledger"]!.docs).toHaveLength(0);
   });
+
+  it("refuses a stale household validator before deleting the fixture", async () => {
+    const db = createFakeDb();
+    db.command = async () => ({
+      cursor: {
+        firstBatch: [
+          {
+            name: "households",
+            options: {
+              validator: {
+                $jsonSchema: {
+                  properties: {
+                    allowExpiredItems: {}
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    });
+    const repository = new MongoHouseholdDemoSeedRepository(db);
+
+    await expect(
+      runDemoHouseholdSeed(
+        {
+          userPassword: "demo-password"
+        },
+        repository,
+        new Date("2026-07-09T10:00:00.000Z")
+      )
+    ).rejects.toThrow("household-group-shopping-policy-v1");
+
+    expect(db.__collections["users"]?.docs ?? []).toHaveLength(0);
+  });
 });

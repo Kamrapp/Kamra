@@ -79,7 +79,11 @@ npm run smoke:demo-household
 ```
 
 `seed:demo-household` refreshes only the reserved `household1` fixture and its `usera`/`userb`
-accounts. It requires the disposable database guard and the password environment variable.
+accounts. It requires the disposable database guard, the password environment variable, and the
+current household validators. If it reports a stale validator, run the
+`household-group-shopping-policy-v1` validator action in Database maintenance against the same
+configured database; do not use only `Mark as complete`, which records acknowledgement without
+changing MongoDB.
 
 After the test session, remove only that household fixture with the explicit confirmation:
 

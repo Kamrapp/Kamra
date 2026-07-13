@@ -76,6 +76,7 @@
 - `npm run mvp:preflight` passed locally with 240 tests/65 files, 7 integration tests, formatting, lint, typecheck, web build, and API build.
 - `npm run smoke:demo-household` reached the configured MongoDB database but failed because the current disposable household document lacks `groupTargetShoppingMode`; this is a useful stale-seed/schema signal and was not masked. Reseed/migrate that environment before operator testing.
 - A later smoke run found no `household1` in the selected database at all. The validator now reports the selected database and instructs the operator to run `npm run seed:demo-household` before retrying; no automatic database write was performed.
+- The focused seed then exposed the underlying schema drift before fixture deletion: `kamra_dev.households` is missing `groupTargetShoppingMode` in its MongoDB validator. The seed now fails early with the exact maintenance entry and distinguishes running the validator action from merely marking it complete.
 - The teardown guard was verified without the confirmation argument; it failed closed before any database write.
 
 ## Decisions
