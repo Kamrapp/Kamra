@@ -338,6 +338,9 @@
 - `npm run mvp:preflight` passed after these changes: 74 test files/269 tests, 8 deterministic
   integration tests, formatting, lint, typecheck, web build, API build, and diff checks. Browser,
   configured MongoDB, and operator-session checks remain manual by design.
+- Refined the live runbook in `99e95b7`: the completed local preflight is checked rather than left
+  as an open manual item, the automated Group aggregation probe was removed from open risks, and
+  the document explicitly separates automated evidence from remaining browser/configured checks.
 
 Run the focused demo seed against the approved disposable database, then rerun
 `npm run smoke:demo-household` before browser verification. Do not use the full seed unless
