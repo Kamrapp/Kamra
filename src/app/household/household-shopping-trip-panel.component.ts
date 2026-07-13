@@ -285,7 +285,7 @@ interface TripResultDraft {
         gap: 0.2rem;
       }
       .trip-item {
-        border-top: 1px solid var(--ui-border);
+        border-top: 1px solid var(--line-panel);
         padding: 0.45rem 0;
       }
       .trip-item > span {
@@ -306,8 +306,8 @@ interface TripResultDraft {
       }
       .trip-result-editor,
       .trip-unplanned {
-        background: var(--ui-surface-muted);
-        border: 1px solid var(--ui-border);
+        background: var(--surface-soft-background);
+        border: 1px solid var(--line-panel);
         display: grid;
         gap: var(--space-2);
         grid-template-columns: repeat(3, minmax(0, 1fr));

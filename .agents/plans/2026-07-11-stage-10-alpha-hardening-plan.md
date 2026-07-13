@@ -364,9 +364,9 @@ Implementation ownership map:
 
 ### Step 8A - Frontend minor facelift and CSS/HTML simplification
 
-- After Step 4A behavior is stable, audit shared theme tokens and the Stage 8–9 surfaces for repeated hardcoded colors, dark/light mismatches, duplicated control styles, unnecessary wrapper/grid rules, and templates whose structure obscures state. Reuse global classes/tokens before adding local values; simplify markup only when bindings and accessibility semantics remain clear.
+- After Step 4A behavior is stable, audit shared theme tokens and the Stage 8–9 surfaces for repeated hardcoded colors, dark/light mismatches, duplicated control styles, unnecessary wrapper/grid rules, and templates whose structure obscures state. Reuse global classes/tokens before adding local values; simplify markup only when bindings and accessibility semantics remain clear. **First slice implemented (2026-07-13):** added shared spacing/surface/border compatibility tokens and removed undefined Trip-panel theme references so existing admin/Trip surfaces resolve consistently in both themes.
 - Keep this slice visual and low-risk: no endpoint, persistence, target-policy, shopping, or authorization changes. Preserve the current compact table/editor hierarchy, responsive overflow behavior, fixed headers, and keyboard labels. Prefer a small shared utility/token addition over a new styling framework.
-- Acceptance: light and dark screenshots/manual checks show consistent surfaces, status colors, controls, disabled/error states, focus rings, and readable contrast; `npm run format:check`, lint, typecheck, web build, and relevant component tests pass. Record any larger layout redesign as post-MVP instead of stretching this slice.
+- Acceptance: light and dark screenshots/manual checks show consistent surfaces, status colors, controls, disabled/error states, focus rings, and readable contrast; `npm run format:check`, lint, typecheck, web build, and relevant component tests pass. **Remaining:** browser screenshots/contrast confirmation and any larger layout redesign; record the latter as post-MVP instead of stretching this slice.
 - Commit per independent surface: `style: simplify <surface> theme consistency`.
 
 ### Step 9 - Schema, compatibility, and maintenance cleanup

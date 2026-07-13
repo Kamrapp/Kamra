@@ -478,6 +478,12 @@ basic Home shopping experience.
 - The route still owns request authentication, market/need loading, optimistic persistence, and direct match override validation. No generic framework or behavior change was introduced.
 - Pure planning coverage passes for package math, expected total, selected catalog Product, and explicit match options. Full validation remains the next commit gate.
 
+## Stage 10 Step 8A frontend token checkpoint (2026-07-13)
+
+- The global stylesheet now owns the missing `--space-1`, `--ui-border`, and `--ui-surface-muted` compatibility tokens used by existing compact surfaces. Dark mode overrides resolve through the same theme-aware line/surface tokens.
+- The Home Trip panel now uses the canonical `--line-panel` and `--surface-soft-background` values directly instead of undefined local `--ui-*` references. No markup, endpoint, or persistence behavior changed.
+- Remaining Step 8A evidence is browser light/dark/focus/responsive confirmation; larger Home layout changes stay post-MVP unless manual review identifies a concrete usability defect.
+
 Historical open-issue entries above describe intermediate checkpoints and are superseded by
 this closeout section where they say the Home bridge is still pending or Stage 8 cannot close.
 
