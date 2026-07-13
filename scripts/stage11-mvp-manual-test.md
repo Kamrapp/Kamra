@@ -153,7 +153,8 @@ and demo seed-ledger entries. It does not remove shared catalogue, shop-market, 
 - [ ] Confirm the compact Minimum, Current, Target, and Unit columns remain readable and Batch
       Quantity stays aligned under Product Current.
 - [ ] Test Product Group/Product/Batch stale revision or concurrent-edit failure. The old state
-      remains intact and the UI explains the conflict.
+      remains intact, the UI says the item was changed elsewhere, and it tells the user to refresh
+      before saving again; the Activity entry uses the same actionable explanation.
 - [ ] Save from the inline editor and from the right-side editor. Each path clears the other editor,
       leaves no stale edit mode, and shows refreshed data.
 - [ ] Add Product from a Group and Add Batch from a Product. Add Batch opens only the Batch editor;

@@ -42,6 +42,9 @@
 - Updated the live runbook in e5a2c52 to retain only the resulting browser retests.
 - Fixed the Angular template-reference scope exposed by the production build in ba7155e by
   keeping the edited Batch Stocked at date in component state.
+- Improved stale-revision feedback in the shared Household V2 write service: localized UI and
+  Activity messages now tell the operator that the item changed elsewhere and that the workspace
+  must be refreshed before retrying.
 
 ## Changed Files
 
@@ -99,6 +102,8 @@
 - Final validation after the workspace refinement: 7 focused integration tests, 245 tests across 68
   files, formatting, lint, typecheck, web build, and diff checks passed. The fixed-clock
   integration harness now also passes independently.
+- After the stale-revision feedback fix, the full test suite, typecheck, lint, web build, and diff
+  checks passed again.
 - `npm run mvp:preflight` passed locally with 240 tests/65 files, 7 integration tests, formatting, lint, typecheck, web build, and API build.
 - `npm run smoke:demo-household` reached the configured MongoDB database but failed because the current disposable household document lacks `groupTargetShoppingMode`; this is a useful stale-seed/schema signal and was not masked. Reseed/migrate that environment before operator testing.
 - A later smoke run found no `household1` in the selected database at all. The validator now reports the selected database and instructs the operator to run `npm run seed:demo-household` before retrying; no automatic database write was performed.
