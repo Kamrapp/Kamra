@@ -123,6 +123,98 @@ describe("Stage 11 application integration harness", () => {
     });
   });
 
+  it("writes a Product Group, Product, and Batch through the composer and returns the grouped read model", async () => {
+    const harness = createIntegrationHarness({
+      user: { email: "stage11-product-owner@kamra.test", role: "user" }
+    });
+    await harness.database.collection("household_memberships").insertOne({
+      householdId: harness.householdId,
+      status: "active",
+      userId: harness.user.email
+    });
+
+    const create = await harness.send({
+      bodyText: JSON.stringify({
+        batch: {
+          acquiredOn: "2026-07-12",
+          displayName: "Pilos 1.5% milk",
+          expiryOn: "2026-07-14",
+          originalQuantity: 1.5,
+          unit: "l"
+        },
+        group: {
+          displayName: "Milk",
+          targetPolicy: {
+            consumptionPolicy: "earliest_expiry_first",
+            desiredQuantity: 4,
+            expiryWarningDays: 2,
+            minimumQuantity: 2,
+            trackingUnit: "l"
+          },
+          trackingUnit: "l"
+        },
+        operationId: "compose-milk-1",
+        product: {
+          defaultTrackingUnit: "l",
+          displayName: "Pilos 1.5% milk",
+          note: "manual integration fixture"
+        },
+        requestFingerprint: "compose-milk-1-fingerprint"
+      }),
+      method: "POST",
+      path: `/api/households/${harness.householdId}/product-composer`
+    });
+
+    expect(create.status).toBe(201);
+    const createBody = JSON.parse(create.body) as {
+      result: {
+        batchId: string;
+        productGroupId: string;
+        productId: string;
+      };
+    };
+    expect(createBody.result.productGroupId).toContain("product-group:");
+
+    const workspace = await harness.send({
+      method: "GET",
+      path: `/api/households/${harness.householdId}/stock-workspace`
+    });
+    expect(workspace.status).toBe(200);
+    const workspaceBody = JSON.parse(workspace.body) as {
+      productGroupWorkspace: {
+        productGroups: Array<{
+          aggregate: { availableQuantity: number; state: string };
+          group: { displayName: string; targetPolicy: { desiredQuantity: number } };
+          products: Array<{
+            batches: Array<{ id: string; householdProductId: string; remainingQuantity: number }>;
+            product: { displayName: string; id: string; productGroupId: string };
+          }>;
+        }>;
+      };
+    };
+    const group = workspaceBody.productGroupWorkspace.productGroups[0]!;
+    const product = group.products[0]!;
+    const batch = product.batches[0]!;
+    expect(group.group).toMatchObject({
+      displayName: "Milk",
+      targetPolicy: { desiredQuantity: 4 }
+    });
+    expect(group.aggregate).toMatchObject({
+      availableQuantity: 1.5,
+      state: "below_minimum"
+    });
+    expect(product.product).toMatchObject({
+      displayName: "Pilos 1.5% milk",
+      id: createBody.result.productId,
+      productGroupId: createBody.result.productGroupId
+    });
+    expect(batch).toMatchObject({
+      householdProductId: createBody.result.productId,
+      id: createBody.result.batchId,
+      remainingQuantity: 1.5
+    });
+  });
+
   it("keeps household membership as a real integration boundary", async () => {
     const harness = createIntegrationHarness({
       user: { email: "stage11-outsider@kamra.test", role: "user" }

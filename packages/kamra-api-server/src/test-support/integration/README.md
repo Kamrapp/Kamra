@@ -10,6 +10,7 @@ Run the focused suite with:
 npm run test:integration
 ```
 
-The fake database intentionally does not emulate MongoDB validators or transaction semantics.
-Configured database smoke scripts remain responsible for real validator, index, transaction, and
-maintenance behavior.
+The fake database intentionally does not emulate MongoDB validators, rollback, or transaction
+isolation. The harness only supplies the session lifecycle needed for transaction-backed commands
+to cross the application boundary. Configured database smoke scripts remain responsible for real
+validator, index, transaction, and maintenance behavior.

@@ -55,7 +55,13 @@ export function createIntegrationHarness(options: IntegrationHarnessOptions): In
     createHouseholdRepository: () => new MongoHouseholdRepository(database),
     getMongoClient: async () =>
       ({
-        db: () => database
+        db: () => database,
+        startSession: () => ({
+          abortTransaction: async () => undefined,
+          commitTransaction: async () => undefined,
+          endSession: async () => undefined,
+          startTransaction: () => undefined
+        })
       }) as never
   };
 
