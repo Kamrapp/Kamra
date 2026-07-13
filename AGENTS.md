@@ -180,6 +180,10 @@ When the user asks for commits:
 - create atomic commits
 - map each commit to a plan step
 - avoid unrelated cleanup
+- For a meaningful feature, fix, or refactor, use a concise commit body after the subject. In two
+  to four short lines, state the problem or user need, the essential change, and why the change is
+  useful. Keep process updates such as “committing now” out of the commit message; validation may
+  be listed as a final short line when it adds useful review context.
 - include validation notes in the session state or final summary
 
 Fix commits should map to a specific review finding, failed check, or user-reported issue. They should not become hidden refactors.
