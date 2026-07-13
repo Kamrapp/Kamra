@@ -138,34 +138,22 @@ and demo seed-ledger entries. It does not remove shared catalogue, shop-market, 
 
 ### Group and Product structure
 
-- [ ] Groups start expanded; Products with Batches start collapsed; empty rows have no inert
-      disclosure control.
-- [ ] Group rows show compact Minimum, Current, Target, Unit, state, and fixed actions. Current is
-      derived and not independently editable.
-- [ ] Product rows show their own identity, group assignment, Product target state, and fixed
-      action positions. Product Group dropdown initially shows the actual assignment.
-- [ ] Batch rows show Quantity aligned under Product Current, then Stocked at and Expiry without
-      overlap; expired dates and status badges use the correct muted danger/good/warning colors.
-- [ ] Batches are ordered expired first, then soonest future expiry, then no-expiry last.
-- [ ] Expiry before Stocked at is accepted and remains persisted.
-- [ ] Unassigned Products use a slim separator/presentation, not an obtrusive warning block.
-- [ ] The fixture smoke has already checked that no productless “Needs Product” Batch exists; in
-      the browser, only confirm that no such orphan appears in the rendered workspace.
+- [ ] Remove the unused Add Product/Add Batch action slots from Batch rows so Batch discard stays
+      in the final action column and all row action sets align consistently.
+- [ ] Refine the Unassigned Products separator: smaller italic title, the same light text color as
+      real Groups, a stronger border, and a softened Group-like surface distinct from both Groups
+      and Batch rows.
 
 ### CRUD and derived data
 
-- [ ] Create, rename, edit details, discard/cancel, and delete a Group. Products and Batches remain
-      attached or become unassigned according to the approved policy; no history disappears.
-- [ ] Create, rename, reassign, edit GTIN/Note, discard/cancel, and delete a Product. Existing
-      Batches and historical snapshots remain intact.
-- [ ] Add a Product with no Batch; it appears with zero Current. Add a Batch later without changing
-      Product identity.
-- [ ] Add a second Batch to an existing Product. It contributes to the same Product and Group
-      automatically and does not create a duplicate Product/Group contribution.
-- [ ] Correct Batch quantity upward and downward, and edit Stocked at/Expiry. Derived Product and
-      Group Current values refresh without 404/500 errors.
-- [ ] Discard a Batch without entering edit mode first. Confirm the action, activity result, and
-      resulting history/status are understandable.
+- [ ] Replace the free-form Group unit field with a global unit selector plus a `Custom` option.
+      Selecting Custom reveals a suffix field; entering `test` persists `custom:test`, while the
+      table displays only italic `test` (and similarly `db` rather than `custom:db`).
+- [ ] Give each Batch a meaningful title from its source and stocked-at date, for example
+      `Lidl (2026-07-14)`, instead of the generic Stock Batch label. Editing the title's date should
+      edit Stocked at in place, without inserting a misaligned extra column.
+- [ ] Narrow the Minimum, Current, and Target columns while preserving readable values and the
+      aligned Batch Quantity column.
 - [ ] Test Product Group/Product/Batch stale revision or concurrent-edit failure. The old state
       remains intact and the UI explains the conflict.
 - [ ] Save from the inline editor and from the right-side editor. Each path clears the other editor,
@@ -191,6 +179,10 @@ and demo seed-ledger entries. It does not remove shared catalogue, shop-market, 
 - [ ] Loading, empty, validation, 403, 404, 409, and 500 states are visible and localized.
 
 Operator notes and discoveries:
+
+The Section 3 structure and first CRUD checks are accepted in the bottom table. This section now
+contains only the action-slot, Unassigned Products styling, unit selector, Batch title/date,
+quantity-column, and remaining consistency/accessibility retests.
 
 ## 4. Shopping list and household purchase application
 
@@ -337,17 +329,19 @@ Record only safe summaries. Never include credentials, tokens, or private househ
 Move completed checks here as the runbook progresses. Keep active sections limited to outstanding
 work, retests, and decisions. This table records operator evidence without repeating full test steps.
 
-| Area                     | Covered and accepted                                                                                                                                   | Operator note / boundary                                                                      |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
-| Automated preflight      | `npm run mvp:preflight` passed.                                                                                                                        | Repeat only when diagnosing a later failure.                                                  |
-| Demo fixture             | Focused seed and `smoke:demo-household` passed.                                                                                                        | Seeded disposable household is valid for the remaining browser pass.                          |
-| Catalog and transactions | Catalog smoke passed; transaction smoke passed with committed `2`, rollback `0`.                                                                       | Configured smoke evidence is accepted; fake tests are not a substitute.                       |
-| Anonymous access         | Public/sign-in surfaces are reachable; protected routes show the intended sign-in state.                                                               | Accepted.                                                                                     |
-| User access              | Controlled user A signs in and sees only the allocated household.                                                                                      | Accepted.                                                                                     |
-| Household creation       | One household can be created from an empty user and managed as owner.                                                                                  | Multiple-household management is deferred; the seeded household is sufficient for MVP checks. |
-| Admin authorization      | Normal users are rejected from Developer Admin, Site Admin, maintenance, feature flags, pricing, and ingestion review.                                 | Accepted.                                                                                     |
-| Manual access            | Rail navigation works; household/shopping content is available to normal users and product/ingestion content is admin-only; tabs work in both locales. | Compact terminology layout still needs the focused visual retest above.                       |
-| Activity console         | Action feedback, browser-console mirroring, object context, scrolling, and output-only resizing work.                                                  | Slightly taller default output still needs the focused visual retest above.                   |
-| Diagnostics              | Effective database is identified without secrets or raw private data.                                                                                  | Accepted.                                                                                     |
-| Seeded household         | Product Groups, settings persistence, expiry policy, and group-target modes are covered by the accepted Section 2 checks above.                        | Desired-restock derivation remains explicitly deferred.                                       |
-| Invitation backend       | Repository and route tests cover owner creation, duplicate protection, existing-user acceptance, and registration-time claiming.                       | Browser retest remains active; no email delivery is in scope.                                 |
+| Area                     | Covered and accepted                                                                                                                                                              | Operator note / boundary                                                                       |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Automated preflight      | `npm run mvp:preflight` passed.                                                                                                                                                   | Repeat only when diagnosing a later failure.                                                   |
+| Demo fixture             | Focused seed and `smoke:demo-household` passed.                                                                                                                                   | Seeded disposable household is valid for the remaining browser pass.                           |
+| Catalog and transactions | Catalog smoke passed; transaction smoke passed with committed `2`, rollback `0`.                                                                                                  | Configured smoke evidence is accepted; fake tests are not a substitute.                        |
+| Anonymous access         | Public/sign-in surfaces are reachable; protected routes show the intended sign-in state.                                                                                          | Accepted.                                                                                      |
+| User access              | Controlled user A signs in and sees only the allocated household.                                                                                                                 | Accepted.                                                                                      |
+| Household creation       | One household can be created from an empty user and managed as owner.                                                                                                             | Multiple-household management is deferred; the seeded household is sufficient for MVP checks.  |
+| Admin authorization      | Normal users are rejected from Developer Admin, Site Admin, maintenance, feature flags, pricing, and ingestion review.                                                            | Accepted.                                                                                      |
+| Manual access            | Rail navigation works; household/shopping content is available to normal users and product/ingestion content is admin-only; tabs work in both locales.                            | Compact terminology layout still needs the focused visual retest above.                        |
+| Activity console         | Action feedback, browser-console mirroring, object context, scrolling, and output-only resizing work.                                                                             | Slightly taller default output still needs the focused visual retest above.                    |
+| Diagnostics              | Effective database is identified without secrets or raw private data.                                                                                                             | Accepted.                                                                                      |
+| Seeded household         | Product Groups, settings persistence, expiry policy, and group-target modes are covered by the accepted Section 2 checks above.                                                   | Desired-restock derivation remains explicitly deferred.                                        |
+| Invitation backend       | Repository and route tests cover owner creation, duplicate protection, existing-user acceptance, and registration-time claiming.                                                  | Browser retest remains active; no email delivery is in scope.                                  |
+| Home workspace structure | Groups/Products/Batches render in the intended three-level hierarchy; expansion, derived Current, assignment, action placement, expiry ordering, and orphan checks were accepted. | Batch action-slot alignment and Unassigned Products styling remain active above.               |
+| Home CRUD                | Group/Product/Batch create, rename, detail, reassign, delete/discard, multi-Batch aggregation, and quantity/date correction were accepted without data-loss findings.             | Unit selector, Batch title/date presentation, and narrower amount columns remain active above. |

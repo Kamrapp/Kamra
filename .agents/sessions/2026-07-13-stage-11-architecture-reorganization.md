@@ -109,6 +109,10 @@
   `8d4419e` and `f857b7c`. The integrated manual pass and any narrow findings remain.
 - The new household invitation validator entry must be run against the configured disposable
   database before using the browser invitation flow; the deterministic tests do not update MongoDB.
+- The operator accepted the Section 3 workspace structure and first CRUD/derived-data pass. The
+  live runbook now retains only the remaining action-column alignment, Unassigned Products styling,
+  global/custom unit presentation, source-plus-date Batch titles, narrower amount columns, and the
+  previously open consistency/accessibility checks.
 - Stage 10 configured/browser release evidence remains open and is not waived by this plan.
 - The operator must edit the live runbook with actual findings during the final pass; those edits become input to the final fixer session. The shortened manual pass should start with `npm run mvp:preflight`, then the fixture/configured smokes, then browser-only checks.
 
