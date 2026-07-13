@@ -208,6 +208,24 @@ Stock Batches. Stage 9 adds the concrete shop/trip/price context and submits fin
 unknowns or changed facts for admin-reviewed Purchase Ingestion; it must not make catalogue
 data a prerequisite for household stock management.
 
+## Vertical-slice locality and integration testing
+
+The post-Stage-10 locality direction is documented in [docs/vertical-slice-map.md](./vertical-slice-map.md)
+and planned in the Stage 11 plan. Existing domain directories are treated as real ownership
+boundaries; the work is incremental and does not authorize a repository-wide folder rewrite.
+
+Each capability should make its contracts, pure policy, persistence adapter, HTTP adapter, UI
+adapter, and integration tests discoverable from a bounded set of paths. HTTP and hosting glue
+remain thin, while cross-capability workflows are tested through the real app handler and explicit
+fixtures. Deterministic local integration tests complement unit tests; configured disposable
+MongoDB smokes remain necessary for validators, indexes, transactions, maintenance actions, and
+recovery behavior.
+
+Pattern-based UI and API lists should be registry-driven. In particular, the checked-in feature-flag
+registry owns definitions and defaults, while MongoDB stores overrides/audits and the admin UI
+renders ordinary flags from returned metadata. A database row alone must not create an executable
+flag with unknown defaults or authorization behavior.
+
 ## Data Lifecycle
 
 ```text
