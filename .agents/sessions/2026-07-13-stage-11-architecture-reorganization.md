@@ -15,6 +15,7 @@
 - Added the raw-ingestion → review-candidate seam using a sanitized snapshot fixture; the admin prepare/list routes now have a deterministic cross-layer contract check.
 - Centralized feature-flag keys, schema enum values, and safe admin display metadata in the checked-in server registry; GET/PATCH admin responses now expose the registry-derived control/group/translation metadata.
 - Reworked the developer-admin feature-flag controls to iterate ordinary boolean flags from API metadata, while keeping the alpha-user workflow specialized and loading its flag row from the same registry metadata.
+- Added capability-local HTTP route bundle indexes for access, admin, catalogue, household, ingestion, and observability; the dispatcher now consumes those bundles while preserving the existing first-match route order and public URLs.
 - Captured the first capability ownership map in `docs/vertical-slice-map.md`.
 - Defined the registry-driven feature-flag decision: code owns definitions/defaults/metadata; MongoDB stores overrides and audit history.
 - Defined deterministic local integration tests plus narrowly triggered configured MongoDB integration smoke; neither replaces browser/manual evidence.
@@ -44,6 +45,8 @@
 - `src/app/dev-admin/admin-alpha-access-card.component.ts`
 - `src/app/dev-admin/admin-dashboard.component.ts`
 - `src/app/dev-admin/admin-dashboard.component.html`
+- `packages/kamra-api-server/src/http/routes/`
+- `packages/kamra-api-server/src/http/app-handler.ts`
 - `scripts/stage11-mvp-manual-test.md`
 
 ## Validation
@@ -61,10 +64,10 @@
 
 ## Open Issues
 
-- Stage 11 implementation has started with Step 11.6; Steps 11.1–11.5 are complete.
+- Stage 11 implementation has started with Step 11.7; Steps 11.1–11.6 are complete.
 - Stage 10 configured/browser release evidence remains open and is not waived by this plan.
 - The operator must edit the live runbook with actual findings during the final pass; those edits become input to the final fixer session.
 
 ## Next Step
 
-Implement Step 11.6 by grouping the most obvious HTTP route adapters behind capability-local bundles, then continue through the integration and final runbook/fix loop without separate Stage 8–10 acceptance sessions.
+Implement Step 11.7 by localizing the obvious developer-admin and Stage 9 admin frontend clusters, then continue through the integration and final runbook/fix loop without separate Stage 8–10 acceptance sessions.

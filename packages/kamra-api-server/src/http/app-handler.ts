@@ -4,157 +4,26 @@ import {
   json,
   type AppHandlerDependencies,
   type AppRequest,
-  type AppResponse,
-  type AppRoute
+  type AppResponse
 } from "./app-route-context.js";
 import { findAllowedCorsOrigin } from "../config/app-config.js";
 import { writeServerLog } from "../logging/kamra-logger.js";
-import {
-  catalogProductRoute,
-  catalogProductsRoute,
-  catalogProductValidationRoute,
-  catalogSourcesRoute
-} from "./routes/catalog-routes.js";
-import {
-  createAlphaUserRoute,
-  currentUserRoute,
-  loginRoute,
-  logoutRoute,
-  userPreferencesRoute
-} from "./routes/auth-routes.js";
-import {
-  adminDashboardHealthRoute,
-  adminDashboardFeatureFlagsRoute,
-  adminDashboardMarkLegacyProductsUnvalidatedRoute,
-  adminDashboardReseedDemoHouseholdRoute,
-  adminDashboardUpgradeCatalogValidatorsRoute
-} from "./routes/admin-dashboard-route.js";
-import {
-  householdShoppingListPreviewRoute,
-  householdShoppingListsRoute,
-  householdShoppingListUpdateStocksRoute,
-  householdSettingsRoute,
-  householdStockRoute,
-  householdsRoute,
-  latestHouseholdShoppingListRoute,
-  shopsRoute
-} from "./routes/household-routes.js";
-import {
-  householdV2AllocateBatchRoute,
-  householdV2ConsumeRoute,
-  householdV2CorrectBatchRoute,
-  householdV2DiscardBatchRoute,
-  householdV2HouseholdConceptsRoute,
-  householdV2HouseholdProductClassificationRoute,
-  householdV2HouseholdProductCollectionRoute,
-  householdV2HouseholdProductIdentityRoute,
-  householdV2ManualBatchRoute,
-  householdV2ProductComposerRoute,
-  householdV2ProductGroupCollectionRoute,
-  householdV2ProductGroupMutationRoute,
-  householdV2ShoppingTripCompleteRoute,
-  householdV2ShoppingTripRoute,
-  householdV2ShoppingTripsRoute,
-  householdV2ShoppingNeedTransitionRoute,
-  householdV2ShoppingNeedsRoute,
-  householdV2ShopMarketsRoute,
-  householdV2StockTargetCollectionRoute,
-  householdV2StockTargetMutationRoute,
-  householdV2StockTargetRoute,
-  householdV2WorkspaceRoute
-} from "./routes/household-v2-routes.js";
-import {
-  acceptProductReviewItemRoute,
-  declineProductReviewItemRoute,
-  ingestionSnapshotsRoute,
-  prepareProductReviewItemsRoute,
-  previewProductReviewItemAcceptanceRoute,
-  processIngestionSnapshotRoute,
-  productReviewItemRoute,
-  productReviewItemsRoute
-} from "./routes/ingestion-routes.js";
-import { logRoute } from "./routes/log-route.js";
-import { healthzRoute } from "./routes/health-route.js";
-import {
-  adminIngestionSubmissionsRoute,
-  adminPriceObservationsRoute,
-  adminShopMarketsRoute,
-  adminShopProductsRoute
-} from "./routes/stage9-admin-routes.js";
-import {
-  databaseMaintenanceListRoute,
-  databaseMaintenanceCompleteRoute,
-  databaseMaintenanceMigrationRoute,
-  databaseMaintenanceRunAllRoute,
-  databaseMaintenanceValidatorRoute
-} from "./routes/database-maintenance-route.js";
+import { accessRoutes } from "./routes/access/index.js";
+import { adminRoutes } from "./routes/admin/index.js";
+import { catalogRoutes } from "./routes/catalog/index.js";
+import { householdRoutes } from "./routes/household/index.js";
+import { ingestionRoutes } from "./routes/ingestion/index.js";
+import { observabilityRoutes } from "./routes/observability/index.js";
 
 export type { AppRequest, AppResponse } from "./app-route-context.js";
 
-const appRoutes: AppRoute[] = [
-  healthzRoute,
-  logRoute,
-  loginRoute,
-  createAlphaUserRoute,
-  logoutRoute,
-  currentUserRoute,
-  userPreferencesRoute,
-  householdsRoute,
-  householdStockRoute,
-  householdSettingsRoute,
-  householdV2StockTargetRoute,
-  householdV2StockTargetCollectionRoute,
-  householdV2StockTargetMutationRoute,
-  householdV2HouseholdProductCollectionRoute,
-  householdV2HouseholdConceptsRoute,
-  householdV2HouseholdProductClassificationRoute,
-  householdV2HouseholdProductIdentityRoute,
-  householdV2ProductGroupCollectionRoute,
-  householdV2ProductGroupMutationRoute,
-  householdV2ProductComposerRoute,
-  householdV2WorkspaceRoute,
-  householdV2ShopMarketsRoute,
-  householdV2ManualBatchRoute,
-  householdV2AllocateBatchRoute,
-  householdV2ConsumeRoute,
-  householdV2CorrectBatchRoute,
-  householdV2DiscardBatchRoute,
-  householdV2ShoppingNeedsRoute,
-  householdV2ShoppingTripCompleteRoute,
-  householdV2ShoppingTripsRoute,
-  householdV2ShoppingTripRoute,
-  householdV2ShoppingNeedTransitionRoute,
-  householdShoppingListPreviewRoute,
-  householdShoppingListsRoute,
-  latestHouseholdShoppingListRoute,
-  householdShoppingListUpdateStocksRoute,
-  shopsRoute,
-  adminShopMarketsRoute,
-  adminIngestionSubmissionsRoute,
-  adminShopProductsRoute,
-  adminPriceObservationsRoute,
-  adminDashboardFeatureFlagsRoute,
-  adminDashboardHealthRoute,
-  adminDashboardUpgradeCatalogValidatorsRoute,
-  adminDashboardMarkLegacyProductsUnvalidatedRoute,
-  adminDashboardReseedDemoHouseholdRoute,
-  databaseMaintenanceListRoute,
-  databaseMaintenanceValidatorRoute,
-  databaseMaintenanceMigrationRoute,
-  databaseMaintenanceCompleteRoute,
-  databaseMaintenanceRunAllRoute,
-  catalogProductRoute,
-  catalogProductValidationRoute,
-  catalogProductsRoute,
-  catalogSourcesRoute,
-  ingestionSnapshotsRoute,
-  processIngestionSnapshotRoute,
-  prepareProductReviewItemsRoute,
-  previewProductReviewItemAcceptanceRoute,
-  productReviewItemsRoute,
-  productReviewItemRoute,
-  acceptProductReviewItemRoute,
-  declineProductReviewItemRoute
+const appRoutes = [
+  ...observabilityRoutes,
+  ...accessRoutes,
+  ...householdRoutes,
+  ...adminRoutes,
+  ...catalogRoutes,
+  ...ingestionRoutes
 ];
 
 export async function handleAppRequest(

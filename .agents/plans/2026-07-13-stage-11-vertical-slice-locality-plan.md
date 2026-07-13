@@ -237,6 +237,8 @@ Commit: `refactor: render feature flags from registry metadata`
 
 ### Step 11.6 — Route and adapter locality
 
+Status: Complete in the current Step 11.6 implementation commit.
+
 - Group HTTP route modules behind capability index files, for example `http/routes/access`,
   `admin`, `catalog`, `household`, `ingestion`, and `observability`.
 - Keep `app-handler.ts` as a small dispatcher that imports route bundles rather than knowing every
