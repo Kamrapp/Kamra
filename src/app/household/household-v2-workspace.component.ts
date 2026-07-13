@@ -22,6 +22,7 @@ import {
   type HouseholdV2Workspace
 } from "./household-v2.service";
 import { householdDomainIcons } from "./household-domain-icons";
+import { householdAmountComparisonClass } from "./household-amount-comparison";
 
 @Component({
   selector: "app-household-v2-workspace",
@@ -368,14 +369,7 @@ export class HouseholdV2WorkspaceComponent {
     reference: number | undefined,
     kind: "minimum" | "target"
   ): string {
-    if (reference === undefined) return "comparison-neutral";
-    return kind === "minimum"
-      ? current >= reference
-        ? "comparison-good"
-        : "comparison-error"
-      : current <= reference
-        ? "comparison-good"
-        : "comparison-warning";
+    return householdAmountComparisonClass(current, reference, kind);
   }
   comparisonIs(
     current: number,
