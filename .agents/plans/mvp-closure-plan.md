@@ -1,6 +1,7 @@
 # MVP Closure Plan
 
-Status: Planned after Stage 10. This is a release-validation stage, not a new product layer.
+Status: Planned after Stage 10. Implementation is complete enough to enter closure once the configured
+operator and browser evidence below is completed. This is a release-validation stage, not a new product layer.
 
 ## Objective
 
@@ -16,6 +17,19 @@ improvements, but it must not introduce new domain behavior or reopen the shop/c
 - Verify history preservation: Product and Batch snapshots, Price Observations, Purchase records, Ingestion Submissions, correction/reversal, and no duplicate effects after retry.
 - Verify English/Hungarian parity, keyboard labels, dark/light themes, narrow layout, loading/empty/403/404/409/500 states, and activity-console diagnostics.
 - Verify seeded realistic volumes and bounded query behavior for Products, Shop Products, prices, Trips, submissions, and household Batches.
+
+## Current handoff from Stage 10 (2026-07-13)
+
+- Local release gate is green: 64 test files/231 tests, format, lint, typecheck, web build, and API build.
+- Read-only ingestion audit traverses 55 runs, 66 snapshots, and 12,172 rows. It currently reports 78
+  persisted Lidl duplicate identities; the committed parser fix and dry-run repair predict zero after
+  reparsing, but the reviewed apply operation has not been run.
+- The read-only processed-ingestion check reports no failed states but four pending snapshots captured
+  on 2026-07-13 (ALDI, two Lidl brochures, and PENNY). Process those through the normal ingestion command
+  before treating the configured catalogue evidence as green.
+- Transaction/catalogue smoke and the alpha-domain-language maintenance preview have passed in the
+  configured environment. Clean-target archive restore, repair apply/reconciliation, and browser/two-user
+  acceptance remain explicit closure evidence rather than automated claims.
 
 ## Anticipated error classes
 

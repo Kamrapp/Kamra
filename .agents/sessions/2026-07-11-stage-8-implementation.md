@@ -589,6 +589,15 @@ basic Home shopping experience.
   all values to be non-empty. This protects the localized Home/Manual/Admin surfaces without changing
   runtime fallback behavior.
 
+## Stage 10 local release-gate checkpoint (2026-07-13)
+
+- Full local validation passes: `npm test` reports 64 files/231 tests; format, lint with zero warnings,
+  typecheck, `npm run build:web`, and `npm run build:api` all pass. The build left the working tree clean.
+- Code-addressable Stage 10 slices are committed through `87b7cc4`. Remaining work is configured/operator
+  evidence (pending ingestion processing, reviewed Lidl repair/reconciliation, clean-target archive
+  restore) and the browser/two-user acceptance matrix; no further safe code change is implied by those
+  checks without a concrete finding.
+
 Historical open-issue entries above describe intermediate checkpoints and are superseded by
 this closeout section where they say the Home bridge is still pending or Stage 8 cannot close.
 

@@ -16,13 +16,13 @@ These items were intentionally skipped or kept transitional while the basic MVP 
 
 - retire the Home compatibility shopping-list shell after Shopping Trips have equivalent manual acceptance
 - complete the configured/browser acceptance and isolated restore drill for the Stage 8–10 Alpha gate
-- finish source-specific parser regression evidence and any approved dry-run repair tools identified by the quality audit
+- run the reviewed historical Lidl parsed-row repair and reconciliation; the parser fix and dry-run-first repair tool are implemented
 - complete deterministic migration/reconciliation of legacy Stock Targets/Allocations and remove active write paths
 - promote reviewed purchase facts into shared catalogue identity without rewriting household snapshots
 - add robust correction/reversal UI for completed Purchases and their Stock Movements
 - replace manual Shop Product/Price administration with richer reviewed catalogue tooling
 - add paged Trip, Purchase, Price Observation, and Ingestion Submission history views
-- finish the operational archive import/reprocessing workflow before external Alpha use; export/import foundations are present, but configured restore evidence remains open
+- finish the operational archive import/reprocessing workflow before external Alpha use; export/import and bounded repair foundations are present, but configured restore/reconciliation evidence remains open
 - add explicit history/retention and backup verification dashboards once Alpha data is no longer disposable
 
 ## Additional high-value suggestions

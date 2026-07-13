@@ -36,3 +36,11 @@ This checklist is the compact release gate. The detailed human flow remains in
 Every unchecked item must be either fixed before release or recorded as a waiver with risk, reason,
 owner, and follow-up date. Remaining minor spacing/color polish is allowed only after correctness and
 authorization are green. New domain workflows belong in a later plan.
+
+## Latest automated/configured evidence (2026-07-13)
+
+The local gate passes with 64 test files/231 tests, format, lint, typecheck, web build, and API build.
+Configured catalogue and transaction smoke checks plus the alpha-domain-language dry-run have passed.
+The processed-ingestion check is intentionally still red for four newly captured, unprocessed snapshots;
+the exact ids are emitted by the validator. The Lidl parser repair is committed and dry-run validated,
+but its reviewed apply/reconciliation and the clean-target archive restore remain operator evidence.
