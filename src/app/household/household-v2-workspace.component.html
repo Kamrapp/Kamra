@@ -548,10 +548,10 @@
           @if (editingBatchId() === batch.id) {
             <strong>{{ icons.batch }} {{ batchSourceLabel(batch) }}</strong>
             <input
-              #acquired
               class="inline-date-input batch-title-date"
               type="date"
-              [value]="batch.acquiredOn"
+              [ngModel]="editingBatchAcquiredOn()"
+              (ngModelChange)="editingBatchAcquiredOn.set($event)"
               [attr.aria-label]="loc.t('household.stockedAt')"
             />
           } @else {
@@ -582,7 +582,9 @@
             <app-table-icon-button
               [ariaLabel]="loc.t('household.saveStockBatch')"
               [titleText]="loc.t('household.saveStockBatch')"
-              (press)="correctBatch(batch, quantity.valueAsNumber, acquired.value, expiry.value)"
+              (press)="
+                correctBatch(batch, quantity.valueAsNumber, editingBatchAcquiredOn(), expiry.value)
+              "
             >
               ▣
             </app-table-icon-button>

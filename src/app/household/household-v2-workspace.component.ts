@@ -58,6 +58,7 @@ export class HouseholdV2WorkspaceComponent {
   readonly editingProductGtin = signal("");
   readonly editingProductNote = signal("");
   readonly editingProductGroupId = signal("");
+  readonly editingBatchAcquiredOn = signal("");
   readonly expandedGroupIds = signal<ReadonlySet<string>>(new Set());
   readonly expandedProductIds = signal<ReadonlySet<string>>(new Set());
   readonly groupDetailsIds = signal<ReadonlySet<string>>(new Set());
@@ -208,10 +209,12 @@ export class HouseholdV2WorkspaceComponent {
     product: HouseholdV2Product
   ): void {
     this.editingBatchId.set(batch.id);
+    this.editingBatchAcquiredOn.set(batch.acquiredOn);
     this.batchSelected.emit({ batch, group, product });
   }
   cancelBatchEdit(): void {
     this.editingBatchId.set(null);
+    this.editingBatchAcquiredOn.set("");
   }
   stateLabel(state: string): string {
     if (this.workspace()?.useAbbreviatedUiLabels)
@@ -397,7 +400,7 @@ export class HouseholdV2WorkspaceComponent {
       return;
     }
     this.logger.log("info", "Stock batch corrected", { batchId: batch.id, resultingQuantity });
-    this.editingBatchId.set(null);
+    this.cancelBatchEdit();
     this.changed.emit();
     await this.refresh();
   }
@@ -415,7 +418,7 @@ export class HouseholdV2WorkspaceComponent {
       return;
     }
     this.logger.log("info", "Stock batch discarded", { batchId: batch.id });
-    this.editingBatchId.set(null);
+    this.cancelBatchEdit();
     this.changed.emit();
     await this.refresh();
   }
