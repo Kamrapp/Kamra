@@ -46,7 +46,10 @@ export function createIntegrationHarness(options: IntegrationHarnessOptions): In
   });
   const token = createUserToken({
     email: options.user.email,
-    maxAgeSeconds: 300,
+    // The harness uses a fixed clock for deterministic fixtures; keep its token
+    // valid for the whole local test session instead of expiring five minutes
+    // after the fixture timestamp.
+    maxAgeSeconds: 60 * 60 * 24 * 365,
     now,
     role: options.user.role,
     secret
