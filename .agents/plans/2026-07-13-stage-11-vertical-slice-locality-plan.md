@@ -303,9 +303,12 @@ Status: Complete in `4b12949`; the runbook remains live and must receive operato
   unchecked items, add reproduction details, browser/environment information, and screenshots or
   file references, but must not add credentials or private data.
 - Add a short `Known risk probes` section for likely regressions: inline/right-editor desynchrony,
-  expired-batch inclusion, group/product total double-counting, duplicate impulse lines, stale
-  revision handling, missing schema/maintenance setup, untranslated labels, dark-mode contrast,
-  fixed-column overflow, and silent failed actions.
+      expired-batch inclusion, group/product total double-counting, duplicate impulse lines, stale
+      revision handling, missing schema/maintenance setup, untranslated labels, dark-mode contrast,
+      fixed-column overflow, and silent failed actions.
+- Use `npm run mvp:preflight` for the repeatable local checks and `npm run smoke:demo-household` for
+  post-seed fixture invariants so the operator focuses on browser-only behavior and configured
+  database evidence.
 
 Acceptance: the runbook is the only planned future operator walkthrough for Stage 8–11; every
 previous unchecked checklist item maps to one runbook section or has an explicit waiver owner.

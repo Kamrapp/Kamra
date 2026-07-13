@@ -31,8 +31,11 @@ repositories.
 
 ## Test selection target
 
+- `npm run mvp:preflight` — the bundled local release checks; it has no MongoDB dependency.
 - `npm test` — all unit and deterministic integration tests; this is the normal app-check command.
 - `npm run test:integration` — only deterministic cross-layer integration tests.
+- `npm run smoke:demo-household` — read-only validation of the seeded household fixture against an
+  approved disposable database.
 - `npm run smoke:catalog` / `npm run smoke:transactions` — configured existing smokes.
 - The catalog and transaction workflows are the configured MongoDB signals. Their path filters
   cover catalog/schema changes and household transaction/persistence/maintenance changes without

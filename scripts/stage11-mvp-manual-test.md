@@ -37,13 +37,11 @@ raw production exports. A later fixer session must diff operator edits before ch
 
 Run from the repository root on the final Stage 11 implementation commit.
 
-- [ ] `npm test` passes.
-- [ ] `npm run test:integration` passes and reports named cross-layer scenarios.
-- [ ] `npm run format:check` passes.
-- [ ] `npm run lint -- --max-warnings=0` passes.
-- [ ] `npm run typecheck` passes.
-- [ ] `npm run build:web` passes.
-- [ ] `npm run build:api` passes.
+- [ ] `npm run mvp:preflight` passes. This bundles the seven local checks listed in
+      `scripts/README.md`; do not rerun them individually unless diagnosing a failure.
+- [ ] After `npm run seed`, `npm run smoke:demo-household` passes against the approved disposable
+      database. This replaces manually counting seeded groups/products/batches and checking the
+      product-owner invariant.
 - [ ] `npm run smoke:catalog` passes against an approved disposable/configured database.
 - [ ] `npm run smoke:transactions` passes with committed `2`, rollback `0`, and cleanup confirmed.
 - [ ] Read-only ingestion quality audit completes; every issue has a parser, repair, defer, or
@@ -55,6 +53,21 @@ Run from the repository root on the final Stage 11 implementation commit.
 Operator notes and discoveries:
 
 <!-- Add commands, environment names, output summaries, and failures here. -->
+
+### Automated coverage ledger
+
+The following cross-layer contracts are already exercised by `npm run mvp:preflight` through the
+deterministic integration suite. The browser pass should verify the visible UI wiring and feedback,
+not repeat database-side assertions that these tests already cover.
+
+| Area                | Automated evidence                                                                   | Browser remainder                                                            |
+| ------------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
+| Feature flags       | Registry key validation, admin PATCH persistence, dependent household response       | One admin toggle, refresh, and visible Home effect                           |
+| Household stock     | Product Group → Product → Batch write/read and membership boundary                   | CRUD affordances, layout, editor synchronization, and error feedback         |
+| Shopping completion | Partial Trip completion, Product-owned Batch, Ingestion Submission, idempotent retry | One bought line through the Home/Trip UI and visible resulting stock         |
+| Ingestion review    | Raw snapshot → prepared review candidate/list response                               | One admin review decision and localized status feedback                      |
+| Demo fixture        | `smoke:demo-household` validates seeded shape and ownership invariants               | Visual grouping, ordering, colors, and responsive layout                     |
+| MongoDB behavior    | Catalog validator/index and transaction workflows                                    | Only run configured smokes; do not infer their result from fake-backed tests |
 
 ## 1. Access, identity, Manual, and diagnostics
 
@@ -89,7 +102,7 @@ Prepare the approved demo fixture using the documented local seed flow. The fixt
 - expired, future-expiring, no-expiry, below-minimum, at-minimum, at-target, and above-target
   states.
 
-- [ ] Seed/reseed completes without validator errors or productless Stock Batches.
+- [ ] Seed/reseed completes without validator errors, then the demo fixture smoke passes.
 - [ ] Refreshing Home shows Product Groups plus Unassigned Products, then Products, then Batches;
       no Product Concept or Stock Target top-level vocabulary remains.
 - [ ] Manage household exposes editable expiry policy, default max-limit multiplier, group-target
@@ -117,7 +130,8 @@ Operator notes and discoveries:
 - [ ] Batches are ordered expired first, then soonest future expiry, then no-expiry last.
 - [ ] Expiry before Stocked at is accepted and remains persisted.
 - [ ] Unassigned Products use a slim separator/presentation, not an obtrusive warning block.
-- [ ] No productless “Needs Product” Batch remains; every Batch has a Product owner.
+- [ ] The fixture smoke has already checked that no productless “Needs Product” Batch exists; in
+      the browser, only confirm that no such orphan appears in the rendered workspace.
 
 ### CRUD and derived data
 
@@ -178,7 +192,9 @@ Operator notes and discoveries:
       after refresh with the correct dates/quantity.
 - [ ] Apply a Group impulse line. A concrete household Product is created under the intended Group
       before the Batch is acquired.
-- [ ] Repeat application/reload/retry. No duplicate Product, Batch, Movement, or list side effect.
+- [ ] Repeat application/reload once from the UI. The deterministic integration test already
+      covers idempotent completion; the browser check confirms the UI exits retry/loading state and
+      shows the existing result without a duplicate row.
 
 Operator notes and discoveries:
 
@@ -198,8 +214,9 @@ Operator notes and discoveries:
       no accidental duplicate Product is created.
 - [ ] Add an unplanned purchase, complete it, and verify immediate household usability plus pending
       admin review.
-- [ ] Resume a partially processed Trip and retry the same completion. Confirm idempotent results,
-      transaction rollback on failure, and stale-revision guidance.
+- [ ] Resume a partially processed Trip and retry completion from the UI. Integration and
+      transaction smoke cover the persistence/idempotency and MongoDB transaction claims; the
+      browser check is limited to resume state, feedback, and no duplicate visible result.
 - [ ] Admin lists, accepts, rejects, and corrects an Ingestion Submission. Stale review is rejected;
       household history and snapshots are not rewritten.
 - [ ] Admin creates a Shop Market, Shop Product, and Price Observation. Invalid forms fail locally;
@@ -218,7 +235,10 @@ Operator notes and discoveries:
       off and verify full labels return.
 - [ ] Toggle controlled alpha access only in an approved environment; verify the associated user
       workflow and authorization behavior remain coherent.
-- [ ] Confirm feature-flag update audit records, defaults, failure values, and revision conflicts.
+- [ ] Confirm one visible feature-flag save and failure state. Registry validation, stored override,
+      defaults, and dependent response are covered by automated tests; configured maintenance or
+      a deliberately stale revision remains the manual operator check only when the environment
+      supports it.
 - [ ] Run maintenance preview. Validator updates and data migrations are shown as separate actions;
       no “Mark complete” action falsely claims to execute external work.
 - [ ] Run required validator/migration/reconciliation actions only against a disposable/approved

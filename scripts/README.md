@@ -92,8 +92,36 @@ npm run smoke:transactions
 
 The script refuses database names other than `kamra_dev`, `kamra_test`, or `kamra_smoke`. Use a disposable/local or smoke database; it does not run against production-named databases.
 
+### `demo-household-smoke.ts`
+
+Read-only validation of the seeded `household1` V2 fixture. It checks household defaults, required
+Product Groups and Products, target/no-target coverage, expired/future/no-expiry batches, multiple
+batches, unassigned Products, and the invariant that every available Batch has a Product owner.
+
+Command:
+
+```powershell
+npm run smoke:demo-household
+```
+
+Run it after `npm run seed` against `kamra_dev`, `kamra_test`, or `kamra_smoke`. It refuses other
+database names and never writes data.
+
+### `mvp-preflight.ts`
+
+Runs the repeatable local release checks in one command: deterministic integration tests, the full
+test suite, formatting, lint, typecheck, web build, and API build. It does not need MongoDB and does
+not replace the configured MongoDB smokes or browser evidence.
+
+Command:
+
+```powershell
+npm run mvp:preflight
+```
+
 ### Automated validation levels
 
+- `npm run mvp:preflight` is the convenient local bundle for the repeatable checks.
 - `npm test` runs the complete unit and deterministic integration suite used by the normal app
   checks.
 - `npm run test:integration` reruns only the cross-layer handler scenarios when working inside a

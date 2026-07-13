@@ -23,6 +23,8 @@
 - Folded remaining Stage 8–10 manual evidence and likely UI/data-integrity probes into Stage 11 ownership.
 - Added the live replacement runbook `scripts/stage11-mvp-manual-test.md`; the older Stage 8 script and Stage 8–10 checklist now point to it as historical input.
 - Completed Step 11.8 documentation and CI closeout: normal app checks identify the combined unit/deterministic-integration run, focused integration reruns are documented, and the existing catalog/transaction Smoke workflows now cover the relevant catalog/schema and household transaction/persistence/maintenance paths without adding a duplicate configured workflow.
+- Added a read-only `smoke:demo-household` validator for the seeded V2 fixture. It checks household defaults, required groups/products, target/no-target coverage, expiry permutations, multiple batches, unassigned products, and the no-productless-Batch invariant.
+- Added `mvp:preflight`, a Windows-safe local command that runs deterministic integration tests, the full suite, formatting, lint, typecheck, web build, and API build in one pass. The live runbook now treats those as one automated item and leaves only browser/configured evidence manual.
 
 ## Changed Files
 
@@ -57,6 +59,8 @@
 - `.github/workflows/app-checks.yml`
 - `.github/workflows/transaction-smoke.yml`
 - `scripts/README.md`
+- `scripts/demo-household-smoke.ts`
+- `scripts/mvp-preflight.ts`
 
 ## Validation
 
@@ -64,6 +68,8 @@
 - Result: 7 focused integration tests, 65 test files/239 tests, lint, typecheck, formatting, API build, and diff checks passed.
 - Note: an initial full-test attempt included the unsupported Vitest flag `--runInBand`; the corrected `npm test` run passed.
 - Closeout validation is pending after the documentation/workflow edits; it must include the focused integration suite, full tests, formatting, lint, typecheck, API build, and diff checks.
+- `npm run mvp:preflight` passed locally with 239 tests/65 files, 7 integration tests, formatting, lint, typecheck, web build, and API build.
+- `npm run smoke:demo-household` reached the configured MongoDB database but failed because the current disposable household document lacks `groupTargetShoppingMode`; this is a useful stale-seed/schema signal and was not masked. Reseed/migrate that environment before operator testing.
 
 ## Decisions
 
@@ -78,7 +84,7 @@
 
 - Steps 11.1–11.9 are implementation-complete in separate commits, ending with `4b12949`. The integrated manual pass and any narrow findings remain.
 - Stage 10 configured/browser release evidence remains open and is not waived by this plan.
-- The operator must edit the live runbook with actual findings during the final pass; those edits become input to the final fixer session.
+- The operator must edit the live runbook with actual findings during the final pass; those edits become input to the final fixer session. The shortened manual pass should start with `npm run mvp:preflight`, then the fixture/configured smokes, then browser-only checks.
 
 ## Next Step
 
