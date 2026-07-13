@@ -7,6 +7,7 @@ import {
   type OnDestroy,
   type OnInit
 } from "@angular/core";
+import { FormsModule } from "@angular/forms";
 
 import { AuthService } from "../auth.service";
 import { BrowserLoggerService } from "../browser-logger.service";
@@ -31,6 +32,7 @@ import { IngestionSnapshotTableComponent } from "./ingestion-snapshot-table.comp
 
 @Component({
   imports: [
+    FormsModule,
     IngestionSnapshotTableComponent,
     ProductEditorDialogComponent,
     ResizableTableComponent,
@@ -43,6 +45,7 @@ import { IngestionSnapshotTableComponent } from "./ingestion-snapshot-table.comp
 })
 export class IngestionAdminComponent implements OnInit, OnDestroy {
   readonly auth = inject(AuthService);
+  readonly productReviewDecisionReasons = productReviewDecisionReasons;
   readonly logger = inject(BrowserLoggerService);
   readonly ingestion = inject(IngestionAdminService);
   readonly loc = inject(LocalizationService);
