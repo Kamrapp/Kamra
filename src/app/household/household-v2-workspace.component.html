@@ -328,12 +328,16 @@
       >
         <span aria-hidden="true">{{ isProductExpanded(row.product.id) ? "▾" : "▸" }}</span>
         <strong>{{ icons.product }} {{ row.product.displayName }}</strong>
-        <small>{{ identityLabel(row.product.identityKind) }}</small>
+        <small>
+          {{ identityLabel(row.product.identityKind) }} ({{ row.aggregate.batchCount }})
+        </small>
       </button>
     } @else {
       <span class="row-name product-name">
         <strong>{{ icons.product }} {{ row.product.displayName }}</strong>
-        <small>{{ identityLabel(row.product.identityKind) }}</small>
+        <small>
+          {{ identityLabel(row.product.identityKind) }} ({{ row.aggregate.batchCount }})
+        </small>
       </span>
     }
     <span>

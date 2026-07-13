@@ -46,31 +46,31 @@ import { LocalizationService } from "../shared/localization.service";
               <h2 class="ui-card-title">{{ loc.t("manual.householdTitle") }}</h2>
               <p>{{ loc.t("manual.householdBody") }}</p>
             </div>
-            <div class="manual-vocabulary">
-              <article class="ui-panel-card">
-                <h2>{{ loc.t("manual.stockTargetTerm") }}</h2>
-                <p>{{ loc.t("manual.stockTargetDefinition") }}</p>
-              </article>
-              <article class="ui-panel-card">
-                <h2>{{ loc.t("manual.productTerm") }}</h2>
-                <p>{{ loc.t("manual.productDefinition") }}</p>
-              </article>
-              <article class="ui-panel-card">
-                <h2>{{ loc.t("manual.batchTerm") }}</h2>
-                <p>{{ loc.t("manual.batchDefinition") }}</p>
-              </article>
-              <article class="ui-panel-card">
-                <h2>{{ loc.t("manual.allocationTerm") }}</h2>
-                <p>{{ loc.t("manual.allocationDefinition") }}</p>
-              </article>
-              <article class="ui-panel-card">
-                <h2>{{ loc.t("manual.productConceptTerm") }}</h2>
-                <p>{{ loc.t("manual.productConceptDefinition") }}</p>
-              </article>
-              <article class="ui-panel-card">
-                <h2>{{ loc.t("manual.shoppingListTerm") }}</h2>
-                <p>{{ loc.t("manual.shoppingListDefinition") }}</p>
-              </article>
+            <div class="manual-vocabulary" role="list">
+              <div class="manual-term-row" role="listitem">
+                <strong>{{ loc.t("manual.stockTargetTerm") }}</strong>
+                <span>{{ loc.t("manual.stockTargetDefinition") }}</span>
+              </div>
+              <div class="manual-term-row" role="listitem">
+                <strong>{{ loc.t("manual.productTerm") }}</strong>
+                <span>{{ loc.t("manual.productDefinition") }}</span>
+              </div>
+              <div class="manual-term-row" role="listitem">
+                <strong>{{ loc.t("manual.batchTerm") }}</strong>
+                <span>{{ loc.t("manual.batchDefinition") }}</span>
+              </div>
+              <div class="manual-term-row" role="listitem">
+                <strong>{{ loc.t("manual.allocationTerm") }}</strong>
+                <span>{{ loc.t("manual.allocationDefinition") }}</span>
+              </div>
+              <div class="manual-term-row" role="listitem">
+                <strong>{{ loc.t("manual.productConceptTerm") }}</strong>
+                <span>{{ loc.t("manual.productConceptDefinition") }}</span>
+              </div>
+              <div class="manual-term-row" role="listitem">
+                <strong>{{ loc.t("manual.shoppingListTerm") }}</strong>
+                <span>{{ loc.t("manual.shoppingListDefinition") }}</span>
+              </div>
             </div>
           } @else {
             <div class="manual-intro">
@@ -78,31 +78,31 @@ import { LocalizationService } from "../shared/localization.service";
               <h2 class="ui-card-title">{{ loc.t("manual.adminTitle") }}</h2>
               <p>{{ loc.t("manual.adminBody") }}</p>
             </div>
-            <div class="manual-vocabulary">
-              <article class="ui-panel-card">
-                <h2>{{ loc.t("manual.crawlTerm") }}</h2>
-                <p>{{ loc.t("manual.crawlDefinition") }}</p>
-              </article>
-              <article class="ui-panel-card">
-                <h2>{{ loc.t("manual.ingestionTerm") }}</h2>
-                <p>{{ loc.t("manual.ingestionDefinition") }}</p>
-              </article>
-              <article class="ui-panel-card">
-                <h2>{{ loc.t("manual.catalogTerm") }}</h2>
-                <p>{{ loc.t("manual.catalogDefinition") }}</p>
-              </article>
-              <article class="ui-panel-card">
-                <h2>{{ loc.t("manual.sourceProductTerm") }}</h2>
-                <p>{{ loc.t("manual.sourceProductDefinition") }}</p>
-              </article>
-              <article class="ui-panel-card">
-                <h2>{{ loc.t("manual.priceObservationTerm") }}</h2>
-                <p>{{ loc.t("manual.priceObservationDefinition") }}</p>
-              </article>
-              <article class="ui-panel-card">
-                <h2>{{ loc.t("manual.reviewTerm") }}</h2>
-                <p>{{ loc.t("manual.reviewDefinition") }}</p>
-              </article>
+            <div class="manual-vocabulary" role="list">
+              <div class="manual-term-row" role="listitem">
+                <strong>{{ loc.t("manual.crawlTerm") }}</strong>
+                <span>{{ loc.t("manual.crawlDefinition") }}</span>
+              </div>
+              <div class="manual-term-row" role="listitem">
+                <strong>{{ loc.t("manual.ingestionTerm") }}</strong>
+                <span>{{ loc.t("manual.ingestionDefinition") }}</span>
+              </div>
+              <div class="manual-term-row" role="listitem">
+                <strong>{{ loc.t("manual.catalogTerm") }}</strong>
+                <span>{{ loc.t("manual.catalogDefinition") }}</span>
+              </div>
+              <div class="manual-term-row" role="listitem">
+                <strong>{{ loc.t("manual.sourceProductTerm") }}</strong>
+                <span>{{ loc.t("manual.sourceProductDefinition") }}</span>
+              </div>
+              <div class="manual-term-row" role="listitem">
+                <strong>{{ loc.t("manual.priceObservationTerm") }}</strong>
+                <span>{{ loc.t("manual.priceObservationDefinition") }}</span>
+              </div>
+              <div class="manual-term-row" role="listitem">
+                <strong>{{ loc.t("manual.reviewTerm") }}</strong>
+                <span>{{ loc.t("manual.reviewDefinition") }}</span>
+              </div>
             </div>
           }
         </div>
@@ -144,7 +144,7 @@ import { LocalizationService } from "../shared/localization.service";
       }
       .manual-intro {
         display: grid;
-        gap: var(--space-3);
+        gap: var(--space-2);
       }
       .manual-hero p,
       .manual-intro p,
@@ -193,28 +193,36 @@ import { LocalizationService } from "../shared/localization.service";
       }
       .manual-vocabulary {
         display: grid;
-        gap: var(--space-2);
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0;
+        grid-template-columns: 1fr;
+        overflow: hidden;
       }
-      .manual-vocabulary article {
+      .manual-term-row {
+        align-items: baseline;
+        border-bottom: 1px solid var(--line-subtle);
         display: grid;
-        gap: 0.25rem;
-        padding: var(--space-2) var(--space-3);
+        gap: var(--space-3);
+        grid-template-columns: minmax(8rem, 0.34fr) minmax(0, 1fr);
+        padding: 0.52rem 0;
       }
-      .manual-vocabulary h2 {
+      .manual-term-row:last-child {
+        border-bottom: 0;
+      }
+      .manual-term-row strong {
         color: var(--color-text);
-        font-family: var(--font-display);
-        font-size: 0.86rem;
+        font-size: 0.8rem;
       }
-      .manual-vocabulary p {
+      .manual-term-row span {
         color: var(--color-text-muted);
-        line-height: 1.3;
+        font-size: 0.78rem;
+        line-height: 1.32;
       }
       .admin-note {
         margin: 0;
       }
       @media (max-width: 700px) {
-        .manual-vocabulary {
+        .manual-term-row {
+          gap: 0.2rem;
           grid-template-columns: 1fr;
         }
       }

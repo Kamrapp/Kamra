@@ -63,9 +63,9 @@ import { LocalizationService } from "./localization.service";
         font-weight: 700;
       }
       .client-console-scroll {
-        height: 5.4rem;
+        height: 7rem;
         max-height: 13rem;
-        min-height: 4.5rem;
+        min-height: 5.5rem;
         overflow: auto;
         padding: var(--space-2) var(--space-3);
         resize: vertical;

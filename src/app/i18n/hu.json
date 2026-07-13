@@ -14,6 +14,9 @@
       "label": "Nyelv"
     },
     "light": "Világos",
+    "navigateBack": "Vissza",
+    "navigateForward": "Előre",
+    "navigation": "Navigáció",
     "loadingLogin": "Bejelentkezés",
     "login": "Belépés",
     "loginFailure": "A bejelentkezés most nem elérhető.",

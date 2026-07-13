@@ -122,22 +122,35 @@ import { ToastService } from "../shared/toast.service";
       }
 
       .management-panel label {
+        align-items: center;
         color: var(--color-text-muted);
         display: grid;
         font-size: 0.78rem;
         font-weight: 700;
         gap: var(--space-2);
+        grid-template-columns: minmax(9rem, 0.72fr) minmax(0, 1.28fr);
       }
 
       .checkbox-row {
         align-items: center;
         display: flex !important;
         font-size: 0.9rem !important;
+        grid-template-columns: auto minmax(0, 1fr) !important;
       }
 
       .management-actions {
         display: flex;
         gap: var(--space-3);
+      }
+
+      .management-actions .ui-button {
+        font-size: 0.76rem;
+        min-height: 1.8rem;
+        padding: 0.28rem 0.55rem;
+      }
+
+      .management-panel > .ui-button {
+        justify-self: start;
       }
 
       @media (min-width: 900px) {

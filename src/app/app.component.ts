@@ -7,6 +7,7 @@ import { PageRailService } from "./shared/page-rail.service";
 import { PageRailOutletComponent } from "./shared/page-rail-outlet.component";
 import { ClientConsoleWindowComponent } from "./shared/client-console-window.component";
 import { LocalizationService, type LanguagePreference } from "./shared/localization.service";
+import { NavigationHistoryService } from "./shared/navigation-history.service";
 import { ThemePreferenceService, type ThemePreference } from "./shared/theme-preference.service";
 import { ToastHostComponent } from "./shared/toast-host.component";
 import { ToastService } from "./shared/toast.service";
@@ -53,6 +54,25 @@ interface ShellMenuItem extends RadialNavigationItem {
         </section>
 
         <app-page-rail-outlet [resetToken]="railResetToken()" [sections]="pageRail.sections()" />
+        <section class="rail-navigation" [attr.aria-label]="loc.t('app.navigation')">
+          <button
+            type="button"
+            [disabled]="!navigationHistory.canGoBack()"
+            [attr.aria-label]="loc.t('app.navigateBack')"
+            (click)="navigateHistory('back')"
+          >
+            ←
+          </button>
+          <span>{{ loc.t("app.navigation") }}</span>
+          <button
+            type="button"
+            [disabled]="!navigationHistory.canGoForward()"
+            [attr.aria-label]="loc.t('app.navigateForward')"
+            (click)="navigateHistory('forward')"
+          >
+            →
+          </button>
+        </section>
         <app-client-console-window />
       </aside>
 
@@ -142,6 +162,43 @@ interface ShellMenuItem extends RadialNavigationItem {
         overflow: auto;
         padding-right: 0.15rem;
         scrollbar-gutter: stable;
+      }
+
+      .rail-navigation {
+        align-items: center;
+        background: var(--surface-shell-background);
+        border: 1px solid var(--line-panel);
+        border-radius: var(--radius-ui);
+        box-shadow: var(--surface-shell-shadow);
+        display: grid;
+        gap: 0.45rem;
+        grid-template-columns: 2rem minmax(0, 1fr) 2rem;
+        margin-top: auto;
+        padding: 0.3rem;
+      }
+
+      .rail-navigation button {
+        background: var(--surface-soft-background);
+        border: 1px solid var(--line-subtle);
+        border-radius: var(--radius-ui);
+        color: var(--color-text);
+        cursor: pointer;
+        font: inherit;
+        font-weight: 900;
+        min-height: 1.8rem;
+      }
+
+      .rail-navigation button:disabled {
+        cursor: not-allowed;
+        opacity: 0.42;
+      }
+
+      .rail-navigation span {
+        color: var(--color-text-muted);
+        font-size: 0.7rem;
+        font-weight: 800;
+        text-align: center;
+        text-transform: uppercase;
       }
 
       .brand-card,
@@ -354,6 +411,7 @@ export class AppComponent implements OnInit {
   readonly auth = inject(AuthService);
   readonly logger = inject(BrowserLoggerService);
   readonly loc = inject(LocalizationService);
+  readonly navigationHistory = inject(NavigationHistoryService);
   readonly pageRail = inject(PageRailService);
   readonly theme = inject(ThemePreferenceService);
   readonly toast = inject(ToastService);
@@ -404,6 +462,7 @@ export class AppComponent implements OnInit {
   constructor() {
     this.router.events.subscribe((event) => {
       if (event instanceof NavigationEnd) {
+        this.navigationHistory.record(event.urlAfterRedirects);
         this.updateCurrentPageTitle(event.urlAfterRedirects);
         this.railResetToken.update((token) => token + 1);
       }
@@ -457,6 +516,14 @@ export class AppComponent implements OnInit {
     this.loc.applyUserLanguage(undefined);
     await this.router.navigateByUrl("/");
     this.toast.push(this.loc.t("app.signedOut"), "success");
+  }
+
+  navigateHistory(direction: "back" | "forward"): void {
+    const target =
+      direction === "back"
+        ? this.navigationHistory.backTarget()
+        : this.navigationHistory.forwardTarget();
+    if (target) void this.router.navigateByUrl(target);
   }
 
   async setTheme(theme: ThemePreference): Promise<void> {

@@ -14,6 +14,9 @@
       "label": "Language"
     },
     "light": "Light",
+    "navigateBack": "Navigate back",
+    "navigateForward": "Navigate forward",
+    "navigation": "Navigate",
     "loadingLogin": "Logging in",
     "login": "Login",
     "loginFailure": "Login is not available right now.",
