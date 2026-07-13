@@ -309,8 +309,10 @@
 
 - After `a78d96c`, targeted Prettier, app/API typecheck, zero-warning lint, and diff checks passed.
 - The ingestion-review slice was formatted, typechecked, linted, and committed as `9539163`.
-- The runbook rewrite was formatted and diff-checked; it is intentionally a separate pending
-  documentation commit so its operator-facing changes can be reviewed independently.
+- The runbook rewrite was formatted and diff-checked, then committed with the session handoff as
+  `aeb2078`.
+- The production-template follow-up for ingestion decline actions is `257f07e`; the web build now
+  compiles the FormsModule-bound selector successfully.
 
 Run the focused demo seed against the approved disposable database, then rerun
 `npm run smoke:demo-household` before browser verification. Do not use the full seed unless
