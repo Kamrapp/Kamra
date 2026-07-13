@@ -566,7 +566,8 @@ export class HouseholdV2Service {
       | "batches"
       | "products_and_batches"
       | "groups_products_and_batches"
-      | "all_household_data";
+      | "all_household_data"
+      | "delete_household";
   }): Promise<{ status: "error" | "ok"; message?: string }> {
     return await this.write(
       "POST",

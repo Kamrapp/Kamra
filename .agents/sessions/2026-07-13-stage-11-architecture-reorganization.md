@@ -85,6 +85,10 @@
   Households/Háztartások, the Activity output defaults to 10rem with a 5–20rem range, navigation
   stays directly above it, management back-button sizing matches the shared controls, and Manual
   now includes Shopping trip terminology with more readable term rows.
+- Implemented complete household deletion as an additional guarded management reset scope. The
+  owner-only transaction removes household content, memberships, pending invitations, and the
+  household identity, then the browser returns to Home. Repository and route tests cover the
+  destructive scope separately from content-only resets.
 
 ## Changed Files
 

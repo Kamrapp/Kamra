@@ -42,7 +42,8 @@ export const householdResetScopes = [
   "batches",
   "products_and_batches",
   "groups_products_and_batches",
-  "all_household_data"
+  "all_household_data",
+  "delete_household"
 ] as const;
 export type HouseholdResetScope = (typeof householdResetScopes)[number];
 
@@ -582,6 +583,18 @@ export class MongoHouseholdRepository {
           .collection(collectionName)
           .deleteMany({ householdId: input.householdId }, { session });
         deleted[collectionName] = result.deletedCount ?? 0;
+      }
+      if (input.scope === "delete_household") {
+        const memberships = await this.householdMembershipsCollection.deleteMany(
+          { householdId: input.householdId },
+          { session }
+        );
+        const households = await this.householdsCollection.deleteMany(
+          { id: input.householdId },
+          { session }
+        );
+        deleted.household_memberships = memberships.deletedCount ?? 0;
+        deleted.households = households.deletedCount ?? 0;
       }
       return { deleted, scope: input.scope };
     });

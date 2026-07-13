@@ -41,6 +41,16 @@ describe("household reset route", () => {
       deleted: { household_products: 1 }
     });
     expect(database.__collections["household_products"]!.docs).toHaveLength(0);
+
+    const deleteHousehold = await householdResetRoute.handle(
+      {
+        ...request,
+        bodyText: JSON.stringify({ scope: "delete_household" })
+      },
+      createContext(database, { email: "owner", role: "user" })
+    );
+    expect(deleteHousehold.status).toBe(200);
+    expect(database.__collections["households"]!.docs).toHaveLength(0);
   });
 });
 

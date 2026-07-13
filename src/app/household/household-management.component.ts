@@ -1,7 +1,7 @@
 import { CommonModule } from "@angular/common";
 import { Component, inject, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
-import { ActivatedRoute, RouterLink } from "@angular/router";
+import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 
 import { HouseholdStockService, type HouseholdListItem } from "./household-stock.service";
 import {
@@ -153,6 +153,9 @@ import { ToastService } from "../shared/toast.service";
                 <option value="all_household_data">
                   {{ loc.t("household.resetScopeAllData") }}
                 </option>
+                <option value="delete_household">
+                  {{ loc.t("household.resetScopeDeleteHousehold") }}
+                </option>
               </select>
             </label>
             <p class="reset-scope-description">{{ resetScopeDescription() }}</p>
@@ -302,6 +305,7 @@ export class HouseholdManagementComponent {
   private readonly invitationService = inject(HouseholdInvitationService);
   private readonly householdV2Service = inject(HouseholdV2Service);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
 
   readonly household = signal<HouseholdListItem | null>(null);
@@ -322,7 +326,8 @@ export class HouseholdManagementComponent {
     | "batches"
     | "products_and_batches"
     | "groups_products_and_batches"
-    | "all_household_data" = "shopping_list";
+    | "all_household_data"
+    | "delete_household" = "shopping_list";
 
   constructor() {
     void this.loadHousehold();
@@ -423,10 +428,18 @@ export class HouseholdManagementComponent {
 
     this.errorMessage.set("");
     this.toast.push(this.loc.t("household.resetSuccess"), "success");
+    if (this.resetScope === "delete_household") {
+      await this.router.navigateByUrl("/");
+    }
   }
 
   private resetScopeSuffix():
-    "ShoppingList" | "Batches" | "ProductsAndBatches" | "GroupsProductsAndBatches" | "AllData" {
+    | "ShoppingList"
+    | "Batches"
+    | "ProductsAndBatches"
+    | "GroupsProductsAndBatches"
+    | "AllData"
+    | "DeleteHousehold" {
     switch (this.resetScope) {
       case "shopping_list":
         return "ShoppingList";
@@ -438,6 +451,8 @@ export class HouseholdManagementComponent {
         return "GroupsProductsAndBatches";
       case "all_household_data":
         return "AllData";
+      case "delete_household":
+        return "DeleteHousehold";
     }
   }
 }

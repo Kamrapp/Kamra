@@ -70,6 +70,20 @@ describe("MongoHouseholdRepository", () => {
     });
     expect(db.__collections["households"]!.docs).toHaveLength(1);
     expect(db.__collections["household_memberships"]!.docs).toHaveLength(1);
+
+    const deletedResult = await repository.resetHouseholdContent({
+      householdId: "household1",
+      scope: "delete_household",
+      transactionClient,
+      userId: "usera"
+    });
+
+    expect(deletedResult.deleted).toMatchObject({
+      household_memberships: 1,
+      households: 1
+    });
+    expect(db.__collections["households"]!.docs).toHaveLength(0);
+    expect(db.__collections["household_memberships"]!.docs).toHaveLength(0);
   });
 
   it("skips validator updates for existing non-empty household collections", async () => {
