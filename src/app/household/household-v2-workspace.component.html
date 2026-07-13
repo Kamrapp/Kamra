@@ -41,7 +41,7 @@
           @if (shoppingSelectionMode()) {
             <span class="selection-cell"></span>
           }
-          <span class="name-header">
+          <span class="workspace-expansion-slot">
             <button
               class="expansion-cycle-button"
               type="button"
@@ -51,6 +51,8 @@
             >
               {{ expansionLabel() }}
             </button>
+          </span>
+          <span class="name-header">
             {{ loc.t("common.name") }}
           </span>
           <span>{{ loc.t("household.minShort") }}</span>
@@ -75,6 +77,7 @@
                   />
                 </span>
               }
+              <span class="workspace-expansion-slot" aria-hidden="true"></span>
               @if (editingGroupId() === row.group.group.id) {
                 <span class="row-name group-name">
                   <span>{{ icons.group }}</span>
@@ -402,6 +405,7 @@
         />
       </span>
     }
+    <span class="workspace-expansion-slot" aria-hidden="true"></span>
     @if (editingProductId() === row.product.id) {
       <span class="row-name product-name">
         <span>{{ icons.product }}</span>
@@ -657,6 +661,7 @@
         @if (shoppingSelectionMode()) {
           <span class="selection-cell"></span>
         }
+        <span class="workspace-expansion-slot" aria-hidden="true"></span>
         <span class="row-name batch-name">
           @if (editingBatchId() === batch.id) {
             <strong>

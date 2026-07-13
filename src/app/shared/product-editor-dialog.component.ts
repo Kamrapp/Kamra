@@ -268,8 +268,8 @@ type EditorMode = "catalog" | "review";
       input,
       select,
       textarea {
-        background: color-mix(in srgb, var(--color-background-soft) 74%, white 26%);
-        border: 1px solid color-mix(in srgb, var(--color-wood) 26%, transparent);
+        background: var(--form-field-background);
+        border: 1px solid var(--line-subtle);
         border-radius: var(--radius-ui);
         color: var(--color-text);
         font: inherit;
@@ -283,7 +283,7 @@ type EditorMode = "catalog" | "review";
       }
 
       pre {
-        background: color-mix(in srgb, var(--color-background-soft) 68%, white 32%);
+        background: var(--surface-soft-background);
         border-radius: var(--radius-ui);
         color: var(--color-text-muted);
         margin: 0;
@@ -335,7 +335,9 @@ type EditorMode = "catalog" | "review";
 
       .icon-button {
         aspect-ratio: 1;
-        background: color-mix(in srgb, var(--color-background-soft) 78%, white 22%);
+        background: var(--control-quiet-background);
+        border: 1px solid var(--control-quiet-border);
+        color: var(--control-quiet-text);
         padding: 0;
         width: 2.25rem;
       }
@@ -346,8 +348,9 @@ type EditorMode = "catalog" | "review";
       }
 
       .secondary-button {
-        background: color-mix(in srgb, var(--color-accent-sky) 22%, white 78%);
-        color: var(--color-text);
+        background: var(--control-quiet-background);
+        border: 1px solid var(--control-quiet-border);
+        color: var(--control-quiet-text);
       }
 
       .danger-button {

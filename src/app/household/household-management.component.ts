@@ -43,13 +43,20 @@ import { ToastService } from "../shared/toast.service";
           <h2 class="ui-card-title">{{ loc.t("household.managementIdentityTitle") }}</h2>
           <p class="ui-copy-muted">{{ loc.t("household.managementIdentityDescription") }}</p>
           @if (household()) {
-            <label>
-              <span>{{ loc.t("household.householdName") }}</span>
-              <input class="ui-form-control" [(ngModel)]="nameDraft" />
-            </label>
-            <button class="ui-button ui-button-sm" type="button" (click)="saveSettings()">
-              {{ loc.t("household.saveHousehold") }}
-            </button>
+            @if (canManageHousehold()) {
+              <label>
+                <span>{{ loc.t("household.householdName") }}</span>
+                <input class="ui-form-control" [(ngModel)]="nameDraft" />
+              </label>
+              <button class="ui-button ui-button-sm" type="button" (click)="saveSettings()">
+                {{ loc.t("household.saveHousehold") }}
+              </button>
+            } @else {
+              <p class="static-management-value">
+                <strong>{{ loc.t("household.householdName") }}</strong>
+                <span>{{ household()?.name }}</span>
+              </p>
+            }
           }
         </article>
 
@@ -58,20 +65,24 @@ import { ToastService } from "../shared/toast.service";
           <h2 class="ui-card-title">{{ loc.t("household.managementInviteTitle") }}</h2>
           <p class="ui-copy-muted">{{ loc.t("household.managementInviteDescription") }}</p>
           @if (household(); as currentHousehold) {
-            <form class="invite-form" (ngSubmit)="invite(currentHousehold.id)">
-              <label>
-                <span>{{ loc.t("household.inviteEmail") }}</span>
-                <input
-                  class="ui-form-control"
-                  name="inviteEmail"
-                  type="email"
-                  [(ngModel)]="inviteEmailDraft"
-                />
-              </label>
-              <button class="ui-button ui-button-sm" type="submit" [disabled]="inviting()">
-                {{ inviting() ? loc.t("household.inviting") : loc.t("household.invite") }}
-              </button>
-            </form>
+            @if (canManageHousehold()) {
+              <form class="invite-form" (ngSubmit)="invite(currentHousehold.id)">
+                <label>
+                  <span>{{ loc.t("household.inviteEmail") }}</span>
+                  <input
+                    class="ui-form-control"
+                    name="inviteEmail"
+                    type="email"
+                    [(ngModel)]="inviteEmailDraft"
+                  />
+                </label>
+                <button class="ui-button ui-button-sm" type="submit" [disabled]="inviting()">
+                  {{ inviting() ? loc.t("household.inviting") : loc.t("household.invite") }}
+                </button>
+              </form>
+            } @else {
+              <p class="owner-only-note">{{ loc.t("household.ownerOnlyManagement") }}</p>
+            }
             @if (invitations().length > 0) {
               <div class="invitation-list">
                 <strong>{{ loc.t("household.pendingInvitations") }}</strong>
@@ -93,37 +104,55 @@ import { ToastService } from "../shared/toast.service";
           <h2 class="ui-card-title">{{ loc.t("household.managementLimitsTitle") }}</h2>
           <p class="ui-copy-muted">{{ loc.t("household.managementLimitsDescription") }}</p>
           @if (household()) {
-            <label>
-              <span>{{ loc.t("household.defaultCalculatedMaxLimitMultiplier") }}</span>
-              <input
-                class="ui-form-control"
-                type="number"
-                min="0"
-                step="0.1"
-                [(ngModel)]="maxLimitMultiplierDraft"
-              />
-            </label>
-            <label class="checkbox-row">
-              <input type="checkbox" [(ngModel)]="allowExpiredItemsDraft" />
-              {{ loc.t("household.allowExpiredItems") }}
-            </label>
-            <label>
-              <span>{{ loc.t("household.groupTargetShoppingMode") }}</span>
-              <select class="ui-form-control" [(ngModel)]="groupTargetShoppingModeDraft">
-                <option value="add_products_and_group_item">
-                  {{ loc.t("household.groupTargetShoppingModeProductsAndGroupItem") }}
-                </option>
-                <option value="add_products_only">
-                  {{ loc.t("household.groupTargetShoppingModeProductsOnly") }}
-                </option>
-                <option value="ignore_group_targets">
-                  {{ loc.t("household.groupTargetShoppingModeIgnore") }}
-                </option>
-              </select>
-            </label>
-            <button class="ui-button ui-button-sm" type="button" (click)="saveSettings()">
-              {{ loc.t("household.saveSettings") }}
-            </button>
+            @if (canManageHousehold()) {
+              <label>
+                <span>{{ loc.t("household.defaultCalculatedMaxLimitMultiplier") }}</span>
+                <input
+                  class="ui-form-control"
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  [(ngModel)]="maxLimitMultiplierDraft"
+                />
+              </label>
+              <label class="checkbox-row">
+                <input type="checkbox" [(ngModel)]="allowExpiredItemsDraft" />
+                {{ loc.t("household.allowExpiredItems") }}
+              </label>
+              <label>
+                <span>{{ loc.t("household.groupTargetShoppingMode") }}</span>
+                <select class="ui-form-control" [(ngModel)]="groupTargetShoppingModeDraft">
+                  <option value="add_products_and_group_item">
+                    {{ loc.t("household.groupTargetShoppingModeProductsAndGroupItem") }}
+                  </option>
+                  <option value="add_products_only">
+                    {{ loc.t("household.groupTargetShoppingModeProductsOnly") }}
+                  </option>
+                  <option value="ignore_group_targets">
+                    {{ loc.t("household.groupTargetShoppingModeIgnore") }}
+                  </option>
+                </select>
+              </label>
+              <button class="ui-button ui-button-sm" type="button" (click)="saveSettings()">
+                {{ loc.t("household.saveSettings") }}
+              </button>
+            } @else {
+              <div class="management-static-grid">
+                <span>
+                  <strong>{{ loc.t("household.defaultCalculatedMaxLimitMultiplier") }}</strong>
+                  {{ household()?.defaultCalculatedMaxLimitMultiplier ?? 2 }}
+                </span>
+                <span>
+                  <strong>{{ loc.t("household.allowExpiredItems") }}</strong>
+                  {{ allowExpiredItemsDraft ? loc.t("common.yes") : loc.t("common.no") }}
+                </span>
+                <span>
+                  <strong>{{ loc.t("household.groupTargetShoppingMode") }}</strong>
+                  {{ groupTargetShoppingModeLabel() }}
+                </span>
+              </div>
+              <p class="owner-only-note">{{ loc.t("household.ownerOnlyManagement") }}</p>
+            }
           }
           @if (errorMessage()) {
             <p class="ui-copy-error">{{ errorMessage() }}</p>
@@ -135,11 +164,15 @@ import { ToastService } from "../shared/toast.service";
         <p class="ui-kicker">{{ loc.t("household.resetHouseholdKicker") }}</p>
         <h2 class="ui-card-title">{{ loc.t("household.resetHouseholdTitle") }}</h2>
         <p class="ui-copy-muted">{{ loc.t("household.resetHouseholdDescription") }}</p>
-        @if (household()) {
+        @if (household() && canManageHousehold()) {
           <div class="reset-form">
             <label>
               <span>{{ loc.t("household.resetScopeLabel") }}</span>
-              <select class="ui-form-control" [(ngModel)]="resetScope">
+              <select
+                class="ui-form-control"
+                [(ngModel)]="resetScope"
+                (ngModelChange)="resetConfirmed = false"
+              >
                 <option value="shopping_list">
                   {{ loc.t("household.resetScopeShoppingList") }}
                 </option>
@@ -172,6 +205,8 @@ import { ToastService } from "../shared/toast.service";
               {{ loc.t("household.resetButton") }}
             </button>
           </div>
+        } @else if (household()) {
+          <p class="owner-only-note">{{ loc.t("household.ownerOnlyManagement") }}</p>
         }
       </article>
     </section>
@@ -195,6 +230,34 @@ import { ToastService } from "../shared/toast.service";
 
       .management-panel p {
         margin: 0;
+      }
+
+      .owner-only-note,
+      .static-management-value,
+      .management-static-grid {
+        color: var(--color-text-muted);
+        font-size: 0.84rem;
+        line-height: 1.45;
+        margin: 0;
+      }
+
+      .static-management-value,
+      .management-static-grid {
+        display: grid;
+        gap: var(--space-2);
+      }
+
+      .static-management-value strong,
+      .management-static-grid strong {
+        color: var(--color-text-muted);
+        display: block;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+      }
+
+      .management-static-grid {
+        gap: var(--space-3);
+        grid-template-columns: repeat(3, minmax(0, 1fr));
       }
 
       .invite-form {
@@ -339,6 +402,21 @@ export class HouseholdManagementComponent {
 
   constructor() {
     void this.loadHousehold();
+  }
+
+  canManageHousehold(): boolean {
+    return this.household()?.membershipRole === "owner";
+  }
+
+  groupTargetShoppingModeLabel(): string {
+    switch (this.groupTargetShoppingModeDraft) {
+      case "add_products_only":
+        return this.loc.t("household.groupTargetShoppingModeProductsOnly");
+      case "ignore_group_targets":
+        return this.loc.t("household.groupTargetShoppingModeIgnore");
+      case "add_products_and_group_item":
+        return this.loc.t("household.groupTargetShoppingModeProductsAndGroupItem");
+    }
   }
 
   private async loadHousehold(): Promise<void> {

@@ -165,6 +165,7 @@
     "noPackage": "nincs csomagolás",
     "noSource": "nincs forrás",
     "none": "nincs",
+    "no": "Nem",
     "notifications": "Értesítések",
     "notConfigured": "nincs beállítva",
     "offers": "Ajánlatok",
@@ -196,6 +197,7 @@
     "unbranded": "márka nélküli",
     "uncategorized": "nincs kategória",
     "unknown": "ismeretlen",
+    "yes": "Igen",
     "validate": "Érvényesítés",
     "validity": "Érvényesség"
   },
@@ -519,6 +521,7 @@
     "managementLimitsKicker": "Beállítások",
     "managementLimitsTitle": "Készlet- és bevásárlási beállítások",
     "managementMissing": "Ez a háztartás nem található a jelenlegi munkamenetből.",
+    "ownerOnlyManagement": "A háztartás nevét, beállításait, meghívásait és tartalmát csak a tulajdonos módosíthatja.",
     "managementSummary": "Itt kezelheted a(z) „{name}” háztartás beállításait és tagjait.",
     "managementTitle": "Háztartás kezelése",
     "saveHousehold": "Háztartás mentése",

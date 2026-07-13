@@ -165,6 +165,7 @@
     "noPackage": "no package",
     "noSource": "no source",
     "none": "none",
+    "no": "No",
     "notifications": "Notifications",
     "notConfigured": "not configured",
     "offers": "Offers",
@@ -196,6 +197,7 @@
     "unbranded": "unbranded",
     "uncategorized": "uncategorized",
     "unknown": "unknown",
+    "yes": "Yes",
     "validate": "Validate",
     "validity": "Validity"
   },
@@ -519,6 +521,7 @@
     "managementLimitsKicker": "Settings",
     "managementLimitsTitle": "Stock and shopping settings",
     "managementMissing": "This household could not be found from the current session.",
+    "ownerOnlyManagement": "Only the household owner can change its name, settings, invitations, or content.",
     "managementSummary": "Manage the settings and members of \"{name}\" here.",
     "managementTitle": "Household management",
     "saveHousehold": "Save household",

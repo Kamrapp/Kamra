@@ -107,6 +107,15 @@
   tools group, household-management buttons use the compact shared sizing, and Manual terminology
   rows have a more readable type scale. The live runbook now retains only the new browser/configured
   retests for invitations, deletion, workspace action positions/theme, feature flags, and users.
+- Implemented the latest operator notes: household management is read-only for non-owners, reset
+  confirmation clears when its scope changes, and localized Yes/No plus owner-only copy are present.
+  The Product Group workspace now gives the expansion control its own shared grid column so header,
+  Product, and Batch amount tracks align; Crawl review inputs, JSON, and secondary actions now use
+  theme tokens instead of light-only white mixes.
+- Consolidated the live runbook again: confirmed management, workspace CRUD/layout, visual,
+  navigation, admin, and diagnostics checks moved to the accepted ledger; remaining checks are
+  invitation placement/title, manual/activity readability, reset/deletion retest, amount-track and
+  state-badge presentation, Crawl review theme, and configured archive/repair/ingestion evidence.
 
 ## Changed Files
 
@@ -232,11 +241,9 @@
   `8d4419e` and `f857b7c`. The integrated manual pass and any narrow findings remain.
 - The new household invitation validator entry must be run against the configured disposable
   database before using the browser invitation flow; the deterministic tests do not update MongoDB.
-- The operator accepted the Section 3 workspace structure and first CRUD/derived-data pass. The
-  latest workspace refinement is implemented; the live runbook retains only its visual/behavioral
-  retest for shared header/body amount-column alignment, plus the previously open
-  consistency/accessibility checks. The new light-theme contrast and reset-flow checks are also
-  pending.
+- The operator accepted the Section 3 workspace structure, CRUD/derived-data pass, responsive
+  behavior, and accessibility checks. The live runbook retains only shared header/body amount-column
+  alignment and final state-badge presentation.
 - Stage 10 configured/browser release evidence remains open and is not waived by this plan.
 - Section 4 browser evidence remains open in the live runbook: visible Build checkboxes and
   tri-state expansion, exact selected-owner output, group-mode presentation, compact source colors,
@@ -245,11 +252,15 @@
 - The legacy shopping-list API remains a compatibility fallback only when no V2 Product Group/Product
   rows exist; the normal seeded household path now generates from the V2 workspace and visible table
   selection.
-- The operator must edit the live runbook with actual findings during the final pass; those edits become input to the final fixer session. The shortened manual pass should start with `npm run mvp:preflight`, then the fixture/configured smokes, then browser-only checks.
+- The operator must edit the live runbook with actual findings during the final pass; those edits
+  become input to the final fixer session. The shortened manual pass should start with
+  `npm run mvp:preflight`, then the fixture/configured smokes, then browser-only checks.
 
 ## Next Step
 
-Run the focused demo seed against the approved disposable database, then rerun `npm run smoke:demo-household` before browser verification. Do not use the full seed unless catalogue/admin data is also required.
+Run the focused demo seed against the approved disposable database, then rerun
+`npm run smoke:demo-household` before browser verification. Do not use the full seed unless
+catalogue/admin data is also required.
 
 Execute `scripts/stage11-mvp-manual-test.md` as one continuous Stage 8–11 pass, starting with
 Section 4 now that the attached shopping feedback is implemented. Add observed
