@@ -51,6 +51,11 @@ This is the single source of truth for manual/browser verification carried forwa
 
 ## Stage 9 concrete shopping journey — deferred until separate Stage 9 approval
 
+- [ ] On Home, start a concrete Shopping Trip from the compact Trip panel using an active Shop Market id; confirm the draft progresses through matching/ready/in-progress without losing the underlying Shopping Need list.
+- [ ] Mark Trip Items bought and not bought, finalize the Trip, refresh Home, and confirm bought lines create Product-owned Batches while not-bought lines do not create stock.
+- [ ] Resume a partially processed Trip and retry the same completion operation; confirm no duplicate Product, Batch, Movement, or Ingestion Submission is created.
+- [ ] As an admin, list pending Ingestion Submissions, accept/reject/correct one with a matching revision, and confirm stale review is rejected while household stock history remains unchanged.
+
 - [ ] From an open Shopping Need, select exactly one enabled Shop Market and planned shopping date.
 - [ ] Verify automatic Product/Shop Product matches show package math, applicable price, stale/no-price/conditional states, and match explanations.
 - [ ] Override a match, leave one line unresolved, and skip one line; verify all choices remain explicit and editable.

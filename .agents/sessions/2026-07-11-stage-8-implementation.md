@@ -404,3 +404,4 @@ Stage 9 remains in implementation. At this checkpoint, the next required slice i
 - `dc8dc50 feat: add Stage 9 market and ingestion review routes` adds admin-only Shop Market and Ingestion Submission list/create/review routes.
 - `85357b6 fix: validate shopping trip purchase inputs` rejects empty completion payloads and invalid purchase units.
 - Stage 9 still needs the browser-facing Trip workflow, admin product/price UI, realistic fixtures, and compatibility retirement evidence. Stage 10 has started with input-boundary hardening but is not complete.
+- `81eca6b feat: add household shopping trip panel` adds the localized Home Trip panel for starting/resuming, marking, and finalizing concrete trips; the shared manual checklist now covers it.

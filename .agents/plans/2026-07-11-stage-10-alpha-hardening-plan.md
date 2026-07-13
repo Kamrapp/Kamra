@@ -19,6 +19,10 @@ Current implementation has the Stage 9 Trip, matcher, persistence, purchase-to-P
 Ingestion Submission persistence/review routes, and strict completion input validation. Browser workflow
 verification and the remaining admin/user UI are still required before Stage 9 can be closed.
 
+The Home Trip panel is now available for the household journey. The remaining Stage 9 UI gap is
+the richer admin Shop Product/Price editor; the route and persistence boundary exists, but Stage 10
+must not waive that surface silently if it is needed for the configured Alpha scenario.
+
 ## Open Questions
 
 None for implementation. Preserve raw Crawl Snapshots, prefer reset/reseed over speculative migration for disposable derived data, keep corrections as reviewed overlays, use one shared core behind admin/CLI actions, and remove active legacy vocabulary before Alpha. Any archive count/checksum mismatch or ambiguous raw identity is a hard stop, not an invitation to repair by guesswork.
