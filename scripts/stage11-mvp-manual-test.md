@@ -1,8 +1,8 @@
 # Kamra Stage 8–11 MVP manual verification
 
-Status: Live integrated runbook. This document is the planned replacement for
-`scripts/stage8-demo-manual-test.md` and the Stage 8–10 manual checklist once Stage 11 reaches
-wrap-up. Do not run the older documents as a separate acceptance session.
+Status: Live integrated runbook, ready for the Stage 11 operator pass. This document is the single
+replacement for `scripts/stage8-demo-manual-test.md` and the Stage 8–10 manual checklist. Do not
+run the older documents as a separate acceptance session.
 
 This file is intentionally operator-editable. Add notes, screenshots, reproduction details, and
 discoveries under the relevant section. Never add credentials, tokens, private household data, or
@@ -244,6 +244,25 @@ Operator notes and discoveries:
 - [ ] Confirm the old Stage 8 script and Stage 8–10 checklist link here and are no longer treated as
       separate acceptance sources.
 - [ ] Only after all required items are resolved or waived: mark MVP closure ready.
+
+## 8. Known risk probes
+
+Run these probes deliberately even when the main flow appears healthy. They are compact reminders
+of the failure classes most likely to cross a frontend/API/persistence boundary.
+
+- [ ] Save the same Group, Product, or Batch from inline and right-side editors in both orders;
+      confirm no stale editor, duplicate write, or lost revision remains.
+- [ ] Toggle expired-item inclusion around an expired Batch and compare the visible Current,
+      Product Group aggregate, and generated shopping need.
+- [ ] Use two Products and multiple Batches in one Group; confirm each physical Batch contributes
+      once to its Product and the Group, including after refresh and retry.
+- [ ] Add the same impulse item twice and retry a purchased-line application; confirm duplicate
+      operations are rejected or treated idempotently with a visible Activity entry.
+- [ ] Force or reproduce a stale revision, missing schema/maintenance setup, untranslated label,
+      dark-theme contrast issue, fixed-column overflow, and failed action; confirm each has an
+      understandable UI result rather than a silent no-op.
+
+Operator notes and discoveries:
 
 ## Fix/discovery log
 
