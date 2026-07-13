@@ -260,8 +260,10 @@ async function runValidatorAction(
     return await new MongoIngestionSubmissionRepository(database).setupCollections();
   }
   if (entryId === "shop-product-price-foundation-v1") {
-    await new MongoShopProductRepository(database).setupCollections();
-    return await new MongoPriceObservationRepository(database).setupCollections();
+    return await new MongoShopProductRepository(database).setupCollections();
+  }
+  if (entryId === "shop-price-observations-v1") {
+    return await new MongoPriceObservationRepository(database).upgradeValidator();
   }
   if (entryId === "feature-flag-revision-v1" || entryId === "household-expired-item-policy-v1") {
     const repository = context.dependencies.createHouseholdRepository
@@ -337,6 +339,9 @@ async function runMigrationAction(
   }
   if (entryId === "shop-product-price-foundation-v1") {
     return { status: "ready", migratedCount: 0, preservedHistory: true };
+  }
+  if (entryId === "shop-price-observations-v1") {
+    return await new MongoPriceObservationRepository(database).migrateLegacy();
   }
   if (entryId === "feature-flag-revision-v1") {
     return { status: "ready", migratedCount: 0 };

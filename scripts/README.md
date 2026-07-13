@@ -118,6 +118,25 @@ npm run smoke:transactions
 
 The script refuses database names other than `kamra_dev`, `kamra_test`, or `kamra_smoke`. Use a disposable/local or smoke database; it does not run against production-named databases.
 
+### `shopping-trip-smoke.ts`
+
+Exercises one real MongoDB Shopping Trip journey through the shared application handler: active
+market matching, bought and not-bought completion, persisted purchase facts, admin review, a stale
+review conflict, and an identical completion retry. It creates one uniquely prefixed temporary
+household and removes only that household and its run-scoped market, Shop Product, and Price
+Observation records in `finally`.
+
+Command:
+
+```powershell
+npm run smoke:shopping-trip
+```
+
+The script refuses database names other than `kamra_dev`, `kamra_test`, or `kamra_smoke`. Use a
+disposable/local or Smoke database. It does not change validators, maintenance acknowledgements,
+catalogue records, archive data, or repair data. Cleanup failure fails the command rather than
+reporting a false pass.
+
 ### `demo-household-smoke.ts`
 
 Read-only validation of the seeded `household1` V2 fixture. It checks household defaults, required

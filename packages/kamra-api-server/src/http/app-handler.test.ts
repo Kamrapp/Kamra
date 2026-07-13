@@ -1679,6 +1679,11 @@ describe("handleAppRequest auth guards", () => {
           validatorUpdated: false
         },
         {
+          id: "shop-price-observations-v1",
+          migrationCompleted: false,
+          validatorUpdated: false
+        },
+        {
           id: "feature-flag-audit-v1",
           migrationCompleted: false,
           validatorUpdated: false
@@ -1834,6 +1839,8 @@ describe("handleAppRequest auth guards", () => {
         "shopping-trip-foundation-v1:migration",
         "shop-product-price-foundation-v1:validator",
         "shop-product-price-foundation-v1:migration",
+        "shop-price-observations-v1:validator",
+        "shop-price-observations-v1:migration",
         "feature-flag-audit-v1:validator",
         "feature-flag-audit-v1:migration",
         "feature-flag-revision-v1:validator",

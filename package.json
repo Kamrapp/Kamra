@@ -36,6 +36,7 @@
     "synthetic:ingest": "node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/ingest-synthetic-source.ts",
     "smoke:catalog": "node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/catalog-smoke.ts",
     "smoke:demo-household": "node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/demo-household-smoke.ts",
+    "smoke:shopping-trip": "node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/shopping-trip-smoke.ts",
     "smoke:transactions": "node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/transaction-smoke.ts",
     "teardown:demo-household": "node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/teardown-demo-household.ts",
     "start:api": "node --env-file-if-exists=.env.local dist/api/scripts/local-api.js",

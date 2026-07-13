@@ -85,9 +85,15 @@ export const databaseMaintenanceEntries: readonly DatabaseMaintenanceEntry[] = [
   },
   {
     details:
-      "Creates the Shop Product and append-only Price Observation indexes needed by the Stage 9 matching path. Validator and existing-data applicability migration remain separate operator actions; this entry never deletes or replaces price history.",
+      "Creates the Shop Product indexes needed by the Stage 9 matching path. Validator and existing-data applicability migration remain separate operator actions; this entry does not own catalogue price history.",
     id: "shop-product-price-foundation-v1",
-    title: "Shop Products and Price Observations"
+    title: "Shop Product indexes"
+  },
+  {
+    details:
+      "Creates and validates the Stage 9 append-only Shop Price Observation collection. The migration copies only legacy Stage 9-shaped documents out of the catalogue-owned price_observations collection, preserves the original history, and skips catalogue-shaped records.",
+    id: "shop-price-observations-v1",
+    title: "Shop Price Observations"
   },
   {
     details:

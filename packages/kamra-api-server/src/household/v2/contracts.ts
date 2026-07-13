@@ -7,6 +7,9 @@ export const householdV2CollectionNames = [
   "household_domain_operations",
   "household_shopping_need_lists",
   "shop_markets",
+  "shop_products",
+  "shop_price_observations",
+  "ingestion_submissions",
   "household_shopping_trips"
 ] as const;
 

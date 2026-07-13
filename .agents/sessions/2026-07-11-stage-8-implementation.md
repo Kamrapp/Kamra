@@ -650,3 +650,23 @@ Stage 9 remains in implementation. At this checkpoint, the next required slice i
 - Added localized operator feedback to the Stage 9 admin market, Shop Product, Price Observation, and Ingestion Submission review surface. Failed HTTP/network requests now remain visible as errors and are sent to the Activity console; successful writes show a status message after the refreshed data is loaded.
 - Added lightweight client validation for required market/product fields, positive package quantity, non-negative price, and ordered price validity dates. While a request is active, overlapping admin actions are disabled.
 - Validation passed: `npm test` (64 files/231 tests), format check, zero-warning lint, typecheck, and `npm run build:web`. Manual confirmation of the admin failure/success states remains in the central checklist.
+
+## Stage 11 automation audit — Stage 9 price collection boundary (2026-07-13)
+
+- The configured `shopping-trip-smoke` first exposed that the Stage 9 `PriceObservationCandidate`
+  shape was being inserted into catalogue-owned `price_observations`, whose live validator accepts
+  only the catalogue `PriceObservationRecord` shape. This was a real ownership bug, not a smoke
+  fixture problem.
+- `shop-price-observations-v1` now owns the Stage 9 collection. Its validator action creates or
+  upgrades `shop_price_observations` and its indexes; its separate idempotent migration copies only
+  recognizable legacy Stage 9-shaped records while preserving catalogue history and skipping
+  catalogue-shaped documents.
+- `shop-product-price-foundation-v1` remains a durable registry id for Shop Product indexes only;
+  its meaning was narrowed without changing the id. The new price entry is deliberately separate so
+  operators can track validator and migration completion independently.
+- The Stage 9 repository, smoke cleanup, V2 collection-name contract, maintenance route, registry
+  listing, and workflow now use the dedicated collection. Focused repository, maintenance-route,
+  integration, typecheck, formatting, and lint validation passed locally.
+- Before the configured smoke is treated as green, run the new validator action and then its
+  migration action in the approved disposable database. The smoke itself does not change validators,
+  maintenance acknowledgements, catalogue records, archive data, or repair data.

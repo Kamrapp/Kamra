@@ -13,8 +13,15 @@ on:
       - "packages/kamra-api-server/src/household/v2/**"
       - "packages/kamra-api-server/src/http/routes/household/**"
       - "packages/kamra-api-server/src/http/routes/household-v2-routes.ts"
+      - "packages/kamra-api-server/src/http/routes/stage9-admin-routes.ts"
+      - "packages/kamra-api-server/src/http/app-handler.ts"
+      - "packages/kamra-api-server/src/http/app-route-context.ts"
+      - "packages/kamra-api-server/src/auth/user-token.ts"
+      - "packages/kamra-api-server/src/config/app-config.ts"
       - "packages/kamra-api-server/src/db/mongo-transaction.ts"
+      - "packages/kamra-api-server/src/db/mongo-client.ts"
       - "scripts/transaction-smoke.ts"
+      - "scripts/shopping-trip-smoke.ts"
       - "tsconfig*.json"
   workflow_dispatch:
 
@@ -41,3 +48,5 @@ jobs:
         run: npm ci
       - name: Verify MongoDB transaction behavior
         run: npm run smoke:transactions
+      - name: Verify Shopping Trip persistence behavior
+        run: npm run smoke:shopping-trip
