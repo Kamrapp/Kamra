@@ -29,6 +29,7 @@
     "lidl:ingest": "node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/ingest-lidl-brochures.ts",
     "penny:ingest": "node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/ingest-penny-offers.ts",
     "process:ingestion": "node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/process-ingestion.ts",
+    "repair:lidl-brochure": "node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/repair-lidl-brochure-rows.ts",
     "synthetic:pdf:ingest": "node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/ingest-synthetic-pdf-source.ts",
     "synthetic:ingest": "node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/ingest-synthetic-source.ts",
     "smoke:catalog": "node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/catalog-smoke.ts",

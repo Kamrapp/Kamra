@@ -203,6 +203,28 @@ npm run process:ingestion -- --source=coop-hu-offers --reprocess
 
 Data-writing script. It skips snapshots already processed by the same processor version unless `--reprocess` is passed. It keeps coupon/loyalty prices as separate price observations and leaves shop availability stock prices empty for now.
 
+### `repair-lidl-brochure-rows.ts`
+
+Plans a bounded repair of historical Lidl brochure `parsedRows` after the parser's repeated same-page
+identity fix. The default is read-only and only selects the previous parser version (`0.1.0`):
+
+```powershell
+npm run repair:lidl-brochure
+npm run repair:lidl-brochure -- --snapshot-id=lidl-hu-brochure:akcios-ujsag-26-het-2026:2026-07-02 --limit=1
+```
+
+The command reparses the preserved payload, reports before/after row and duplicate-identity counts,
+and never changes data unless all three safety arguments are present:
+
+```powershell
+npm run repair:lidl-brochure -- --apply --target=kamra_dev --operator=admin@example.test --limit=50
+```
+
+Apply mode updates only `parsedRows` and the parser version, requires the expected source/parser/version
+and content hash to still match, and leaves the payload and content hash unchanged. Export and verify
+the Crawl Snapshot archive first; review the dry-run report and any correction overlays before applying.
+The operation is not a general ingestion repair and does not promote catalog data.
+
 ### `validate-processed-ingestion.ts`
 
 Validates that raw ingestion snapshots have processed catalog-side states for the current source-offer processor version, then prints source-level catalog counts.

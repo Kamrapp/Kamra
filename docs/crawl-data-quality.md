@@ -22,10 +22,10 @@ The report is evidence for a human decision. It does not repair, delete, reproce
 ## Current configured evidence
 
 The 2026-07-13 read-only audit completed against the populated development database after traversal was
-changed to MongoDB's indexed `_id` sort. It inspected 54 crawl runs, 64 snapshots, and 11,310 parsed
-rows. The bounded report exposed 74 `duplicate_row_identity` issues in Lidl HU brochure snapshots;
-the other active sources reported no issues. The report displayed the first 25 issues and marked the
-result as truncated.
+changed to MongoDB's indexed `_id` sort. Its latest run inspected 55 crawl runs, 66 snapshots, and
+12,172 parsed rows. It exposed 78 `duplicate_row_identity` issues in Lidl HU brochure snapshots; the
+other active sources reported no issues. The bounded repair dry run selects 22 affected Lidl snapshots,
+removes 78 duplicate derived rows, and predicts zero duplicate identities after reparsing.
 
 The defect was traced to repeated same-page PDF text extraction, not to distinct products sharing a
 legitimate identity. Lidl parser version `0.1.1` now keeps the first row for a repeated page/item
@@ -45,4 +45,7 @@ Overlays are not raw evidence and are not applied by the audit command. They mus
 2. Run the audit against the same configured development database.
 3. Save the report outside the repository and classify every recurring issue class.
 4. Fix parsers with sanitized regression fixtures, or prepare a separately reviewed overlay.
-5. Reprocess only after the decision and correction are reviewed.
+5. For the confirmed Lidl repeated-identity defect, export and verify the archive, inspect the bounded
+   repair plan with `npm run repair:lidl-brochure`, and apply only after review with the exact target and
+   operator arguments documented in `scripts/README.md`.
+6. Reprocess only after the decision and correction are reviewed.

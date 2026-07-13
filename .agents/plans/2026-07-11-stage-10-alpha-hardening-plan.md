@@ -347,7 +347,7 @@ Implementation ownership map:
 ### Step 6 - Crawl import, reprocessing, and approved repair tools
 
 - Implement the shared import service/thin `crawl:import` script, correction-overlay validation/application during reprocessing, and separate dry-run-first idempotent repairs only for approved audit findings. Do not import derived Products/Price Observations. **Implemented foundation (2026-07-13):** manifest/checksum-verified runs/snapshots import, stable identity/content conflict reporting, dry-run default, explicit target/apply guard, repeat no-op behavior, and reviewed overlay application to an in-memory snapshot copy before existing parser processing.
-- Acceptance: import dry run is default; explicit target/apply is required; repeated identical import is a no-op; conflicts do not overwrite; raw truth remains intact; corrected parser output becomes reviewable Product Candidates; post-run reconciliation is proven. **Remaining:** the explicit historical parsed-row repair boundary and configured clean-database restore evidence.
+- Acceptance: import dry run is default; explicit target/apply is required; repeated identical import is a no-op; conflicts do not overwrite; raw truth remains intact; corrected parser output becomes reviewable Product Candidates; post-run reconciliation is proven. **Implemented foundation (2026-07-13):** the Lidl historical parsed-row repair is dry-run-first, bounded by source/parser/version and optional snapshot id, requires exact target/operator confirmation for writes, and uses a content-hash compare-and-set update. **Remaining:** configured clean-database restore evidence.
 - Commit per repair class: `chore: add <scope> data repair`
 
 ### Step 7 - Targeted backend vertical-slice cleanup
@@ -380,7 +380,7 @@ Implementation ownership map:
 
 - Close concrete authorization, failure-state, logging/redaction, pagination/index, accessibility/responsive, realistic-volume, and backup/recovery gaps that the Alpha path, observed failures, or release requirements demonstrate; do not add platform/tooling work merely to fill a checklist.
 - **Implemented slice (2026-07-13):** Shopping Trip and admin Ingestion Submission history GET routes now use bounded, indexed page reads with explicit `page`, `pageSize`, and `hasNextPage` metadata. Focused repository coverage protects the limit/overflow contract.
-- Acceptance: Alpha non-functional baseline above passes without production-platform expansion. Remaining catalogue/price-history paging and configured realistic-volume evidence require a concrete UI/query need before implementation. The configured audit must pass on the current populated data; raw archive/audit traversal must use an indexed sort path.
+- Acceptance: Alpha non-functional baseline above passes without production-platform expansion. Remaining catalogue/price-history paging and configured realistic-volume evidence require a concrete UI/query need before implementation. The configured audit must pass on the current populated data; raw archive/audit traversal must use an indexed sort path. **Current evidence (2026-07-13):** audit traversal passes over 55 runs, 66 snapshots, and 12,172 rows; it reports 78 persisted Lidl duplicate identities. The dry-run repair predicts zero after reparsing, but configured write/reconciliation evidence is still open.
 - Commit by concern when independent: `chore: harden alpha operations`
 
 ### Step 11 - Repository and Alpha release documentation

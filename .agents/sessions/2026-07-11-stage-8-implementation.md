@@ -540,9 +540,9 @@ basic Home shopping experience.
   unindexed full-collection application `id` sort. No new schema action or data write is required. The
   configured audit is now safe to rerun and should remain within the MongoDB sort memory limit on the
   populated environment.
-- The configured audit then completed over 54 runs, 64 snapshots, and 11,310 rows. It reported 74
-  `duplicate_row_identity` issues, all from Lidl HU brochure snapshots; the bounded output showed 25
-  and marked the report truncated. Other active sources reported no issues.
+- The latest configured audit then completed over 55 runs, 66 snapshots, and 12,172 rows. It reported
+  78 `duplicate_row_identity` issues, all from Lidl HU brochure snapshots; other active sources
+  reported no issues.
 - The issue is repeated same-page PDF text extraction. Lidl parser `0.1.1` now keeps the first stable
   page/item identity and has a sanitized repeated-block regression test. Historical snapshots remain
   unchanged; a bounded, reviewed historical parsed-row repair/reprocessing action is still required
@@ -556,6 +556,20 @@ basic Home shopping experience.
 - The focused Lidl source suite passes (6 tests), including a sanitized repeated-product-block case.
 - Next safe slice: add the explicit dry-run-first historical parsed-row repair/reprocessing boundary,
   then rerun local validation. Do not mutate configured MongoDB data automatically.
+
+## Stage 10 Step 6 Lidl historical repair checkpoint (2026-07-13)
+
+- Added `packages/kamra-api-server/src/ingestion/repair/lidl-brochure-parser-repair.ts` and the
+  `npm run repair:lidl-brochure` script. It is dry-run-first, bounded to the known previous parser
+  version, optionally narrowed to one snapshot, and requires exact `--target` plus `--operator` for
+  writes.
+- Apply mode reparses the preserved payload and updates only derived `parsedRows` and `parserVersion`
+  through a content-hash compare-and-set filter. It does not rewrite payload text, content hashes, or
+  catalog data. The repair plan fails closed on malformed payloads or source/parser mismatches.
+- Focused repair coverage protects duplicate removal and payload immutability. The configured database
+  has not been mutated by this session. The read-only repair dry run selected 22 Lidl snapshots, found
+  78 duplicate derived rows before reparsing, and predicts zero afterward. The next operator action is
+  archive/plan review before any apply run.
 
 Historical open-issue entries above describe intermediate checkpoints and are superseded by
 this closeout section where they say the Home bridge is still pending or Stage 8 cannot close.

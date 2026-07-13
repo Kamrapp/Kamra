@@ -56,7 +56,7 @@ export interface LidlHuBrochureSummary {
   title: string;
 }
 
-interface LidlHuPageText {
+export interface LidlHuPageText {
   lines: string[];
   pageNumber: number;
 }
