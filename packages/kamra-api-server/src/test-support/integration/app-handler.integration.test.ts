@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { MongoHouseholdRepository } from "../../household/current/mongo-household-repository.js";
+import type { HouseholdProduct } from "../../household/v2/contracts.js";
+import type { ShoppingTrip } from "../../household/v2/stage9-contracts.js";
 import { createIntegrationHarness } from "./app-harness.js";
 
 beforeEach(() => {
@@ -234,5 +236,122 @@ describe("Stage 11 application integration harness", () => {
     expect(JSON.parse(response.body)).toEqual({
       error: "household_membership_required"
     });
+  });
+
+  it("creates a Product-owned Batch and one Ingestion Submission across an idempotent partial trip retry", async () => {
+    const harness = createIntegrationHarness({
+      user: { email: "stage11-trip-owner@kamra.test", role: "user" }
+    });
+    const productId = `household-product:${harness.householdId}:milk`;
+    const tripId = `shopping-trip:${harness.householdId}:trip-1`;
+    const boughtItemId = `${tripId}:milk`;
+    const product: HouseholdProduct = {
+      classificationRevision: 0,
+      createdAt: "2026-07-12T10:00:00.000Z",
+      createdByUserId: harness.user.email,
+      defaultTrackingUnit: "l",
+      directAttributes: [],
+      directConcepts: [],
+      displayName: "Pilos 1.5% milk",
+      householdId: harness.householdId,
+      id: productId,
+      identityKind: "manual",
+      identitySnapshot: {},
+      note: null,
+      productGroupId: null,
+      revision: 0,
+      status: "active",
+      targetPolicy: null,
+      updatedAt: "2026-07-12T10:00:00.000Z",
+      updatedByUserId: harness.user.email
+    };
+    const trip: ShoppingTrip = {
+      createdAt: "2026-07-12T10:00:00.000Z",
+      createdByUserId: harness.user.email,
+      householdId: harness.householdId,
+      id: tripId,
+      items: [
+        {
+          displayNameSnapshot: product.displayName,
+          id: boughtItemId,
+          needId: "need:milk",
+          planStatus: "selected",
+          requiredQuantity: 2,
+          requiredUnit: "l",
+          resultStatus: "pending"
+        },
+        {
+          displayNameSnapshot: "Bread",
+          id: `${tripId}:bread`,
+          needId: "need:bread",
+          planStatus: "selected",
+          requiredQuantity: 1,
+          requiredUnit: "count",
+          resultStatus: "pending"
+        }
+      ],
+      plannedDate: "2026-07-13",
+      revision: 0,
+      shopMarketId: "market:demo",
+      sourceShoppingNeedListId: "shopping-needs:demo",
+      status: "in_progress",
+      updatedAt: "2026-07-12T10:00:00.000Z",
+      updatedByUserId: harness.user.email
+    };
+    await harness.database.collection("household_memberships").insertOne({
+      householdId: harness.householdId,
+      status: "active",
+      userId: harness.user.email
+    });
+    await harness.database.collection("household_products").insertOne(product);
+    await harness.database.collection("household_shopping_trips").insertOne(trip);
+
+    const completion = {
+      items: [
+        {
+          acquiredOn: "2026-07-13",
+          actualCurrencyCode: "HUF",
+          actualExpiryOn: "2026-07-20",
+          actualPaidPrice: 499,
+          actualQuantity: 2,
+          actualUnit: "l",
+          householdProductId: productId,
+          itemId: boughtItemId,
+          resultStatus: "bought"
+        }
+      ],
+      operationId: "trip-complete-1"
+    };
+    const first = await harness.send({
+      bodyText: JSON.stringify(completion),
+      method: "POST",
+      path: `/api/households/${harness.householdId}/shopping-trips/${encodeURIComponent(tripId)}/complete`
+    });
+    expect(first.status).toBe(200);
+    expect(JSON.parse(first.body).result.status).toBe("partially_processed");
+
+    const retry = await harness.send({
+      bodyText: JSON.stringify(completion),
+      method: "POST",
+      path: `/api/households/${harness.householdId}/shopping-trips/${encodeURIComponent(tripId)}/complete`
+    });
+    expect(retry.status).toBe(200);
+    expect(JSON.parse(retry.body).result.status).toBe("partially_processed");
+
+    expect(
+      await harness.database
+        .collection("household_stock_batches")
+        .countDocuments({ householdId: harness.householdId })
+    ).toBe(1);
+    expect(
+      await harness.database
+        .collection("ingestion_submissions")
+        .countDocuments({ shoppingTripId: tripId })
+    ).toBe(1);
+    expect(
+      await harness.database
+        .collection("household_domain_operations")
+        .countDocuments({ id: `trip-complete-1:${boughtItemId}` })
+    ).toBe(1);
   });
 });

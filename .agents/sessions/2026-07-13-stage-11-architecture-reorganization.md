@@ -11,6 +11,7 @@
 - Completed the reusable Step 11.2 integration harness: named fake databases, explicit authenticated user/household fixtures, a focused `test:integration` command, and representative admin/household/membership-boundary tests through the shared app handler.
 - Added the first Step 11.3 seam test: an admin feature-flag PATCH is observed by the household workspace response through the same persisted fake database.
 - Added the Product Group → Product → Batch seam test through the transaction-backed composer and grouped workspace read model; the harness now supplies only a no-op transaction lifecycle and documents that real transaction behavior remains a configured-smoke concern.
+- Added the shopping-trip completion seam: a partial trip creates one Product-owned Batch and one pending Ingestion Submission, and repeating the same completion operation remains idempotent.
 - Captured the first capability ownership map in `docs/vertical-slice-map.md`.
 - Defined the registry-driven feature-flag decision: code owns definitions/defaults/metadata; MongoDB stores overrides and audit history.
 - Defined deterministic local integration tests plus narrowly triggered configured MongoDB integration smoke; neither replaces browser/manual evidence.
@@ -34,7 +35,7 @@
 ## Validation
 
 - Ran: `npm run test:integration`, `npm test`, `npm run lint -- --no-warn-ignored`, `npm run typecheck`, `npm run format:check`, `npm run build:api`, and `git diff --check`.
-- Result: 5 focused integration tests, 65 test files/236 tests, lint, typecheck, formatting, API build, and diff checks passed.
+- Result: 6 focused integration tests, 65 test files/237 tests, lint, typecheck, formatting, API build, and diff checks passed.
 - Note: an initial full-test attempt included the unsupported Vitest flag `--runInBand`; the corrected `npm test` run passed.
 
 ## Decisions
