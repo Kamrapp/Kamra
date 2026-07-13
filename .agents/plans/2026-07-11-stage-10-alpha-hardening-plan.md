@@ -1,6 +1,6 @@
 # Stage 10 Alpha 1.0 Hardening Plan
 
-Status: In implementation — Step 1 baseline captured (2026-07-13). Keep hardening tied to concrete Stage 8/9 findings; do not expand into a rewrite.
+Status: In implementation — Step 2 archive export complete (2026-07-13). Keep hardening tied to concrete Stage 8/9 findings; do not expand into a rewrite.
 
 ## Objective And Classification
 
@@ -289,8 +289,8 @@ Implementation ownership map:
 
 ### Step 2 - Verified Crawl Snapshot archive export
 
-- Implement the shared archive schema/export service and thin `crawl:export` script; add Git ignore/docs, deterministic manifest/checksum tests, bounded streaming, and a restore drill against an isolated test database.
-- Acceptance: export changes no database state; counts/checksums verify; archive includes all required raw runs/snapshots/provenance; sanitized fixtures prove round-trip shape; no archive is committed.
+- Implement the shared archive schema/export service and thin `crawl:export` script; add Git ignore/docs, deterministic manifest/checksum tests, bounded streaming, and sanitized archive inspection/round-trip shape coverage. The isolated database restore drill belongs with the importer in Step 6, when a restore path exists to exercise.
+- Acceptance: export changes no database state; counts/checksums verify; archive includes all required raw runs/snapshots/provenance; sanitized fixtures prove round-trip shape; no archive is committed. **Complete (2026-07-13):** `da33cae feat: export verified crawl archives`.
 - Stop condition: do not rename/reset/import anything if raw collections cannot be completely enumerated or the verification differs from source counts.
 - Commit: `feat: export verified crawl archives`
 

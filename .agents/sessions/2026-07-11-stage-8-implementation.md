@@ -412,6 +412,14 @@ basic Home shopping experience.
 - Baseline validation passed: 55 test files / 211 tests, formatting, lint, typecheck, web build, and API build. Configured Mongo/browser/archive checks remain intentionally unrun and are tracked in the central manual checklist.
 - Next safe slice: implement verified read-only Crawl Snapshot export with manifest/checksum tests. Do not rename or import raw data until the export evidence is independently verified.
 
+## Stage 10 Step 2 checkpoint (2026-07-13)
+
+- Commit `da33cae feat: export verified crawl archives` adds the reusable read-only exporter and `npm run crawl:export`. It streams the raw `ingestion_runs` and `ingestion_raw_snapshots` collections in bounded pages, emits stable gzip JSONL plus a last-written manifest, verifies source counts, and records uncompressed SHA-256 checksums.
+- The exporter refuses a non-empty destination and generated `.artifacts/` output is ignored by Git. `scripts/README.md` documents the command and operational safety boundary.
+- Focused archive tests pass, including checksum/decompression shape and non-empty-directory rejection. Full validation passed: 56 test files / 213 tests, lint, format check, typecheck, API build, and web build.
+- The full isolated-database restore drill is intentionally not claimed yet: the importer does not exist until Stage 10 Step 6. The archive inspection test is the available round-trip evidence for this slice.
+- Next safe slice: finalize the `alpha-domain-language-v1` maintenance entry and deterministic cutover/reset support, but preserve raw ingestion collections and stop on any identity or checksum conflict.
+
 Historical open-issue entries above describe intermediate checkpoints and are superseded by
 this closeout section where they say the Home bridge is still pending or Stage 8 cannot close.
 
