@@ -243,6 +243,76 @@ describe("Stage 11 application integration harness", () => {
     });
   });
 
+  it("bridges the Home shopping list into the v2 shopping-trip need list", async () => {
+    const harness = createIntegrationHarness({
+      user: { email: "stage11-shopping-bridge@kamra.test", role: "user" }
+    });
+    const householdRepository = new MongoHouseholdRepository(harness.database);
+    await householdRepository.setupCollections();
+    await householdRepository.createHousehold({
+      createdAt: "2026-07-13T10:00:00.000Z",
+      createdByUserId: harness.user.email,
+      id: harness.householdId,
+      name: "Bridge household"
+    });
+
+    const composed = await harness.send({
+      bodyText: JSON.stringify({
+        batch: {
+          acquiredOn: "2026-07-12",
+          displayName: "Pilos milk",
+          originalQuantity: 1,
+          unit: "l"
+        },
+        group: {
+          displayName: "Milk",
+          targetPolicy: {
+            consumptionPolicy: "earliest_expiry_first",
+            desiredQuantity: 2,
+            expiryWarningDays: 0,
+            minimumQuantity: 2,
+            trackingUnit: "l"
+          },
+          trackingUnit: "l"
+        },
+        operationId: "compose-shopping-bridge",
+        product: { defaultTrackingUnit: "l", displayName: "Pilos milk" },
+        requestFingerprint: "compose-shopping-bridge-fingerprint"
+      }),
+      method: "POST",
+      path: `/api/households/${harness.householdId}/product-composer`
+    });
+    expect(composed.status).toBe(201);
+
+    const shoppingList = await harness.send({
+      bodyText: JSON.stringify({
+        householdId: harness.householdId,
+        scale: "business_as_usual"
+      }),
+      method: "POST",
+      path: "/api/household/shopping-lists"
+    });
+    expect(shoppingList.status).toBe(201);
+    expect(
+      (
+        await harness.database
+          .collection("household_shopping_need_lists")
+          .findOne({ householdId: harness.householdId })
+      )?.items
+    ).toHaveLength(1);
+
+    const trip = await harness.send({
+      bodyText: JSON.stringify({
+        plannedDate: "2026-07-14",
+        shopNameSnapshot: "Lidl"
+      }),
+      method: "POST",
+      path: `/api/households/${harness.householdId}/shopping-trips`
+    });
+    expect(trip.status).toBe(201);
+    expect(JSON.parse(trip.body).result.items).toHaveLength(1);
+  });
+
   it("creates a Product-owned Batch and one Ingestion Submission across an idempotent partial trip retry", async () => {
     const harness = createIntegrationHarness({
       user: { email: "stage11-trip-owner@kamra.test", role: "user" }

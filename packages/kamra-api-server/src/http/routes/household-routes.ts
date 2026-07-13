@@ -9,6 +9,7 @@ import { buildShoppingListStockUpdatePlan } from "../../household/current/shoppi
 import { generateHouseholdShoppingListPreview } from "../../household/current/shopping-list.js";
 import { MongoHouseholdProductRepository } from "../../household/v2/mongo-household-product-repository.js";
 import { MongoProductGroupReadRepository } from "../../household/v2/mongo-product-group-read-repository.js";
+import { MongoShoppingNeedRepository } from "../../household/v2/mongo-shopping-need-repository.js";
 import { MongoStockCommandRepository } from "../../household/v2/mongo-stock-command-repository.js";
 import { generateProductGroupShoppingNeeds } from "../../household/v2/shopping-needs.js";
 import type { HouseholdProduct, StockBatch } from "../../household/v2/contracts.js";
@@ -386,6 +387,14 @@ export const householdShoppingListsRoute: AppRoute = {
             workspace: v2Workspace
           })
         : [];
+      if (hasV2Products) {
+        await new MongoShoppingNeedRepository(repositoryResult.database).replaceGeneratedNeeds({
+          actorUserId: repositoryResult.user.email,
+          householdId: body.householdId,
+          needs: v2Needs,
+          now: new Date().toISOString()
+        });
+      }
       const preview = generateHouseholdShoppingListPreview({
         household: {
           defaultCalculatedMaxLimitMultiplier:
