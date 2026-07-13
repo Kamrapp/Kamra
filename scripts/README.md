@@ -227,6 +227,19 @@ npm run crawl:remove -- --crawl-run-id=synthetic-html-table-shop:simple_html_tab
 
 Destructive maintenance script. It removes ingestion records for the given run id. It does not remove processed catalog records.
 
+### `export-crawl-archive.ts`
+
+Exports the raw `ingestion_runs` and `ingestion_raw_snapshots` collections into a verified, gzip-compressed JSONL archive. The export is read-only, uses stable JSON key ordering, records counts and uncompressed SHA-256 checksums in `manifest.json`, and refuses to write into a non-empty output directory.
+
+Command:
+
+```powershell
+npm run crawl:export
+npm run crawl:export -- --output=.artifacts/crawl-archives/dev-2026-07-13
+```
+
+The default output is under `.artifacts/crawl-archives/`, which is ignored by Git. Treat archives as operational data: keep them outside the repository when they contain real crawl payloads, protect them from public distribution, and never use this command with an `--apply` or mutation mode because none exists.
+
 ## Environment
 
 Mongo-backed scripts require:

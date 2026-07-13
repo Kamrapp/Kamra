@@ -11,6 +11,7 @@
     "build:api": "tsc -p tsconfig.api.json",
     "build:web": "npm run generate:public-config && ng build",
     "contracts:catalog": "node ./node_modules/tsx/dist/cli.mjs scripts/generate-catalog-schemas.ts",
+    "crawl:export": "node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/export-crawl-archive.ts",
     "crawl:remove": "node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/remove-crawled-content.ts",
     "dev": "concurrently -k -n web,api -c blue,green \"npm:dev:web\" \"npm:dev:api\"",
     "dev:api": "node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs watch --clear-screen=false scripts/local-api.ts",
