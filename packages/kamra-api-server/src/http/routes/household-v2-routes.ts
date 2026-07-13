@@ -1,4 +1,4 @@
-import type { Db } from "mongodb";
+import type { Db, MongoClient } from "mongodb";
 import { json, unauthorized, type AppRoute } from "../app-route-context.js";
 import { MongoStockReadRepository } from "../../household/v2/mongo-stock-read-repository.js";
 import { MongoStockCommandRepository } from "../../household/v2/mongo-stock-command-repository.js";
@@ -13,6 +13,7 @@ import { MongoHouseholdProductRepository } from "../../household/v2/mongo-househ
 import { MongoProductGroupReadRepository } from "../../household/v2/mongo-product-group-read-repository.js";
 import { MongoProductGroupRepository } from "../../household/v2/mongo-product-group-repository.js";
 import { MongoProductComposerRepository } from "../../household/v2/mongo-product-composer-repository.js";
+import { MongoIngestionSubmissionRepository } from "../../household/v2/mongo-ingestion-submission-repository.js";
 import { MongoHouseholdProductConceptRepository } from "../../household/v2/mongo-household-product-concept-repository.js";
 import { MongoShoppingTripRepository } from "../../household/v2/mongo-shopping-trip-repository.js";
 import { MongoShopMarketRepository } from "../../household/v2/mongo-shop-market-repository.js";
@@ -1228,6 +1229,177 @@ export const householdV2ShoppingTripRoute: AppRoute = {
   }
 };
 
+export const householdV2ShoppingTripCompleteRoute: AppRoute = {
+  match: (request) =>
+    request.method === "POST" &&
+    /^\/api\/households\/[^/]+\/shopping-trips\/[^/]+\/complete$/.test(request.path),
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request);
+    if (!user) return unauthorized("apiErrors.signInRequired");
+    const match = request.path.match(
+      /^\/api\/households\/([^/]+)\/shopping-trips\/([^/]+)\/complete$/
+    );
+    const householdId = pathSegment(match?.[1]);
+    const tripId = pathSegment(match?.[2]);
+    const body = parseJsonObject(request.bodyText);
+    if (!householdId || !tripId || !body || typeof body["operationId"] !== "string")
+      return json(400, { error: "invalid_shopping_trip_completion" });
+    return await withHouseholdDatabase(
+      context,
+      householdId,
+      user.email,
+      async (database, client) => {
+        const trips = new MongoShoppingTripRepository(database);
+        const trip = await trips.get(householdId, tripId);
+        if (!trip) return json(404, { error: "shopping_trip_not_found" });
+        if (!["in_progress", "partially_processed"].includes(trip.status))
+          return json(409, { error: "shopping_trip_not_in_progress" });
+        const items = Array.isArray(body["items"]) ? body["items"] : [];
+        let updated = trip;
+        for (const raw of items) {
+          if (
+            !raw ||
+            typeof raw !== "object" ||
+            typeof (raw as Record<string, unknown>)["itemId"] !== "string"
+          )
+            return json(400, { error: "invalid_shopping_trip_item_completion" });
+          const value = raw as Record<string, unknown>;
+          const itemId = value["itemId"] as string;
+          const item = updated.items.find((candidate) => candidate.id === itemId);
+          if (!item) return json(404, { error: "shopping_trip_item_not_found" });
+          if (value["resultStatus"] !== "bought") {
+            updated = updateShoppingTripItem(updated, itemId, { resultStatus: "not_bought" });
+            continue;
+          }
+          const quantity =
+            typeof value["actualQuantity"] === "number"
+              ? value["actualQuantity"]
+              : item.requiredQuantity;
+          if (!Number.isFinite(quantity) || quantity <= 0)
+            return json(400, { error: "invalid_purchase_quantity" });
+          const unit =
+            typeof value["actualUnit"] === "string" ? value["actualUnit"] : item.requiredUnit;
+          const operationId = `${body["operationId"]}:${itemId}`;
+          const productId =
+            typeof value["householdProductId"] === "string" ? value["householdProductId"] : null;
+          let batchId: string;
+          if (productId) {
+            const product = await new MongoHouseholdProductRepository(database).get(
+              householdId,
+              productId
+            );
+            if (!product) return json(404, { error: "household_product_not_found" });
+            const now = new Date().toISOString();
+            batchId = `stock-batch:${householdId}:${operationId}`;
+            await new MongoStockCommandRepository(database, client).acquireBatch({
+              operationId,
+              requestFingerprint: JSON.stringify(value),
+              batch: {
+                acquiredOn: isIsoDate(value["acquiredOn"])
+                  ? (value["acquiredOn"] as string)
+                  : now.slice(0, 10),
+                acquisitionSnapshot: { displayName: product.displayName },
+                classificationSnapshot: {
+                  capturedAt: now,
+                  directAttributes: product.directAttributes,
+                  directConcepts: product.directConcepts,
+                  effectiveConcepts: product.directConcepts,
+                  source: "household"
+                },
+                createdAt: now,
+                createdByUserId: user.email,
+                expiryOn:
+                  value["expiryOn"] === null || isIsoDate(value["expiryOn"])
+                    ? (value["expiryOn"] as string | null)
+                    : null,
+                householdId,
+                householdProductId: product.id,
+                id: batchId,
+                originalQuantity: quantity,
+                remainingQuantity: quantity,
+                revision: 0,
+                shopProductId:
+                  typeof value["shopProductId"] === "string" ? value["shopProductId"] : null,
+                shoppingNeedId: item.needId,
+                shoppingNeedListId: updated.sourceShoppingNeedListId,
+                status: "available",
+                unit: unit as never,
+                updatedAt: now,
+                updatedByUserId: user.email
+              }
+            });
+          } else {
+            const result = await new MongoProductComposerRepository(
+              database,
+              client
+            ).createProductWithBatch({
+              actorUserId: user.email,
+              batch: {
+                acquiredOn: new Date().toISOString().slice(0, 10),
+                displayName: item.displayNameSnapshot,
+                originalQuantity: quantity,
+                unit: unit as never
+              },
+              householdId,
+              operationId,
+              product: {
+                displayName: item.displayNameSnapshot,
+                defaultTrackingUnit: unit as never
+              },
+              requestFingerprint: JSON.stringify(value)
+            });
+            batchId = result.batchId;
+          }
+          updated = updateShoppingTripItem(updated, itemId, {
+            resultStatus: "bought",
+            actualQuantity: quantity,
+            actualUnit: unit as never,
+            actualPaidPrice:
+              typeof value["actualPaidPrice"] === "number" ? value["actualPaidPrice"] : null,
+            createdBatchIds: [batchId]
+          });
+          await new MongoIngestionSubmissionRepository(database).create({
+            id: `ingestion-submission:${updated.id}:${itemId}`,
+            householdId,
+            shoppingTripId: updated.id,
+            shoppingTripItemId: itemId,
+            submittedByUserId: user.email,
+            status: "pending",
+            facts: {
+              displayName: item.displayNameSnapshot,
+              shopMarketId: updated.shopMarketId,
+              quantity,
+              unit: unit as never,
+              paidPrice:
+                typeof value["actualPaidPrice"] === "number" ? value["actualPaidPrice"] : null
+            },
+            revision: 0,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          });
+        }
+        const complete = updated.items.every(
+          (item) =>
+            item.planStatus === "skipped" ||
+            item.resultStatus === "not_bought" ||
+            (item.resultStatus === "bought" && (item.createdBatchIds?.length ?? 0) > 0)
+        );
+        const result = await trips.update({
+          expectedRevision: trip.revision,
+          householdId,
+          trip: {
+            ...updated,
+            status: complete ? "completed" : "partially_processed",
+            updatedAt: new Date().toISOString(),
+            updatedByUserId: user.email
+          }
+        });
+        return json(200, { result, schemaVersion });
+      }
+    );
+  }
+};
+
 async function runBatchCommand(
   context: Parameters<AppRoute["handle"]>[1],
   userId: string,
@@ -1320,7 +1492,7 @@ async function withHouseholdDatabase(
   context: Parameters<AppRoute["handle"]>[1],
   householdId: string,
   userId: string,
-  action: (database: Db) => Promise<ReturnType<typeof json>>
+  action: (database: Db, client: MongoClient) => Promise<ReturnType<typeof json>>
 ): Promise<ReturnType<typeof json>> {
   if (!context.config.mongodb.uri || !context.config.mongodb.databaseName)
     return json(503, { error: "household_not_configured" });
@@ -1333,7 +1505,7 @@ async function withHouseholdDatabase(
     .collection<{ householdId: string; status: string; userId: string }>("household_memberships")
     .findOne({ householdId, status: "active", userId });
   if (!membership) return json(403, { error: "household_membership_required" });
-  return await action(database);
+  return await action(database, client);
 }
 function slug(value: string): string {
   return (
