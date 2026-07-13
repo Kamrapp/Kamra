@@ -6,6 +6,81 @@ import {
 } from "./shopping-matcher.js";
 
 describe("Stage 9 shopping matcher", () => {
+  it.each([
+    {
+      name: "no price",
+      observations: [],
+      expected: { observationId: null, price: null, state: "no_price" }
+    },
+    {
+      name: "future price",
+      observations: [
+        {
+          currencyCode: "HUF",
+          id: "future",
+          kind: "base" as const,
+          observedAt: "2026-07-12T00:00:00.000Z",
+          price: 500,
+          shopProductId: "shop-product",
+          validFrom: "2026-07-13"
+        }
+      ],
+      expected: { observationId: null, price: null, state: "future" }
+    },
+    {
+      name: "expired price",
+      observations: [
+        {
+          currencyCode: "HUF",
+          id: "expired",
+          kind: "base" as const,
+          observedAt: "2026-07-10T00:00:00.000Z",
+          price: 500,
+          shopProductId: "shop-product",
+          validTo: "2026-07-11"
+        }
+      ],
+      expected: { observationId: null, price: null, state: "expired" }
+    },
+    {
+      name: "conditional price",
+      observations: [
+        {
+          currencyCode: "HUF",
+          id: "coupon",
+          kind: "coupon" as const,
+          observedAt: "2026-07-12T00:00:00.000Z",
+          price: 350,
+          shopProductId: "shop-product"
+        }
+      ],
+      expected: { observationId: "coupon", price: 350, state: "conditional_only" }
+    },
+    {
+      name: "superseded price",
+      observations: [
+        {
+          currencyCode: "HUF",
+          id: "superseded",
+          kind: "base" as const,
+          observedAt: "2026-07-12T00:00:00.000Z",
+          price: 500,
+          shopProductId: "shop-product",
+          supersededByObservationId: "replacement"
+        }
+      ],
+      expected: { observationId: null, price: null, state: "no_price" }
+    }
+  ])("classifies $name price observations", ({ observations, expected }) => {
+    expect(
+      selectApplicablePrice({
+        currencyCode: "HUF",
+        observations,
+        shoppingDate: "2026-07-12"
+      })
+    ).toMatchObject(expected);
+  });
+
   it("selects an inclusive offer and keeps stale state explainable", () => {
     expect(
       selectApplicablePrice({
@@ -107,6 +182,31 @@ describe("Stage 9 shopping matcher", () => {
       packageCount: 1,
       expectedTotal: 700
     });
+  });
+
+  it("excludes incompatible packages instead of inventing a conversion", () => {
+    expect(
+      matchShoppingNeed({
+        currencyCode: "HUF",
+        requiredQuantity: 2,
+        requiredUnit: "l",
+        shoppingDate: "2026-07-12",
+        candidates: [
+          {
+            shopProduct: {
+              id: "soap",
+              productId: "soap",
+              shopMarketId: "market",
+              displayName: "Soap 1 count",
+              packageQuantity: 1,
+              packageUnit: "count",
+              status: "active"
+            },
+            priceObservations: []
+          }
+        ]
+      })
+    ).toEqual([]);
   });
 
   it("bounds match options while retaining truncation evidence", () => {
