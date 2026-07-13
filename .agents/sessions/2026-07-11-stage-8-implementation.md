@@ -530,6 +530,17 @@ basic Home shopping experience.
 - The focused route test passes with the fake Mongo boundary, alongside typecheck, lint, and format
   checks. This is automated authorization evidence; it does not replace the two-user browser check.
 
+## Stage 10 realistic-volume audit checkpoint (2026-07-13)
+
+- Configured read-only maintenance preview passed and reported the current final/legacy collection
+  counts. Transaction and catalog smoke also passed against the configured cluster.
+- The configured ingestion quality audit initially failed before reporting because sorting the populated
+  `ingestion_raw_snapshots` collection by unindexed `id` exceeded MongoDB's 32 MB in-memory sort limit.
+- Corrected the archive/audit traversal to use MongoDB's always-present `_id` index instead of an
+  unindexed full-collection application `id` sort. No new schema action or data write is required. The
+  configured audit is now safe to rerun and should remain within the MongoDB sort memory limit on the
+  populated environment.
+
 Historical open-issue entries above describe intermediate checkpoints and are superseded by
 this closeout section where they say the Home bridge is still pending or Stage 8 cannot close.
 

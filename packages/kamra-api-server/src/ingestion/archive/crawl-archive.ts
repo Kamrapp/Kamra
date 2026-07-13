@@ -54,11 +54,13 @@ export async function exportCrawlArchive(input: {
   const snapshotPath = `${outputDirectory}/snapshots.jsonl`;
   const runExport = await exportCollection(
     input.database.collection<IngestionRunRecord>("ingestion_runs"),
-    runPath
+    runPath,
+    { _id: 1 }
   );
   const snapshotExport = await exportCollection(
     input.database.collection<IngestionRawSnapshotRecord>("ingestion_raw_snapshots"),
-    snapshotPath
+    snapshotPath,
+    { _id: 1 }
   );
   const runCountAfter = await input.database.collection("ingestion_runs").countDocuments({});
   const snapshotCountAfter = await input.database
@@ -104,7 +106,8 @@ export async function exportCrawlArchive(input: {
 
 async function exportCollection<T extends Document>(
   collection: MongoCollectionLike<T>,
-  outputPath: string
+  outputPath: string,
+  sort: Record<string, 1 | -1>
 ): Promise<ExportCollectionResult> {
   const initialCount = await collection.countDocuments({});
   await writeFile(outputPath, "", "utf8");
@@ -114,7 +117,7 @@ async function exportCollection<T extends Document>(
   for (let offset = 0; offset < initialCount; offset += pageSize) {
     const page = (await collection
       .find({}, { projection: { _id: 0 } })
-      .sort({ id: 1 })
+      .sort(sort)
       .skip(offset)
       .limit(pageSize)
       .toArray()) as T[];

@@ -22,12 +22,15 @@ function readLimit(): number {
   return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 500;
 }
 
-async function readAll<T extends Document>(collection: Collection<T>): Promise<T[]> {
+async function readAll<T extends Document>(
+  collection: Collection<T>,
+  sort: Record<string, 1 | -1>
+): Promise<T[]> {
   const records: T[] = [];
   for (let offset = 0; ; offset += pageSize) {
     const page = (await collection
       .find({})
-      .sort({ id: 1 })
+      .sort(sort)
       .skip(offset)
       .limit(pageSize)
       .toArray()) as T[];
@@ -44,8 +47,8 @@ try {
   const client = await getMongoClient(config.mongodb.uri, config.mongodb.dnsServers);
   const database = client.db(config.mongodb.databaseName);
   const [runs, snapshots] = await Promise.all([
-    readAll(database.collection<IngestionRunRecord>("ingestion_runs")),
-    readAll(database.collection<IngestionRawSnapshotRecord>("ingestion_raw_snapshots"))
+    readAll(database.collection<IngestionRunRecord>("ingestion_runs"), { _id: 1 }),
+    readAll(database.collection<IngestionRawSnapshotRecord>("ingestion_raw_snapshots"), { _id: 1 })
   ]);
   const report: IngestionQualityReport = auditIngestionQuality({
     issueLimit: readLimit(),

@@ -228,6 +228,10 @@ npm run audit:ingestion-quality -- --issue-limit=1000
 
 Correction overlays are a separate reviewed JSONL concern. They must reference a snapshot id, row index, source fingerprint, reviewer, tool version, reason, and only normalized fields allowed by `ingestion-correction-overlay-v1`; they must never contain or rewrite raw payload text. After review, process a selected snapshot set with `--reprocess --overlay-file=<path>`; the processor verifies the current row fingerprint before applying the overlay to an in-memory snapshot copy.
 
+The audit and archive traversal use MongoDB's always-present `_id` index instead of an unindexed
+application-id sort, so populated environments stay within MongoDB's memory limit without requiring a
+maintenance action first.
+
 ### `remove-crawled-content.ts`
 
 Deletes ingestion run and raw snapshot records for one crawl run id.
