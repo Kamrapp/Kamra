@@ -1,7 +1,8 @@
 import { Injectable, inject } from "@angular/core";
 import { buildApiUrl } from "../api-url";
 import { AuthService } from "../auth.service";
-import { LocalizationService } from "../shared/localization.service";
+import { readApiErrorMessage } from "../shared/api-errors";
+import { LocalizationService, type TranslationKey } from "../shared/localization.service";
 
 export interface HouseholdV2TargetPolicy {
   consumptionPolicy: "earliest_expiry_first" | "oldest_acquired_first";
@@ -140,7 +141,7 @@ export class HouseholdV2Service {
       );
       if (!response.ok)
         return {
-          message: `Household workspace could not be loaded (${response.status}).`,
+          message: await this.readError(response, "household.workspaceLoadFailure"),
           status: "error"
         };
       const payload = (await response.json()) as {
@@ -168,7 +169,7 @@ export class HouseholdV2Service {
     );
     if (!response.ok)
       return {
-        message: `Shopping trips could not be loaded (${response.status}).`,
+        message: await this.readError(response, "household.shoppingTripLoadFailure"),
         status: "error",
         trips: []
       };
@@ -191,7 +192,10 @@ export class HouseholdV2Service {
       }
     );
     if (!response.ok)
-      return { message: `Shopping trip creation failed (${response.status}).`, status: "error" };
+      return {
+        message: await this.readError(response, "household.shoppingTripCreateFailure"),
+        status: "error"
+      };
     const payload = (await response.json()) as { result: HouseholdShoppingTrip };
     return { status: "ok", trip: payload.result };
   }
@@ -209,7 +213,7 @@ export class HouseholdV2Service {
     if (!response.ok)
       return {
         markets: [],
-        message: `Shop markets could not be loaded (${response.status}).`,
+        message: await this.readError(response, "household.shoppingTripLoadFailure"),
         status: "error"
       };
     const payload = (await response.json()) as { markets: HouseholdV2ShopMarket[] };
@@ -265,7 +269,10 @@ export class HouseholdV2Service {
       }
     );
     if (!response.ok)
-      return { message: `Shopping trip update failed (${response.status}).`, status: "error" };
+      return {
+        message: await this.readError(response, "household.shoppingTripUpdateFailure"),
+        status: "error"
+      };
     const payload = (await response.json()) as { result: HouseholdShoppingTrip };
     return { status: "ok", trip: payload.result };
   }
@@ -299,7 +306,7 @@ export class HouseholdV2Service {
     );
     if (!response.ok)
       return {
-        message: `Shopping trip finalization failed (${response.status}).`,
+        message: await this.readError(response, "household.shoppingTripCompleteFailure"),
         status: "error"
       };
     const payload = (await response.json()) as { result: HouseholdShoppingTrip };
@@ -638,23 +645,33 @@ export class HouseholdV2Service {
           payload?.error === "stale_revision"
             ? this.loc.t("household.staleWriteFailure")
             : payload?.error === "household_membership_required"
-              ? "Only an active household member can update this household."
+              ? this.loc.t("household.householdMemberUpdateRequired")
               : payload?.error === "household_owner_required"
-                ? "Only the household owner can update household settings."
+                ? this.loc.t("household.householdOwnerUpdateRequired")
                 : payload?.error === "household_product_not_found"
-                  ? "The Household Product was not found for this operation. Refresh and try again."
+                  ? this.loc.t("household.householdProductNotFound")
                   : payload?.error === "product_group_not_found"
-                    ? "The Product Group was not found for this operation. Refresh and try again."
-                    : payload?.error === "stock_target_not_found"
-                      ? "The legacy Stock Target was not found for this operation. Refresh and try again."
-                      : payload?.error === "household_concept_already_exists"
-                        ? "A household concept with this name already exists."
-                        : `Household update failed (${response.status}).`;
+                    ? this.loc.t("household.productGroupNotFound")
+                    : payload?.error === "household_concept_already_exists"
+                      ? this.loc.t("household.householdConceptAlreadyExists")
+                      : payload?.error === "shopping_trip_not_found"
+                        ? this.loc.t("household.shoppingTripNotFound")
+                        : payload?.error === "shopping_need_list_not_found"
+                          ? this.loc.t("household.shoppingNeedListNotFound")
+                          : payload?.error === "stale_revision"
+                            ? this.loc.t("household.shoppingTripConflict")
+                            : this.loc.t("household.saveFailure");
         return { message, status: "error" };
       }
       return { status: "ok" };
     } catch {
       return { message: this.loc.t("household.saveFailure"), status: "error" };
     }
+  }
+
+  private async readError(response: Response, fallbackKey: TranslationKey): Promise<string> {
+    return await readApiErrorMessage(response, this.loc.t(fallbackKey), (key) =>
+      this.loc.t(key as TranslationKey)
+    );
   }
 }
