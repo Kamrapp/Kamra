@@ -1,6 +1,6 @@
 # Stage 9 Concrete Shopping And Catalogue Connection Plan
 
-Status: In implementation (user-approved 2026-07-12). Execute one commit-sized slice at a time; manual/browser closeout remains tracked centrally.
+Status: Final implementation slice remaining; manual/browser closeout follows. Execute one commit-sized slice at a time; manual/browser closeout remains tracked centrally.
 
 ## Objective And Classification
 
@@ -305,7 +305,8 @@ Implementation ownership map:
 - Trip completion now creates/reuses Product-owned Batches, records pending Ingestion Submissions, and rejects completion until bought items have stock effects.
 - Shop Product and append-only Price Observation repositories/indexes are implemented with a separate maintenance registry entry.
 - Admin Market and Ingestion Submission review routes are implemented with role/revision checks.
-- Remaining Stage 9 implementation is the admin/product/price management UI, household Trip planning/completion UI, seed coverage, and compatibility retirement tests.
+- Rich admin Market/Shop Product/Price management UI is implemented.
+- Remaining Stage 9 implementation is wiring the tested matcher/applicable-price service into Trip creation and the Home Trip panel, exposing selected package/price/stale/no-price explanations and override/unresolved states; then seed coverage and compatibility retirement tests.
 
 ## Testing Strategy
 
@@ -334,4 +335,4 @@ Stage 9 is complete when one user can choose a shop, turn generic demand into a 
 
 ## Approval Checkpoint
 
-Stage 9 implementation is approved. Keep each slice independently testable and preserve the Stage 8 Home compatibility path until the Shopping Trip path has equivalent purchase-finalization coverage.
+Stage 9 implementation is approved. Keep each slice independently testable and preserve the Stage 8 Home compatibility path until matcher-driven Shopping Trips have equivalent purchase-finalization coverage.

@@ -405,3 +405,4 @@ Stage 9 remains in implementation. At this checkpoint, the next required slice i
 - `85357b6 fix: validate shopping trip purchase inputs` rejects empty completion payloads and invalid purchase units.
 - Stage 9 still needs the browser-facing Trip workflow, admin product/price UI, realistic fixtures, and compatibility retirement evidence. Stage 10 has started with input-boundary hardening but is not complete.
 - `81eca6b feat: add household shopping trip panel` adds the localized Home Trip panel for starting/resuming, marking, and finalizing concrete trips; the shared manual checklist now covers it.
+- Audit correction (2026-07-13): Stage 9 is not yet bug-hunt-only. The matcher and applicable-price service are pure/tested, but Trip creation currently leaves items unresolved and the Home panel does not yet display package/price/stale/no-price decisions. Wire that seam before Stage 9 closeout; admin pricing UI/routes are otherwise present.
