@@ -124,6 +124,11 @@ New focused retests:
       still save with visible feedback and survive refresh.
 - [ ] The left rail Navigate block goes back/forward through visited pages without duplicating
       entries after a history move.
+- [ ] In Manage household, select each reset scope and confirm that its description is clear, the
+      checkbox is required, and the final confirmation names the selected scope. On a disposable
+      household, verify Shopping lists and trips, Batches only, Products and batches, Groups plus
+      Products and batches, and All household content each clear the intended layer while keeping
+      the household identity, members, and settings.
 
 Focused retest cleanup, when the disposable environment should be empty afterwards:
 
@@ -170,22 +175,27 @@ and demo seed-ledger entries. It does not remove shared catalogue, shop-market, 
 
 ### Visual, responsive, and accessibility checks
 
-- [ ] Desktop light theme: table columns, fixed header, action columns, right editor, and shopping
-      panel remain aligned and scroll correctly.
+- [ ] Desktop light theme: the household table has visibly separated, darker row surfaces with
+      readable state colors; columns, fixed header, action columns, right editor, and shopping panel
+      remain aligned and scroll correctly.
 - [ ] Desktop dark theme: all surfaces, state colors, disabled/error controls, date fields, and
       activity console have readable contrast.
 - [ ] Narrow/mobile layout: no critical actions or dates overlap; tables scroll intentionally;
       panels collapse/grow correctly and do not leave unexplained empty space.
 - [ ] Group/Product/Batch controls have stable widths, keyboard labels/tooltips, focus visibility,
       and non-color text for important states.
-- [ ] About page buttons are vertically centered; Manual header/tabs/content remain compact.
+- [ ] About page buttons are vertically centered; Manual header/tabs remain compact, while the
+      terminology text is readable and vertically centered in its rows in both locales.
 - [ ] Loading, empty, validation, 403, 404, 409, and 500 states are visible and localized.
+- [ ] In Hungarian, the Admin health empty state is translated, and the recent household/product
+      wording reads naturally rather than exposing stale Stage 6 or internal implementation text.
 
 Operator notes and discoveries:
 
 The Section 3 structure and first CRUD checks are accepted in the bottom table. Remaining focused
 retests are the italic Manual fallback, narrower amount columns, and the latest Group/Product
-details-editor layout, plus the remaining consistency/accessibility checks.
+details-editor layout, plus the remaining consistency/accessibility checks and the light-theme
+contrast pass above.
 
 ## 4. Shopping list and household purchase application
 

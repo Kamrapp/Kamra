@@ -49,6 +49,14 @@
   use tighter grid tracks, Group editing opens details automatically, and Product Group assignment
   now lives in Product details so inline Product rows remain single-line. Product identity details
   also give the id less visual weight and the Note field more room.
+- Implemented the household-management reset workflow: owner-only, transactional content scopes for
+  shopping lists/trips, batches, products plus batches, groups plus products plus batches, and all
+  household content. Household identity, memberships, and settings remain intact. Added route,
+  service, management UI, confirmation/scope descriptions, and focused repository/route tests.
+- Refined light-theme Product Group workspace surfaces through shared theme tokens so row contrast
+  is stronger in light mode without changing the accepted dark theme. Increased Manual terminology
+  row typography and vertical centering, localized the Admin health empty-state wording, and
+  refreshed the most recent Hungarian household labels and stale invitation copy.
 
 ## Changed Files
 
@@ -93,6 +101,19 @@
 - `packages/kamra-api-server/src/http/routes/household-invitation-routes.ts`
 - `src/app/household/household-invitation.service.ts`
 - `src/app/shared/navigation-history.service.ts`
+- `packages/kamra-api-server/src/db/mongo-like.ts`
+- `packages/kamra-api-server/src/household/current/mongo-household-repository.ts`
+- `packages/kamra-api-server/src/household/current/mongo-household-repository.test.ts`
+- `packages/kamra-api-server/src/http/routes/household-routes.ts`
+- `packages/kamra-api-server/src/http/routes/household/index.ts`
+- `packages/kamra-api-server/src/http/routes/household-reset-route.test.ts`
+- `src/app/household/household-v2.service.ts`
+- `src/app/household/household-management.component.ts`
+- `src/app/household/household-v2-workspace.component.css`
+- `src/app/manual/manual-page.component.ts`
+- `src/styles.css`
+- `src/app/i18n/en.json`
+- `src/app/i18n/hu.json`
 
 ## Validation
 
@@ -110,6 +131,9 @@
   checks passed again.
 - After the latest Section 3 refinement, 245 tests, typecheck, lint, formatting, web build, and diff
   checks passed again.
+- The reset implementation's focused repository and route tests pass (7 tests across 2 files),
+  and the API/frontend typecheck passes. Full validation after the documentation and visual
+  follow-up is still required before commit.
 - `npm run mvp:preflight` passed locally with 240 tests/65 files, 7 integration tests, formatting, lint, typecheck, web build, and API build.
 - `npm run smoke:demo-household` reached the configured MongoDB database but failed because the current disposable household document lacks `groupTargetShoppingMode`; this is a useful stale-seed/schema signal and was not masked. Reseed/migrate that environment before operator testing.
 - A later smoke run found no `household1` in the selected database at all. The validator now reports the selected database and instructs the operator to run `npm run seed:demo-household` before retrying; no automatic database write was performed.
@@ -134,7 +158,8 @@
 - The operator accepted the Section 3 workspace structure and first CRUD/derived-data pass. The
   latest workspace refinement is implemented; the live runbook retains only its visual/behavioral
   retests for the Manual title style, compact amount columns, and details-editor layout, plus the
-  previously open consistency/accessibility checks.
+  previously open consistency/accessibility checks. The new light-theme contrast and reset-flow
+  checks are also pending.
 - Stage 10 configured/browser release evidence remains open and is not waived by this plan.
 - The operator must edit the live runbook with actual findings during the final pass; those edits become input to the final fixer session. The shortened manual pass should start with `npm run mvp:preflight`, then the fixture/configured smokes, then browser-only checks.
 
