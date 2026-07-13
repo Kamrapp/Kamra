@@ -522,6 +522,14 @@ basic Home shopping experience.
 - Remaining Step 9 work is configured registry/reconciliation evidence and explicit cleanup of legacy
   adapters only after supported-client/conflict evidence exists.
 
+## Stage 10 authorization/history route checkpoint (2026-07-13)
+
+- Added route-contract coverage for the household Shop Market picker and admin Ingestion Submission
+  history: non-members receive 403, non-admins are rejected, active markets are filtered, and the
+  admin response exposes bounded page metadata.
+- The focused route test passes with the fake Mongo boundary, alongside typecheck, lint, and format
+  checks. This is automated authorization evidence; it does not replace the two-user browser check.
+
 Historical open-issue entries above describe intermediate checkpoints and are superseded by
 this closeout section where they say the Home bridge is still pending or Stage 8 cannot close.
 
