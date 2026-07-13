@@ -391,7 +391,7 @@ describe("Stage 11 application integration harness", () => {
         {
           acquiredOn: "2026-07-13",
           actualCurrencyCode: "HUF",
-          actualExpiryOn: "2026-07-20",
+          expiryOn: "2026-07-20",
           actualPaidPrice: 499,
           actualQuantity: 2,
           actualUnit: "l",
@@ -432,6 +432,161 @@ describe("Stage 11 application integration harness", () => {
       await harness.database
         .collection("household_domain_operations")
         .countDocuments({ id: `trip-complete-1:${boughtItemId}` })
+    ).toBe(1);
+
+    const storedBatch = await harness.database
+      .collection("household_stock_batches")
+      .findOne({ householdId: harness.householdId, householdProductId: productId });
+    expect(storedBatch).toMatchObject({
+      acquiredOn: "2026-07-13",
+      expiryOn: "2026-07-20",
+      originalQuantity: 2,
+      remainingQuantity: 2,
+      unit: "l"
+    });
+    const storedSubmission = await harness.database
+      .collection("ingestion_submissions")
+      .findOne({ shoppingTripId: tripId });
+    expect(storedSubmission).toMatchObject({
+      facts: {
+        acquiredOn: "2026-07-13",
+        currencyCode: "HUF",
+        displayName: "Pilos 1.5% milk",
+        expiryOn: "2026-07-20",
+        paidPrice: 499,
+        quantity: 2,
+        unit: "l"
+      },
+      status: "pending"
+    });
+
+    const finish = await harness.send({
+      bodyText: JSON.stringify({
+        items: [
+          {
+            itemId: `${tripId}:bread`,
+            resultStatus: "not_bought"
+          }
+        ],
+        operationId: "trip-complete-2"
+      }),
+      method: "POST",
+      path: `/api/households/${harness.householdId}/shopping-trips/${encodeURIComponent(tripId)}/complete`
+    });
+    expect(finish.status).toBe(200);
+    expect(JSON.parse(finish.body).result.status).toBe("completed");
+
+    const storedTrip = await harness.database
+      .collection("household_shopping_trips")
+      .findOne({ id: tripId });
+    expect(storedTrip).toMatchObject({
+      items: expect.arrayContaining([
+        expect.objectContaining({
+          actualCurrencyCode: "HUF",
+          actualQuantity: 2,
+          resultStatus: "bought"
+        }),
+        expect.objectContaining({ id: `${tripId}:bread`, resultStatus: "not_bought" })
+      ]),
+      status: "completed"
+    });
+  });
+
+  it("creates one new Product for a no-identity purchase and reuses it on retry", async () => {
+    const harness = createIntegrationHarness({
+      user: { email: "stage11-trip-new-product@kamra.test", role: "user" }
+    });
+    const tripId = `shopping-trip:${harness.householdId}:unplanned`;
+    const itemId = `${tripId}:banana`;
+    const trip: ShoppingTrip = {
+      createdAt: "2026-07-12T10:00:00.000Z",
+      createdByUserId: harness.user.email,
+      householdId: harness.householdId,
+      id: tripId,
+      items: [
+        {
+          displayNameSnapshot: "Banana",
+          id: itemId,
+          needId: "need:banana",
+          planStatus: "selected",
+          requiredQuantity: 3,
+          requiredUnit: "count",
+          resultStatus: "pending"
+        },
+        {
+          displayNameSnapshot: "Bread",
+          id: `${tripId}:bread`,
+          needId: "need:bread",
+          planStatus: "selected",
+          requiredQuantity: 1,
+          requiredUnit: "count",
+          resultStatus: "pending"
+        }
+      ],
+      plannedDate: "2026-07-13",
+      revision: 0,
+      shopMarketId: null,
+      sourceShoppingNeedListId: "shopping-needs:unplanned",
+      status: "in_progress",
+      updatedAt: "2026-07-12T10:00:00.000Z",
+      updatedByUserId: harness.user.email
+    };
+    await harness.database.collection("household_memberships").insertOne({
+      householdId: harness.householdId,
+      status: "active",
+      userId: harness.user.email
+    });
+    await harness.database.collection("household_shopping_trips").insertOne(trip);
+
+    const completion = {
+      items: [
+        {
+          acquiredOn: "2026-07-13",
+          actualExpiryOn: null,
+          actualQuantity: 3,
+          actualUnit: "count",
+          itemId,
+          resultStatus: "bought"
+        }
+      ],
+      operationId: "trip-new-product-1"
+    };
+    const first = await harness.send({
+      bodyText: JSON.stringify(completion),
+      method: "POST",
+      path: `/api/households/${harness.householdId}/shopping-trips/${encodeURIComponent(tripId)}/complete`
+    });
+    expect(first.status).toBe(200);
+    expect(JSON.parse(first.body).result.status).toBe("partially_processed");
+
+    const retry = await harness.send({
+      bodyText: JSON.stringify(completion),
+      method: "POST",
+      path: `/api/households/${harness.householdId}/shopping-trips/${encodeURIComponent(tripId)}/complete`
+    });
+    expect(retry.status).toBe(200);
+    expect(JSON.parse(retry.body).result.status).toBe("partially_processed");
+
+    const products = await harness.database
+      .collection("household_products")
+      .find({ householdId: harness.householdId })
+      .toArray();
+    expect(products).toHaveLength(1);
+    expect(products[0]).toMatchObject({ displayName: "Banana", defaultTrackingUnit: "count" });
+    expect(
+      await harness.database
+        .collection("household_stock_batches")
+        .countDocuments({ householdId: harness.householdId })
+    ).toBe(1);
+    expect(
+      await harness.database
+        .collection("ingestion_submissions")
+        .countDocuments({ shoppingTripId: tripId })
+    ).toBe(1);
+    expect(
+      await harness.database
+        .collection("household_domain_operations")
+        .countDocuments({ id: `trip-new-product-1:${itemId}` })
     ).toBe(1);
   });
 
