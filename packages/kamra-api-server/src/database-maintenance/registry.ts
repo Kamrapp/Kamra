@@ -37,6 +37,12 @@ export const databaseMaintenanceEntries: readonly DatabaseMaintenanceEntry[] = [
   },
   {
     details:
+      "Adds the group-target quantity distribution policy to the household validator and backfills existing households to deterministic even distribution. The migration is separate from the validator update and does not rewrite shopping history.",
+    id: "household-group-shopping-distribution-v1",
+    title: "Household grouped-target distribution policy"
+  },
+  {
+    details:
       "Creates the pending household invitation collection and indexes used by the small no-email membership flow. The validator action changes accepted invitation documents; the migration action is acknowledgement-only because invitations have no legacy source data.",
     id: "household-invitations-v1",
     title: "Household invitations"

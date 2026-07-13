@@ -1634,6 +1634,11 @@ describe("handleAppRequest auth guards", () => {
           validatorUpdated: false
         },
         {
+          id: "household-group-shopping-distribution-v1",
+          migrationCompleted: false,
+          validatorUpdated: false
+        },
+        {
           id: "household-invitations-v1",
           migrationCompleted: false,
           validatorUpdated: false
@@ -1811,6 +1816,8 @@ describe("handleAppRequest auth guards", () => {
         "household-expired-item-policy-v1:migration",
         "household-group-shopping-policy-v1:validator",
         "household-group-shopping-policy-v1:migration",
+        "household-group-shopping-distribution-v1:validator",
+        "household-group-shopping-distribution-v1:migration",
         "household-invitations-v1:validator",
         "household-invitations-v1:migration",
         "catalog-classification-v1:validator",

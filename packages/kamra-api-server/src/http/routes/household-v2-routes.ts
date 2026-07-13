@@ -1057,13 +1057,20 @@ export const householdV2ShoppingNeedsRoute: AppRoute = {
     const repository = new MongoShoppingNeedRepository(database);
     const now = new Date().toISOString();
     const storedHousehold = await database
-      .collection<{ groupTargetShoppingMode?: string | null }>("households")
+      .collection<{
+        groupTargetShoppingDistributionMode?: string | null;
+        groupTargetShoppingMode?: string | null;
+      }>("households")
       .findOne({ id: householdId });
     const groupTargetMode: GroupTargetShoppingMode =
       storedHousehold?.groupTargetShoppingMode === "add_products_only" ||
       storedHousehold?.groupTargetShoppingMode === "ignore_group_targets"
         ? storedHousehold.groupTargetShoppingMode
         : "add_products_and_group_item";
+    const groupTargetDistributionMode =
+      storedHousehold?.groupTargetShoppingDistributionMode === "proportional"
+        ? "proportional"
+        : "even";
     try {
       const result =
         request.method === "GET"
@@ -1073,6 +1080,7 @@ export const householdV2ShoppingNeedsRoute: AppRoute = {
                 actorUserId: user.email,
                 householdId,
                 needs: generateProductGroupShoppingNeeds({
+                  distributionMode: groupTargetDistributionMode,
                   mode: groupTargetMode,
                   needIdPrefix: `shopping-needs:${householdId}`,
                   workspace: await new MongoProductGroupReadRepository(database).getWorkspace(

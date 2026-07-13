@@ -19,6 +19,7 @@ import type {
 import {
   householdFeatureFlagKeys,
   groupTargetShoppingModes,
+  groupTargetShoppingDistributionModes,
   householdLocalProductStatuses,
   householdMembershipRoles,
   householdMembershipStatuses,
@@ -123,6 +124,15 @@ export function assertHouseholdRecord(
       value["groupTargetShoppingMode"],
       groupTargetShoppingModes,
       `${label}.groupTargetShoppingMode`
+    );
+  if (
+    value["groupTargetShoppingDistributionMode"] !== undefined &&
+    value["groupTargetShoppingDistributionMode"] !== null
+  )
+    assertEnum(
+      value["groupTargetShoppingDistributionMode"],
+      groupTargetShoppingDistributionModes,
+      `${label}.groupTargetShoppingDistributionMode`
     );
   assertOptionalNonEmptyString(value["favouriteShopId"], `${label}.favouriteShopId`);
   assertNonEmptyString(value["id"], `${label}.id`);

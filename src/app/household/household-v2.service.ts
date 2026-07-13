@@ -561,6 +561,7 @@ export class HouseholdV2Service {
   async updateHouseholdSettings(input: {
     allowExpiredItems?: boolean;
     defaultCalculatedMaxLimitMultiplier?: number;
+    groupTargetShoppingDistributionMode?: "even" | "proportional";
     groupTargetShoppingMode?:
       "add_products_and_group_item" | "add_products_only" | "ignore_group_targets";
     householdId: string;

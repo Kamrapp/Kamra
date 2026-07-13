@@ -140,6 +140,82 @@ describe("shopping needs", () => {
     expect(needs.some((need) => need.ownerKind === "product_group")).toBe(false);
   });
 
+  it("distributes extra Group quantity evenly with a deterministic remainder", () => {
+    const workspace = createWorkspace({
+      groupCurrent: 0,
+      groupMinimum: 3,
+      groupDesired: 4,
+      products: [
+        {
+          current: 0,
+          displayName: "Milk A",
+          id: "milk-a",
+          nextExpiryOn: null,
+          target: { desired: 1, minimum: 1 }
+        },
+        {
+          current: 0,
+          displayName: "Milk B",
+          id: "milk-b",
+          nextExpiryOn: null,
+          target: { desired: 2, minimum: 2 }
+        }
+      ]
+    });
+
+    const needs = generateProductGroupShoppingNeeds({
+      distributionMode: "even",
+      mode: "add_products_only",
+      needIdPrefix: "even",
+      workspace
+    });
+
+    expect(needs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ ownerId: "milk-a", plannedQuantity: 1.5 }),
+        expect.objectContaining({ ownerId: "milk-b", plannedQuantity: 2.5 })
+      ])
+    );
+  });
+
+  it("distributes extra Group quantity proportionally to current Product amounts", () => {
+    const workspace = createWorkspace({
+      groupCurrent: 4,
+      groupMinimum: 5,
+      groupDesired: 7,
+      products: [
+        {
+          current: 1,
+          displayName: "Milk A",
+          id: "milk-a",
+          nextExpiryOn: null,
+          target: { desired: 2, minimum: 2 }
+        },
+        {
+          current: 3,
+          displayName: "Milk B",
+          id: "milk-b",
+          nextExpiryOn: null,
+          target: { desired: 4, minimum: 4 }
+        }
+      ]
+    });
+
+    const needs = generateProductGroupShoppingNeeds({
+      distributionMode: "proportional",
+      mode: "add_products_only",
+      needIdPrefix: "proportional",
+      workspace
+    });
+
+    expect(needs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ ownerId: "milk-a", plannedQuantity: 1.25 }),
+        expect.objectContaining({ ownerId: "milk-b", plannedQuantity: 1.75 })
+      ])
+    );
+  });
+
   it("selects the earliest-expiring stocked Product when no Product target is already planned", () => {
     const workspace = createWorkspace({
       groupCurrent: 0,

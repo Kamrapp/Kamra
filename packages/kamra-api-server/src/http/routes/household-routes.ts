@@ -29,7 +29,10 @@ import {
   assertUpdateHouseholdShoppingListStocksRequest,
   assertUpdateHouseholdStockItemRequest
 } from "../../household/v1/validation.js";
-import { groupTargetShoppingModes } from "../../household/v1/contracts.js";
+import {
+  groupTargetShoppingDistributionModes,
+  groupTargetShoppingModes
+} from "../../household/v1/contracts.js";
 import {
   createDefaultCatalogRepository,
   createDefaultHouseholdRepository,
@@ -105,6 +108,15 @@ export const householdSettingsRoute: AppRoute = {
     )
       ? (body?.["groupTargetShoppingMode"] as (typeof groupTargetShoppingModes)[number])
       : undefined;
+    const groupTargetShoppingDistributionMode = groupTargetShoppingDistributionModes.includes(
+      body?.[
+        "groupTargetShoppingDistributionMode"
+      ] as (typeof groupTargetShoppingDistributionModes)[number]
+    )
+      ? (body?.[
+          "groupTargetShoppingDistributionMode"
+        ] as (typeof groupTargetShoppingDistributionModes)[number])
+      : undefined;
     const name =
       typeof body?.["name"] === "string" && body["name"].trim().length > 0
         ? body["name"].trim()
@@ -115,6 +127,7 @@ export const householdSettingsRoute: AppRoute = {
       (allowExpiredItems === undefined &&
         defaultCalculatedMaxLimitMultiplier === undefined &&
         groupTargetShoppingMode === undefined &&
+        groupTargetShoppingDistributionMode === undefined &&
         name === undefined)
     )
       return json(400, { error: "invalid_household_settings_request" });
@@ -123,6 +136,7 @@ export const householdSettingsRoute: AppRoute = {
         allowExpiredItems,
         defaultCalculatedMaxLimitMultiplier,
         groupTargetShoppingMode,
+        groupTargetShoppingDistributionMode,
         householdId,
         name,
         updatedAt: new Date().toISOString(),
@@ -381,6 +395,7 @@ export const householdShoppingListsRoute: AppRoute = {
         body.selectedOwnerIds !== undefined ? new Set(body.selectedOwnerIds) : null;
       const v2Needs = hasV2Products
         ? generateProductGroupShoppingNeeds({
+            distributionMode: stockPage.household.groupTargetShoppingDistributionMode ?? "even",
             mode: stockPage.household.groupTargetShoppingMode ?? "add_products_and_group_item",
             needIdPrefix: `shopping-needs:${body.householdId}`,
             selectedOwnerIds,

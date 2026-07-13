@@ -86,6 +86,7 @@ export interface HouseholdRecord {
   createdAt: string;
   createdByUserId: string;
   defaultCalculatedMaxLimitMultiplier?: number | null;
+  groupTargetShoppingDistributionMode?: GroupTargetShoppingDistributionMode | null;
   groupTargetShoppingMode?: GroupTargetShoppingMode | null;
   favouriteShopId?: string | null;
   id: string;
@@ -100,6 +101,10 @@ export const groupTargetShoppingModes = [
   "ignore_group_targets"
 ] as const;
 export type GroupTargetShoppingMode = (typeof groupTargetShoppingModes)[number];
+
+export const groupTargetShoppingDistributionModes = ["even", "proportional"] as const;
+export type GroupTargetShoppingDistributionMode =
+  (typeof groupTargetShoppingDistributionModes)[number];
 
 export interface HouseholdMembershipRecord {
   createdAt: string;
@@ -190,6 +195,7 @@ export interface HouseholdListItem {
   allowExpiredItems?: boolean;
   createdAt: string;
   defaultCalculatedMaxLimitMultiplier?: number | null;
+  groupTargetShoppingDistributionMode?: GroupTargetShoppingDistributionMode;
   groupTargetShoppingMode?: GroupTargetShoppingMode;
   favouriteShopId?: string | null;
   id: string;

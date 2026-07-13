@@ -181,6 +181,20 @@ import { ToastService } from "../shared/toast.service";
                   </option>
                 </select>
               </label>
+              <label>
+                <span>{{ loc.t("household.groupTargetShoppingDistributionMode") }}</span>
+                <select
+                  class="ui-form-control"
+                  [(ngModel)]="groupTargetShoppingDistributionModeDraft"
+                >
+                  <option value="even">
+                    {{ loc.t("household.groupTargetShoppingDistributionEven") }}
+                  </option>
+                  <option value="proportional">
+                    {{ loc.t("household.groupTargetShoppingDistributionProportional") }}
+                  </option>
+                </select>
+              </label>
               <button class="ui-button ui-button-sm" type="button" (click)="saveSettings()">
                 {{ loc.t("household.saveSettings") }}
               </button>
@@ -189,6 +203,10 @@ import { ToastService } from "../shared/toast.service";
                 <span>
                   <strong>{{ loc.t("household.defaultCalculatedMaxLimitMultiplier") }}</strong>
                   {{ household()?.defaultCalculatedMaxLimitMultiplier ?? 2 }}
+                </span>
+                <span>
+                  <strong>{{ loc.t("household.groupTargetShoppingDistributionMode") }}</strong>
+                  {{ groupTargetShoppingDistributionModeLabel() }}
                 </span>
                 <span>
                   <strong>{{ loc.t("household.allowExpiredItems") }}</strong>
@@ -467,6 +485,7 @@ export class HouseholdManagementComponent {
   groupTargetShoppingModeDraft:
     "add_products_and_group_item" | "add_products_only" | "ignore_group_targets" =
     "add_products_and_group_item";
+  groupTargetShoppingDistributionModeDraft: "even" | "proportional" = "even";
   nameDraft = "";
   inviteEmailDraft = "";
   resetConfirmed = false;
@@ -497,6 +516,14 @@ export class HouseholdManagementComponent {
     }
   }
 
+  groupTargetShoppingDistributionModeLabel(): string {
+    return this.loc.t(
+      this.groupTargetShoppingDistributionModeDraft === "proportional"
+        ? "household.groupTargetShoppingDistributionProportional"
+        : "household.groupTargetShoppingDistributionEven"
+    );
+  }
+
   private async loadHousehold(): Promise<void> {
     const householdId = this.route.snapshot.paramMap.get("householdId");
     if (!householdId) {
@@ -516,6 +543,8 @@ export class HouseholdManagementComponent {
     this.maxLimitMultiplierDraft = household?.defaultCalculatedMaxLimitMultiplier ?? 2;
     this.groupTargetShoppingModeDraft =
       household?.groupTargetShoppingMode ?? "add_products_and_group_item";
+    this.groupTargetShoppingDistributionModeDraft =
+      household?.groupTargetShoppingDistributionMode ?? "even";
     this.nameDraft = household?.name ?? "";
     this.invitations.set(
       household ? await this.invitationService.listForHousehold(household.id) : []
@@ -612,6 +641,7 @@ export class HouseholdManagementComponent {
       allowExpiredItems: this.allowExpiredItemsDraft,
       defaultCalculatedMaxLimitMultiplier: this.maxLimitMultiplierDraft,
       groupTargetShoppingMode: this.groupTargetShoppingModeDraft,
+      groupTargetShoppingDistributionMode: this.groupTargetShoppingDistributionModeDraft,
       householdId: household.id,
       name: this.nameDraft.trim()
     });

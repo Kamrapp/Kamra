@@ -8,6 +8,7 @@ import type {
 
 export type GroupTargetShoppingMode =
   "add_products_and_group_item" | "add_products_only" | "ignore_group_targets";
+export type GroupTargetShoppingDistributionMode = "even" | "proportional";
 
 export function generateShoppingNeed(
   target: StockTarget,
@@ -89,6 +90,7 @@ export function createAdHocShoppingNeed(input: {
 }
 
 export function generateProductGroupShoppingNeeds(input: {
+  distributionMode?: GroupTargetShoppingDistributionMode;
   mode: GroupTargetShoppingMode;
   needIdPrefix: string;
   selectedOwnerIds?: ReadonlySet<string> | null;
@@ -129,7 +131,13 @@ export function generateProductGroupShoppingNeeds(input: {
 
       const alreadyPlanned = productRows.filter((row) => productNeeds.has(row.product.id));
       if (alreadyPlanned.length > 0) {
-        addEvenlyToProductNeeds(alreadyPlanned, productNeeds, needs, groupShortage);
+        addGroupShortageToProductNeeds(
+          alreadyPlanned,
+          productNeeds,
+          needs,
+          groupShortage,
+          input.distributionMode ?? "even"
+        );
         continue;
       }
 
@@ -261,21 +269,31 @@ function createGroupShoppingNeed(input: {
   };
 }
 
-function addEvenlyToProductNeeds(
+function addGroupShortageToProductNeeds(
   rows: readonly ProductGroupNode["products"][number][],
   needs: Map<string, ShoppingNeed>,
   orderedNeeds: ShoppingNeed[],
-  quantity: number
+  quantity: number,
+  distributionMode: GroupTargetShoppingDistributionMode
 ): void {
-  const addition = quantity / rows.length;
-  for (const row of rows) {
+  const totalCurrent = rows.reduce((total, row) => total + row.aggregate.availableQuantity, 0);
+  let remainder = quantity;
+  for (const [index, row] of rows.entries()) {
     const need = needs.get(row.product.id);
-    if (need) {
-      const updated = { ...need, plannedQuantity: need.plannedQuantity + addition };
-      needs.set(row.product.id, updated);
-      const index = orderedNeeds.findIndex((candidate) => candidate.id === need.id);
-      if (index >= 0) orderedNeeds[index] = updated;
-    }
+    if (!need) continue;
+    const addition =
+      distributionMode === "proportional" && totalCurrent > 0
+        ? index === rows.length - 1
+          ? remainder
+          : quantity * (row.aggregate.availableQuantity / totalCurrent)
+        : index === rows.length - 1
+          ? remainder
+          : quantity / rows.length;
+    remainder -= addition;
+    const updated = { ...need, plannedQuantity: need.plannedQuantity + addition };
+    needs.set(row.product.id, updated);
+    const needIndex = orderedNeeds.findIndex((candidate) => candidate.id === need.id);
+    if (needIndex >= 0) orderedNeeds[needIndex] = updated;
   }
 }
 

@@ -416,6 +416,9 @@ export class MongoHouseholdRepository {
       if (household.groupTargetShoppingMode === undefined) {
         fieldsToSet["groupTargetShoppingMode"] = "add_products_and_group_item";
       }
+      if (household.groupTargetShoppingDistributionMode === undefined) {
+        fieldsToSet["groupTargetShoppingDistributionMode"] = "even";
+      }
       if (Object.keys(fieldsToSet).length === 0) {
         continue;
       }
@@ -442,6 +445,7 @@ export class MongoHouseholdRepository {
       createdByUserId: input.createdByUserId,
       allowExpiredItems: true,
       groupTargetShoppingMode: "add_products_and_group_item",
+      groupTargetShoppingDistributionMode: "even",
       id: input.id,
       name: input.name,
       status: "active",
@@ -498,9 +502,24 @@ export class MongoHouseholdRepository {
     return { updatedCount };
   }
 
+  async migrateGroupTargetShoppingDistribution(): Promise<HouseholdFieldsMigrationResult> {
+    let updatedCount = 0;
+    const households = await this.householdsCollection.find({}).toArray();
+    for (const household of households) {
+      if (household.groupTargetShoppingDistributionMode !== undefined) continue;
+      await this.householdsCollection.updateOne(
+        { id: household.id },
+        { $set: { groupTargetShoppingDistributionMode: "even", updatedAt: household.updatedAt } }
+      );
+      updatedCount += 1;
+    }
+    return { updatedCount };
+  }
+
   async updateHouseholdSettings(input: {
     allowExpiredItems?: boolean;
     defaultCalculatedMaxLimitMultiplier?: number;
+    groupTargetShoppingDistributionMode?: HouseholdRecord["groupTargetShoppingDistributionMode"];
     groupTargetShoppingMode?: HouseholdRecord["groupTargetShoppingMode"];
     householdId: string;
     name?: string;
@@ -510,6 +529,9 @@ export class MongoHouseholdRepository {
     allowExpiredItems: boolean;
     defaultCalculatedMaxLimitMultiplier: number;
     groupTargetShoppingMode: NonNullable<HouseholdRecord["groupTargetShoppingMode"]>;
+    groupTargetShoppingDistributionMode: NonNullable<
+      HouseholdRecord["groupTargetShoppingDistributionMode"]
+    >;
     name: string;
   }> {
     const household = await this.householdsCollection.findOne({ id: input.householdId });
@@ -531,6 +553,9 @@ export class MongoHouseholdRepository {
       ...(input.groupTargetShoppingMode === undefined
         ? {}
         : { groupTargetShoppingMode: input.groupTargetShoppingMode }),
+      ...(input.groupTargetShoppingDistributionMode === undefined
+        ? {}
+        : { groupTargetShoppingDistributionMode: input.groupTargetShoppingDistributionMode }),
       ...(input.name === undefined ? {} : { name: input.name }),
       updatedAt: input.updatedAt
     };
@@ -545,6 +570,10 @@ export class MongoHouseholdRepository {
         input.groupTargetShoppingMode ??
         household.groupTargetShoppingMode ??
         "add_products_and_group_item",
+      groupTargetShoppingDistributionMode:
+        input.groupTargetShoppingDistributionMode ??
+        household.groupTargetShoppingDistributionMode ??
+        "even",
       name: input.name ?? household.name
     };
   }
@@ -1301,6 +1330,7 @@ export class MongoHouseholdRepository {
       allowExpiredItems: household.allowExpiredItems ?? true,
       defaultCalculatedMaxLimitMultiplier: household.defaultCalculatedMaxLimitMultiplier ?? 2,
       groupTargetShoppingMode: household.groupTargetShoppingMode ?? "add_products_and_group_item",
+      groupTargetShoppingDistributionMode: household.groupTargetShoppingDistributionMode ?? "even",
       favouriteShopId: household.favouriteShopId ?? null,
       id: household.id,
       membershipRole,

@@ -269,7 +269,10 @@ async function runValidatorAction(
       : createDefaultHouseholdRepository(database);
     return await repository.upgradeHouseholdValidators();
   }
-  if (entryId === "household-group-shopping-policy-v1") {
+  if (
+    entryId === "household-group-shopping-policy-v1" ||
+    entryId === "household-group-shopping-distribution-v1"
+  ) {
     const repository = context.dependencies.createHouseholdRepository
       ? context.dependencies.createHouseholdRepository(database)
       : createDefaultHouseholdRepository(database);
@@ -349,6 +352,12 @@ async function runMigrationAction(
       ? context.dependencies.createHouseholdRepository(database)
       : createDefaultHouseholdRepository(database);
     return await repository.migrateGroupTargetShoppingMode();
+  }
+  if (entryId === "household-group-shopping-distribution-v1") {
+    const repository = context.dependencies.createHouseholdRepository
+      ? context.dependencies.createHouseholdRepository(database)
+      : createDefaultHouseholdRepository(database);
+    return await repository.migrateGroupTargetShoppingDistribution();
   }
   if (entryId === "household-invitations-v1") {
     return { status: "ready", migratedCount: 0 };
