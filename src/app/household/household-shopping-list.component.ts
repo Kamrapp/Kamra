@@ -37,6 +37,10 @@ import {
   splitTrackingUnit,
   type HouseholdTrackingUnitOption
 } from "./household-tracking-units";
+import {
+  findShoppingQuickAddMatch,
+  normalizeShoppingQuickAddName
+} from "./shopping-quick-add-matching";
 
 interface QuickAddDraft {
   displayName: string;
@@ -177,7 +181,7 @@ export class HouseholdShoppingListComponent implements OnChanges, OnDestroy {
     }
 
     const displayName = draft.displayName.trim();
-    const stockGroupKey = normalizeStockGroupKey(displayName);
+    const stockGroupKey = normalizeShoppingQuickAddName(displayName);
     const knownProduct = this.findKnownProduct(displayName);
     if (knownProduct && normalizeUnit(knownProduct.unit) !== normalizeUnit(draft.unit)) {
       draft = { ...draft, unit: knownProduct.unit };
@@ -190,7 +194,7 @@ export class HouseholdShoppingListComponent implements OnChanges, OnDestroy {
       );
     }
     const existing = list.items.find(
-      (item) => normalizeStockGroupKey(item.displayName) === stockGroupKey
+      (item) => normalizeShoppingQuickAddName(item.displayName) === stockGroupKey
     );
     if (existing) {
       if (normalizeUnit(existing.unit) !== normalizeUnit(draft.unit)) {
@@ -477,7 +481,7 @@ export class HouseholdShoppingListComponent implements OnChanges, OnDestroy {
       gtin: item.gtin ?? null,
       householdProductId: item.householdProductId,
       householdStockItemId: item.id,
-      id: `manual_stock_${Date.now()}_${normalizeStockGroupKey(item.displayName)}`,
+      id: `manual_stock_${Date.now()}_${normalizeShoppingQuickAddName(item.displayName)}`,
       idealMaxLimit: item.idealMaxLimit ?? null,
       minLimit: item.minLimit,
       observedPrice: null,
@@ -585,7 +589,8 @@ export class HouseholdShoppingListComponent implements OnChanges, OnDestroy {
     this.quickAddMatchTimer = setTimeout(() => {
       this.quickAddMatchTimer = null;
       const existing = this.shoppingList()?.items.find(
-        (item) => normalizeStockGroupKey(item.displayName) === normalizeStockGroupKey(value)
+        (item) =>
+          normalizeShoppingQuickAddName(item.displayName) === normalizeShoppingQuickAddName(value)
       );
       const knownProduct = this.findKnownProduct(value);
       const matched = existing ?? knownProduct;
@@ -604,12 +609,7 @@ export class HouseholdShoppingListComponent implements OnChanges, OnDestroy {
   }
 
   private findKnownProduct(displayName: string): HouseholdKnownProduct | null {
-    const key = normalizeStockGroupKey(displayName);
-    if (!key) return null;
-    return (
-      this.knownProducts.find((product) => normalizeStockGroupKey(product.displayName) === key) ??
-      null
-    );
+    return findShoppingQuickAddMatch(displayName, this.knownProducts);
   }
 
   updateQuickAddUnit(value: string): void {
@@ -761,18 +761,6 @@ export class HouseholdShoppingListComponent implements OnChanges, OnDestroy {
 function coerceNumber(value: number | string, fallback: number): number {
   const numericValue = typeof value === "number" ? value : Number(value);
   return Number.isFinite(numericValue) ? numericValue : fallback;
-}
-
-function normalizeStockGroupKey(value: string): string {
-  const slug = value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "")
-    .slice(0, 80);
-
-  return slug || "item";
 }
 
 function normalizeUnit(value: string): string {
