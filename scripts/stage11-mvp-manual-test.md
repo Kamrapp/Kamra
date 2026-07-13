@@ -41,7 +41,7 @@ not carried forward because classification is intentionally outside the current 
 
 Run from the repository root on the final Stage 11 implementation commit.
 
-- [ ] `npm run mvp:preflight` passes. This bundles the seven local checks listed in
+- [x] `npm run mvp:preflight` passes. This bundles the seven local checks listed in
       `scripts/README.md`; do not rerun them individually unless diagnosing a failure.
 - [ ] After `npm run seed:demo-household`, `npm run smoke:demo-household` passes against the
       approved disposable database. This replaces manually counting seeded groups/products/batches

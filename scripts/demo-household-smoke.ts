@@ -44,7 +44,11 @@ async function runDemoHouseholdSmoke(): Promise<void> {
       .toArray()
   ]);
 
-  assert.ok(household, "Demo household household1 is missing.");
+  if (!household) {
+    throw new Error(
+      `Demo household ${householdId} is missing from database '${database.databaseName}'. Run npm run seed:demo-household first, then rerun npm run smoke:demo-household.`
+    );
+  }
   assert.equal(household.allowExpiredItems, true, "Demo household should allow expired items.");
   assert.equal(
     household.defaultCalculatedMaxLimitMultiplier,

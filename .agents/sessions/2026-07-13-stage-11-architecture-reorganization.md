@@ -75,6 +75,7 @@
 - Closeout validation is pending after the documentation/workflow edits; it must include the focused integration suite, full tests, formatting, lint, typecheck, API build, and diff checks.
 - `npm run mvp:preflight` passed locally with 240 tests/65 files, 7 integration tests, formatting, lint, typecheck, web build, and API build.
 - `npm run smoke:demo-household` reached the configured MongoDB database but failed because the current disposable household document lacks `groupTargetShoppingMode`; this is a useful stale-seed/schema signal and was not masked. Reseed/migrate that environment before operator testing.
+- A later smoke run found no `household1` in the selected database at all. The validator now reports the selected database and instructs the operator to run `npm run seed:demo-household` before retrying; no automatic database write was performed.
 - The teardown guard was verified without the confirmation argument; it failed closed before any database write.
 
 ## Decisions
@@ -93,6 +94,8 @@
 - The operator must edit the live runbook with actual findings during the final pass; those edits become input to the final fixer session. The shortened manual pass should start with `npm run mvp:preflight`, then the fixture/configured smokes, then browser-only checks.
 
 ## Next Step
+
+Run the focused demo seed against the approved disposable database, then rerun `npm run smoke:demo-household` before browser verification. Do not use the full seed unless catalogue/admin data is also required.
 
 Execute `scripts/stage11-mvp-manual-test.md` as one continuous Stage 8–11 pass. Add observed
 behavior and environment details to the runbook without credentials or private exports. Treat the
