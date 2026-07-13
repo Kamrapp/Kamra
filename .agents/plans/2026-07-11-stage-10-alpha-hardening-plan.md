@@ -359,7 +359,7 @@ Implementation ownership map:
 ### Step 8 - Targeted frontend and contract cleanup
 
 - Reduce confirmed component/service responsibility problems, establish shared-contract/parity approach, and normalize boundary error states.
-- Acceptance: Stage 8/9 workflows behave identically; core states are explicit and localized; no broad UI rewrite.
+- Acceptance: Stage 8/9 workflows behave identically; core states are explicit and localized; no broad UI rewrite. **Implemented parity guard (2026-07-13):** the feature-toggle validation key list is tested against the server definition registry so the compact-label toggle cannot silently drift out of request validation.
 - Commit per slice: `refactor: simplify <feature> frontend boundary`
 
 ### Step 8A - Frontend minor facelift and CSS/HTML simplification

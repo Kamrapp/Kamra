@@ -235,7 +235,7 @@ Command:
 npm run validate:processed-ingestion
 ```
 
-Read-only MongoDB validation script. Use it after processing snapshots to confirm catalog-side products, product sources, price observations, and processing states exist for the crawled sources.
+Read-only MongoDB validation script. Use it after processing snapshots to confirm catalog-side products, product sources, price observations, and processing states exist for the crawled sources. It fails closed when a newly captured snapshot is still pending and logs the bounded snapshot ids that need processing; it does not process or mutate data itself.
 
 ### `audit-ingestion-quality.ts`
 

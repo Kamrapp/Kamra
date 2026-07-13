@@ -571,6 +571,18 @@ basic Home shopping experience.
   78 duplicate derived rows before reparsing, and predicts zero afterward. The next operator action is
   archive/plan review before any apply run.
 
+## Stage 10 processed-ingestion validation checkpoint (2026-07-13)
+
+- The configured read-only `validate:processed-ingestion` check reaches the database and reports no
+  failed processing states, but correctly fails closed for four newly captured pending snapshots:
+  ALDI `offers-page-0`, Lidl brochures for weeks 28 and 29, and PENNY `offers-page-0`, all captured
+  on 2026-07-13. These require the normal processing command; this session did not write catalogue or
+  processing-state data.
+- The validator now traverses snapshots through the indexed `_id` order and logs up to 25 exact
+  missing snapshot descriptors, making pending ingestion distinguishable from a failed processor.
+- Added a feature-toggle contract-parity test covering the `useAbbreviatedUiLabels` validation drift
+  observed during manual verification. Local focused validation is the next commit gate.
+
 Historical open-issue entries above describe intermediate checkpoints and are superseded by
 this closeout section where they say the Home bridge is still pending or Stage 8 cannot close.
 
