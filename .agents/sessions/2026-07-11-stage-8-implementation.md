@@ -583,6 +583,12 @@ basic Home shopping experience.
 - Added a feature-toggle contract-parity test covering the `useAbbreviatedUiLabels` validation drift
   observed during manual verification. Local focused validation is the next commit gate.
 
+## Stage 10 locale parity checkpoint (2026-07-13)
+
+- Added an application translation parity test requiring English and Hungarian leaf keys to match and
+  all values to be non-empty. This protects the localized Home/Manual/Admin surfaces without changing
+  runtime fallback behavior.
+
 Historical open-issue entries above describe intermediate checkpoints and are superseded by
 this closeout section where they say the Home bridge is still pending or Stage 8 cannot close.
 
