@@ -45,6 +45,10 @@
 - Improved stale-revision feedback in the shared Household V2 write service: localized UI and
   Activity messages now tell the operator that the item changed elsewhere and that the workspace
   must be refreshed before retrying.
+- Applied the next Section 3 refinement: Manual Batch titles are marked as manual, amount columns
+  use tighter grid tracks, Group editing opens details automatically, and Product Group assignment
+  now lives in Product details so inline Product rows remain single-line. Product identity details
+  also give the id less visual weight and the Note field more room.
 
 ## Changed Files
 
@@ -104,6 +108,8 @@
   integration harness now also passes independently.
 - After the stale-revision feedback fix, the full test suite, typecheck, lint, web build, and diff
   checks passed again.
+- After the latest Section 3 refinement, 245 tests, typecheck, lint, formatting, web build, and diff
+  checks passed again.
 - `npm run mvp:preflight` passed locally with 240 tests/65 files, 7 integration tests, formatting, lint, typecheck, web build, and API build.
 - `npm run smoke:demo-household` reached the configured MongoDB database but failed because the current disposable household document lacks `groupTargetShoppingMode`; this is a useful stale-seed/schema signal and was not masked. Reseed/migrate that environment before operator testing.
 - A later smoke run found no `household1` in the selected database at all. The validator now reports the selected database and instructs the operator to run `npm run seed:demo-household` before retrying; no automatic database write was performed.
@@ -127,7 +133,8 @@
   database before using the browser invitation flow; the deterministic tests do not update MongoDB.
 - The operator accepted the Section 3 workspace structure and first CRUD/derived-data pass. The
   latest workspace refinement is implemented; the live runbook retains only its visual/behavioral
-  retests plus the previously open consistency/accessibility checks.
+  retests for the Manual title style, compact amount columns, and details-editor layout, plus the
+  previously open consistency/accessibility checks.
 - Stage 10 configured/browser release evidence remains open and is not waived by this plan.
 - The operator must edit the live runbook with actual findings during the final pass; those edits become input to the final fixer session. The shortened manual pass should start with `npm run mvp:preflight`, then the fixture/configured smokes, then browser-only checks.
 

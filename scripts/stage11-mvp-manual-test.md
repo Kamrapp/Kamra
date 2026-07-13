@@ -138,30 +138,34 @@ and demo seed-ledger entries. It does not remove shared catalogue, shop-market, 
 
 ### Group and Product structure
 
-- [ ] Confirm Batch rows leave the child-action position empty and keep Details, Edit, and Discard
+- [x] Confirm Batch rows leave the child-action position empty and keep Details, Edit, and Discard
       aligned with the other row action sets, with Discard in the final position.
-- [ ] Confirm the Unassigned Products separator has a small italic title, Group-like light text,
+- [x] Confirm the Unassigned Products separator has a small italic title, Group-like light text,
       a stronger border, and a softened surface distinct from both Groups and Batch rows.
 
 ### CRUD and derived data
 
-- [ ] Edit a Group unit through the built-in selector and the Custom option. Entering test persists
+- [x] Edit a Group unit through the built-in selector and the Custom option. Entering test persists
       custom:test; the table displays italic test without the storage prefix.
-- [ ] Confirm Batch titles use the available source and stocked-at date, with Manual as the explicit
+- [x] Confirm Batch titles use the available source and stocked-at date, with Manual as the explicit
       fallback when no source snapshot exists. Edit the title date and confirm it updates Stocked at
       without adding a misaligned column.
+- [ ] Confirm the Manual fallback in a Batch title is italic while source-backed titles remain normal.
 - [ ] Confirm the compact Minimum, Current, Target, and Unit columns remain readable and Batch
       Quantity stays aligned under Product Current.
-- [ ] Test Product Group/Product/Batch stale revision or concurrent-edit failure. The old state
+- [x] Test Product Group/Product/Batch stale revision or concurrent-edit failure. The old state
       remains intact, the UI says the item was changed elsewhere, and it tells the user to refresh
       before saving again; the Activity entry uses the same actionable explanation.
-- [ ] Save from the inline editor and from the right-side editor. Each path clears the other editor,
+- [x] Save from the inline editor and from the right-side editor. Each path clears the other editor,
       leaves no stale edit mode, and shows refreshed data.
-- [ ] Add Product from a Group and Add Batch from a Product. Add Batch opens only the Batch editor;
+- [x] Add Product from a Group and Add Batch from a Product. Add Batch opens only the Batch editor;
       parent identity and assignment remain unchanged.
-- [ ] Open Group/Product/Batch details. Disclosure controls use right/down arrows; details do not
+- [ ] Recheck Group/Product details after the latest refinement: editing a Group opens its details
+      row; editing a Product keeps the main row on one line, moves Group assignment into the
+      details row, makes Product id compact, and gives Note more room.
+- [x] Confirm Group/Product/Batch details. Disclosure controls use right/down arrows; details do not
       edit unrelated rows; target values use clear “Configured/Not set” terminology.
-- [ ] Confirm aggregate amounts, minimum/target state, next expiry, expiring count, no-expiry, and
+- [x] Confirm aggregate amounts, minimum/target state, next expiry, expiring count, no-expiry, and
       combined low-stock/expiry explanations are consistent after every mutation.
 
 ### Visual, responsive, and accessibility checks
@@ -179,9 +183,9 @@ and demo seed-ledger entries. It does not remove shared catalogue, shop-market, 
 
 Operator notes and discoveries:
 
-The Section 3 structure and first CRUD checks are accepted in the bottom table. This section now
-contains only the focused presentation and behavior retests introduced by the latest workspace
-refinement, plus the remaining consistency/accessibility checks.
+The Section 3 structure and first CRUD checks are accepted in the bottom table. Remaining focused
+retests are the italic Manual fallback, narrower amount columns, and the latest Group/Product
+details-editor layout, plus the remaining consistency/accessibility checks.
 
 ## 4. Shopping list and household purchase application
 
