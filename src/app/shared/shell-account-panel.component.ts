@@ -41,7 +41,7 @@ export interface ShellLoginCredentials {
                 >
                   {{
                     acceptingInvitationId === invitation.id
-                      ? loc.t("app.loading")
+                      ? loc.t("common.loading")
                       : loc.t("app.acceptInvitation")
                   }}
                 </button>
