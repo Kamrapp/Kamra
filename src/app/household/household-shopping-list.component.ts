@@ -266,9 +266,16 @@ export class HouseholdShoppingListComponent implements OnChanges {
     this.sectionCollapsed.set(true);
     this.stockAppliedAt.set(todayDateInputValue());
     this.stockPageUpdated.emit(result.householdStockPage);
-    this.statusMessage.set(
-      this.loc.t("household.shoppingListFinished", { count: result.appliedLineCount })
-    );
+    const message = this.loc.t("household.shoppingListFinished", {
+      count: result.appliedLineCount
+    });
+    this.statusMessage.set(message);
+    this.logger.log("info", "Shopping list finalized and household stock updated", {
+      appliedLineCount: result.appliedLineCount,
+      householdId: list.householdId,
+      shoppingListId: list.id
+    });
+    this.toast.push(message, "success");
   }
 
   async changeShop(shopId: string): Promise<void> {

@@ -767,7 +767,7 @@
     "stockedAt": "Stocked at",
     "steady": "steady",
     "tickAllAndApply": "Tick everything and update stock",
-    "applyShoppingListToStock": "Update stocks per purchased items",
+    "applyShoppingListToStock": "Finalize shopping and save stocks",
     "applyTickedOnly": "Update only ticked items",
     "backToPulse": "Back to household pulse",
     "sourceNameOptional": "Source name (optional)",

@@ -767,7 +767,7 @@
     "stockedAt": "Betárolás dátuma",
     "steady": "stabil",
     "tickAllAndApply": "Minden kipipálása és készletfrissítés",
-    "applyShoppingListToStock": "Vásárolt tételek átvezetése a készletbe",
+    "applyShoppingListToStock": "Bevásárlás lezárása és készletek mentése",
     "applyTickedOnly": "Csak a kipipáltak frissítése",
     "backToPulse": "Vissza a háztartási pulzushoz",
     "sourceNameOptional": "Forrás neve (opcionális)",
