@@ -1,6 +1,6 @@
 # Stage 10 Alpha 1.0 Hardening Plan
 
-Status: In implementation — Step 4 audit prepared; MVP-hole gate and bounded frontend facelift added (2026-07-13). Keep hardening tied to concrete Stage 8/9 findings; do not expand into a rewrite.
+Status: In implementation — Step 4A backend safety slice started (2026-07-13). Keep hardening tied to concrete Stage 8/9 findings; do not expand into a rewrite.
 
 ## Objective And Classification
 
@@ -334,7 +334,7 @@ Implementation ownership map:
 ### Step 4A - MVP-hole closure gate
 
 - Close the revalidated Stage 9 gaps before calling the Alpha user loop complete: add a household-visible active Shop Market picker, expose actual purchase result fields (quantity, unit, paid price, acquisition/expiry, Product/new-product choice), support unplanned purchases, bound match options with truncation state, add focused catalog-to-Household Product lookup, and prove the legacy Shopping Need/list boundary does not bypass Trip completion. Keep matching/completion policy in focused services rather than expanding the route.
-- Acceptance: route/domain tests cover every new command and failure path; the browser panel can select a valid market, resolve/skip matches, record an actual result, finalize it into Product-owned Batches and Ingestion Submissions, retry without duplicates, and recover from stale revisions. Update the central manual checklist and return any behavior regression to Stage 9.
+- Acceptance: route/domain tests cover every new command and failure path; the browser panel can select a valid market, resolve/skip matches, record an actual result, finalize it into Product-owned Batches and Ingestion Submissions, retry without duplicates, and recover from stale revisions. Update the central manual checklist and return any behavior regression to Stage 9. **In progress (2026-07-13):** match options are bounded with truncation metadata and completion uses a focused indexed catalog-to-Household Product lookup.
 - Stop condition: if the active-market ownership model, unplanned-purchase identity, or legacy-list retirement would materially change the approved domain, pause for a decision rather than infer one.
 - Commit per independent concern: `fix: close <trip or completion> MVP gap`.
 

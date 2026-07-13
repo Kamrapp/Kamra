@@ -1,5 +1,7 @@
 import type { TrackingUnit } from "./contracts.js";
 
+export const maxShoppingTripMatchOptions = 12;
+
 export const tripStatuses = [
   "draft",
   "matching",
@@ -65,6 +67,7 @@ export interface ShoppingTripItem {
   priceState?: ApplicablePriceState | null;
   matchExplanation?: string | null;
   matchOptions?: ShoppingTripMatchOption[];
+  matchOptionsTruncated?: boolean;
   actualQuantity?: number | null;
   actualUnit?: TrackingUnit | null;
   actualPaidPrice?: number | null;

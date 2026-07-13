@@ -70,4 +70,24 @@ describe("MongoHouseholdProductRepository", () => {
       directConcepts: created.directConcepts
     });
   });
+
+  it("finds one active Household Product by catalog Product id without loading the household", async () => {
+    const database = createFakeDb();
+    const repository = new MongoHouseholdProductRepository(database);
+    await repository.create({ ...product, catalogProductId: "catalog-milk" });
+    await repository.create({
+      ...product,
+      catalogProductId: "catalog-other",
+      displayName: "Other product",
+      id: "product-2"
+    });
+
+    await expect(
+      repository.findFirstByCatalogProductId("h", "catalog-milk")
+    ).resolves.toMatchObject({
+      id: "product-1",
+      catalogProductId: "catalog-milk"
+    });
+    await expect(repository.findFirstByCatalogProductId("h", "missing")).resolves.toBeNull();
+  });
 });

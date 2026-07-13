@@ -49,6 +49,18 @@ export class MongoHouseholdProductRepository {
       .toArray();
   }
 
+  async findFirstByCatalogProductId(
+    householdId: string,
+    catalogProductId: string
+  ): Promise<HouseholdProduct | null> {
+    const products = await this.products
+      .find({ householdId, catalogProductId, status: "active" })
+      .sort({ displayName: 1, id: 1 })
+      .limit(1)
+      .toArray();
+    return products[0] ?? null;
+  }
+
   async updateClassification(input: {
     householdId: string;
     id: string;

@@ -441,6 +441,13 @@ basic Home shopping experience.
 - The roadmap/domain wording now treats Trip Items as the current purchase-history envelope; no separate Purchase aggregate is claimed. Archive, cutover, and audit tools remain implemented-but-configured-evidence-open.
 - No implementation was started for the new plan steps in this planning update. The existing validated audit slice remains uncommitted from the previous Git reviewer-capacity block; commit it before beginning Step 4A or Step 8A.
 
+## Stage 10 Step 4A backend safety checkpoint (2026-07-13)
+
+- The Step 4A backend slice bounds Shopping Trip match options to 12 and persists `matchOptionsTruncated` so large candidate sets remain explicit and safe to render. The direct override path still validates any selected Shop Product server-side.
+- `MongoHouseholdProductRepository.findFirstByCatalogProductId` uses the existing household/catalog index and deterministic ordering. Trip completion no longer loads every Household Product for the catalogue fallback.
+- Focused validation passed: matcher/repository tests (6 passed) and `npm run typecheck`.
+- Next slice: expose household-visible active Shop Markets and replace the Home Trip raw-id field with a picker; then add the actual-result/unplanned purchase editor.
+
 Historical open-issue entries above describe intermediate checkpoints and are superseded by
 this closeout section where they say the Home bridge is still pending or Stage 8 cannot close.
 

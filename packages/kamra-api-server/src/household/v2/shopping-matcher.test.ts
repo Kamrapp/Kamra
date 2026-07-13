@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { matchShoppingNeed, selectApplicablePrice } from "./shopping-matcher.js";
+import {
+  limitShoppingMatches,
+  matchShoppingNeed,
+  selectApplicablePrice
+} from "./shopping-matcher.js";
 
 describe("Stage 9 shopping matcher", () => {
   it("selects an inclusive offer and keeps stale state explainable", () => {
@@ -103,5 +107,24 @@ describe("Stage 9 shopping matcher", () => {
       packageCount: 1,
       expectedTotal: 700
     });
+  });
+
+  it("bounds match options while retaining truncation evidence", () => {
+    const matches = Array.from({ length: 14 }, (_, index) => ({
+      applicablePrice: {
+        currencyCode: "HUF",
+        observationId: `price-${index}`,
+        price: index + 1,
+        state: "applicable" as const
+      },
+      explanation: "compatible package candidate",
+      expectedTotal: index + 1,
+      packageCount: 1,
+      productId: `product-${index}`,
+      shopProductId: `shop-product-${index}`
+    }));
+
+    expect(limitShoppingMatches(matches)).toMatchObject({ truncated: true });
+    expect(limitShoppingMatches(matches).matches).toHaveLength(12);
   });
 });

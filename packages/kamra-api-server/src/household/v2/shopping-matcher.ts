@@ -4,6 +4,7 @@ import type {
   PriceObservationCandidate,
   ShopProductCandidate
 } from "./stage9-contracts.js";
+import { maxShoppingTripMatchOptions } from "./stage9-contracts.js";
 
 export interface ShoppingMatchCandidate {
   shopProduct: ShopProductCandidate;
@@ -17,6 +18,16 @@ export interface ShoppingMatch {
   expectedTotal: number | null;
   applicablePrice: ApplicablePrice;
   explanation: string;
+}
+
+export function limitShoppingMatches(matches: readonly ShoppingMatch[]): {
+  matches: ShoppingMatch[];
+  truncated: boolean;
+} {
+  return {
+    matches: matches.slice(0, maxShoppingTripMatchOptions),
+    truncated: matches.length > maxShoppingTripMatchOptions
+  };
 }
 
 export function selectApplicablePrice(input: {

@@ -19,7 +19,7 @@ import { MongoShoppingTripRepository } from "../../household/v2/mongo-shopping-t
 import { MongoShopMarketRepository } from "../../household/v2/mongo-shop-market-repository.js";
 import { MongoShopProductRepository } from "../../household/v2/mongo-shop-product-repository.js";
 import { MongoPriceObservationRepository } from "../../household/v2/mongo-price-observation-repository.js";
-import { matchShoppingNeed } from "../../household/v2/shopping-matcher.js";
+import { limitShoppingMatches, matchShoppingNeed } from "../../household/v2/shopping-matcher.js";
 import {
   createShoppingTrip,
   setShoppingTripMarket,
@@ -1179,16 +1179,19 @@ export const householdV2ShoppingTripsRoute: AppRoute = {
               shoppingDate: body!["plannedDate"] as string
             });
             const match = matches[0];
-            const matchOptions: ShoppingTripMatchOption[] = matches.map((candidate) => ({
-              displayName:
-                shopProducts.find((product) => product.id === candidate.shopProductId)
-                  ?.displayName ?? candidate.shopProductId,
-              expectedPackageCount: candidate.packageCount,
-              expectedTotal: candidate.expectedTotal,
-              priceState: candidate.applicablePrice.state,
-              selectedPriceObservationId: candidate.applicablePrice.observationId,
-              shopProductId: candidate.shopProductId
-            }));
+            const limitedMatches = limitShoppingMatches(matches);
+            const matchOptions: ShoppingTripMatchOption[] = limitedMatches.matches.map(
+              (candidate) => ({
+                displayName:
+                  shopProducts.find((product) => product.id === candidate.shopProductId)
+                    ?.displayName ?? candidate.shopProductId,
+                expectedPackageCount: candidate.packageCount,
+                expectedTotal: candidate.expectedTotal,
+                priceState: candidate.applicablePrice.state,
+                selectedPriceObservationId: candidate.applicablePrice.observationId,
+                shopProductId: candidate.shopProductId
+              })
+            );
             return {
               id: `shopping-trip-item:${need.id}`,
               needId: need.id,
@@ -1204,7 +1207,8 @@ export const householdV2ShoppingTripsRoute: AppRoute = {
               expectedTotal: match?.expectedTotal ?? null,
               priceState: match?.applicablePrice.state ?? "no_price",
               matchExplanation: match?.explanation ?? "No compatible Shop Product found",
-              matchOptions
+              matchOptions,
+              matchOptionsTruncated: limitedMatches.truncated
             };
           })
       );
@@ -1343,6 +1347,7 @@ export const householdV2ShoppingTripCompleteRoute: AppRoute = {
       user.email,
       async (database, client) => {
         const trips = new MongoShoppingTripRepository(database);
+        const householdProducts = new MongoHouseholdProductRepository(database);
         const trip = await trips.get(householdId, tripId);
         if (!trip) return json(404, { error: "shopping_trip_not_found" });
         if (!["in_progress", "partially_processed"].includes(trip.status))
@@ -1394,17 +1399,15 @@ export const householdV2ShoppingTripCompleteRoute: AppRoute = {
             item.purchaseHouseholdProductId === undefined &&
             item.selectedProductId
           ) {
-            const matchingProduct = (
-              await new MongoHouseholdProductRepository(database).list(householdId)
-            ).find((candidate) => candidate.catalogProductId === item.selectedProductId);
+            const matchingProduct = await householdProducts.findFirstByCatalogProductId(
+              householdId,
+              item.selectedProductId
+            );
             productId = matchingProduct?.id ?? null;
           }
           let batchId: string;
           if (productId) {
-            const product = await new MongoHouseholdProductRepository(database).get(
-              householdId,
-              productId
-            );
+            const product = await householdProducts.get(householdId, productId);
             if (!product) return json(404, { error: "household_product_not_found" });
             const now = new Date().toISOString();
             batchId = `stock-batch:${householdId}:${operationId}`;
