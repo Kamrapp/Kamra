@@ -1,6 +1,6 @@
 # Stage 10 Alpha 1.0 Hardening Plan
 
-Status: Proposed final plan. Requires Stage 9 completion and separate user approval before implementation.
+Status: In implementation (user-approved 2026-07-13). Keep hardening tied to concrete Stage 8/9 findings; do not expand into a rewrite.
 
 ## Objective And Classification
 
@@ -14,6 +14,10 @@ Stage 10 is **required for maintainability before Alpha 1.0**. It is not authori
 - Their migrations are reconciled, current write paths use the new models, and known behavior bugs are fixed in their owning stages.
 - A realistic development database contains Crawl Snapshots and Purchase Ingestion Submissions suitable for inspection.
 - The Alpha acceptance scenario has been attempted at least once, so hardening is driven by observed friction rather than guesses.
+
+Current implementation has the Stage 9 Trip, matcher, persistence, purchase-to-Product/Batch completion,
+Ingestion Submission persistence/review routes, and strict completion input validation. Browser workflow
+verification and the remaining admin/user UI are still required before Stage 9 can be closed.
 
 ## Open Questions
 
@@ -328,4 +332,5 @@ The cross-stage human verification source of truth is `.agents/plans/stage8-10-m
 
 ## Approval Checkpoint
 
-Do not implement until Stage 9 is complete and the user approves this plan or a named step. Every cleanup unit must name the concrete finding it resolves.
+Stage 10 implementation is approved for the bounded hardening slices above. Do not call Alpha complete
+until Stage 9 browser acceptance is recorded and every cleanup unit names the concrete finding it resolves.

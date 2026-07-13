@@ -396,4 +396,11 @@ Work continued on branch `dev/bg/stage-9-10` in separate commits:
 - `44b0d4c feat: persist and expose shopping trips` — indexed Trip repository plus household create/list/update routes with optimistic revision checks.
 - `71a1eee feat: add shop products and price history` — market-scoped Shop Product and append-only Price Observation repositories, tests, and maintenance registry entry.
 
-Stage 9 remains in implementation. The next required slice is transactional Trip completion into the existing Product/Batch command plus structured Ingestion Submission creation; Stage 10 must wait for that path.
+Stage 9 remains in implementation. At this checkpoint, the next required slice is the browser-facing Trip workflow and realistic end-to-end evidence; Stage 10 hardening can proceed only on bounded correctness findings while final Stage 9 UI acceptance remains open.
+
+## Stage 9/10 continuation checkpoint (2026-07-13)
+
+- `57c7773 feat: finalize shopping trips into household stock` adds the completion route: existing Household Products receive Product-owned Batches, unknown purchases use the atomic Product+Batch composer, and each bought item creates a pending Ingestion Submission.
+- `dc8dc50 feat: add Stage 9 market and ingestion review routes` adds admin-only Shop Market and Ingestion Submission list/create/review routes.
+- `85357b6 fix: validate shopping trip purchase inputs` rejects empty completion payloads and invalid purchase units.
+- Stage 9 still needs the browser-facing Trip workflow, admin product/price UI, realistic fixtures, and compatibility retirement evidence. Stage 10 has started with input-boundary hardening but is not complete.
