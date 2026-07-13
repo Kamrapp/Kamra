@@ -293,13 +293,10 @@ describe("Stage 11 application integration harness", () => {
       path: "/api/household/shopping-lists"
     });
     expect(shoppingList.status).toBe(201);
-    expect(
-      (
-        await harness.database
-          .collection("household_shopping_need_lists")
-          .findOne({ householdId: harness.householdId })
-      )?.items
-    ).toHaveLength(1);
+    const needList = await harness.database
+      .collection("household_shopping_need_lists")
+      .findOne({ householdId: harness.householdId });
+    expect(needList?.["items"]).toHaveLength(1);
 
     const trip = await harness.send({
       bodyText: JSON.stringify({
