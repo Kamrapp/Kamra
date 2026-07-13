@@ -3,6 +3,12 @@ import { Component, inject, input, output, signal } from "@angular/core";
 
 import { type HouseholdShoppingListLine } from "./household-stock.service";
 import { LocalizationService, type TranslationKey } from "../shared/localization.service";
+import {
+  composeTrackingUnit,
+  householdTrackingUnitOptions,
+  splitTrackingUnit,
+  type HouseholdTrackingUnitOption
+} from "./household-tracking-units";
 
 export type ShoppingListLineChange =
   | { kind: "observedPriceAmount"; value: number | string }
@@ -51,12 +57,31 @@ export type ShoppingListLineChange =
         </label>
         <label class="shopping-unit">
           <span>{{ loc.t("household.unit") }}</span>
-          <input
-            type="text"
-            [ngModel]="item().unit"
-            (ngModelChange)="changed.emit({ kind: 'unit', value: $event })"
-            [disabled]="readOnly()"
-          />
+          <span class="shopping-unit-editor">
+            <select
+              [ngModel]="unitOption(item())"
+              (ngModelChange)="setUnitOption(item(), $event)"
+              [disabled]="readOnly() || saving() || !!item().householdProductId"
+            >
+              @for (unit of trackingUnitOptions; track unit) {
+                <option [ngValue]="unit">{{ unit }}</option>
+              }
+              <option [ngValue]="'custom'">{{ loc.t("household.customUnit") }}</option>
+            </select>
+            <input
+              [class.custom-unit-placeholder]="unitOption(item()) !== 'custom'"
+              [ngModel]="customUnit(item())"
+              (ngModelChange)="setCustomUnit(item(), $event)"
+              [disabled]="
+                readOnly() ||
+                saving() ||
+                unitOption(item()) !== 'custom' ||
+                !!item().householdProductId
+              "
+              [attr.aria-label]="loc.t('household.customUnitSuffix')"
+              [placeholder]="loc.t('household.customUnitSuffix')"
+            />
+          </span>
         </label>
       </div>
 
@@ -179,6 +204,22 @@ export type ShoppingListLineChange =
         width: 100%;
       }
 
+      .shopping-unit-editor {
+        display: grid;
+        gap: 0.25rem;
+        grid-template-columns: minmax(4.5rem, 1fr) minmax(4.5rem, 1fr);
+      }
+
+      .shopping-unit-editor select,
+      .shopping-unit-editor input {
+        min-width: 0;
+        width: 100%;
+      }
+
+      .custom-unit-placeholder {
+        visibility: hidden;
+      }
+
       .shopping-line-details {
         border-top: 1px solid var(--line-subtle);
         display: grid;
@@ -262,6 +303,7 @@ export type ShoppingListLineChange =
 })
 export class ShoppingListLineComponent {
   readonly loc = inject(LocalizationService);
+  readonly trackingUnitOptions = householdTrackingUnitOptions;
 
   readonly defaultCurrencyCode = input.required<string>();
   readonly item = input.required<HouseholdShoppingListLine>();
@@ -269,6 +311,25 @@ export class ShoppingListLineComponent {
   readonly saving = input.required<boolean>();
   readonly changed = output<ShoppingListLineChange>();
   readonly expanded = signal(false);
+
+  unitOption(item: HouseholdShoppingListLine): HouseholdTrackingUnitOption {
+    return splitTrackingUnit(item.unit).option;
+  }
+
+  customUnit(item: HouseholdShoppingListLine): string {
+    return splitTrackingUnit(item.unit).customSuffix;
+  }
+
+  setUnitOption(item: HouseholdShoppingListLine, option: HouseholdTrackingUnitOption): void {
+    this.changed.emit({
+      kind: "unit",
+      value: composeTrackingUnit(option, this.customUnit(item)) ?? ""
+    });
+  }
+
+  setCustomUnit(_item: HouseholdShoppingListLine, value: string): void {
+    this.changed.emit({ kind: "unit", value: composeTrackingUnit("custom", value) ?? "" });
+  }
 
   toggleExpanded(): void {
     if (!this.readOnly()) {

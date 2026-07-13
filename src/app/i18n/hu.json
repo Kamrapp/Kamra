@@ -613,7 +613,7 @@
     "quickAddInvalid": "Gyors hozzáadás előtt adj meg terméknevet és mértékegységet.",
     "quickAddPlaceholder": "Impulzus tétel, pékség, plusz tej...",
     "quickAddSaved": "A kézi bevásárlólista-sor hozzáadva.",
-    "quickAddIncreased": "{name} mennyisége {amount} értékkel nőtt.",
+    "quickAddAlreadyAdded": "{name} már szerepel a bevásárlólistán.",
     "quickAddUnitConflict": "Ez a tétel már másik mértékegységgel szerepel.",
     "reasonAtLimit": "Azért került be, mert a készlet pontosan a minimum szinten áll.",
     "reasonBelowMinimum": "Azért került be, mert a készlet már a minimum alatt van.",

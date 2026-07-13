@@ -613,7 +613,7 @@
     "quickAddInvalid": "Add a product name and unit before quick-adding a shopping-list row.",
     "quickAddPlaceholder": "Impulse item, bakery stop, extra milk...",
     "quickAddSaved": "Manual shopping-list line added.",
-    "quickAddIncreased": "{name} increased by {amount}.",
+    "quickAddAlreadyAdded": "{name} is already on the shopping list.",
     "quickAddUnitConflict": "This item is already listed with another unit.",
     "reasonAtLimit": "Included because the stock is exactly at the minimum limit.",
     "reasonBelowMinimum": "Included because the stock is already below the minimum limit.",

@@ -117,8 +117,12 @@
   flex: 1 1 14rem;
 }
 
-.quick-add-row input:not(:first-child) {
+.quick-add-row input:not(:first-child),
+.quick-add-row select {
   width: 7rem;
+}
+.quick-add-custom-placeholder {
+  visibility: hidden;
 }
 
 .shopping-list-table {
@@ -185,9 +189,10 @@
   align-items: center;
   display: grid;
   gap: 0.55rem;
-  grid-template-columns:
-    minmax(10rem, 1fr) minmax(4.8rem, 6.5rem) minmax(4.8rem, 6.5rem) minmax(3.8rem, 4.5rem)
-    2.2rem;
+  grid-template-columns: minmax(10rem, 1fr) minmax(4.8rem, 6.5rem) minmax(4.8rem, 6.5rem) minmax(
+      7rem,
+      8rem
+    ) 2.2rem;
   justify-content: stretch;
 }
 
@@ -198,9 +203,10 @@
   font-size: 0.68rem;
   font-weight: 900;
   gap: 0.55rem;
-  grid-template-columns:
-    minmax(10rem, 1fr) minmax(4.8rem, 6.5rem) minmax(4.8rem, 6.5rem) minmax(3.8rem, 4.5rem)
-    2.2rem;
+  grid-template-columns: minmax(10rem, 1fr) minmax(4.8rem, 6.5rem) minmax(4.8rem, 6.5rem) minmax(
+      7rem,
+      8rem
+    ) 2.2rem;
   line-height: 1;
   padding: 0 0.65rem 0.15rem;
 }

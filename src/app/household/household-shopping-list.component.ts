@@ -30,6 +30,12 @@ import {
 import { LocalizationService } from "../shared/localization.service";
 import { ToastService } from "../shared/toast.service";
 import { BrowserLoggerService } from "../browser-logger.service";
+import {
+  composeTrackingUnit,
+  householdTrackingUnitOptions,
+  splitTrackingUnit,
+  type HouseholdTrackingUnitOption
+} from "./household-tracking-units";
 
 interface QuickAddDraft {
   displayName: string;
@@ -73,6 +79,7 @@ export class HouseholdShoppingListComponent implements OnChanges {
     unit: "db"
   });
   readonly shoppingScaleValue = signal<HouseholdShoppingList["scale"]>("keep_it_chill");
+  readonly trackingUnitOptions = householdTrackingUnitOptions;
   readonly shoppingList = signal<HouseholdShoppingList | null>(null);
   readonly shops = signal<HouseholdShop[]>([]);
   readonly statusMessage = signal("");
@@ -163,31 +170,11 @@ export class HouseholdShoppingListComponent implements OnChanges {
         this.toast.push(this.loc.t("household.quickAddUnitConflict"), "warning");
         return;
       }
-      const addedAmount = coerceNumber(draft.purchasedAmount, 1);
-      if (addedAmount <= 0) {
-        this.toast.push(this.loc.t("household.quickAddInvalid"), "warning");
-        return;
-      }
-      const nextItems = list.items.map((item) =>
-        item.id === existing.id
-          ? {
-              ...item,
-              plannedAmount: item.plannedAmount + addedAmount,
-              purchasedAmount: item.purchasedAmount + addedAmount,
-              suggestedBuyAmount: item.suggestedBuyAmount + addedAmount,
-              targetAmount: item.targetAmount + addedAmount
-            }
-          : item
-      );
-      this.logger.log("info", "Shopping list item amount increased", {
-        addedAmount,
+      this.logger.log("info", "Shopping list item already added", {
         displayName,
         lineId: existing.id
       });
-      await this.persistShoppingList(
-        { ...list, items: nextItems },
-        this.loc.t("household.quickAddIncreased", { amount: addedAmount, name: displayName })
-      );
+      this.toast.push(this.loc.t("household.quickAddAlreadyAdded", { name: displayName }), "info");
       return;
     }
 
@@ -561,12 +548,46 @@ export class HouseholdShoppingListComponent implements OnChanges {
       ...draft,
       displayName: value
     }));
+    const existing = this.shoppingList()?.items.find(
+      (item) => normalizeStockGroupKey(item.displayName) === normalizeStockGroupKey(value)
+    );
+    if (existing && normalizeUnit(existing.unit) !== normalizeUnit(this.quickAddDraft().unit)) {
+      this.quickAddDraft.update((draft) => ({ ...draft, unit: existing.unit }));
+      this.logger.log(
+        "debug",
+        "Shopping list impulse unit matched existing line",
+        { displayName: existing.displayName, unit: existing.unit },
+        { sendToServer: false }
+      );
+    }
   }
 
   updateQuickAddUnit(value: string): void {
     this.quickAddDraft.update((draft) => ({
       ...draft,
       unit: value
+    }));
+  }
+
+  quickAddUnitOption(): HouseholdTrackingUnitOption {
+    return splitTrackingUnit(this.quickAddDraft().unit).option;
+  }
+
+  quickAddCustomUnit(): string {
+    return splitTrackingUnit(this.quickAddDraft().unit).customSuffix;
+  }
+
+  setQuickAddUnitOption(option: HouseholdTrackingUnitOption): void {
+    this.quickAddDraft.update((draft) => ({
+      ...draft,
+      unit: composeTrackingUnit(option, this.quickAddCustomUnit()) ?? ""
+    }));
+  }
+
+  setQuickAddCustomUnit(value: string): void {
+    this.quickAddDraft.update((draft) => ({
+      ...draft,
+      unit: composeTrackingUnit("custom", value) ?? ""
     }));
   }
 
