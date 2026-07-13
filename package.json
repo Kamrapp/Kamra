@@ -37,6 +37,7 @@
     "start:api": "node --env-file-if-exists=.env.local dist/api/scripts/local-api.js",
     "start:api:render": "node dist/api/scripts/local-api.js",
     "test": "vitest run",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
     "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.api.json --noEmit",
     "validate:processed-ingestion": "node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/validate-processed-ingestion.ts"
   },

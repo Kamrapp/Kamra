@@ -1,6 +1,6 @@
 # Stage 11 Vertical-Slice Locality And Integration Contracts
 
-Status: Draft for implementation approval. This is the single technical and manual wrap-up stage
+Status: Implementation in progress. This is the single technical and manual wrap-up stage
 for the MVP: it absorbs the remaining Stage 8–10 evidence, suspected UI/data-integrity checks,
 and narrowly scoped fixes while preserving the Stage 10 release gate. Implementation must remain
 commit-sized and must not reopen the Stage 8–10 domain model without a concrete finding.
@@ -139,6 +139,8 @@ history rewrite is part of this stage.
 
 ### Step 11.1 — Boundary inventory and ownership map
 
+Status: Complete in `196c83d`.
+
 - Add a concise `docs/vertical-slice-map.md` mapping capability → backend owner paths, route
   adapters, frontend owner paths, persistence collections, and integration-test entrypoints.
 - Record current transitional boundaries rather than pretending the map is already ideal.
@@ -151,6 +153,8 @@ changes.
 Commit: `docs: map Stage 11 vertical slice boundaries`
 
 ### Step 11.2 — Reusable integration harness
+
+Status: Complete in the current Stage 11 implementation commit.
 
 - Add `packages/kamra-api-server/src/test-support/integration/` with a request helper that builds
   authenticated app requests against a named fake database and keeps user/role/household fixtures
@@ -167,6 +171,8 @@ real app handler, route authentication, repository factory, and fake persistence
 Commit: `test: add vertical slice integration harness`
 
 ### Step 11.3 — First cross-layer integration contracts
+
+Status: In progress.
 
 Add small, high-signal scenarios rather than duplicating every unit test:
 

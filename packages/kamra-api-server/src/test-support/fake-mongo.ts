@@ -211,8 +211,13 @@ export class FakeCursor<T extends PlainDoc = PlainDoc> implements MongoCursorLik
   }
 }
 
+export interface FakeDatabaseOptions {
+  databaseName?: string;
+}
+
 export function createFakeDb(
-  collections: Record<string, FakeCollection<any>> = {}
+  collections: Record<string, FakeCollection<any>> = {},
+  options: FakeDatabaseOptions = {}
 ): MongoDatabaseLike & {
   __collections: Record<string, FakeCollection<any>>;
 } {
@@ -220,7 +225,7 @@ export function createFakeDb(
 
   return {
     __collections: state,
-    databaseName: "fake_db",
+    databaseName: options.databaseName ?? "fake_db",
 
     collection<T extends PlainDoc = PlainDoc>(name: string): FakeCollection<T> {
       if (!state[name]) {

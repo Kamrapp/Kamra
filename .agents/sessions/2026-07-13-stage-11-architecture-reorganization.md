@@ -8,6 +8,7 @@
 ## Completed
 
 - Inventory confirmed that backend domain directories already provide a useful base; the most obvious locality gaps are the mixed HTTP route directory, cross-domain Stage 9 ownership under household/v2, and key-specific developer-admin feature-flag bindings.
+- Completed the reusable Step 11.2 integration harness: named fake databases, explicit authenticated user/household fixtures, a focused `test:integration` command, and representative admin/household/membership-boundary tests through the shared app handler.
 - Captured the first capability ownership map in `docs/vertical-slice-map.md`.
 - Defined the registry-driven feature-flag decision: code owns definitions/defaults/metadata; MongoDB stores overrides and audit history.
 - Defined deterministic local integration tests plus narrowly triggered configured MongoDB integration smoke; neither replaces browser/manual evidence.
@@ -22,13 +23,17 @@
 - `docs/architecture.md`
 - `docs/vertical-slice-map.md`
 - `.agents/sessions/2026-07-13-stage-11-architecture-reorganization.md`
+- `vitest.integration.config.ts`
+- `packages/kamra-api-server/src/test-support/integration/`
+- `packages/kamra-api-server/src/test-support/fake-mongo.ts`
+- `package.json`
 - `scripts/stage11-mvp-manual-test.md`
 
 ## Validation
 
-- Ran: targeted repository inventory and feature-flag ownership inspection.
-- Result: plan, map, and integrated manual runbook reflect current runtime paths and the single future closure workflow; no code behavior changed.
-- Not run: implementation tests; implementation has not started.
+- Ran: `npm run test:integration`, `npm test`, `npm run lint -- --no-warn-ignored`, `npm run typecheck`, `npm run format:check`, `npm run build:api`, and `git diff --check`.
+- Result: 3 focused integration tests, 65 test files/234 tests, lint, typecheck, formatting, API build, and diff checks passed.
+- Note: an initial full-test attempt included the unsupported Vitest flag `--runInBand`; the corrected `npm test` run passed.
 
 ## Decisions
 
@@ -39,10 +44,10 @@
 
 ## Open Issues
 
-- Stage 11 implementation approval is still required before Step 11.1.
+- Stage 11 implementation has started with Step 11.3; Steps 11.1 and 11.2 are complete.
 - Stage 10 configured/browser release evidence remains open and is not waived by this plan.
 - The operator must edit the live runbook with actual findings during the final pass; those edits become input to the final fixer session.
 
 ## Next Step
 
-Approve the Stage 11 plan, then implement Step 11.1 and continue through the integration and final runbook/fix loop without separate Stage 8–10 acceptance sessions.
+Implement Step 11.3 with small cross-layer contract scenarios, then continue through the integration and final runbook/fix loop without separate Stage 8–10 acceptance sessions.
