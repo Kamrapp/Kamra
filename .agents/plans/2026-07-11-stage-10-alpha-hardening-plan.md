@@ -378,7 +378,8 @@ Implementation ownership map:
 ### Step 10 - Non-functional and observability hardening
 
 - Close concrete authorization, failure-state, logging/redaction, pagination/index, accessibility/responsive, realistic-volume, and backup/recovery gaps that the Alpha path, observed failures, or release requirements demonstrate; do not add platform/tooling work merely to fill a checklist.
-- Acceptance: Alpha non-functional baseline above passes without production-platform expansion.
+- **Implemented slice (2026-07-13):** Shopping Trip and admin Ingestion Submission history GET routes now use bounded, indexed page reads with explicit `page`, `pageSize`, and `hasNextPage` metadata. Focused repository coverage protects the limit/overflow contract.
+- Acceptance: Alpha non-functional baseline above passes without production-platform expansion. Remaining catalogue/price-history paging and configured realistic-volume evidence require a concrete UI/query need before implementation.
 - Commit by concern when independent: `chore: harden alpha operations`
 
 ### Step 11 - Repository and Alpha release documentation

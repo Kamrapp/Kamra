@@ -498,6 +498,19 @@ basic Home shopping experience.
   then run the full local validation before any final-review checkpoint. Stop when configured/browser
   evidence becomes the next meaningful action.
 
+## Stage 10 bounded-history checkpoint (2026-07-13)
+
+- Shopping Trip history and admin Ingestion Submission history now have bounded `listPage` repository
+  reads using the existing date/status indexes. The corresponding GET routes return the existing arrays
+  plus `{ page, pageSize, hasNextPage }` metadata; default page size is 50 and the server caps it at 100.
+- Existing unpaged repository methods remain available only for compatibility/tests; the active history
+  routes use the bounded methods. This does not change Trip matching, completion, or review policy.
+- Focused repository tests cover the first-page/has-next behavior. `npm run typecheck`, lint with zero
+  warnings, format check, and `git diff --check` pass.
+- Remaining non-functional candidates are admin catalogue/price history pagination and any measured
+  realistic-volume/index evidence. Do not add client paging controls without a real screen need; the
+  current admin surface still expects its first bounded page and can be extended later.
+
 Historical open-issue entries above describe intermediate checkpoints and are superseded by
 this closeout section where they say the Home bridge is still pending or Stage 8 cannot close.
 

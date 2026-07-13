@@ -34,6 +34,14 @@ describe("MongoShoppingTripRepository", () => {
     await repository.create(trip);
     expect(await repository.get("household", "trip")).toMatchObject({ id: "trip" });
     expect(await repository.list("household")).toHaveLength(1);
+    await repository.create({
+      ...trip,
+      id: "trip:older",
+      updatedAt: "2026-07-11T00:00:00.000Z"
+    });
+    await expect(
+      repository.listPage("household", { offset: 0, page: 1, pageSize: 1 })
+    ).resolves.toMatchObject({ hasNextPage: true, items: [{ id: "trip" }] });
     const updated = { ...trip, revision: 1, status: "matching" as const };
     await expect(
       repository.update({ expectedRevision: 0, householdId: "household", trip: updated })

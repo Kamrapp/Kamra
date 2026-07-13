@@ -1,5 +1,6 @@
 import type { Db, MongoClient } from "mongodb";
 import { json, unauthorized, type AppRoute } from "../app-route-context.js";
+import { pageResponse, readApiPageRequest } from "../pagination.js";
 import { MongoStockReadRepository } from "../../household/v2/mongo-stock-read-repository.js";
 import { MongoStockCommandRepository } from "../../household/v2/mongo-stock-command-repository.js";
 import { MongoShoppingNeedRepository } from "../../household/v2/mongo-shopping-need-repository.js";
@@ -1162,7 +1163,11 @@ export const householdV2ShoppingTripsRoute: AppRoute = {
       return json(400, { error: "invalid_shopping_trip_request" });
     return await withHouseholdDatabase(context, householdId, user.email, async (database) => {
       const repository = new MongoShoppingTripRepository(database);
-      if (request.method === "GET") return json(200, { trips: await repository.list(householdId) });
+      if (request.method === "GET") {
+        const page = readApiPageRequest(request.query);
+        const result = await repository.listPage(householdId, page);
+        return json(200, { trips: result.items, pagination: pageResponse(page, result) });
+      }
       const needListId =
         typeof body!["shoppingNeedListId"] === "string"
           ? (body!["shoppingNeedListId"] as string)

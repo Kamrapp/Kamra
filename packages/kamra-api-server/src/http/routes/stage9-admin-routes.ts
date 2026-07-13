@@ -8,6 +8,7 @@ import type {
 } from "../../household/v2/stage9-contracts.js";
 import type { ShopMarket } from "../../household/v2/contracts.js";
 import { json, unauthorized, type AppRoute } from "../app-route-context.js";
+import { pageResponse, readApiPageRequest } from "../pagination.js";
 
 export const adminShopMarketsRoute: AppRoute = {
   match: (request) =>
@@ -63,7 +64,12 @@ export const adminIngestionSubmissionsRoute: AppRoute = {
     const repository = new MongoIngestionSubmissionRepository(database);
     if (request.method === "GET") {
       const status = contextualStatus(request.query?.["status"]);
-      return json(200, { submissions: await repository.list(status) });
+      const page = readApiPageRequest(request.query);
+      const result = await repository.listPage(status, page);
+      return json(200, {
+        pagination: pageResponse(page, result),
+        submissions: result.items
+      });
     }
     const id = request.path.match(/^\/api\/admin\/ingestion-submissions\/([^/]+)$/)?.[1];
     const body = parseObject(request.bodyText);

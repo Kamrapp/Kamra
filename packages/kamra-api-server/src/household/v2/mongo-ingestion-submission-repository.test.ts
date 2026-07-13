@@ -20,6 +20,21 @@ describe("MongoIngestionSubmissionRepository", () => {
       createdAt: "2026-07-12T00:00:00.000Z",
       updatedAt: "2026-07-12T00:00:00.000Z"
     });
+    await repository.create({
+      id: "submission:2",
+      householdId: "household",
+      shoppingTripId: "trip",
+      shoppingTripItemId: "item:2",
+      submittedByUserId: "user",
+      status: "pending",
+      facts: { displayName: "Bread", shopMarketId: "market", quantity: 1, unit: "count" },
+      revision: 0,
+      createdAt: "2026-07-12T00:30:00.000Z",
+      updatedAt: "2026-07-12T00:30:00.000Z"
+    });
+    await expect(
+      repository.listPage("pending", { offset: 0, page: 1, pageSize: 1 })
+    ).resolves.toMatchObject({ hasNextPage: true, items: [{ id: "submission:2" }] });
     await expect(
       repository.review({
         expectedRevision: 0,

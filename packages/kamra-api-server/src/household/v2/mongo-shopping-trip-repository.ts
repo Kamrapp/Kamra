@@ -1,4 +1,5 @@
 import type { MongoCollectionLike, MongoDatabaseLike } from "../../db/mongo-like.js";
+import type { ApiPageRequest } from "../../http/pagination.js";
 import type { ShoppingTrip } from "./stage9-contracts.js";
 
 export class MongoShoppingTripRepository {
@@ -31,6 +32,22 @@ export class MongoShoppingTripRepository {
 
   async list(householdId: string): Promise<ShoppingTrip[]> {
     return await this.trips.find({ householdId }).sort({ updatedAt: -1 }).toArray();
+  }
+
+  async listPage(
+    householdId: string,
+    page: ApiPageRequest
+  ): Promise<{ hasNextPage: boolean; items: ShoppingTrip[] }> {
+    const trips = await this.trips
+      .find({ householdId })
+      .sort({ updatedAt: -1, id: 1 })
+      .skip(page.offset)
+      .limit(page.pageSize + 1)
+      .toArray();
+    return {
+      hasNextPage: trips.length > page.pageSize,
+      items: trips.slice(0, page.pageSize)
+    };
   }
 
   async create(trip: ShoppingTrip): Promise<ShoppingTrip> {

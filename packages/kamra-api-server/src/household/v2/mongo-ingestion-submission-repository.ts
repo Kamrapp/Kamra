@@ -1,4 +1,5 @@
 import type { MongoCollectionLike, MongoDatabaseLike } from "../../db/mongo-like.js";
+import type { ApiPageRequest } from "../../http/pagination.js";
 import type { IngestionSubmission, IngestionSubmissionStatus } from "./stage9-contracts.js";
 
 export class MongoIngestionSubmissionRepository {
@@ -37,6 +38,22 @@ export class MongoIngestionSubmissionRepository {
       .find(status ? { status } : {})
       .sort({ createdAt: -1 })
       .toArray();
+  }
+
+  async listPage(
+    status: IngestionSubmissionStatus | undefined,
+    page: ApiPageRequest
+  ): Promise<{ hasNextPage: boolean; items: IngestionSubmission[] }> {
+    const submissions = await this.submissions
+      .find(status ? { status } : {})
+      .sort({ createdAt: -1, id: 1 })
+      .skip(page.offset)
+      .limit(page.pageSize + 1)
+      .toArray();
+    return {
+      hasNextPage: submissions.length > page.pageSize,
+      items: submissions.slice(0, page.pageSize)
+    };
   }
 
   async review(input: {
