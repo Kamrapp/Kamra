@@ -260,6 +260,38 @@ describe("shopping needs", () => {
         workspace
       })
     ).toEqual([]);
+    expect(
+      generateProductGroupShoppingNeeds({
+        mode: "ignore_group_targets",
+        needIdPrefix: "list",
+        workspace
+      })
+    ).toEqual([]);
+  });
+
+  it("does not generate automatic needs when Product and Group Current are above Target", () => {
+    const workspace = createWorkspace({
+      groupCurrent: 5,
+      groupMinimum: 1,
+      groupDesired: 2,
+      products: [
+        {
+          current: 5,
+          displayName: "Milk",
+          id: "milk",
+          nextExpiryOn: null,
+          target: { desired: 2, minimum: 1 }
+        }
+      ]
+    });
+
+    expect(
+      generateProductGroupShoppingNeeds({
+        mode: "add_products_and_group_item",
+        needIdPrefix: "above-target",
+        workspace
+      })
+    ).toEqual([]);
   });
   it("honors manually selected Product and Group owners even when they are not below a target", () => {
     const workspace = createWorkspace({
