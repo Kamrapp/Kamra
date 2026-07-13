@@ -75,6 +75,10 @@ import {
 import { logRoute } from "./routes/log-route.js";
 import { healthzRoute } from "./routes/health-route.js";
 import {
+  adminIngestionSubmissionsRoute,
+  adminShopMarketsRoute
+} from "./routes/stage9-admin-routes.js";
+import {
   databaseMaintenanceListRoute,
   databaseMaintenanceCompleteRoute,
   databaseMaintenanceMigrationRoute,
@@ -121,6 +125,8 @@ const appRoutes: AppRoute[] = [
   latestHouseholdShoppingListRoute,
   householdShoppingListUpdateStocksRoute,
   shopsRoute,
+  adminShopMarketsRoute,
+  adminIngestionSubmissionsRoute,
   adminDashboardFeatureFlagsRoute,
   adminDashboardHealthRoute,
   adminDashboardUpgradeCatalogValidatorsRoute,
