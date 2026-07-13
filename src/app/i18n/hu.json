@@ -546,6 +546,9 @@
     "shoppingTripPreferredMatch": "előnyben részesített termék",
     "shoppingTripCompatibleMatch": "kompatibilis kiszerelés",
     "shoppingTripNoCompatibleMatch": "nincs kompatibilis bolti termék",
+    "shoppingTripChooseMatch": "Találat kiválasztása",
+    "shoppingTripSkip": "Sor kihagyása",
+    "shoppingTripContinue": "Tovább a bevásárláshoz",
     "stage9Admin": {
       "kicker": "Stage 9 adminisztráció",
       "title": "Üzletek és vásárlási felülvizsgálat",

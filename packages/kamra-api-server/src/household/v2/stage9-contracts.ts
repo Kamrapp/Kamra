@@ -64,11 +64,21 @@ export interface ShoppingTripItem {
   expectedTotal?: number | null;
   priceState?: ApplicablePriceState | null;
   matchExplanation?: string | null;
+  matchOptions?: ShoppingTripMatchOption[];
   actualQuantity?: number | null;
   actualUnit?: TrackingUnit | null;
   actualPaidPrice?: number | null;
   createdBatchIds?: string[];
   ingestionSubmissionId?: string | null;
+}
+
+export interface ShoppingTripMatchOption {
+  displayName: string;
+  expectedPackageCount: number;
+  expectedTotal: number | null;
+  priceState: ApplicablePriceState;
+  selectedPriceObservationId: string | null;
+  shopProductId: string;
 }
 
 export interface ShoppingTrip {

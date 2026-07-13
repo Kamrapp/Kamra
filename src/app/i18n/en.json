@@ -546,6 +546,9 @@
     "shoppingTripPreferredMatch": "preferred Product",
     "shoppingTripCompatibleMatch": "compatible package",
     "shoppingTripNoCompatibleMatch": "no compatible Shop Product",
+    "shoppingTripChooseMatch": "Choose match",
+    "shoppingTripSkip": "Skip line",
+    "shoppingTripContinue": "Continue to shopping",
     "stage9Admin": {
       "kicker": "Stage 9 administration",
       "title": "Markets and purchase review",

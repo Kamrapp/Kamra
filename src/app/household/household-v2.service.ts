@@ -71,6 +71,14 @@ export interface HouseholdShoppingTripItem {
   expectedTotal?: number | null;
   id: string;
   matchExplanation?: string | null;
+  matchOptions?: Array<{
+    displayName: string;
+    expectedPackageCount: number;
+    expectedTotal: number | null;
+    priceState: string;
+    selectedPriceObservationId: string | null;
+    shopProductId: string;
+  }>;
   priceState?: string | null;
   planStatus: "unresolved" | "selected" | "skipped";
   requiredQuantity: number;
@@ -165,6 +173,7 @@ export class HouseholdV2Service {
     tripId: string;
     expectedRevision: number;
     itemId?: string;
+    selectedShopProductId?: string;
     resultStatus?: "bought" | "not_bought";
     actualQuantity?: number;
     planStatus?: "selected" | "skipped";
@@ -178,6 +187,7 @@ export class HouseholdV2Service {
         body: JSON.stringify({
           expectedRevision: input.expectedRevision,
           itemId: input.itemId,
+          selectedShopProductId: input.selectedShopProductId,
           resultStatus: input.resultStatus,
           planStatus: input.planStatus,
           transition: input.transition

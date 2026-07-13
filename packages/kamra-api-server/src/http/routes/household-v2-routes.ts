@@ -29,7 +29,8 @@ import {
 import type {
   ShoppingTripItemPlanStatus,
   ShoppingTripItemResultStatus,
-  ShoppingTripStatus
+  ShoppingTripStatus,
+  ShoppingTripMatchOption
 } from "../../household/v2/stage9-contracts.js";
 import { FeatureFlagService } from "../../feature-toggles/service.js";
 import { MongoFeatureFlagStore } from "../../feature-toggles/mongo-store.js";
@@ -1178,6 +1179,16 @@ export const householdV2ShoppingTripsRoute: AppRoute = {
               shoppingDate: body!["plannedDate"] as string
             });
             const match = matches[0];
+            const matchOptions: ShoppingTripMatchOption[] = matches.map((candidate) => ({
+              displayName:
+                shopProducts.find((product) => product.id === candidate.shopProductId)
+                  ?.displayName ?? candidate.shopProductId,
+              expectedPackageCount: candidate.packageCount,
+              expectedTotal: candidate.expectedTotal,
+              priceState: candidate.applicablePrice.state,
+              selectedPriceObservationId: candidate.applicablePrice.observationId,
+              shopProductId: candidate.shopProductId
+            }));
             return {
               id: `shopping-trip-item:${need.id}`,
               needId: need.id,
@@ -1192,7 +1203,8 @@ export const householdV2ShoppingTripsRoute: AppRoute = {
               expectedPackageCount: match?.packageCount ?? null,
               expectedTotal: match?.expectedTotal ?? null,
               priceState: match?.applicablePrice.state ?? "no_price",
-              matchExplanation: match?.explanation ?? "No compatible Shop Product found"
+              matchExplanation: match?.explanation ?? "No compatible Shop Product found",
+              matchOptions
             };
           })
       );
@@ -1236,17 +1248,62 @@ export const householdV2ShoppingTripRoute: AppRoute = {
           updated = setShoppingTripMarket(updated, body["shopMarketId"] as string);
         if (isTripStatus(body["transition"]))
           updated = transitionShoppingTrip(updated, body["transition"]);
-        if (typeof body["itemId"] === "string")
-          updated = updateShoppingTripItem(updated, body["itemId"] as string, {
-            planStatus: isTripPlanStatus(body["planStatus"]) ? body["planStatus"] : undefined,
-            resultStatus: isTripResultStatus(body["resultStatus"])
-              ? body["resultStatus"]
-              : undefined,
-            actualQuantity:
-              typeof body["actualQuantity"] === "number" ? body["actualQuantity"] : undefined,
-            actualPaidPrice:
-              typeof body["actualPaidPrice"] === "number" ? body["actualPaidPrice"] : undefined
-          });
+        if (typeof body["itemId"] === "string") {
+          if (typeof body["selectedShopProductId"] === "string") {
+            const item = updated.items.find((candidate) => candidate.id === body["itemId"]);
+            if (!item || !updated.shopMarketId)
+              return json(400, { error: "invalid_shopping_trip_match" });
+            const needs = await database
+              .collection<ShoppingNeedList>("household_shopping_need_lists")
+              .findOne({ householdId, id: updated.sourceShoppingNeedListId });
+            const need = needs?.items.find((candidate) => candidate.id === item.needId);
+            const shopProduct = await new MongoShopProductRepository(database).get(
+              body["selectedShopProductId"]
+            );
+            if (!need || !shopProduct || shopProduct.shopMarketId !== updated.shopMarketId)
+              return json(400, { error: "invalid_shopping_trip_match" });
+            const market = await new MongoShopMarketRepository(database).get(updated.shopMarketId);
+            if (!market) return json(400, { error: "shop_market_not_found" });
+            const matches = matchShoppingNeed({
+              candidates: [
+                {
+                  shopProduct,
+                  priceObservations: await new MongoPriceObservationRepository(database).list(
+                    shopProduct.id
+                  )
+                }
+              ],
+              currencyCode: market.currencyCode,
+              preferredProductId: need.preferredProductId,
+              requiredQuantity: need.plannedQuantity,
+              requiredUnit: need.unit,
+              shoppingDate: updated.plannedDate
+            });
+            const selected = matches[0];
+            if (!selected) return json(400, { error: "incompatible_shopping_trip_match" });
+            updated = updateShoppingTripItem(updated, item.id, {
+              expectedPackageCount: selected.packageCount,
+              expectedTotal: selected.expectedTotal,
+              matchExplanation: selected.explanation,
+              planStatus: "selected",
+              priceState: selected.applicablePrice.state,
+              selectedPriceObservationId: selected.applicablePrice.observationId,
+              selectedProductId: selected.productId,
+              selectedShopProductId: selected.shopProductId
+            });
+          } else {
+            updated = updateShoppingTripItem(updated, body["itemId"] as string, {
+              planStatus: isTripPlanStatus(body["planStatus"]) ? body["planStatus"] : undefined,
+              resultStatus: isTripResultStatus(body["resultStatus"])
+                ? body["resultStatus"]
+                : undefined,
+              actualQuantity:
+                typeof body["actualQuantity"] === "number" ? body["actualQuantity"] : undefined,
+              actualPaidPrice:
+                typeof body["actualPaidPrice"] === "number" ? body["actualPaidPrice"] : undefined
+            });
+          }
+        }
         const result = await repository.update({
           expectedRevision: body["expectedRevision"] as number,
           householdId,

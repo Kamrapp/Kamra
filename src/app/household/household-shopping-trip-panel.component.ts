@@ -63,8 +63,33 @@ import { ToastService } from "../shared/toast.service";
                 {{ priceStateLabel(item.priceState) }} ·
                 {{ matchExplanationLabel(item.matchExplanation) }}
               </small>
+              @if (item.matchOptions?.length) {
+                <label class="trip-match-picker">
+                  <span>{{ loc.t("household.shoppingTripChooseMatch") }}</span>
+                  <select
+                    [ngModel]="item.selectedShopProductId"
+                    (ngModelChange)="selectMatch(item.id, $event)"
+                  >
+                    @for (option of item.matchOptions; track option.shopProductId) {
+                      <option [value]="option.shopProductId">{{ option.displayName }}</option>
+                    }
+                  </select>
+                </label>
+              }
             </span>
-            @if (item.resultStatus === "pending") {
+            @if (item.planStatus === "unresolved") {
+              <button
+                class="ui-button ui-button-quiet ui-button-sm"
+                type="button"
+                (click)="skip(item.id)"
+              >
+                {{ loc.t("household.shoppingTripSkip") }}
+              </button>
+            }
+            @if (
+              item.resultStatus === "pending" &&
+              ["in_progress", "partially_processed"].includes(trip()!.status)
+            ) {
               <button
                 class="ui-button ui-button-quiet ui-button-sm"
                 type="button"
@@ -84,14 +109,25 @@ import { ToastService } from "../shared/toast.service";
             }
           </div>
         }
-        <button
-          class="ui-button ui-button-primary"
-          type="button"
-          (click)="complete()"
-          [disabled]="trip()!.status === 'completed'"
-        >
-          {{ loc.t("household.shoppingTripFinalize") }}
-        </button>
+        @if (trip()!.status === "matching") {
+          <button
+            class="ui-button ui-button-primary"
+            type="button"
+            (click)="advance(trip()!)"
+            [disabled]="trip()!.items.some((item) => item.planStatus === 'unresolved')"
+          >
+            {{ loc.t("household.shoppingTripContinue") }}
+          </button>
+        } @else {
+          <button
+            class="ui-button ui-button-primary"
+            type="button"
+            (click)="complete()"
+            [disabled]="trip()!.status === 'completed'"
+          >
+            {{ loc.t("household.shoppingTripFinalize") }}
+          </button>
+        }
       }
       @if (message()) {
         <p class="trip-message">{{ message() }}</p>
@@ -119,6 +155,19 @@ import { ToastService } from "../shared/toast.service";
       .trip-item {
         border-top: 1px solid var(--ui-border);
         padding: 0.45rem 0;
+      }
+      .trip-item > span {
+        display: grid;
+        gap: 0.2rem;
+      }
+      .trip-match-picker {
+        align-items: center;
+        display: flex;
+        gap: var(--space-2);
+      }
+      .trip-match-picker span,
+      .trip-item small {
+        opacity: 0.72;
       }
       .trip-result {
         opacity: 0.72;
@@ -162,13 +211,14 @@ export class HouseholdShoppingTripPanelComponent {
       return;
     }
     let current = result.trip;
-    for (const item of current.items) {
+    for (const item of current.items.filter((candidate) => candidate.selectedShopProductId)) {
       const next = await this.api.updateShoppingTrip({
         householdId: this.householdId,
         tripId: current.id,
         expectedRevision: current.revision,
         itemId: item.id,
-        planStatus: item.selectedShopProductId ? "selected" : "skipped"
+        planStatus: "selected",
+        selectedShopProductId: item.selectedShopProductId ?? undefined
       });
       if (next.status !== "ok" || !next.trip) {
         this.message.set(next.message ?? "");
@@ -176,20 +226,75 @@ export class HouseholdShoppingTripPanelComponent {
       }
       current = next.trip;
     }
-    for (const transition of ["matching", "ready", "in_progress"]) {
+    const matching = await this.api.updateShoppingTrip({
+      householdId: this.householdId,
+      tripId: current.id,
+      expectedRevision: current.revision,
+      transition: "matching"
+    });
+    if (matching.status !== "ok" || !matching.trip) {
+      this.message.set(matching.message ?? "");
+      return;
+    }
+    current = matching.trip;
+    this.trip.set(current);
+    if (!current.items.some((item) => item.planStatus === "unresolved"))
+      await this.advance(current);
+  }
+  async advance(current: HouseholdShoppingTrip): Promise<void> {
+    let nextTrip = current;
+    for (const transition of ["ready", "in_progress"]) {
       const next = await this.api.updateShoppingTrip({
         householdId: this.householdId,
-        tripId: current.id,
-        expectedRevision: current.revision,
+        tripId: nextTrip.id,
+        expectedRevision: nextTrip.revision,
         transition
       });
       if (next.status !== "ok" || !next.trip) {
         this.message.set(next.message ?? "");
         return;
       }
-      current = next.trip;
+      nextTrip = next.trip;
     }
-    this.trip.set(current);
+    this.trip.set(nextTrip);
+  }
+  async selectMatch(itemId: string, shopProductId: string): Promise<void> {
+    const current = this.trip();
+    if (!current || !shopProductId) return;
+    const result = await this.api.updateShoppingTrip({
+      householdId: this.householdId,
+      tripId: current.id,
+      expectedRevision: current.revision,
+      itemId,
+      planStatus: "selected",
+      selectedShopProductId: shopProductId
+    });
+    if (result.status !== "ok" || !result.trip) {
+      this.message.set(result.message ?? "");
+      return;
+    }
+    this.trip.set(result.trip);
+  }
+  async skip(itemId: string): Promise<void> {
+    const current = this.trip();
+    if (!current) return;
+    const result = await this.api.updateShoppingTrip({
+      householdId: this.householdId,
+      tripId: current.id,
+      expectedRevision: current.revision,
+      itemId,
+      planStatus: "skipped"
+    });
+    if (result.status !== "ok" || !result.trip) {
+      this.message.set(result.message ?? "");
+      return;
+    }
+    this.trip.set(result.trip);
+    if (
+      result.trip.status === "matching" &&
+      !result.trip.items.some((item) => item.planStatus === "unresolved")
+    )
+      await this.advance(result.trip);
   }
   priceStateLabel(state: string | null | undefined): string {
     const key =
