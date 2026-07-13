@@ -255,6 +255,8 @@ Commit per bundle: `refactor: group <capability> route adapters`
 
 ### Step 11.7 — Frontend capability locality
 
+Status: Complete in the current Step 11.7 implementation commit.
+
 - Group only obvious future-change clusters, starting with Developer Admin feature flags and the
   Stage 9 admin market/pricing/review surface. Keep shared shell, localization, logging, and theme
   services in `src/app/shared`.

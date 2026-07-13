@@ -13,11 +13,11 @@ import { DatabaseMaintenanceComponent } from "./database-maintenance.component";
 import { AdminDashboardService } from "./admin-dashboard.service";
 import { AdminHealthCardComponent, type HealthCheckItem } from "./admin-health-card.component";
 import {
+  AdminAlphaAccessCardComponent,
   AdminFeatureFlagsCardComponent,
   type AdminFeatureFlagChange,
   type AdminFeatureFlagViewModel
-} from "./admin-feature-flags-card.component";
-import { AdminAlphaAccessCardComponent } from "./admin-alpha-access-card.component";
+} from "./feature-flags/index";
 import { LocalizationService, type TranslationKey } from "../shared/localization.service";
 import { ToastService } from "../shared/toast.service";
 
