@@ -593,8 +593,8 @@ export class MongoHouseholdRepository {
           { id: input.householdId },
           { session }
         );
-        deleted.household_memberships = memberships.deletedCount ?? 0;
-        deleted.households = households.deletedCount ?? 0;
+        deleted["household_memberships"] = memberships.deletedCount ?? 0;
+        deleted["households"] = households.deletedCount ?? 0;
       }
       return { deleted, scope: input.scope };
     });

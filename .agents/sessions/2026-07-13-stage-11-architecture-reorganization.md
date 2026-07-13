@@ -89,6 +89,8 @@
   owner-only transaction removes household content, memberships, pending invitations, and the
   household identity, then the browser returns to Home. Repository and route tests cover the
   destructive scope separately from content-only resets.
+- Follow-up validation fixed strict index-signature access in the deletion result map; application
+  and API typechecking now pass with the new scope.
 
 ## Changed Files
 
