@@ -198,23 +198,23 @@ import { LocalizationService } from "../shared/localization.service";
         overflow: hidden;
       }
       .manual-term-row {
-        align-items: baseline;
+        align-items: center;
         border-bottom: 1px solid var(--line-subtle);
         display: grid;
         gap: var(--space-3);
         grid-template-columns: minmax(8rem, 0.34fr) minmax(0, 1fr);
-        padding: 0.52rem 0;
+        padding: 0.62rem 0;
       }
       .manual-term-row:last-child {
         border-bottom: 0;
       }
       .manual-term-row strong {
         color: var(--color-text);
-        font-size: 0.8rem;
+        font-size: 0.88rem;
       }
       .manual-term-row span {
         color: var(--color-text-muted);
-        font-size: 0.78rem;
+        font-size: 0.84rem;
         line-height: 1.32;
       }
       .admin-note {

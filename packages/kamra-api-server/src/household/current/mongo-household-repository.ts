@@ -1,6 +1,11 @@
 import type { AnyBulkWriteOperation, Filter } from "mongodb";
 
-import type { MongoCollectionLike, MongoDatabaseLike } from "../../db/mongo-like.js";
+import type {
+  MongoCollectionLike,
+  MongoDatabaseLike,
+  MongoTransactionClientLike
+} from "../../db/mongo-like.js";
+import { runMongoTransaction } from "../../db/mongo-transaction.js";
 import type {
   CreateHouseholdRequest,
   CreateHouseholdStockItemRequest,
@@ -31,6 +36,41 @@ interface CollectionIndexPlan {
   }[];
   name: keyof typeof householdV1CollectionSchemas;
 }
+
+export const householdResetScopes = [
+  "shopping_list",
+  "batches",
+  "products_and_batches",
+  "groups_products_and_batches",
+  "all_household_data"
+] as const;
+export type HouseholdResetScope = (typeof householdResetScopes)[number];
+
+const shoppingListResetCollections = [
+  "household_shopping_lists",
+  "household_shopping_need_lists",
+  "household_shopping_trips"
+] as const;
+const batchResetCollections = [
+  "household_stock_items",
+  "household_stock_batches",
+  "household_stock_allocations",
+  "household_stock_movements",
+  "household_domain_operations"
+] as const;
+const productResetCollections = [
+  "household_local_products",
+  "household_products",
+  "household_purchase_price_observations"
+] as const;
+const groupResetCollections = ["household_product_groups", "household_stock_targets"] as const;
+const allHouseholdContentCollections = [
+  ...shoppingListResetCollections,
+  ...batchResetCollections,
+  ...productResetCollections,
+  ...groupResetCollections,
+  "household_invitations"
+] as const;
 
 const collectionPlans: CollectionIndexPlan[] = [
   {
@@ -506,6 +546,45 @@ export class MongoHouseholdRepository {
         "add_products_and_group_item",
       name: input.name ?? household.name
     };
+  }
+
+  async resetHouseholdContent(input: {
+    householdId: string;
+    scope: HouseholdResetScope;
+    transactionClient: MongoTransactionClientLike;
+    userId: string;
+  }): Promise<{ deleted: Record<string, number>; scope: HouseholdResetScope }> {
+    const household = await this.householdsCollection.findOne({ id: input.householdId });
+    if (!household) throw new Error("household_not_found");
+    const membership = await this.householdMembershipsCollection.findOne({
+      householdId: input.householdId,
+      role: "owner",
+      status: "active",
+      userId: input.userId
+    });
+    if (!membership) throw new Error("household_owner_required");
+
+    const collections: readonly string[] =
+      input.scope === "shopping_list"
+        ? shoppingListResetCollections
+        : input.scope === "batches"
+          ? batchResetCollections
+          : input.scope === "products_and_batches"
+            ? [...batchResetCollections, ...productResetCollections]
+            : input.scope === "groups_products_and_batches"
+              ? [...batchResetCollections, ...productResetCollections, ...groupResetCollections]
+              : allHouseholdContentCollections;
+
+    return await runMongoTransaction(input.transactionClient, async (session) => {
+      const deleted: Record<string, number> = {};
+      for (const collectionName of collections) {
+        const result = await this.database
+          .collection(collectionName)
+          .deleteMany({ householdId: input.householdId }, { session });
+        deleted[collectionName] = result.deletedCount ?? 0;
+      }
+      return { deleted, scope: input.scope };
+    });
   }
 
   async listHouseholdsForUser(userId: string): Promise<HouseholdListItem[]> {

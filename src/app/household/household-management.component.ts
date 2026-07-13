@@ -130,6 +130,47 @@ import { ToastService } from "../shared/toast.service";
           }
         </article>
       </div>
+
+      <article class="ui-panel-card management-panel management-reset-panel">
+        <p class="ui-kicker">{{ loc.t("household.resetHouseholdKicker") }}</p>
+        <h2 class="ui-card-title">{{ loc.t("household.resetHouseholdTitle") }}</h2>
+        <p class="ui-copy-muted">{{ loc.t("household.resetHouseholdDescription") }}</p>
+        @if (household()) {
+          <div class="reset-form">
+            <label>
+              <span>{{ loc.t("household.resetScopeLabel") }}</span>
+              <select class="ui-form-control" [(ngModel)]="resetScope">
+                <option value="shopping_list">
+                  {{ loc.t("household.resetScopeShoppingList") }}
+                </option>
+                <option value="batches">{{ loc.t("household.resetScopeBatches") }}</option>
+                <option value="products_and_batches">
+                  {{ loc.t("household.resetScopeProductsAndBatches") }}
+                </option>
+                <option value="groups_products_and_batches">
+                  {{ loc.t("household.resetScopeGroupsProductsAndBatches") }}
+                </option>
+                <option value="all_household_data">
+                  {{ loc.t("household.resetScopeAllData") }}
+                </option>
+              </select>
+            </label>
+            <p class="reset-scope-description">{{ resetScopeDescription() }}</p>
+            <label class="checkbox-row">
+              <input type="checkbox" [(ngModel)]="resetConfirmed" />
+              {{ loc.t("household.resetConfirmLabel") }}
+            </label>
+            <button
+              class="ui-button ui-button-danger ui-button-sm"
+              type="button"
+              [disabled]="resetting() || !resetConfirmed"
+              (click)="resetHousehold()"
+            >
+              {{ loc.t("household.resetButton") }}
+            </button>
+          </div>
+        }
+      </article>
     </section>
   `,
   styles: [
@@ -190,6 +231,34 @@ import { ToastService } from "../shared/toast.service";
         justify-self: start;
       }
 
+      .management-reset-panel {
+        border-color: color-mix(in srgb, var(--color-status-danger) 42%, var(--line-panel));
+      }
+
+      .reset-form {
+        display: grid;
+        gap: var(--space-3);
+        max-width: 52rem;
+      }
+
+      .reset-form label:not(.checkbox-row) {
+        align-items: center;
+        display: grid;
+        gap: var(--space-2);
+        grid-template-columns: minmax(11rem, 0.6fr) minmax(0, 1.4fr);
+      }
+
+      .reset-scope-description {
+        border-left: 3px solid var(--color-status-danger);
+        color: var(--color-text-muted);
+        margin: 0;
+        padding-left: var(--space-3);
+      }
+
+      .reset-form .ui-button-danger {
+        justify-self: start;
+      }
+
       .invitation-list {
         border-top: 1px solid var(--line-subtle);
         display: grid;
@@ -237,6 +306,7 @@ export class HouseholdManagementComponent {
   readonly errorMessage = signal("");
   readonly invitations = signal<HouseholdInvitation[]>([]);
   readonly inviting = signal(false);
+  readonly resetting = signal(false);
   allowExpiredItemsDraft = true;
   maxLimitMultiplierDraft = 2;
   groupTargetShoppingModeDraft:
@@ -244,6 +314,13 @@ export class HouseholdManagementComponent {
     "add_products_and_group_item";
   nameDraft = "";
   inviteEmailDraft = "";
+  resetConfirmed = false;
+  resetScope:
+    | "shopping_list"
+    | "batches"
+    | "products_and_batches"
+    | "groups_products_and_batches"
+    | "all_household_data" = "shopping_list";
 
   constructor() {
     void this.loadHousehold();
@@ -316,5 +393,49 @@ export class HouseholdManagementComponent {
     }
     await this.loadHousehold();
     this.toast.push(this.loc.t("household.settingsSaved"), "success");
+  }
+
+  resetScopeDescription(): string {
+    return this.loc.t(`household.resetScope${this.resetScopeSuffix()}Description`);
+  }
+
+  async resetHousehold(): Promise<void> {
+    const household = this.household();
+    if (!household || !this.resetConfirmed || this.resetting()) return;
+    const scopeLabel = this.loc.t(`household.resetScope${this.resetScopeSuffix()}`);
+    if (!window.confirm(this.loc.t("household.resetConfirmDialog", { scope: scopeLabel }))) return;
+
+    this.resetting.set(true);
+    const result = await this.householdV2Service.resetHouseholdContent({
+      householdId: household.id,
+      scope: this.resetScope
+    });
+    this.resetting.set(false);
+    this.resetConfirmed = false;
+    if (result.status === "error") {
+      const message = result.message ?? this.loc.t("household.resetFailure");
+      this.errorMessage.set(message);
+      this.toast.push(message, "error");
+      return;
+    }
+
+    this.errorMessage.set("");
+    this.toast.push(this.loc.t("household.resetSuccess"), "success");
+  }
+
+  private resetScopeSuffix():
+    "ShoppingList" | "Batches" | "ProductsAndBatches" | "GroupsProductsAndBatches" | "AllData" {
+    switch (this.resetScope) {
+      case "shopping_list":
+        return "ShoppingList";
+      case "batches":
+        return "Batches";
+      case "products_and_batches":
+        return "ProductsAndBatches";
+      case "groups_products_and_batches":
+        return "GroupsProductsAndBatches";
+      case "all_household_data":
+        return "AllData";
+    }
   }
 }

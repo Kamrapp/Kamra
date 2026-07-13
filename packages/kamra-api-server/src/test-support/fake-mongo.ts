@@ -69,7 +69,10 @@ export class FakeCollection<T extends PlainDoc = PlainDoc> implements MongoColle
     return `${this.name}_index`;
   }
 
-  async deleteMany(filter: MongoFilter<T> = {} as MongoFilter<T>): Promise<DeleteResult> {
+  async deleteMany(
+    filter: MongoFilter<T> = {} as MongoFilter<T>,
+    _options?: Document
+  ): Promise<DeleteResult> {
     const nextDocs = this.docs.filter((doc) => !matchesFilter(doc, filter));
     const deletedCount = this.docs.length - nextDocs.length;
     this.docs.splice(0, this.docs.length, ...nextDocs);

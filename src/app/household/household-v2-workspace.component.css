@@ -98,21 +98,21 @@
   overflow: auto;
 }
 .stock-group-row {
-  background: var(--pulse-row-background);
+  background: var(--household-group-row-background);
   border-bottom: 1px solid var(--pulse-row-border);
   color: var(--pulse-row-text);
   font-size: 0.86rem;
   min-height: 2.5rem;
 }
 .stock-product-row {
-  background: color-mix(in srgb, var(--pulse-row-background) 82%, transparent);
+  background: var(--household-product-row-background);
   border-bottom: 1px solid var(--line-subtle);
   color: var(--color-text-muted);
   font-size: 0.82rem;
   min-height: 2.25rem;
 }
 .stock-batch-row {
-  background: color-mix(in srgb, var(--surface-soft-background) 76%, var(--pulse-row-background));
+  background: var(--household-batch-row-background);
   border-bottom: 1px solid var(--line-subtle);
   color: var(--color-text-muted);
   font-size: 0.8rem;

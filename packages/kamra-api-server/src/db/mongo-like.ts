@@ -23,7 +23,7 @@ export interface MongoCollectionLike<T extends Document = Document> {
   bulkWrite(operations: AnyBulkWriteOperation<T>[], options?: Document): Promise<unknown>;
   countDocuments(filter?: Filter<T>, options?: { limit?: number }): Promise<number>;
   createIndex(index: Record<string, 1 | -1>, options?: Document): Promise<string>;
-  deleteMany(filter?: Filter<T>): Promise<DeleteResult>;
+  deleteMany(filter?: Filter<T>, options?: Document): Promise<DeleteResult>;
   distinct(key: string, filter?: Filter<T>): Promise<unknown[]>;
   drop(): Promise<boolean>;
   find(filter?: Filter<T>, options?: Document): MongoCursorLike<T>;

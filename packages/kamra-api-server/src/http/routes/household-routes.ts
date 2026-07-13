@@ -14,6 +14,10 @@ import { generateProductGroupShoppingNeeds } from "../../household/v2/shopping-n
 import type { HouseholdProduct, StockBatch } from "../../household/v2/contracts.js";
 import type { MongoTransactionClientLike } from "../../db/mongo-like.js";
 import {
+  householdResetScopes,
+  type HouseholdResetScope
+} from "../../household/current/mongo-household-repository.js";
+import {
   assertCreateHouseholdShoppingListRequest,
   assertCreateHouseholdStockItemRequest,
   assertDeleteHouseholdStockItemRequest,
@@ -126,6 +130,42 @@ export const householdSettingsRoute: AppRoute = {
       return json(200, result);
     } catch (error) {
       const code = error instanceof Error ? error.message : "household_settings_update_failed";
+      return json(
+        code === "household_not_found" ? 404 : code === "household_owner_required" ? 403 : 500,
+        { error: code }
+      );
+    }
+  }
+};
+
+export const householdResetRoute: AppRoute = {
+  match: (request) =>
+    request.method === "POST" && /^\/api\/households\/[^/]+\/reset$/.test(request.path),
+  handle: async (request, context) => {
+    const repositoryResult = await createHouseholdRepositoryForUserRequest(request, context);
+    if ("response" in repositoryResult) return repositoryResult.response;
+    const householdId = request.path.match(/^\/api\/households\/([^/]+)\/reset$/)?.[1];
+    const body = parseJsonObject(request.bodyText);
+    const scope = body?.["scope"];
+    if (
+      !householdId ||
+      !body ||
+      typeof scope !== "string" ||
+      !householdResetScopes.includes(scope as HouseholdResetScope)
+    ) {
+      return json(400, { error: "invalid_household_reset_request" });
+    }
+
+    try {
+      const result = await repositoryResult.repository.resetHouseholdContent({
+        householdId,
+        scope: scope as HouseholdResetScope,
+        transactionClient: repositoryResult.client,
+        userId: repositoryResult.user.email
+      });
+      return json(200, result);
+    } catch (error) {
+      const code = error instanceof Error ? error.message : "household_reset_failed";
       return json(
         code === "household_not_found" ? 404 : code === "household_owner_required" ? 403 : 500,
         { error: code }

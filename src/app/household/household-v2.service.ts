@@ -556,6 +556,22 @@ export class HouseholdV2Service {
     );
   }
 
+  async resetHouseholdContent(input: {
+    householdId: string;
+    scope:
+      | "shopping_list"
+      | "batches"
+      | "products_and_batches"
+      | "groups_products_and_batches"
+      | "all_household_data";
+  }): Promise<{ status: "error" | "ok"; message?: string }> {
+    return await this.write(
+      "POST",
+      `/api/households/${encodeURIComponent(input.householdId)}/reset`,
+      { scope: input.scope }
+    );
+  }
+
   async correctBatch(input: {
     acquiredOn?: string;
     batchId: string;

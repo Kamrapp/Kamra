@@ -88,6 +88,21 @@
   );
   --pulse-row-border: color-mix(in srgb, var(--color-card-tint) 74%, var(--color-wood) 26%);
   --pulse-row-text: var(--color-on-soft-accent);
+  --household-group-row-background: color-mix(
+    in srgb,
+    var(--pulse-row-background) 84%,
+    var(--color-wood-deep) 16%
+  );
+  --household-product-row-background: color-mix(
+    in srgb,
+    var(--pulse-row-background) 66%,
+    var(--color-wood-deep) 34%
+  );
+  --household-batch-row-background: color-mix(
+    in srgb,
+    var(--surface-soft-background) 70%,
+    var(--color-wood-deep) 30%
+  );
   --pulse-sheen-background: color-mix(in srgb, var(--color-card-tint) 42%, transparent);
   --pulse-core-background: color-mix(
     in srgb,
@@ -196,6 +211,17 @@
   --pulse-row-background: color-mix(in srgb, var(--color-surface) 84%, var(--color-accent-sky) 16%);
   --pulse-row-border: color-mix(in srgb, var(--color-wood) 28%, var(--color-background) 72%);
   --pulse-row-text: var(--color-text);
+  --household-group-row-background: var(--pulse-row-background);
+  --household-product-row-background: color-mix(
+    in srgb,
+    var(--pulse-row-background) 82%,
+    transparent
+  );
+  --household-batch-row-background: color-mix(
+    in srgb,
+    var(--surface-soft-background) 76%,
+    var(--pulse-row-background)
+  );
   --pulse-sheen-background: color-mix(in srgb, var(--color-accent-sky) 16%, transparent);
   --pulse-core-background: color-mix(
     in srgb,
