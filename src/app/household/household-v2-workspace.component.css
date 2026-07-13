@@ -103,7 +103,7 @@
 }
 .comparison-column {
   color: var(--color-text-muted);
-  font-size: 1.08rem;
+  font-size: 1.32rem;
   font-weight: 900;
   line-height: 1;
   text-align: center;
@@ -161,6 +161,11 @@
   color: var(--color-text-muted);
   font-size: 0.82rem;
   min-height: 2.25rem;
+}
+.shopping-selection-selected {
+  background: color-mix(in srgb, var(--color-accent-leaf) 18%, var(--surface-soft-background));
+  border-bottom-color: var(--color-accent-leaf-strong);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-accent-leaf-strong) 52%, transparent);
 }
 .stock-batch-row {
   background: var(--household-batch-row-background);
