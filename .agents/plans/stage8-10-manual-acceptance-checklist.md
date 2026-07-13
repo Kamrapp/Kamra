@@ -7,7 +7,7 @@ This is the single source of truth for manual/browser verification carried forwa
 - Stage 8: User-side implementation complete; manual/browser verification and bugfixes remain. The Home Product Group → Household Product → Stock Batch workspace, grouped-target generation, editable shopping list, and Product/Batch finalization are in the current branch.
 - Stage 8 Home editing: The Product Group → Product → Batch hierarchy is the final user-side direction. Legacy allocation/stock-row behavior is compatibility or migration input only.
 - Stage 9: Implementation complete; it adds Shop Markets, Shop Products, Price Observations, resumable Shopping Trips, finalized-trip Purchase Ingestion, and the household-visible Trip result flow. Configured/browser acceptance remains open.
-- Stage 10: In implementation as bounded Alpha hardening. Archive, domain-language, audit, matching-safety, and Trip result slices are implemented; operator and browser evidence remain open.
+- Stage 10: Implementation complete as bounded Alpha hardening. Archive, domain-language, audit, matching-safety, Trip result, parser-repair, maintenance, parity, and release-documentation slices are committed; operator and browser evidence remain open.
 
 ## Stage 8 household foundation
 

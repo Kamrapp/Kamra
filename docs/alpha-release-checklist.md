@@ -5,14 +5,14 @@ This checklist is the compact release gate. The detailed human flow remains in
 
 ## Automated checks
 
-- [ ] `npm test`
-- [ ] `npm run format:check`
-- [ ] `npm run lint -- --max-warnings=0`
-- [ ] `npm run typecheck`
-- [ ] `npm run build:web`
-- [ ] `npm run build:api`
-- [ ] `npm run smoke:catalog` in an approved disposable/configured database
-- [ ] `npm run smoke:transactions` in an approved disposable/configured database
+- [x] `npm test`
+- [x] `npm run format:check`
+- [x] `npm run lint -- --max-warnings=0`
+- [x] `npm run typecheck`
+- [x] `npm run build:web`
+- [x] `npm run build:api`
+- [x] `npm run smoke:catalog` in an approved disposable/configured database
+- [x] `npm run smoke:transactions` in an approved disposable/configured database
 
 ## Data and operations
 
