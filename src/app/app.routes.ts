@@ -6,6 +6,7 @@ import { AdminDashboardComponent } from "./dev-admin/admin-dashboard.component";
 import { HouseholdManagementComponent } from "./household/household-management.component";
 import { HomeComponent } from "./home.component";
 import { IngestionAdminComponent } from "./site-admin/ingestion-admin.component";
+import { Stage9AdminComponent } from "./site-admin/stage9-admin.component";
 import { ManualPageComponent } from "./manual/manual-page.component";
 
 export const routes: Routes = [
@@ -40,6 +41,10 @@ export const routes: Routes = [
   {
     path: "site-admin/ingestion",
     component: IngestionAdminComponent
+  },
+  {
+    path: "site-admin/shopping",
+    component: Stage9AdminComponent
   },
   {
     path: "**",

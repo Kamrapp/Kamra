@@ -535,6 +535,16 @@
     "shoppingTripNotBought": "Nem vettem meg",
     "shoppingTripFinalize": "Út lezárása",
     "shoppingTripSaved": "A bevásárlási út lezárva, a készlet frissítve.",
+    "stage9Admin": {
+      "kicker": "Stage 9 adminisztráció",
+      "title": "Üzletek és vásárlási felülvizsgálat",
+      "description": "Üzletpiacok beállítása és vásárlási tények felülvizsgálata a háztartási előzmények átírása nélkül.",
+      "markets": "Üzletpiacok",
+      "submissions": "Függő vásárlási tények",
+      "noSubmissions": "Nincs függő vásárlási tény.",
+      "accept": "Elfogadás",
+      "reject": "Elutasítás"
+    },
     "shoppingListSaveFailure": "A bevásárlólista módosításai nem menthetők.",
     "shoppingListSaved": "A bevásárlólista módosításai mentve.",
     "shoppingListScaleLabel": "Aktuális szint",

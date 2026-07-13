@@ -535,6 +535,16 @@
     "shoppingTripNotBought": "Not bought",
     "shoppingTripFinalize": "Finalize trip",
     "shoppingTripSaved": "Shopping trip finalized and stock updated.",
+    "stage9Admin": {
+      "kicker": "Stage 9 administration",
+      "title": "Markets and purchase review",
+      "description": "Configure the small shop and review purchase facts without rewriting household history.",
+      "markets": "Shop markets",
+      "submissions": "Pending purchase facts",
+      "noSubmissions": "No pending purchase facts.",
+      "accept": "Accept",
+      "reject": "Reject"
+    },
     "shoppingListSaveFailure": "Shopping-list changes could not be saved.",
     "shoppingListSaved": "Shopping-list changes saved.",
     "shoppingListScaleLabel": "Current scale",
