@@ -298,7 +298,7 @@ Implementation ownership map:
 - Acceptance: Alpha scenario through reusable validated purchase data passes without DB editing; full automated/manual validation passes.
 - Commit: `docs: close concrete shopping workflow`
 
-### Current implementation checkpoint (2026-07-12)
+### Current implementation checkpoint (2026-07-13)
 
 - Step 4 domain contracts/state machine and Step 5 deterministic matcher are implemented and tested.
 - Trip persistence and authenticated create/list/update routes are implemented; the existing Home compatibility list remains intact until completion processing is proven.
@@ -306,7 +306,8 @@ Implementation ownership map:
 - Shop Product and append-only Price Observation repositories/indexes are implemented with a separate maintenance registry entry.
 - Admin Market and Ingestion Submission review routes are implemented with role/revision checks.
 - Rich admin Market/Shop Product/Price management UI is implemented.
-- Remaining Stage 9 implementation is wiring the tested matcher/applicable-price service into Trip creation and the Home Trip panel, exposing selected package/price/stale/no-price explanations and override/unresolved states; then seed coverage and compatibility retirement tests.
+- Matcher/applicable-price selection is wired into Trip creation and the Home Trip panel. Trip Items now expose selected package/price/stale/no-price explanations, compatible match choices, and an explicit skip path for unresolved lines. Server-side re-selection recalculates the trusted package/price fields under optimistic concurrency.
+- Remaining Stage 9 work is acceptance evidence: realistic market/Shop Product/Price Observation seed coverage, compatibility retirement checks, and browser/API verification against a configured database. These are closeout and bug-fix activities, not a missing domain slice.
 
 ## Testing Strategy
 
@@ -335,4 +336,4 @@ Stage 9 is complete when one user can choose a shop, turn generic demand into a 
 
 ## Approval Checkpoint
 
-Stage 9 implementation is approved. Keep each slice independently testable and preserve the Stage 8 Home compatibility path until matcher-driven Shopping Trips have equivalent purchase-finalization coverage.
+Stage 9 implementation is complete as of 2026-07-13. Keep each slice independently reviewable and preserve the Stage 8 Home compatibility path until the configured browser/API acceptance run proves equivalent matcher-driven purchase finalization; do not remove it speculatively.

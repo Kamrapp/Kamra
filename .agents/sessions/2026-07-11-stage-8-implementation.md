@@ -385,6 +385,19 @@ Shopping Trips, and admin-reviewed Purchase Ingestion for finalized trips. It mu
 Stage 8 Product/Batch finalization commands and must not be treated as a prerequisite for the
 basic Home shopping experience.
 
+## Stage 9 matcher and override checkpoint (2026-07-13)
+
+- `b0dbb53 feat: wire shopping trip product matching` connects the tested matcher and applicable-price selection to Trip creation and the Home Trip panel. Trip Items now show package count, expected total, price state, and localized explanation data.
+- `414bb92 feat: support shopping trip match overrides` adds compatible match options, server-owned re-selection, and an explicit unresolved-line skip path. A user can select another compatible Shop Product before continuing; the server recalculates the selected package and price fields under optimistic revision checks.
+- Validation for the matcher/override slice: `npm run typecheck`, `npm run lint`, `npm run format:check`, focused matcher/trip tests (5 passed), and `npm run build:web` pass.
+- Stage 9 implementation is now complete. Remaining work is configured database/API/browser acceptance, realistic seed/compatibility evidence, and narrowly scoped bug fixing. Stage 10 may proceed as bounded hardening, but a failed Stage 9 correctness check remains owned by Stage 9.
+
+## Stage 10 continuous workflow checkpoint (2026-07-13)
+
+- The Stage 10 plan now defines a single-agent continuous execution loop: inspect, implement one slice, validate, update this session, commit, and continue automatically when no decision, private/configured environment, destructive action, unexplained validation failure, or manual/browser evidence is required.
+- The ordered Stage 10 slices and commit boundaries remain in `2026-07-11-stage-10-alpha-hardening-plan.md`; the new workflow explicitly prohibits amend, push, reset, checkout, force operations, and history rewriting.
+- The central manual acceptance checklist remains the source of truth for Stage 8–10 human verification. Add only concrete newly testable actions there; do not create competing checklists in this session file.
+
 Historical open-issue entries above describe intermediate checkpoints and are superseded by
 this closeout section where they say the Home bridge is still pending or Stage 8 cannot close.
 

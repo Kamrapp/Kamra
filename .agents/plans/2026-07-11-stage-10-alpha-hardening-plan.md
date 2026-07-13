@@ -15,13 +15,14 @@ Stage 10 is **required for maintainability before Alpha 1.0**. It is not authori
 - A realistic development database contains Crawl Snapshots and Purchase Ingestion Submissions suitable for inspection.
 - The Alpha acceptance scenario has been attempted at least once, so hardening is driven by observed friction rather than guesses.
 
-Current implementation has the Stage 9 Trip, matcher, persistence, purchase-to-Product/Batch completion,
-Ingestion Submission persistence/review routes, and strict completion input validation. Browser workflow
-verification and the remaining admin/user UI are still required before Stage 9 can be closed.
+Current implementation has the Stage 9 Trip, matcher-driven planning and override/skip path, persistence,
+purchase-to-Product/Batch completion, Ingestion Submission persistence/review routes, strict completion
+input validation, the Home Trip panel, and the richer admin Shop Product/Price editor. Stage 9 now has
+implementation-complete status; configured browser/API evidence, realistic seed coverage, and bug fixes
+remain before Alpha closeout.
 
-The Home Trip panel and richer admin Shop Product/Price editor are now available. The remaining
-Stage 9 behavior gap is matcher/applicable-price wiring into Trip planning; Stage 10 must not
-waive that domain-to-UI connection silently if it is needed for the configured Alpha scenario.
+Stage 10 may begin on bounded hardening findings while that acceptance evidence is collected, but it must
+not waive a failed Stage 9 correctness check or move a behavior bug into cleanup documentation.
 
 ## Open Questions
 
@@ -240,7 +241,37 @@ Do not add a code of conduct, governance charter, issue templates, or other cere
 
 ## Ordered Implementation And Commit Boundaries
 
-Execution rule for every step: implement only the named concern, read the listed owning slice and its nearest `AGENTS.md`/README first, add or update focused tests when behavior or risk warrants them, and stop on a failed prerequisite or unexplained schema conflict. Do not opportunistically rename/refactor outside the current step. Each step ends with proportionate acceptance checks and a reviewable diff; the next step does not begin automatically.
+Execution rule for every step: implement only the named concern, read the listed owning slice and its nearest `AGENTS.md`/README first, add or update focused tests when behavior or risk warrants them, and stop on a failed prerequisite or unexplained schema conflict. Do not opportunistically rename/refactor outside the current step. Each step ends with proportionate acceptance checks and a reviewable diff.
+
+## Single-agent continuous execution workflow
+
+Stage 10 is executable by one agentic run from the current branch, with each safe unit committed before the next unit begins. The agent should continue through the ordered steps without waiting for a conversational checkpoint when all of the following are true: the scope is already approved here, the change is local and reversible, validation passes, and no configured database, private data, destructive action, or browser-only judgment is required.
+
+For every unit, the agent follows the same loop:
+
+1. Read the current session handoff, this plan, the owning code/docs, and the working-tree status. Record the starting commit and the exact finding or acceptance item being addressed.
+2. Implement one narrow slice. Keep behavior policy in its owning domain/service and keep routes, scripts, and UI adapters thin.
+3. Add focused tests or fixtures when the slice changes behavior, persistence, validation, authorization, or a release contract. Update the nearest durable documentation when commands, schemas, terminology, or operator behavior change.
+4. Run proportionate checks before committing: focused tests first, then format check, lint, typecheck, and the relevant web/API build. Use configured Mongo smoke, migration, or archive checks only when their environment is available; record unavailable checks instead of faking evidence.
+5. Update the active session handoff with the change, validation, known risk, and manual checks that became possible. Keep the central Stage 8–10 checklist as the only manual acceptance source of truth.
+6. Create one new commit mapped to the step. Report the commit, checks, and next step, then continue automatically if no stop condition applies.
+
+Recommended continuous sequence:
+
+1. Baseline and terminology inventory.
+2. Crawl Snapshot export and checksum verification tooling.
+3. Final-domain-language maintenance action and deterministic cutover/reset support.
+4. Read-only ingestion quality audit and correction-overlay schema.
+5. Confirmed source-specific parser/normalizer fixes, one source per commit.
+6. Crawl import/reprocessing and approved dry-run repair tools.
+7. Targeted backend change-locality cleanup from the baseline findings.
+8. Targeted frontend/contract boundary cleanup from observed workflow friction.
+9. Schema, compatibility, registry, and dead-flag cleanup.
+10. Non-functional, authorization, failure-state, redaction, pagination, accessibility, and operational hardening.
+11. Repository and Alpha release documentation.
+12. Full Alpha review, with narrow corrective commits only.
+
+The agent must stop and return control when a decision would materially change the model or scope; a migration/archive checksum or identity conflict appears; manual browser/visual confirmation is the next meaningful evidence; a configured/private environment or operator action is required; a destructive action is proposed; or a validation failure cannot be explained and safely corrected in the current slice. “Stop” does not mean silently leave work uncommitted: update the session handoff with the exact blocker and next command. Never amend, push, reset, checkout, force-update, or rewrite history as part of this workflow; only additional commits are permitted unless the user separately requests another Git operation.
 
 Implementation ownership map:
 

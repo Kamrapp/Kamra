@@ -49,13 +49,15 @@ This is the single source of truth for manual/browser verification carried forwa
 - [ ] Verify admin flags, audit history, maintenance actions, structured logs, redaction, and effective database name in diagnostics.
 - [ ] Run `npm run smoke:transactions` against `kamra_smoke` or another approved disposable database; record rollback `0`, commit `2`, cleanup, and effective database name.
 
-## Stage 9 concrete shopping journey — final implementation slice plus manual verification
+## Stage 9 concrete shopping journey — implementation complete plus manual verification
 
 - [ ] On Home, start a concrete Shopping Trip from the compact Trip panel using an active Shop Market id; confirm the draft progresses through matching/ready/in-progress without losing the underlying Shopping Need list.
 - [ ] Mark Trip Items bought and not bought, finalize the Trip, refresh Home, and confirm bought lines create Product-owned Batches while not-bought lines do not create stock.
 - [ ] Resume a partially processed Trip and retry the same completion operation; confirm no duplicate Product, Batch, Movement, or Ingestion Submission is created.
 - [ ] As an admin, list pending Ingestion Submissions, accept/reject/correct one with a matching revision, and confirm stale review is rejected while household stock history remains unchanged.
-- [ ] Confirm Trip creation invokes the matcher: a priced candidate shows package count, expected total, selected Price Observation, and explanation; no-price/stale/conditional/incompatible candidates remain explicit and overrideable rather than silently becoming priced.
+- [ ] Confirm Trip creation invokes the matcher: a priced candidate shows package count, expected total, selected Price Observation, and explanation; no-price/stale/conditional/incompatible candidates remain explicit rather than silently becoming priced.
+- [ ] When multiple compatible Shop Products are returned, choose a different match in the Trip panel and confirm the server recalculates package count, applicable price, and explanation under the new revision.
+- [ ] Leave an unresolved line unresolved, confirm the trip cannot continue until it is skipped or matched, then skip it and confirm the remaining lines can proceed.
 
 - [ ] From an open Shopping Need, select exactly one enabled Shop Market and planned shopping date.
 - [ ] Verify automatic Product/Shop Product matches show package math, applicable price, stale/no-price/conditional states, and match explanations.
