@@ -50,8 +50,8 @@
   display: grid;
   gap: var(--space-2);
   grid-template-columns:
-    minmax(12rem, 1.45fr) minmax(3.6rem, 0.42fr) 0.7rem minmax(4rem, 0.48fr)
-    0.7rem minmax(4rem, 0.48fr) minmax(3.4rem, 0.38fr) minmax(7rem, 0.8fr) auto;
+    minmax(12rem, 1.55fr) minmax(3.1rem, 0.32fr) 0.65rem minmax(4.2rem, 0.44fr)
+    0.65rem minmax(3.3rem, 0.34fr) minmax(3.5rem, 0.34fr) minmax(7rem, 0.8fr) auto;
   min-width: 48rem;
   padding: 0.45rem var(--space-3);
 }
@@ -176,6 +176,18 @@ button.row-name {
 .batch-name {
   padding-left: calc(var(--space-3) + (var(--row-depth, 2) * 1rem));
 }
+.batch-name strong {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.batch-title-date {
+  flex: 0 0 auto;
+  max-width: 9rem;
+  width: auto;
+}
 .product-name small {
   color: var(--color-text-muted);
   font-size: 0.72rem;
@@ -216,15 +228,26 @@ button.row-name {
 }
 .stock-unassigned-separator {
   align-items: center;
-  background: color-mix(in srgb, var(--surface-soft-background) 88%, var(--pulse-row-background));
-  border-bottom: 1px solid var(--line-panel);
-  border-top: 1px solid var(--line-panel);
-  color: var(--color-text-muted);
+  background: color-mix(in srgb, var(--pulse-row-background) 46%, var(--surface-soft-background));
+  border: 2px solid color-mix(in srgb, var(--line-strong) 72%, var(--pulse-row-border));
+  color: var(--pulse-row-text);
   display: grid;
   gap: var(--space-2);
   grid-template-columns: minmax(0, 1fr) auto auto;
   min-height: 2rem;
   padding: 0.25rem var(--space-3);
+}
+.stock-unassigned-separator .group-name {
+  font-size: 0.76rem;
+}
+.stock-unassigned-separator .group-name strong {
+  color: var(--pulse-row-text);
+  font-size: inherit;
+  font-style: italic;
+  font-weight: 700;
+}
+.custom-unit {
+  font-style: italic;
 }
 .add-stock-row {
   background: var(--surface-soft-background);
@@ -242,16 +265,13 @@ button.row-name {
   gap: var(--space-2);
   justify-content: flex-end;
 }
-.row-action-placeholder {
+.batch-action-gap {
   display: inline-block;
   height: 2rem;
   width: 2rem;
 }
 .batch-expiry {
   grid-column: 7 / span 2;
-}
-.batch-edit-acquired {
-  grid-column: 5 / span 2;
 }
 .batch-edit-expiry {
   grid-column: 7 / span 2;

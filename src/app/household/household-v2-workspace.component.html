@@ -128,8 +128,18 @@
               <span>
                 {{ row.group.group.targetPolicy?.desiredQuantity ?? "—" }}
               </span>
-              <span>
-                {{ row.group.aggregate.trackingUnit || row.group.group.trackingUnit || "—" }}
+              <span
+                [class.custom-unit]="
+                  isCustomTrackingUnit(
+                    row.group.aggregate.trackingUnit || row.group.group.trackingUnit
+                  )
+                "
+              >
+                {{
+                  displayTrackingUnit(
+                    row.group.aggregate.trackingUnit || row.group.group.trackingUnit
+                  )
+                }}
               </span>
               <span
                 class="ui-token ui-token-muted stock-state"
@@ -191,13 +201,32 @@
                 <span>
                   <small>{{ loc.t("household.trackingUnit") }}</small>
                   @if (editingGroupId() === row.group.group.id) {
-                    <input
-                      class="inline-name-input"
-                      [ngModel]="editingGroupTrackingUnit()"
-                      (ngModelChange)="editingGroupTrackingUnit.set($event)"
-                    />
+                    <select
+                      class="inline-group-select"
+                      [ngModel]="editingGroupUnitOption()"
+                      (ngModelChange)="editingGroupUnitOption.set($event)"
+                      [attr.aria-label]="loc.t('household.trackingUnit')"
+                    >
+                      @for (unit of trackingUnitOptions; track unit) {
+                        <option [ngValue]="unit">{{ unit }}</option>
+                      }
+                      <option [ngValue]="'custom'">{{ loc.t("household.customUnit") }}</option>
+                    </select>
+                    @if (editingGroupUnitOption() === "custom") {
+                      <input
+                        class="inline-name-input custom-unit-input"
+                        [ngModel]="editingGroupCustomUnit()"
+                        (ngModelChange)="editingGroupCustomUnit.set($event)"
+                        [attr.aria-label]="loc.t('household.customUnitSuffix')"
+                        [placeholder]="loc.t('household.customUnitSuffix')"
+                      />
+                    }
                   } @else {
-                    <strong>{{ row.group.group.trackingUnit }}</strong>
+                    <strong
+                      [class.custom-unit]="isCustomTrackingUnit(row.group.group.trackingUnit)"
+                    >
+                      {{ displayTrackingUnit(row.group.group.trackingUnit) }}
+                    </strong>
                   }
                 </span>
                 <span>
@@ -392,7 +421,13 @@
       {{ row.product.targetPolicy?.desiredQuantity ?? "—" }}
     </span>
     <span>
-      {{ row.aggregate.trackingUnit ?? row.product.defaultTrackingUnit ?? "—" }}
+      <span
+        [class.custom-unit]="
+          isCustomTrackingUnit(row.aggregate.trackingUnit ?? row.product.defaultTrackingUnit)
+        "
+      >
+        {{ displayTrackingUnit(row.aggregate.trackingUnit ?? row.product.defaultTrackingUnit) }}
+      </span>
     </span>
     <span
       class="ui-copy-muted stock-state"
@@ -510,7 +545,18 @@
     @for (batch of row.batches; track batch.id) {
       <div class="stock-grid stock-batch-row" [style.--row-depth]="depth + 1">
         <span class="row-name batch-name">
-          <strong>{{ icons.batch }} {{ loc.t("household.stockBatch") }}</strong>
+          @if (editingBatchId() === batch.id) {
+            <strong>{{ icons.batch }} {{ batchSourceLabel(batch) }}</strong>
+            <input
+              #acquired
+              class="inline-date-input batch-title-date"
+              type="date"
+              [value]="batch.acquiredOn"
+              [attr.aria-label]="loc.t('household.stockedAt')"
+            />
+          } @else {
+            <strong>{{ icons.batch }} {{ batchTitle(batch) }}</strong>
+          }
         </span>
         @if (editingBatchId() === batch.id) {
           <span></span>
@@ -523,13 +569,8 @@
             [value]="batch.remainingQuantity"
             [attr.aria-label]="loc.t('household.quantity')"
           />
-          <input
-            #acquired
-            class="inline-date-input batch-edit-acquired"
-            type="date"
-            [value]="batch.acquiredOn"
-            [attr.aria-label]="loc.t('household.stockedAt')"
-          />
+          <span></span>
+          <span></span>
           <input
             #expiry
             class="inline-date-input batch-edit-expiry"
@@ -563,7 +604,7 @@
         } @else {
           <span></span>
           <span></span>
-          <span class="current-value">{{ batch.remainingQuantity }} {{ batch.unit }}</span>
+          <span class="current-value">{{ batch.remainingQuantity }}</span>
           <span></span>
           <span class="batch-expiry" [class.expired-date]="isExpired(batch.expiryOn)">
             {{ batch.expiryOn ?? loc.t("household.noExpiry") }}
@@ -583,6 +624,7 @@
             >
               ✎
             </app-table-icon-button>
+            <span class="batch-action-gap" aria-hidden="true"></span>
             <app-table-icon-button
               [ariaLabel]="loc.t('household.discardStockBatch')"
               [titleText]="loc.t('household.discardStockBatch')"
@@ -590,7 +632,6 @@
             >
               ⌫
             </app-table-icon-button>
-            <span class="row-action-placeholder" aria-hidden="true"></span>
           </span>
         }
       </div>
@@ -599,6 +640,12 @@
           <span>
             <small>{{ loc.t("household.stockedAt") }}</small>
             <strong>{{ batch.acquiredOn }}</strong>
+          </span>
+          <span>
+            <small>{{ loc.t("household.unit") }}</small>
+            <strong [class.custom-unit]="isCustomTrackingUnit(batch.unit)">
+              {{ displayTrackingUnit(batch.unit) }}
+            </strong>
           </span>
         </div>
       }

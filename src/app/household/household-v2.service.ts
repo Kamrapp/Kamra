@@ -24,7 +24,7 @@ export interface HouseholdV2Product {
 }
 export interface HouseholdV2Batch {
   acquiredOn: string;
-  acquisitionSnapshot: { displayName: string };
+  acquisitionSnapshot: { displayName: string; sourceName?: string | null };
   expiryOn?: string | null;
   householdProductId?: string | null;
   id: string;

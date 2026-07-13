@@ -5,6 +5,14 @@ import { TableIconButtonComponent } from "../shared/table-icon-button.component"
 import { LocalizationService } from "../shared/localization.service";
 import { BrowserLoggerService } from "../browser-logger.service";
 import {
+  composeTrackingUnit,
+  displayTrackingUnit,
+  householdTrackingUnitOptions,
+  isCustomTrackingUnit,
+  splitTrackingUnit,
+  type HouseholdTrackingUnitOption
+} from "./household-tracking-units";
+import {
   HouseholdV2Service,
   type HouseholdV2Batch,
   type HouseholdV2Product,
@@ -41,7 +49,8 @@ export class HouseholdV2WorkspaceComponent {
   readonly editingGroupId = signal<string | null>(null);
   readonly editingProductId = signal<string | null>(null);
   readonly editingGroupName = signal("");
-  readonly editingGroupTrackingUnit = signal("");
+  readonly editingGroupUnitOption = signal<HouseholdTrackingUnitOption>("count");
+  readonly editingGroupCustomUnit = signal("");
   readonly editingGroupMinimum = signal(0);
   readonly editingGroupDesired = signal(0);
   readonly editingGroupHasTarget = signal(false);
@@ -57,6 +66,7 @@ export class HouseholdV2WorkspaceComponent {
   readonly unassignedExpanded = signal(true);
   readonly sectionExpanded = signal(true);
   readonly icons = householdDomainIcons;
+  readonly trackingUnitOptions = householdTrackingUnitOptions;
   private readonly service = inject(HouseholdV2Service);
   private readonly logger = inject(BrowserLoggerService);
   readonly loc = inject(LocalizationService);
@@ -155,8 +165,10 @@ export class HouseholdV2WorkspaceComponent {
     return visit(this.workspace()?.productGroups ?? []);
   }
   editGroup(group: HouseholdV2ProductGroup): void {
+    const trackingUnit = splitTrackingUnit(group.group.trackingUnit);
     this.editingGroupName.set(group.group.displayName);
-    this.editingGroupTrackingUnit.set(group.group.trackingUnit);
+    this.editingGroupUnitOption.set(trackingUnit.option);
+    this.editingGroupCustomUnit.set(trackingUnit.customSuffix);
     this.editingGroupMinimum.set(group.group.targetPolicy?.minimumQuantity ?? 0);
     this.editingGroupDesired.set(group.group.targetPolicy?.desiredQuantity ?? 0);
     this.editingGroupHasTarget.set(Boolean(group.group.targetPolicy));
@@ -166,7 +178,8 @@ export class HouseholdV2WorkspaceComponent {
   cancelGroupEdit(): void {
     this.editingGroupId.set(null);
     this.editingGroupName.set("");
-    this.editingGroupTrackingUnit.set("");
+    this.editingGroupUnitOption.set("count");
+    this.editingGroupCustomUnit.set("");
     this.editingGroupMinimum.set(0);
     this.editingGroupDesired.set(0);
     this.editingGroupHasTarget.set(false);
@@ -229,6 +242,18 @@ export class HouseholdV2WorkspaceComponent {
       ? this.loc.t("household.identityCatalogue")
       : this.loc.t("household.identityManual");
   }
+  displayTrackingUnit(value: string | null | undefined): string {
+    return displayTrackingUnit(value);
+  }
+  isCustomTrackingUnit(value: string | null | undefined): boolean {
+    return isCustomTrackingUnit(value);
+  }
+  batchSourceLabel(batch: HouseholdV2Batch): string {
+    return batch.acquisitionSnapshot.sourceName?.trim() || this.loc.t("household.manualSource");
+  }
+  batchTitle(batch: HouseholdV2Batch): string {
+    return `${this.batchSourceLabel(batch)} (${batch.acquiredOn})`;
+  }
   comparisonClass(
     current: number,
     reference: number | undefined,
@@ -260,7 +285,10 @@ export class HouseholdV2WorkspaceComponent {
   async saveGroup(group: HouseholdV2ProductGroup["group"]): Promise<void> {
     const displayName = this.editingGroupName();
     const name = displayName.trim();
-    const trackingUnit = this.editingGroupTrackingUnit().trim();
+    const trackingUnit = composeTrackingUnit(
+      this.editingGroupUnitOption(),
+      this.editingGroupCustomUnit()
+    );
     const minimumQuantity = this.editingGroupMinimum();
     const desiredQuantity = this.editingGroupDesired();
     if (
