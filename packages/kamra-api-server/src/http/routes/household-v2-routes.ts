@@ -1255,6 +1255,7 @@ export const householdV2ShoppingTripCompleteRoute: AppRoute = {
         if (!["in_progress", "partially_processed"].includes(trip.status))
           return json(409, { error: "shopping_trip_not_in_progress" });
         const items = Array.isArray(body["items"]) ? body["items"] : [];
+        if (items.length === 0) return json(400, { error: "shopping_trip_items_required" });
         let updated = trip;
         for (const raw of items) {
           if (
@@ -1277,8 +1278,15 @@ export const householdV2ShoppingTripCompleteRoute: AppRoute = {
               : item.requiredQuantity;
           if (!Number.isFinite(quantity) || quantity <= 0)
             return json(400, { error: "invalid_purchase_quantity" });
-          const unit =
-            typeof value["actualUnit"] === "string" ? value["actualUnit"] : item.requiredUnit;
+          let unit: TrackingUnit = item.requiredUnit;
+          if (typeof value["actualUnit"] === "string") {
+            try {
+              assertTrackingUnit(value["actualUnit"]);
+              unit = value["actualUnit"];
+            } catch {
+              return json(400, { error: "invalid_purchase_unit" });
+            }
+          }
           const operationId = `${body["operationId"]}:${itemId}`;
           const productId =
             typeof value["householdProductId"] === "string" ? value["householdProductId"] : null;
@@ -1323,7 +1331,7 @@ export const householdV2ShoppingTripCompleteRoute: AppRoute = {
                 shoppingNeedId: item.needId,
                 shoppingNeedListId: updated.sourceShoppingNeedListId,
                 status: "available",
-                unit: unit as never,
+                unit,
                 updatedAt: now,
                 updatedByUserId: user.email
               }
@@ -1338,13 +1346,13 @@ export const householdV2ShoppingTripCompleteRoute: AppRoute = {
                 acquiredOn: new Date().toISOString().slice(0, 10),
                 displayName: item.displayNameSnapshot,
                 originalQuantity: quantity,
-                unit: unit as never
+                unit
               },
               householdId,
               operationId,
               product: {
                 displayName: item.displayNameSnapshot,
-                defaultTrackingUnit: unit as never
+                defaultTrackingUnit: unit
               },
               requestFingerprint: JSON.stringify(value)
             });
@@ -1353,7 +1361,7 @@ export const householdV2ShoppingTripCompleteRoute: AppRoute = {
           updated = updateShoppingTripItem(updated, itemId, {
             resultStatus: "bought",
             actualQuantity: quantity,
-            actualUnit: unit as never,
+            actualUnit: unit,
             actualPaidPrice:
               typeof value["actualPaidPrice"] === "number" ? value["actualPaidPrice"] : null,
             createdBatchIds: [batchId]
@@ -1369,7 +1377,7 @@ export const householdV2ShoppingTripCompleteRoute: AppRoute = {
               displayName: item.displayNameSnapshot,
               shopMarketId: updated.shopMarketId,
               quantity,
-              unit: unit as never,
+              unit,
               paidPrice:
                 typeof value["actualPaidPrice"] === "number" ? value["actualPaidPrice"] : null
             },
