@@ -40,7 +40,29 @@ import { ToastService } from "../shared/toast.service";
         @for (item of trip()!.items; track item.id) {
           <div class="trip-item">
             <span>
-              {{ item.displayNameSnapshot }} · {{ item.requiredQuantity }} {{ item.requiredUnit }}
+              <strong>{{ item.displayNameSnapshot }}</strong>
+              · {{ item.requiredQuantity }} {{ item.requiredUnit }}
+              @if (item.expectedPackageCount) {
+                ·
+                {{
+                  loc.t("household.shoppingTripPackageCount", {
+                    count: item.expectedPackageCount
+                  })
+                }}
+              }
+              @if (item.expectedTotal !== null && item.expectedTotal !== undefined) {
+                ·
+                {{
+                  loc.t("household.shoppingTripExpectedTotal", {
+                    amount: item.expectedTotal,
+                    currency: "HUF"
+                  })
+                }}
+              }
+              <small>
+                {{ priceStateLabel(item.priceState) }} ·
+                {{ matchExplanationLabel(item.matchExplanation) }}
+              </small>
             </span>
             @if (item.resultStatus === "pending") {
               <button
@@ -146,7 +168,7 @@ export class HouseholdShoppingTripPanelComponent {
         tripId: current.id,
         expectedRevision: current.revision,
         itemId: item.id,
-        planStatus: "selected"
+        planStatus: item.selectedShopProductId ? "selected" : "skipped"
       });
       if (next.status !== "ok" || !next.trip) {
         this.message.set(next.message ?? "");
@@ -168,6 +190,28 @@ export class HouseholdShoppingTripPanelComponent {
       current = next.trip;
     }
     this.trip.set(current);
+  }
+  priceStateLabel(state: string | null | undefined): string {
+    const key =
+      state === "applicable"
+        ? "household.shoppingTripPriceApplicable"
+        : state === "conditional_only"
+          ? "household.shoppingTripPriceConditional"
+          : state === "expired"
+            ? "household.shoppingTripPriceExpired"
+            : state === "future"
+              ? "household.shoppingTripPriceFuture"
+              : state === "stale"
+                ? "household.shoppingTripPriceStale"
+                : "household.shoppingTripPriceUnavailable";
+    return this.loc.t(key);
+  }
+  matchExplanationLabel(explanation: string | null | undefined): string {
+    return explanation === "preferred household Product"
+      ? this.loc.t("household.shoppingTripPreferredMatch")
+      : explanation === "compatible package candidate"
+        ? this.loc.t("household.shoppingTripCompatibleMatch")
+        : this.loc.t("household.shoppingTripNoCompatibleMatch");
   }
   async mark(itemId: string, resultStatus: "bought" | "not_bought"): Promise<void> {
     const current = this.trip();

@@ -17,6 +17,9 @@ import { MongoIngestionSubmissionRepository } from "../../household/v2/mongo-ing
 import { MongoHouseholdProductConceptRepository } from "../../household/v2/mongo-household-product-concept-repository.js";
 import { MongoShoppingTripRepository } from "../../household/v2/mongo-shopping-trip-repository.js";
 import { MongoShopMarketRepository } from "../../household/v2/mongo-shop-market-repository.js";
+import { MongoShopProductRepository } from "../../household/v2/mongo-shop-product-repository.js";
+import { MongoPriceObservationRepository } from "../../household/v2/mongo-price-observation-repository.js";
+import { matchShoppingNeed } from "../../household/v2/shopping-matcher.js";
 import {
   createShoppingTrip,
   setShoppingTripMarket,
@@ -1148,29 +1151,57 @@ export const householdV2ShoppingTripsRoute: AppRoute = {
           : `shopping-needs:${householdId}`;
       const marketId = typeof body!["shopMarketId"] === "string" ? body!["shopMarketId"] : null;
       if (!marketId) return json(400, { error: "shop_market_required" });
-      if (!(await new MongoShopMarketRepository(database).get(marketId)))
-        return json(400, { error: "shop_market_not_found" });
+      const market = await new MongoShopMarketRepository(database).get(marketId);
+      if (!market) return json(400, { error: "shop_market_not_found" });
       const needs = await database
         .collection<ShoppingNeedList>("household_shopping_need_lists")
         .findOne({ householdId, id: needListId });
       if (!needs) return json(404, { error: "shopping_need_list_not_found" });
       const now = new Date().toISOString();
+      const shopProducts = await new MongoShopProductRepository(database).list(marketId);
+      const prices = new MongoPriceObservationRepository(database);
+      const matchedItems = await Promise.all(
+        needs.items
+          .filter((need) => need.state === "open")
+          .map(async (need) => {
+            const matches = matchShoppingNeed({
+              candidates: await Promise.all(
+                shopProducts.map(async (product) => ({
+                  shopProduct: product,
+                  priceObservations: await prices.list(product.id)
+                }))
+              ),
+              currencyCode: market.currencyCode,
+              preferredProductId: need.preferredProductId,
+              requiredQuantity: need.plannedQuantity,
+              requiredUnit: need.unit,
+              shoppingDate: body!["plannedDate"] as string
+            });
+            const match = matches[0];
+            return {
+              id: `shopping-trip-item:${need.id}`,
+              needId: need.id,
+              displayNameSnapshot: need.ownerDisplayNameSnapshot ?? "Shopping need",
+              requiredQuantity: need.plannedQuantity,
+              requiredUnit: need.unit,
+              planStatus: match ? ("selected" as const) : ("unresolved" as const),
+              resultStatus: "pending" as const,
+              selectedProductId: match?.productId ?? null,
+              selectedShopProductId: match?.shopProductId ?? null,
+              selectedPriceObservationId: match?.applicablePrice.observationId ?? null,
+              expectedPackageCount: match?.packageCount ?? null,
+              expectedTotal: match?.expectedTotal ?? null,
+              priceState: match?.applicablePrice.state ?? "no_price",
+              matchExplanation: match?.explanation ?? "No compatible Shop Product found"
+            };
+          })
+      );
       const trip = createShoppingTrip({
         createdAt: now,
         createdByUserId: user.email,
         householdId,
         id: `shopping-trip:${householdId}:${needListId}:${body!["plannedDate"]}:${marketId}`,
-        items: needs.items
-          .filter((need) => need.state === "open")
-          .map((need) => ({
-            id: `shopping-trip-item:${need.id}`,
-            needId: need.id,
-            displayNameSnapshot: need.ownerDisplayNameSnapshot ?? "Shopping need",
-            requiredQuantity: need.plannedQuantity,
-            requiredUnit: need.unit,
-            planStatus: "unresolved" as const,
-            resultStatus: "pending" as const
-          })),
+        items: matchedItems,
         plannedDate: body!["plannedDate"] as string,
         sourceShoppingNeedListId: needListId,
         updatedAt: now,

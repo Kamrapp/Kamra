@@ -67,11 +67,16 @@ export interface HouseholdShoppingTripItem {
   actualQuantity?: number | null;
   createdBatchIds?: string[];
   displayNameSnapshot: string;
+  expectedPackageCount?: number | null;
+  expectedTotal?: number | null;
   id: string;
+  matchExplanation?: string | null;
+  priceState?: string | null;
   planStatus: "unresolved" | "selected" | "skipped";
   requiredQuantity: number;
   requiredUnit: string;
   resultStatus: "pending" | "bought" | "not_bought";
+  selectedShopProductId?: string | null;
 }
 export interface HouseholdShoppingTrip {
   id: string;
