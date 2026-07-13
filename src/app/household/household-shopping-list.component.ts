@@ -313,10 +313,15 @@ export class HouseholdShoppingListComponent implements OnChanges {
 
     this.pendingConfirmation.set(null);
     this.shoppingList.set(result.shoppingList);
+    this.expandPanel();
     this.stockAppliedAt.set(readPreferredStockAppliedAt(result.shoppingList.stockAppliedAt));
     this.statusMessage.set(
       this.loc.t("household.shoppingListGenerated", { count: result.shoppingList.items.length })
     );
+  }
+
+  expandPanel(): void {
+    this.sectionCollapsed.set(false);
   }
 
   async cancelShoppingList(): Promise<void> {

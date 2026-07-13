@@ -22,6 +22,7 @@
         (shoppingSelectionToggled)="toggleShoppingItem($event)"
         (shoppingSelectionCandidatesChanged)="setShoppingSelectionCandidates($event)"
         (shoppingSelectionDefaultsChanged)="setShoppingSelectionDefaults($event)"
+        (sectionExpandedChange)="v2WorkspaceExpanded.set($event)"
         (changed)="refreshV2Workspace()"
       />
       <aside class="household-editor-side">
@@ -47,16 +48,18 @@
           (shoppingSelectionToggled)="toggleShoppingItem($event)"
           (invitationAccepted)="invitationAccepted($event)"
         />
-        <app-household-product-editor
-          [householdId]="selectedHouseholdId()"
-          [product]="selectedV2Product()"
-          [group]="selectedV2Group()"
-          [batch]="selectedV2Batch()"
-          [batchOnly]="v2BatchEditorMode()"
-          [productCreateMode]="v2ProductCreateMode()"
-          [resetRevision]="productEditorRevision()"
-          (changed)="refreshV2Workspace()"
-        />
+        @if (v2WorkspaceExpanded()) {
+          <app-household-product-editor
+            [householdId]="selectedHouseholdId()"
+            [product]="selectedV2Product()"
+            [group]="selectedV2Group()"
+            [batch]="selectedV2Batch()"
+            [batchOnly]="v2BatchEditorMode()"
+            [productCreateMode]="v2ProductCreateMode()"
+            [resetRevision]="productEditorRevision()"
+            (changed)="refreshV2Workspace()"
+          />
+        }
       </aside>
     </section>
 

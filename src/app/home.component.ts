@@ -128,6 +128,7 @@ export class HomeComponent implements OnDestroy {
   readonly shoppingScaleDisplayOptions = shoppingScaleDisplayOptions;
   readonly shoppingScaleOptions = shoppingScaleOptions;
   readonly shoppingListPanel = signal<HouseholdShoppingListComponent | null>(null);
+  readonly v2WorkspaceExpanded = signal(true);
   editorDraftSeed: HouseholdStockDraft = createEmptyStockDraft();
   private loadSerial = 0;
 
@@ -135,6 +136,9 @@ export class HomeComponent implements OnDestroy {
   set shoppingListPanelRef(panel: HouseholdShoppingListComponent | undefined) {
     this.shoppingListPanel.set(panel ?? null);
   }
+
+  @ViewChild(HouseholdV2WorkspaceComponent)
+  v2Workspace?: HouseholdV2WorkspaceComponent;
 
   readonly stockItems = computed(() => this.householdPage()?.stockItems ?? []);
   readonly stockItemsByPriority = computed(() =>
@@ -270,7 +274,10 @@ export class HomeComponent implements OnDestroy {
       actionLabel: this.shoppingSelectionMode()
         ? this.loc.t("household.generateShoppingList")
         : this.loc.t("household.buildShoppingList"),
-      actionDisabled: !this.auth.isAuthenticated() || !this.selectedHouseholdId(),
+      actionDisabled:
+        !this.auth.isAuthenticated() ||
+        !this.selectedHouseholdId() ||
+        (!this.shoppingSelectionMode() && Boolean(this.shoppingListPanel()?.shoppingList())),
       onAction: () => {
         if (!this.shoppingSelectionMode()) {
           this.beginShoppingSelection();
@@ -528,6 +535,7 @@ export class HomeComponent implements OnDestroy {
   }
   private async generateSelectedShoppingList(): Promise<void> {
     await this.shoppingListPanel()?.generateShoppingList();
+    this.v2Workspace?.setSectionExpanded(false);
     this.cancelShoppingSelection();
   }
 

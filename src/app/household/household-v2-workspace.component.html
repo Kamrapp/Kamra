@@ -8,7 +8,7 @@
     <button
       class="section-toggle"
       type="button"
-      (click)="sectionExpanded.set(!sectionExpanded())"
+      (click)="toggleSectionExpanded()"
       [attr.aria-expanded]="sectionExpanded()"
     >
       <span aria-hidden="true">{{ sectionExpanded() ? "▾" : "▸" }}</span>
@@ -220,7 +220,7 @@
                     [titleText]="loc.t('household.showProductGroupDetails')"
                     (press)="toggleGroupDetails(row.group.group.id)"
                   >
-                    {{ isGroupDetailsOpen(row.group.group.id) ? "⌕−" : "⌕+" }}
+                    {{ isGroupDetailsOpen(row.group.group.id) ? "▾" : "▸" }}
                   </app-table-icon-button>
                   <app-table-icon-button
                     [ariaLabel]="loc.t('household.editProductGroup')"
@@ -371,6 +371,8 @@
               {{ current.unassignedProducts.length }} {{ loc.t("household.productsCount") }}
             </span>
             <span class="row-actions">
+              <span class="batch-action-gap" aria-hidden="true"></span>
+              <span class="batch-action-gap" aria-hidden="true"></span>
               <app-table-icon-button
                 [ariaLabel]="loc.t('household.addUnassignedProduct')"
                 [titleText]="loc.t('household.addUnassignedProduct')"
@@ -378,6 +380,7 @@
               >
                 {{ icons.product }}+
               </app-table-icon-button>
+              <span class="batch-action-gap" aria-hidden="true"></span>
             </span>
           </div>
           @if (unassignedExpanded()) {
@@ -558,7 +561,7 @@
           [titleText]="loc.t('household.showProductDetails')"
           (press)="toggleProductDetails(row.product.id)"
         >
-          {{ isProductDetailsOpen(row.product.id) ? "⌕−" : "⌕+" }}
+          {{ isProductDetailsOpen(row.product.id) ? "▾" : "▸" }}
         </app-table-icon-button>
         <app-table-icon-button
           [ariaLabel]="loc.t('household.editProduct')"
@@ -747,7 +750,7 @@
               [titleText]="loc.t('household.showStockBatchDetails')"
               (press)="toggleBatchDetails(batch.id)"
             >
-              {{ isBatchDetailsOpen(batch.id) ? "⌕−" : "⌕+" }}
+              {{ isBatchDetailsOpen(batch.id) ? "▾" : "▸" }}
             </app-table-icon-button>
             <app-table-icon-button
               [ariaLabel]="loc.t('household.editStockBatch')"

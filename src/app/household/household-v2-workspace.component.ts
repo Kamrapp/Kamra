@@ -49,6 +49,7 @@ export class HouseholdV2WorkspaceComponent {
   readonly shoppingSelectionToggled = output<string>();
   readonly shoppingSelectionCandidatesChanged = output<readonly string[]>();
   readonly shoppingSelectionDefaultsChanged = output<readonly string[]>();
+  readonly sectionExpandedChange = output<boolean>();
   readonly workspace = signal<HouseholdV2Workspace | null>(null);
   readonly errorMessage = signal("");
   readonly loadState = signal<"idle" | "loading" | "ready" | "error">("idle");
@@ -105,6 +106,15 @@ export class HouseholdV2WorkspaceComponent {
   async refresh(): Promise<void> {
     const householdId = this.householdId();
     if (householdId) await this.load(householdId);
+  }
+  toggleSectionExpanded(): void {
+    const next = !this.sectionExpanded();
+    this.sectionExpanded.set(next);
+    this.sectionExpandedChange.emit(next);
+  }
+  setSectionExpanded(expanded: boolean): void {
+    this.sectionExpanded.set(expanded);
+    this.sectionExpandedChange.emit(expanded);
   }
   private async load(householdId: string): Promise<void> {
     this.loadState.set("loading");
