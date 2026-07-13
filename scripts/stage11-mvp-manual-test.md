@@ -155,9 +155,9 @@ and demo seed-ledger entries. It does not remove shared catalogue, shop-market, 
 - [x] Confirm Batch titles use the available source and stocked-at date, with Manual as the explicit
       fallback when no source snapshot exists. Edit the title date and confirm it updates Stocked at
       without adding a misaligned column.
-- [ ] Confirm the Manual fallback in a Batch title is italic while source-backed titles remain normal.
-- [ ] Confirm the compact Minimum, Current, Target, and Unit columns remain readable and Batch
-      Quantity stays aligned under Product Current.
+- [x] Confirm the Manual fallback in a Batch title is italic while source-backed titles remain normal.
+- [ ] Confirm the header and body use the same compact Minimum, Current, Target, and Unit tracks;
+      header labels remain readable and Batch Quantity stays aligned under Product Current.
 - [x] Test Product Group/Product/Batch stale revision or concurrent-edit failure. The old state
       remains intact, the UI says the item was changed elsewhere, and it tells the user to refresh
       before saving again; the Activity entry uses the same actionable explanation.
@@ -165,7 +165,7 @@ and demo seed-ledger entries. It does not remove shared catalogue, shop-market, 
       leaves no stale edit mode, and shows refreshed data.
 - [x] Add Product from a Group and Add Batch from a Product. Add Batch opens only the Batch editor;
       parent identity and assignment remain unchanged.
-- [ ] Recheck Group/Product details after the latest refinement: editing a Group opens its details
+- [x] Recheck Group/Product details after the latest refinement: editing a Group opens its details
       row; editing a Product keeps the main row on one line, moves Group assignment into the
       details row, makes Product id compact, and gives Note more room.
 - [x] Confirm Group/Product/Batch details. Disclosure controls use right/down arrows; details do not
@@ -192,10 +192,9 @@ and demo seed-ledger entries. It does not remove shared catalogue, shop-market, 
 
 Operator notes and discoveries:
 
-The Section 3 structure and first CRUD checks are accepted in the bottom table. Remaining focused
-retests are the italic Manual fallback, narrower amount columns, and the latest Group/Product
-details-editor layout, plus the remaining consistency/accessibility checks and the light-theme
-contrast pass above.
+The Section 3 structure and first CRUD checks are accepted in the bottom table. The remaining
+focused workspace retest is the shared header/body amount-column alignment, plus the remaining
+consistency/accessibility checks and the light-theme contrast pass above.
 
 ## 4. Shopping list and household purchase application
 

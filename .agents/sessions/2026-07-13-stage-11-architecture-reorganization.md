@@ -57,6 +57,11 @@
   is stronger in light mode without changing the accepted dark theme. Increased Manual terminology
   row typography and vertical centering, localized the Admin health empty-state wording, and
   refreshed the most recent Hungarian household labels and stale invitation copy.
+- Completed the last reported Section 3 presentation refinement: the stock table header now shares
+  constrained child sizing and compact labels with body rows, and the Group unit selector reserves
+  a stable adjacent Custom-unit slot so switching between built-in and custom units does not move
+  the surrounding details. The operator-confirmed Manual title and Group/Product detail checks are
+  now marked complete; only the final amount-column alignment retest remains.
 
 ## Changed Files
 
@@ -77,6 +82,7 @@
 - `packages/kamra-api-server/src/http/app-handler.test.ts`
 - `src/app/i18n/en.json`
 - `src/app/i18n/hu.json`
+- `src/app/household/household-v2-workspace.component.html`
 - `src/app/dev-admin/admin-feature-flags-card.component.ts`
 - `src/app/dev-admin/admin-alpha-access-card.component.ts`
 - `src/app/dev-admin/admin-dashboard.component.ts`
@@ -134,6 +140,8 @@
 - The reset implementation's focused repository and route tests pass (7 tests across 2 files),
   and the API/frontend typecheck passes. Full validation after the documentation and visual
   follow-up is still required before commit.
+- After the Section 3 table/editor refinement, 247 tests across 69 files, typecheck, lint,
+  formatting, web build, and diff checks passed.
 - `npm run mvp:preflight` passed locally with 240 tests/65 files, 7 integration tests, formatting, lint, typecheck, web build, and API build.
 - `npm run smoke:demo-household` reached the configured MongoDB database but failed because the current disposable household document lacks `groupTargetShoppingMode`; this is a useful stale-seed/schema signal and was not masked. Reseed/migrate that environment before operator testing.
 - A later smoke run found no `household1` in the selected database at all. The validator now reports the selected database and instructs the operator to run `npm run seed:demo-household` before retrying; no automatic database write was performed.
@@ -157,9 +165,9 @@
   database before using the browser invitation flow; the deterministic tests do not update MongoDB.
 - The operator accepted the Section 3 workspace structure and first CRUD/derived-data pass. The
   latest workspace refinement is implemented; the live runbook retains only its visual/behavioral
-  retests for the Manual title style, compact amount columns, and details-editor layout, plus the
-  previously open consistency/accessibility checks. The new light-theme contrast and reset-flow
-  checks are also pending.
+  retest for shared header/body amount-column alignment, plus the previously open
+  consistency/accessibility checks. The new light-theme contrast and reset-flow checks are also
+  pending.
 - Stage 10 configured/browser release evidence remains open and is not waived by this plan.
 - The operator must edit the live runbook with actual findings during the final pass; those edits become input to the final fixer session. The shortened manual pass should start with `npm run mvp:preflight`, then the fixture/configured smokes, then browser-only checks.
 
