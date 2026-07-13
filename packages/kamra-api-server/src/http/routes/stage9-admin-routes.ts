@@ -1,5 +1,11 @@
 import { MongoIngestionSubmissionRepository } from "../../household/v2/mongo-ingestion-submission-repository.js";
 import { MongoShopMarketRepository } from "../../household/v2/mongo-shop-market-repository.js";
+import { MongoShopProductRepository } from "../../household/v2/mongo-shop-product-repository.js";
+import { MongoPriceObservationRepository } from "../../household/v2/mongo-price-observation-repository.js";
+import type {
+  PriceObservationCandidate,
+  ShopProductRecord
+} from "../../household/v2/stage9-contracts.js";
 import type { ShopMarket } from "../../household/v2/contracts.js";
 import { json, unauthorized, type AppRoute } from "../app-route-context.js";
 
@@ -87,6 +93,90 @@ export const adminIngestionSubmissionsRoute: AppRoute = {
   }
 };
 
+export const adminShopProductsRoute: AppRoute = {
+  match: (request) =>
+    (request.method === "GET" || request.method === "POST") &&
+    request.path === "/api/admin/shop-products",
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request);
+    if (!user || user.role !== "admin") return unauthorized("apiErrors.adminRequired");
+    const database = await getDatabase(context);
+    if (!database) return json(503, { error: "catalog_not_configured" });
+    const repository = new MongoShopProductRepository(database);
+    if (request.method === "GET") {
+      const marketId = queryValue(request.query?.["shopMarketId"]);
+      return json(200, {
+        products: marketId
+          ? await repository.list(marketId, queryValue(request.query?.["name"]))
+          : []
+      });
+    }
+    const body = parseObject(request.bodyText);
+    if (
+      !body ||
+      !isString(body["id"]) ||
+      !isString(body["productId"]) ||
+      !isString(body["shopMarketId"]) ||
+      !isString(body["displayName"]) ||
+      !isFiniteNumber(body["packageQuantity"]) ||
+      !isString(body["packageUnit"])
+    )
+      return json(400, { error: "invalid_shop_product" });
+    const product: ShopProductRecord = {
+      id: body["id"],
+      productId: body["productId"],
+      shopMarketId: body["shopMarketId"],
+      displayName: body["displayName"],
+      aliases: [],
+      packageQuantity: body["packageQuantity"],
+      packageUnit: body["packageUnit"] as ShopProductRecord["packageUnit"],
+      status: "active"
+    };
+    try {
+      return json(201, { product: await repository.create(product) });
+    } catch {
+      return json(409, { error: "shop_product_already_exists" });
+    }
+  }
+};
+
+export const adminPriceObservationsRoute: AppRoute = {
+  match: (request) =>
+    (request.method === "GET" || request.method === "POST") &&
+    request.path === "/api/admin/price-observations",
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request);
+    if (!user || user.role !== "admin") return unauthorized("apiErrors.adminRequired");
+    const database = await getDatabase(context);
+    if (!database) return json(503, { error: "catalog_not_configured" });
+    const repository = new MongoPriceObservationRepository(database);
+    if (request.method === "GET") {
+      const shopProductId = queryValue(request.query?.["shopProductId"]);
+      return shopProductId
+        ? json(200, { observations: await repository.list(shopProductId) })
+        : json(400, { error: "shop_product_required" });
+    }
+    const body = parseObject(request.bodyText);
+    if (
+      !body ||
+      !isString(body["id"]) ||
+      !isString(body["shopProductId"]) ||
+      !isString(body["currencyCode"]) ||
+      !isString(body["kind"]) ||
+      !isString(body["observedAt"]) ||
+      !isFiniteNumber(body["price"])
+    )
+      return json(400, { error: "invalid_price_observation" });
+    try {
+      return json(201, {
+        observation: await repository.append(body as unknown as PriceObservationCandidate)
+      });
+    } catch {
+      return json(400, { error: "invalid_price_observation" });
+    }
+  }
+};
+
 async function getDatabase(context: Parameters<AppRoute["handle"]>[1]) {
   if (!context.config.mongodb.uri || !context.config.mongodb.databaseName) return null;
   const client = await context.getMongoClient(
@@ -106,6 +196,12 @@ function parseObject(bodyText: string | undefined): Record<string, unknown> | nu
 }
 function isString(value: unknown): value is string {
   return typeof value === "string";
+}
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+function queryValue(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
 }
 function isReviewStatus(value: unknown): value is "accepted" | "corrected" | "rejected" {
   return value === "accepted" || value === "corrected" || value === "rejected";
