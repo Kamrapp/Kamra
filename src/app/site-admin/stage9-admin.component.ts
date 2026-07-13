@@ -16,6 +16,23 @@ interface Submission {
   facts: { displayName: string; quantity: number; unit: string };
   status: string;
 }
+interface ShopProduct {
+  id: string;
+  productId: string;
+  shopMarketId: string;
+  displayName: string;
+  packageQuantity: number;
+  packageUnit: string;
+}
+interface PriceObservation {
+  id: string;
+  kind: string;
+  observedAt: string;
+  price: number;
+  currencyCode: string;
+  validFrom?: string | null;
+  validTo?: string | null;
+}
 
 @Component({
   selector: "app-stage9-admin",
@@ -43,6 +60,69 @@ interface Submission {
           <p>
             {{ item.displayName }} · {{ item.countryCode }} / {{ item.currencyCode }}
             <small>{{ item.id }}</small>
+          </p>
+        }
+      </section>
+      <section class="ui-panel-card">
+        <h2 class="ui-card-title">{{ loc.t("household.stage9Admin.shopProducts") }}</h2>
+        <div class="stage9-form">
+          <select [(ngModel)]="selectedMarketId" (ngModelChange)="loadProducts()">
+            <option value="">{{ loc.t("household.stage9Admin.selectMarket") }}</option>
+            @for (item of markets(); track item.id) {
+              <option [value]="item.id">{{ item.displayName }}</option>
+            }
+          </select>
+          <input [(ngModel)]="shopProduct.id" placeholder="shop-product:milk" />
+          <input [(ngModel)]="shopProduct.productId" placeholder="catalog-product:milk" />
+          <input [(ngModel)]="shopProduct.displayName" placeholder="Milk 1 l" />
+          <input type="number" [(ngModel)]="shopProduct.packageQuantity" placeholder="1" />
+          <input [(ngModel)]="shopProduct.packageUnit" placeholder="l" />
+          <button class="ui-button ui-button-primary" type="button" (click)="saveShopProduct()">
+            {{ loc.t("common.save") }}
+          </button>
+        </div>
+        @for (item of products(); track item.id) {
+          <button class="stage9-row stage9-select-row" type="button" (click)="selectProduct(item)">
+            <span>{{ item.displayName }} · {{ item.packageQuantity }} {{ item.packageUnit }}</span>
+            <small>{{ item.id }}</small>
+          </button>
+        }
+      </section>
+      <section class="ui-panel-card">
+        <h2 class="ui-card-title">{{ loc.t("household.stage9Admin.prices") }}</h2>
+        @if (selectedProduct(); as product) {
+          <p>
+            <strong>{{ product.displayName }}</strong>
+            · {{ product.id }}
+          </p>
+        }
+        <div class="stage9-form">
+          <select [(ngModel)]="price.kind">
+            <option value="base">base</option>
+            <option value="offer">offer</option>
+            <option value="coupon">coupon</option>
+            <option value="loyalty_card">loyalty card</option>
+          </select>
+          <input type="number" [(ngModel)]="price.amount" placeholder="499" />
+          <input [(ngModel)]="price.currencyCode" placeholder="HUF" />
+          <input type="date" [(ngModel)]="price.validFrom" />
+          <input type="date" [(ngModel)]="price.validTo" />
+          <button
+            class="ui-button ui-button-primary"
+            type="button"
+            (click)="appendPrice()"
+            [disabled]="!selectedProduct()"
+          >
+            {{ loc.t("household.stage9Admin.appendPrice") }}
+          </button>
+        </div>
+        @for (item of prices(); track item.id) {
+          <p class="stage9-price-row">
+            {{ item.kind }} · {{ item.price }} {{ item.currencyCode }} ·
+            {{ item.observedAt.slice(0, 10) }}
+            @if (item.validFrom || item.validTo) {
+              · {{ item.validFrom || "…" }}–{{ item.validTo || "…" }}
+            }
           </p>
         }
       </section>
@@ -118,7 +198,20 @@ export class Stage9AdminComponent {
   readonly loc = inject(LocalizationService);
   readonly markets = signal<Market[]>([]);
   readonly submissions = signal<Submission[]>([]);
+  readonly products = signal<ShopProduct[]>([]);
+  readonly prices = signal<PriceObservation[]>([]);
+  readonly selectedProduct = signal<ShopProduct | null>(null);
   market = { id: "", displayName: "", countryCode: "HU", currencyCode: "HUF" };
+  selectedMarketId = "";
+  shopProduct = {
+    id: "",
+    productId: "",
+    shopMarketId: "",
+    displayName: "",
+    packageQuantity: 1,
+    packageUnit: "count"
+  };
+  price = { kind: "base", amount: 0, currencyCode: "HUF", validFrom: "", validTo: "" };
   ngOnInit(): void {
     void this.load();
   }
@@ -141,6 +234,61 @@ export class Stage9AdminComponent {
       this.submissions.set(
         ((await submissions.json()) as { submissions: Submission[] }).submissions
       );
+    if (this.markets().length && !this.selectedMarketId) {
+      this.selectedMarketId = this.markets()[0]!.id;
+      this.shopProduct.shopMarketId = this.selectedMarketId;
+      await this.loadProducts();
+    }
+  }
+  async loadProducts(): Promise<void> {
+    if (!this.selectedMarketId) return;
+    this.shopProduct.shopMarketId = this.selectedMarketId;
+    const response = await fetch(
+      buildApiUrl(
+        `/api/admin/shop-products?shopMarketId=${encodeURIComponent(this.selectedMarketId)}`
+      ),
+      { headers: this.headers() }
+    );
+    if (response.ok)
+      this.products.set(((await response.json()) as { products: ShopProduct[] }).products);
+  }
+  async selectProduct(product: ShopProduct): Promise<void> {
+    this.selectedProduct.set(product);
+    const response = await fetch(
+      buildApiUrl(`/api/admin/price-observations?shopProductId=${encodeURIComponent(product.id)}`),
+      { headers: this.headers() }
+    );
+    if (response.ok)
+      this.prices.set(
+        ((await response.json()) as { observations: PriceObservation[] }).observations
+      );
+  }
+  async saveShopProduct(): Promise<void> {
+    const response = await fetch(buildApiUrl("/api/admin/shop-products"), {
+      body: JSON.stringify({ ...this.shopProduct, aliases: [] }),
+      headers: this.headers(),
+      method: "POST"
+    });
+    if (response.ok) await this.loadProducts();
+  }
+  async appendPrice(): Promise<void> {
+    const product = this.selectedProduct();
+    if (!product) return;
+    const response = await fetch(buildApiUrl("/api/admin/price-observations"), {
+      body: JSON.stringify({
+        id: `price:${product.id}:${Date.now()}`,
+        shopProductId: product.id,
+        currencyCode: this.price.currencyCode,
+        kind: this.price.kind,
+        observedAt: new Date().toISOString(),
+        price: this.price.amount,
+        validFrom: this.price.validFrom || null,
+        validTo: this.price.validTo || null
+      }),
+      headers: this.headers(),
+      method: "POST"
+    });
+    if (response.ok) await this.selectProduct(product);
   }
   async createMarket(): Promise<void> {
     const response = await fetch(buildApiUrl("/api/admin/shop-markets"), {
