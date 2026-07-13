@@ -60,8 +60,12 @@ Operator notes and discoveries:
 | Feature flags       | Registry, schema key parity, admin PATCH, persistence, and workspace response                          | Toggle and visible Home effect                          |
 | Household stock     | Product Group → Product → Batch seam, writes, reads, and membership boundary                           | CRUD affordances, synchronization, layout, and feedback |
 | Shopping completion | Partial Trip completion, Product-owned Batch, pending Ingestion Submission, retry                      | One visible purchase flow and resulting stock           |
+| Shopping scale      | Pure scale eligibility rules cover no-policy rows, all four scales, and expiry warning boundaries      | Checkbox reset behavior and visible scale feedback      |
+| Shopping targets    | Generator covers Product/Group shortage boundaries, group modes, empty groups, and distribution        | Selected-owner presentation and final generated list    |
+| Quick add           | Name normalization covers accents, punctuation, case, known Product matching, and no-match cases       | Debounced input, unit presentation, and duplicate UI    |
 | Ingestion review    | Raw snapshot → review candidate/list response                                                          | One visible review decision and status feedback         |
 | Demo fixture        | Seed smoke checks targets, expiry permutations, batch counts, unassigned products, and no orphan Batch | Visual grouping/order/theme/layout                      |
+| Expiry/read model   | Expired Batches remain visible and counted physically while expiry policy controls derived Current     | Household toggle and rendered count/state               |
 | MongoDB             | Configured catalogue/transaction workflows                                                             | Run only with approved environment                      |
 
 ## 1. Access, identity, Manual, and diagnostics
