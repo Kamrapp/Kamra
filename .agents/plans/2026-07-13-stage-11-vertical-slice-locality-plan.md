@@ -218,6 +218,8 @@ Commit: `refactor: centralize feature flag metadata`
 
 ### Step 11.5 — Generic developer-admin flag presentation
 
+Status: Complete in the current Step 11.5 implementation commit.
+
 - Replace the current key-specific flag signals and repeated controls with a registry/API-driven
   list of flag view models.
 - Render ordinary boolean controls with an iteration; retain a separate alpha-access workflow

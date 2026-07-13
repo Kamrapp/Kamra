@@ -12,7 +12,11 @@ import { AuthService } from "../auth.service";
 import { DatabaseMaintenanceComponent } from "./database-maintenance.component";
 import { AdminDashboardService } from "./admin-dashboard.service";
 import { AdminHealthCardComponent, type HealthCheckItem } from "./admin-health-card.component";
-import { AdminFeatureFlagsCardComponent } from "./admin-feature-flags-card.component";
+import {
+  AdminFeatureFlagsCardComponent,
+  type AdminFeatureFlagChange,
+  type AdminFeatureFlagViewModel
+} from "./admin-feature-flags-card.component";
 import { AdminAlphaAccessCardComponent } from "./admin-alpha-access-card.component";
 import { LocalizationService, type TranslationKey } from "../shared/localization.service";
 import { ToastService } from "../shared/toast.service";
@@ -38,11 +42,6 @@ interface DemoHouseholdReseedResponse {
   databaseName: string;
   ensuredCollections: string[];
   message: string;
-}
-
-interface FeatureFlagListItem {
-  enabled: boolean;
-  key: string;
 }
 
 interface AlphaUserCreationResponse {
@@ -82,11 +81,9 @@ export class AdminDashboardComponent implements OnInit {
   readonly demoSeedState = signal<AsyncActionState>("idle");
   readonly invalidationMessage = signal("");
   readonly invalidationState = signal<AsyncActionState>("idle");
-  readonly featureFlags = signal<FeatureFlagListItem[]>([]);
+  readonly featureFlags = signal<AdminFeatureFlagViewModel[]>([]);
   readonly featureFlagsMessage = signal("");
   readonly featureFlagsState = signal<AsyncActionState>("idle");
-  readonly allowAutoTickingAllShoppingListEntriesEnabled = signal(true);
-  readonly useAbbreviatedUiLabelsEnabled = signal(false);
   readonly allowControlledAlphaAccessEnabled = signal(false);
   readonly alphaUserEmail = signal("");
   readonly alphaUserPassword = signal("");
@@ -106,6 +103,12 @@ export class AdminDashboardComponent implements OnInit {
 
     return [report.checks.api, report.checks.database];
   });
+  readonly ordinaryFeatureFlags = computed(() =>
+    this.featureFlags().filter((flag) => flag.control === "boolean")
+  );
+  readonly controlledAlphaAccessFlag = computed(
+    () => this.featureFlags().find((flag) => flag.control === "alpha-access") ?? null
+  );
   readonly healthSummary = computed(() => {
     const state = this.healthState();
     const report = this.healthReport();
@@ -462,20 +465,13 @@ export class AdminDashboardComponent implements OnInit {
       }
 
       const { message, payload } = await this.adminDashboard.readPayload<{
-        featureFlags?: FeatureFlagListItem[];
+        featureFlags?: AdminFeatureFlagViewModel[];
       }>(response, this.loc.t("health.featureFlagsLoadFailure"));
       const featureFlags = payload?.featureFlags ?? [];
 
       this.featureFlags.set(featureFlags);
-      this.allowAutoTickingAllShoppingListEntriesEnabled.set(
-        featureFlags.find((flag) => flag.key === "allowAutoTickingAllShoppingListEntries")
-          ?.enabled ?? true
-      );
       this.allowControlledAlphaAccessEnabled.set(
-        featureFlags.find((flag) => flag.key === "allowControlledAlphaAccess")?.enabled ?? false
-      );
-      this.useAbbreviatedUiLabelsEnabled.set(
-        featureFlags.find((flag) => flag.key === "useAbbreviatedUiLabels")?.enabled ?? false
+        featureFlags.find((flag) => flag.control === "alpha-access")?.enabled ?? false
       );
       this.featureFlagsState.set(response.ok ? "success" : "error");
       this.featureFlagsMessage.set(response.ok ? "" : message);
@@ -488,16 +484,19 @@ export class AdminDashboardComponent implements OnInit {
     }
   }
 
-  setAllowAutoTickingAllShoppingListEntriesEnabled(enabled: boolean): void {
-    this.allowAutoTickingAllShoppingListEntriesEnabled.set(enabled);
-  }
-
   setAllowControlledAlphaAccessEnabled(enabled: boolean): void {
     this.allowControlledAlphaAccessEnabled.set(enabled);
+    const flag = this.controlledAlphaAccessFlag();
+    if (flag) {
+      this.updateFeatureFlag({ enabled, key: flag.key });
+    }
   }
 
-  setUseAbbreviatedUiLabelsEnabled(enabled: boolean): void {
-    this.useAbbreviatedUiLabelsEnabled.set(enabled);
+  setFeatureFlagEnabled(change: AdminFeatureFlagChange): void {
+    this.updateFeatureFlag(change);
+    if (this.controlledAlphaAccessFlag()?.key === change.key) {
+      this.allowControlledAlphaAccessEnabled.set(change.enabled);
+    }
   }
 
   async saveAlphaAccessFlag(): Promise<void> {
@@ -511,10 +510,10 @@ export class AdminDashboardComponent implements OnInit {
       return;
     }
 
-    await this.saveFeatureFlag(
-      "allowControlledAlphaAccess",
-      this.allowControlledAlphaAccessEnabled()
-    );
+    const flag = this.controlledAlphaAccessFlag();
+    if (flag) {
+      await this.saveFeatureFlag(flag.key, this.allowControlledAlphaAccessEnabled());
+    }
   }
 
   async createAlphaUser(): Promise<void> {
@@ -571,7 +570,7 @@ export class AdminDashboardComponent implements OnInit {
     }
   }
 
-  async saveShoppingListFeatureFlags(): Promise<void> {
+  async saveFeatureFlags(): Promise<void> {
     if (
       !this.requireAdminAccess(
         this.featureFlagsState,
@@ -585,14 +584,15 @@ export class AdminDashboardComponent implements OnInit {
     this.featureFlagsState.set("loading");
     this.featureFlagsMessage.set("");
 
-    await this.saveFeatureFlag(
-      "allowAutoTickingAllShoppingListEntries",
-      this.allowAutoTickingAllShoppingListEntriesEnabled()
-    );
-    await this.saveFeatureFlag("useAbbreviatedUiLabels", this.useAbbreviatedUiLabelsEnabled());
+    for (const flag of this.ordinaryFeatureFlags()) {
+      const saved = await this.saveFeatureFlag(flag.key, flag.enabled);
+      if (!saved) {
+        return;
+      }
+    }
   }
 
-  private async saveFeatureFlag(key: string, enabled: boolean): Promise<void> {
+  private async saveFeatureFlag(key: string, enabled: boolean): Promise<boolean> {
     this.featureFlagsState.set("loading");
     this.featureFlagsMessage.set("");
 
@@ -609,23 +609,18 @@ export class AdminDashboardComponent implements OnInit {
 
       if (response.status === 401) {
         this.handleUnauthorizedResponse(this.featureFlagsState, this.featureFlagsMessage);
-        return;
+        return false;
       }
 
       const { message, payload } = await this.adminDashboard.readPayload<{
-        featureFlags?: FeatureFlagListItem[];
+        featureFlags?: AdminFeatureFlagViewModel[];
       }>(response, this.loc.t("health.featureFlagsSaveFailure"));
-      const featureFlags = payload?.featureFlags ?? [];
-      this.featureFlags.set(featureFlags);
-      if (key === "allowControlledAlphaAccess") {
-        this.allowControlledAlphaAccessEnabled.set(
-          featureFlags.find((flag) => flag.key === key)?.enabled ?? enabled
-        );
-      }
-      if (key === "useAbbreviatedUiLabels") {
-        this.useAbbreviatedUiLabelsEnabled.set(
-          featureFlags.find((flag) => flag.key === key)?.enabled ?? enabled
-        );
+      const updatedFlag = payload?.featureFlags?.[0];
+      if (updatedFlag) {
+        this.updateFeatureFlag(updatedFlag);
+        if (updatedFlag.control === "alpha-access") {
+          this.allowControlledAlphaAccessEnabled.set(updatedFlag.enabled);
+        }
       }
       this.featureFlagsState.set(response.ok ? "success" : "error");
       this.featureFlagsMessage.set(
@@ -635,13 +630,21 @@ export class AdminDashboardComponent implements OnInit {
       if (!response.ok) {
         this.toast.push(message, "error");
       }
+      return response.ok;
     } catch (error: unknown) {
       this.featureFlagsState.set("error");
       this.featureFlagsMessage.set(this.loc.t("health.browserFeatureFlagsFailure"));
       this.toast.push(this.loc.t("health.browserFeatureFlagsFailure"), "error");
 
       this.logger.log("error", "Feature flag save request failed", { error });
+      return false;
     }
+  }
+
+  private updateFeatureFlag(change: AdminFeatureFlagChange | AdminFeatureFlagViewModel): void {
+    this.featureFlags.update((flags) =>
+      flags.map((flag) => (flag.key === change.key ? { ...flag, ...change } : flag))
+    );
   }
 
   private formatLegacyBackfillMessage(payload: {

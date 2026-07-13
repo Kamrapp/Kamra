@@ -295,6 +295,7 @@
     "featureFlagsDescription": "These toggles are stored in the database and can be changed without redeploying the app.",
     "featureFlagsKicker": "Feature flags",
     "featureFlagsLoadFailure": "Feature flags could not be loaded.",
+    "featureFlagsNoEditableFlags": "No ordinary feature flags are registered.",
     "featureFlagsSaveFailure": "Feature flags could not be saved.",
     "featureFlagsSaveSuccess": "Feature flags saved.",
     "featureFlagsTitle": "Live toggles",

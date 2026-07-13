@@ -295,6 +295,7 @@
     "featureFlagsDescription": "Ezek a kapcsolók az adatbázisban tárolódnak, ezért újratelepítés nélkül módosíthatók.",
     "featureFlagsKicker": "Funkciókapcsolók",
     "featureFlagsLoadFailure": "A funkciókapcsolók nem tölthetők be.",
+    "featureFlagsNoEditableFlags": "Nincs regisztrált, általános funkciókapcsoló.",
     "featureFlagsSaveFailure": "A funkciókapcsolók nem menthetők.",
     "featureFlagsSaveSuccess": "A funkciókapcsolók mentve.",
     "featureFlagsTitle": "Éles kapcsolók",

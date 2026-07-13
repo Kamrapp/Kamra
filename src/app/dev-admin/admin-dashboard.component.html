@@ -70,14 +70,12 @@
 
       <app-admin-feature-flags-card
         [admin]="isAdminUser()"
-        [autoTickEnabled]="allowAutoTickingAllShoppingListEntriesEnabled()"
         [busy]="isMaintenanceBusy()"
-        [abbreviatedUiLabelsEnabled]="useAbbreviatedUiLabelsEnabled()"
+        [flags]="ordinaryFeatureFlags()"
         [loading]="featureFlagsState() === 'loading'"
         [message]="featureFlagsMessage()"
-        (autoTickChanged)="setAllowAutoTickingAllShoppingListEntriesEnabled($event)"
-        (abbreviatedUiLabelsChanged)="setUseAbbreviatedUiLabelsEnabled($event)"
-        (saveRequested)="saveShoppingListFeatureFlags()"
+        (flagChanged)="setFeatureFlagEnabled($event)"
+        (saveRequested)="saveFeatureFlags()"
       />
 
       <app-admin-alpha-access-card
@@ -85,6 +83,7 @@
         [busy]="isMaintenanceBusy()"
         [email]="alphaUserEmail()"
         [enabled]="allowControlledAlphaAccessEnabled()"
+        [flag]="controlledAlphaAccessFlag()"
         [featureFlagsLoading]="featureFlagsState() === 'loading'"
         [message]="alphaUserMessage()"
         [password]="alphaUserPassword()"
