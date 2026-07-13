@@ -172,7 +172,8 @@ Commit: `test: add vertical slice integration harness`
 
 ### Step 11.3 — First cross-layer integration contracts
 
-Status: In progress.
+Status: In progress; the feature-flag → household-workspace contract is complete in the first
+Step 11.3 contract commit.
 
 Add small, high-signal scenarios rather than duplicating every unit test:
 

@@ -54,6 +54,39 @@ describe("Stage 11 application integration harness", () => {
     });
   });
 
+  it("bridges an admin feature-flag update into the household workspace response", async () => {
+    const harness = createIntegrationHarness({
+      user: { email: "stage11-flag-owner@kamra.test", role: "admin" }
+    });
+    await harness.database.collection("household_memberships").insertOne({
+      householdId: harness.householdId,
+      status: "active",
+      userId: harness.user.email
+    });
+
+    const before = await harness.send({
+      method: "GET",
+      path: `/api/households/${harness.householdId}/stock-workspace`
+    });
+    expect(JSON.parse(before.body).productGroupWorkspace.useAbbreviatedUiLabels).toBe(false);
+
+    const update = await harness.send({
+      bodyText: JSON.stringify({
+        enabled: true,
+        key: "useAbbreviatedUiLabels"
+      }),
+      method: "PATCH",
+      path: "/api/admin/dashboard/feature-flags"
+    });
+    expect(update.status).toBe(200);
+
+    const after = await harness.send({
+      method: "GET",
+      path: `/api/households/${harness.householdId}/stock-workspace`
+    });
+    expect(JSON.parse(after.body).productGroupWorkspace.useAbbreviatedUiLabels).toBe(true);
+  });
+
   it("runs a household workspace request through token auth, membership, and grouped read repositories", async () => {
     const harness = createIntegrationHarness({
       user: { email: "stage11-user@kamra.test", role: "user" }
