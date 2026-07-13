@@ -240,6 +240,24 @@ npm run crawl:export -- --output=.artifacts/crawl-archives/dev-2026-07-13
 
 The default output is under `.artifacts/crawl-archives/`, which is ignored by Git. Treat archives as operational data: keep them outside the repository when they contain real crawl payloads, protect them from public distribution, and never use this command with an `--apply` or mutation mode because none exists.
 
+### `maintenance-alpha-domain-language.ts`
+
+Previews or applies the final Product Group cutover by composing the existing idempotent household migrations in this order: stock foundation, Household Product anchors, then Product Groups. It preserves legacy household collections and never touches raw Crawl Snapshot collections.
+
+Preview is the default:
+
+```powershell
+npm run maintenance:alpha-domain-language -- --dry-run
+```
+
+Applying requires an exact database confirmation and an operator identity:
+
+```powershell
+npm run maintenance:alpha-domain-language -- --apply --target=kamra_dev --operator=admin@example.test
+```
+
+Run the archive export first. Review the reported Product Group conflicts before considering the cutover complete. The admin database-maintenance page invokes the same core actions and tracks validator and migration completion independently.
+
 ## Environment
 
 Mongo-backed scripts require:

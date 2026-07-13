@@ -17,6 +17,7 @@
     "dev:api": "node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs watch --clear-screen=false scripts/local-api.ts",
     "dev:web": "npm run generate:public-config && ng serve --host 0.0.0.0 --port 4200 --proxy-config proxy.conf.json",
     "generate:public-config": "node scripts/generate-public-config.ts",
+    "maintenance:alpha-domain-language": "node --env-file-if-exists=.env.local ./node_modules/tsx/dist/cli.mjs scripts/maintenance-alpha-domain-language.ts",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

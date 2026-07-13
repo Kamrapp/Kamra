@@ -1593,6 +1593,11 @@ describe("handleAppRequest auth guards", () => {
     expect(JSON.parse(initialResponse.body)).toMatchObject({
       entries: [
         {
+          id: "alpha-domain-language-v1",
+          migrationCompleted: false,
+          validatorUpdated: false
+        },
+        {
           id: "catalog-product-validation",
           migrationCompleted: false,
           validatorUpdated: false
@@ -1770,6 +1775,8 @@ describe("handleAppRequest auth guards", () => {
     expect(actionOrder).toEqual(["catalog:validator", "catalog:migration"]);
     expect(JSON.parse(response.body)).toMatchObject({
       completedActions: [
+        "alpha-domain-language-v1:validator",
+        "alpha-domain-language-v1:migration",
         "catalog-product-validation:validator",
         "catalog-product-validation:migration",
         "household-fields:validator",

@@ -1,6 +1,6 @@
 # Stage 10 Alpha 1.0 Hardening Plan
 
-Status: In implementation — Step 2 archive export complete (2026-07-13). Keep hardening tied to concrete Stage 8/9 findings; do not expand into a rewrite.
+Status: In implementation — Step 3 domain-language cutover action prepared (2026-07-13). Keep hardening tied to concrete Stage 8/9 findings; do not expand into a rewrite.
 
 ## Objective And Classification
 
@@ -296,9 +296,9 @@ Implementation ownership map:
 
 ### Step 3 - Final domain-language migration and reset
 
-- Finalize `docs/domain-language.md`; add `alpha-domain-language-v1`; rename active API/database/contracts/files/events/i18n/page titles to the dictionary; migrate deterministic records and reset/reseed disposable derived data; preserve raw crawl collections. Keep legacy reads only where a tested cutover adapter is strictly required.
-- Acceptance: repository searches find legacy terms only in migration fixtures/adapters/history docs; validator/data actions remain separate and idempotent; admin and CLI previews agree; raw counts/checksums are unchanged; final routes and locale titles pass contract/browser tests.
-- Stop condition: if a rename would make a Crawl Snapshot unreachable or an ambiguous Product/Shop Product conversion would invent identity, report it as a conflict and preserve/reprocess rather than guessing.
+- Finalize `docs/domain-language.md`; add `alpha-domain-language-v1`; keep the already-shipped Product Group/Household Product/Stock Batch Home path as the final surface; and compose the existing idempotent migrations in order for deterministic records. Preserve raw crawl collections and legacy household evidence. Keep old allocation routes/repositories only as an explicitly named compatibility boundary until their removal has configured-data evidence; do not perform a blind repository-wide rename.
+- Acceptance: final Home and Stage 9 surfaces use the dictionary; the maintenance registry and guarded CLI expose the same ordered cutover; validator/data actions remain separate and idempotent; previews report preserved collections and conflicts; raw counts/checksums are unchanged; final routes and locale titles pass contract/browser tests. **Implementation prepared (2026-07-13):** `MongoAlphaDomainLanguageMaintenance`, `npm run maintenance:alpha-domain-language`, and `alpha-domain-language-v1` admin actions are committed. Configured operator execution and legacy-conflict review remain release evidence, not hidden in code.
+- Stop condition: if a migration reports a conflicting Product Group history, or a rename would make a Crawl Snapshot unreachable or invent Product/Shop Product identity, report it as a conflict and preserve/reprocess rather than guessing.
 - Commit: `refactor: apply final domain language`
 
 ### Step 4 - Read-only crawl-data audit and correction-overlay preparation

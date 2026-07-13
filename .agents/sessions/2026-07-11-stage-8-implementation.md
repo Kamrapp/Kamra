@@ -420,6 +420,13 @@ basic Home shopping experience.
 - The full isolated-database restore drill is intentionally not claimed yet: the importer does not exist until Stage 10 Step 6. The archive inspection test is the available round-trip evidence for this slice.
 - Next safe slice: finalize the `alpha-domain-language-v1` maintenance entry and deterministic cutover/reset support, but preserve raw ingestion collections and stop on any identity or checksum conflict.
 
+## Stage 10 Step 3 checkpoint (2026-07-13)
+
+- The final domain dictionary now states the runtime truth: Product Groups own target policy, Household Products own reusable identity and optional target policy, Stock Batches belong to Products, Shopping Trips/Trip Items are the current purchase-history envelope, and Ingestion Submissions are catalogue-review evidence. It explicitly records `household_local_products`, `household_stock_items`, Stock Targets, and Stock Allocations as migration/compatibility terms rather than new Home concepts.
+- Commit pending in this slice adds `alpha-domain-language-v1` to the maintenance registry, `MongoAlphaDomainLanguageMaintenance`, matching admin actions, and `npm run maintenance:alpha-domain-language`. Preview is default; apply requires `--apply --target=<configured database> --operator=<identity>`. The action composes existing stock, Household Product, and Product Group migrations in that order, preserves legacy collections, and reports counts/conflicts.
+- Focused maintenance tests and full validation are green: 57 test files / 215 tests, lint, format check, typecheck, and API build.
+- The repository still contains old allocation routes/repositories as an explicit compatibility boundary. Do not rename or delete them without configured-data evidence that no supported client or unresolved legacy history depends on them. The next safe slice is the read-only Crawl Snapshot quality audit and correction-overlay schema; operator execution of this cutover remains a configured-environment check.
+
 Historical open-issue entries above describe intermediate checkpoints and are superseded by
 this closeout section where they say the Home bridge is still pending or Stage 8 cannot close.
 

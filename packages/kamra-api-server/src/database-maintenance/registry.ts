@@ -7,6 +7,12 @@ export interface DatabaseMaintenanceEntry {
 export const databaseMaintenanceEntries: readonly DatabaseMaintenanceEntry[] = [
   {
     details:
+      "Runs the final Product Group cutover in the required order by composing the existing stock, Household Product, and Product Group migrations. It preserves legacy household collections for rollback evidence, reports migration counts and Product Group conflicts, and does not touch raw Crawl Snapshot collections. Run the validator action first, then the migration action; resolve reported conflicts before treating the cutover as complete.",
+    id: "alpha-domain-language-v1",
+    title: "Alpha final domain language cutover"
+  },
+  {
+    details:
       "Updates the JSON Schema validators for all catalog collections to the current catalog contract. This changes which future catalog writes MongoDB accepts; it does not add missing fields to existing product documents. Run the migration action afterwards to backfill legacy validation fields.",
     id: "catalog-product-validation",
     title: "Catalog product validation fields"

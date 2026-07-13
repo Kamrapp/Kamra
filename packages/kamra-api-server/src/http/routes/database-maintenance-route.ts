@@ -20,6 +20,7 @@ import { MongoShopProductRepository } from "../../household/v2/mongo-shop-produc
 import { MongoPriceObservationRepository } from "../../household/v2/mongo-price-observation-repository.js";
 import { MongoIngestionSubmissionRepository } from "../../household/v2/mongo-ingestion-submission-repository.js";
 import { describeRequest, json, unauthorized, type AppRoute } from "../app-route-context.js";
+import { MongoAlphaDomainLanguageMaintenance } from "../../database-maintenance/alpha-domain-language-maintenance.js";
 
 export const databaseMaintenanceListRoute: AppRoute = {
   match: (request) =>
@@ -228,6 +229,9 @@ async function runValidatorAction(
   database: Db,
   context: Parameters<AppRoute["handle"]>[1]
 ): Promise<unknown> {
+  if (entryId === "alpha-domain-language-v1") {
+    return await new MongoAlphaDomainLanguageMaintenance(database).setupCollections();
+  }
   if (entryId === "catalog-classification-v1") {
     return await new MongoClassificationRepository(database).setupCollections();
   }
@@ -288,6 +292,9 @@ async function runMigrationAction(
   database: Db,
   context: Parameters<AppRoute["handle"]>[1]
 ): Promise<unknown> {
+  if (entryId === "alpha-domain-language-v1") {
+    return await new MongoAlphaDomainLanguageMaintenance(database).migrateLegacy();
+  }
   if (entryId === "catalog-classification-v1") {
     const repository = new MongoClassificationRepository(database);
     const tags = await database.collection<ProductTagRecord>("product_tags").find({}).toArray();
