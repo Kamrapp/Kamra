@@ -1,5 +1,11 @@
 export const featureFlagDefinitions = {
   allowAutoTickingAllShoppingListEntries: {
+    admin: {
+      control: "boolean",
+      descriptionKey: "health.featureFlagAutoTickAllShoppingListEntriesDescription",
+      group: "shopping",
+      labelKey: "health.featureFlagAutoTickAllShoppingListEntries"
+    },
     defaultValue: true,
     failureValue: true,
     owner: "household",
@@ -7,6 +13,12 @@ export const featureFlagDefinitions = {
     scope: "global"
   },
   allowControlledAlphaAccess: {
+    admin: {
+      control: "alpha-access",
+      descriptionKey: "health.featureFlagControlledAlphaAccessDescription",
+      group: "access",
+      labelKey: "health.featureFlagControlledAlphaAccess"
+    },
     defaultValue: false,
     failureValue: false,
     owner: "access",
@@ -14,6 +26,12 @@ export const featureFlagDefinitions = {
     scope: "global"
   },
   useAbbreviatedUiLabels: {
+    admin: {
+      control: "boolean",
+      descriptionKey: "health.featureFlagAbbreviatedUiLabelsDescription",
+      group: "household",
+      labelKey: "health.featureFlagAbbreviatedUiLabels"
+    },
     defaultValue: false,
     failureValue: false,
     owner: "household",
@@ -24,6 +42,33 @@ export const featureFlagDefinitions = {
 
 export type FeatureFlagKey = keyof typeof featureFlagDefinitions;
 export type FeatureFlagDefinition = (typeof featureFlagDefinitions)[FeatureFlagKey];
+export const featureFlagKeys = Object.keys(featureFlagDefinitions) as FeatureFlagKey[];
+export type FeatureFlagControl = FeatureFlagDefinition["admin"]["control"];
+export type FeatureFlagAdminGroup = FeatureFlagDefinition["admin"]["group"];
+
+export interface FeatureFlagAdminListItem {
+  control: FeatureFlagControl;
+  descriptionKey: string;
+  enabled: boolean;
+  group: FeatureFlagAdminGroup;
+  key: FeatureFlagKey;
+  labelKey: string;
+}
+
+export function toFeatureFlagAdminListItem(
+  key: FeatureFlagKey,
+  enabled: boolean
+): FeatureFlagAdminListItem {
+  const { admin } = featureFlagDefinitions[key];
+  return {
+    control: admin.control,
+    descriptionKey: admin.descriptionKey,
+    enabled,
+    group: admin.group,
+    key,
+    labelKey: admin.labelKey
+  };
+}
 
 export interface FeatureFlagRecord {
   enabled: boolean;

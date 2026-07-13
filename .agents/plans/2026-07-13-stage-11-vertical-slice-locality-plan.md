@@ -197,6 +197,9 @@ Commit per independent contract: `test: cover <capability> integration boundary`
 
 ### Step 11.4 — Registry-driven feature-flag metadata
 
+Status: Complete in the current Step 11.4 implementation commit; frontend iteration remains Step
+11.5.
+
 - Extend the checked-in registry with stable admin-display metadata: translation keys, grouping,
   control kind, and whether a specialized workflow is attached. Keep operational removal notes in
   code/docs but do not expose unnecessary internal detail to ordinary users.

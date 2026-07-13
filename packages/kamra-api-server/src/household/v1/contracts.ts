@@ -1,3 +1,5 @@
+import { featureFlagKeys, type FeatureFlagKey } from "../../feature-toggles/contracts.js";
+
 export const householdV1CollectionNames = [
   "households",
   "household_memberships",
@@ -72,12 +74,8 @@ export const householdShoppingListUpdateScopes = [
 ] as const;
 export type HouseholdShoppingListUpdateScope = (typeof householdShoppingListUpdateScopes)[number];
 
-export const householdFeatureFlagKeys = [
-  "allowAutoTickingAllShoppingListEntries",
-  "allowControlledAlphaAccess",
-  "useAbbreviatedUiLabels"
-] as const;
-export type HouseholdFeatureFlagKey = (typeof householdFeatureFlagKeys)[number];
+export const householdFeatureFlagKeys = featureFlagKeys;
+export type HouseholdFeatureFlagKey = FeatureFlagKey;
 
 export interface HouseholdRecord {
   allowExpiredItems?: boolean | null;

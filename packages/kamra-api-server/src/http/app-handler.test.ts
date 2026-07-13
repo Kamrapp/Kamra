@@ -208,16 +208,28 @@ describe("handleAppRequest auth guards", () => {
     expect(JSON.parse(initialResponse.body)).toEqual({
       featureFlags: [
         {
+          control: "boolean",
+          descriptionKey: "health.featureFlagAutoTickAllShoppingListEntriesDescription",
           enabled: true,
-          key: "allowAutoTickingAllShoppingListEntries"
+          group: "shopping",
+          key: "allowAutoTickingAllShoppingListEntries",
+          labelKey: "health.featureFlagAutoTickAllShoppingListEntries"
         },
         {
+          control: "alpha-access",
+          descriptionKey: "health.featureFlagControlledAlphaAccessDescription",
           enabled: false,
-          key: "allowControlledAlphaAccess"
+          group: "access",
+          key: "allowControlledAlphaAccess",
+          labelKey: "health.featureFlagControlledAlphaAccess"
         },
         {
+          control: "boolean",
+          descriptionKey: "health.featureFlagAbbreviatedUiLabelsDescription",
           enabled: false,
-          key: "useAbbreviatedUiLabels"
+          group: "household",
+          key: "useAbbreviatedUiLabels",
+          labelKey: "health.featureFlagAbbreviatedUiLabels"
         }
       ]
     });
@@ -247,8 +259,12 @@ describe("handleAppRequest auth guards", () => {
     expect(JSON.parse(updateResponse.body)).toEqual({
       featureFlags: [
         {
+          control: "boolean",
+          descriptionKey: "health.featureFlagAbbreviatedUiLabelsDescription",
           enabled: true,
-          key: "useAbbreviatedUiLabels"
+          group: "household",
+          key: "useAbbreviatedUiLabels",
+          labelKey: "health.featureFlagAbbreviatedUiLabels"
         }
       ]
     });

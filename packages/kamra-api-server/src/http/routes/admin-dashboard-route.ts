@@ -9,7 +9,12 @@ import { assertUpdateHouseholdFeatureFlagRequest } from "../../household/v1/vali
 import { writeServerLog } from "../../logging/kamra-logger.js";
 import { FeatureFlagService } from "../../feature-toggles/service.js";
 import { MongoFeatureFlagStore } from "../../feature-toggles/mongo-store.js";
-import { featureFlagDefinitions, type FeatureFlagKey } from "../../feature-toggles/contracts.js";
+import {
+  featureFlagDefinitions,
+  featureFlagKeys,
+  toFeatureFlagAdminListItem,
+  type FeatureFlagKey
+} from "../../feature-toggles/contracts.js";
 import { describeRequest, json, unauthorized, type AppRoute } from "../app-route-context.js";
 
 export const adminDashboardHealthRoute: AppRoute = {
@@ -258,12 +263,8 @@ export const adminDashboardFeatureFlagsRoute: AppRoute = {
     if (request.method === "GET") {
       return json(200, {
         featureFlags: (
-          await Promise.all(
-            (Object.keys(featureFlagDefinitions) as FeatureFlagKey[]).map((key) =>
-              featureFlags.evaluate(key)
-            )
-          )
-        ).map(({ enabled, key }) => ({ enabled, key }))
+          await Promise.all(featureFlagKeys.map((key) => featureFlags.evaluate(key)))
+        ).map(({ enabled, key }) => toFeatureFlagAdminListItem(key, enabled))
       });
     }
 
@@ -299,12 +300,7 @@ export const adminDashboardFeatureFlagsRoute: AppRoute = {
     });
 
     return json(200, {
-      featureFlags: [
-        {
-          enabled: updatedFlag.enabled,
-          key: updatedFlag.key
-        }
-      ]
+      featureFlags: [toFeatureFlagAdminListItem(updatedFlag.key, updatedFlag.enabled)]
     });
   }
 };

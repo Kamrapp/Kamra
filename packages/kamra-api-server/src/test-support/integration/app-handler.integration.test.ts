@@ -41,8 +41,12 @@ describe("Stage 11 application integration harness", () => {
     expect(JSON.parse(update.body)).toEqual({
       featureFlags: [
         {
+          control: "boolean",
+          descriptionKey: "health.featureFlagAbbreviatedUiLabelsDescription",
           enabled: true,
-          key: "useAbbreviatedUiLabels"
+          group: "household",
+          key: "useAbbreviatedUiLabels",
+          labelKey: "health.featureFlagAbbreviatedUiLabels"
         }
       ]
     });

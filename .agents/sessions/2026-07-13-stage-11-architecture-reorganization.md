@@ -13,6 +13,7 @@
 - Added the Product Group → Product → Batch seam test through the transaction-backed composer and grouped workspace read model; the harness now supplies only a no-op transaction lifecycle and documents that real transaction behavior remains a configured-smoke concern.
 - Added the shopping-trip completion seam: a partial trip creates one Product-owned Batch and one pending Ingestion Submission, and repeating the same completion operation remains idempotent.
 - Added the raw-ingestion → review-candidate seam using a sanitized snapshot fixture; the admin prepare/list routes now have a deterministic cross-layer contract check.
+- Centralized feature-flag keys, schema enum values, and safe admin display metadata in the checked-in server registry; GET/PATCH admin responses now expose the registry-derived control/group/translation metadata.
 - Captured the first capability ownership map in `docs/vertical-slice-map.md`.
 - Defined the registry-driven feature-flag decision: code owns definitions/defaults/metadata; MongoDB stores overrides and audit history.
 - Defined deterministic local integration tests plus narrowly triggered configured MongoDB integration smoke; neither replaces browser/manual evidence.
@@ -31,12 +32,19 @@
 - `packages/kamra-api-server/src/test-support/integration/`
 - `packages/kamra-api-server/src/test-support/fake-mongo.ts`
 - `package.json`
+- `packages/kamra-api-server/src/feature-toggles/`
+- `packages/kamra-api-server/src/household/v1/contracts.ts`
+- `packages/kamra-api-server/src/household/v1/schemas.ts`
+- `packages/kamra-api-server/src/http/routes/admin-dashboard-route.ts`
+- `packages/kamra-api-server/src/http/app-handler.test.ts`
+- `src/app/i18n/en.json`
+- `src/app/i18n/hu.json`
 - `scripts/stage11-mvp-manual-test.md`
 
 ## Validation
 
 - Ran: `npm run test:integration`, `npm test`, `npm run lint -- --no-warn-ignored`, `npm run typecheck`, `npm run format:check`, `npm run build:api`, and `git diff --check`.
-- Result: 7 focused integration tests, 65 test files/238 tests, lint, typecheck, formatting, API build, and diff checks passed.
+- Result: 7 focused integration tests, 65 test files/239 tests, lint, typecheck, formatting, API build, and diff checks passed.
 - Note: an initial full-test attempt included the unsupported Vitest flag `--runInBand`; the corrected `npm test` run passed.
 
 ## Decisions
@@ -48,10 +56,10 @@
 
 ## Open Issues
 
-- Stage 11 implementation has started with Step 11.3; Steps 11.1 and 11.2 are complete.
+- Stage 11 implementation has started with Step 11.5; Steps 11.1–11.4 are complete.
 - Stage 10 configured/browser release evidence remains open and is not waived by this plan.
 - The operator must edit the live runbook with actual findings during the final pass; those edits become input to the final fixer session.
 
 ## Next Step
 
-Implement Step 11.3 with small cross-layer contract scenarios, then continue through the integration and final runbook/fix loop without separate Stage 8–10 acceptance sessions.
+Implement Step 11.5 by rendering the developer-admin flag controls from the registry-derived API metadata, then continue through the integration and final runbook/fix loop without separate Stage 8–10 acceptance sessions.

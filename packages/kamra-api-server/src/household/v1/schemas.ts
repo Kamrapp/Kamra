@@ -1,4 +1,5 @@
 import type { HouseholdV1CollectionName } from "./contracts.js";
+import { featureFlagKeys } from "../../feature-toggles/contracts.js";
 
 type JsonSchema = Record<string, unknown>;
 
@@ -66,11 +67,7 @@ const householdStockItemStatusSchema = {
 };
 
 const householdFeatureFlagKeySchema = {
-  enum: [
-    "allowAutoTickingAllShoppingListEntries",
-    "allowControlledAlphaAccess",
-    "useAbbreviatedUiLabels"
-  ]
+  enum: featureFlagKeys
 };
 
 const householdShoppingListStatusSchema = {
