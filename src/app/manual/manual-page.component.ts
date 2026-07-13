@@ -214,11 +214,11 @@ import { LocalizationService } from "../shared/localization.service";
       }
       .manual-term-row strong {
         color: var(--color-text);
-        font-size: 0.96rem;
+        font-size: 1.05rem;
       }
       .manual-term-row span {
         color: var(--color-text-muted);
-        font-size: 0.92rem;
+        font-size: 0.98rem;
         line-height: 1.38;
       }
       .admin-note {

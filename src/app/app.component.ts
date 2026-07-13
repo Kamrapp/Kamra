@@ -54,26 +54,28 @@ interface ShellMenuItem extends RadialNavigationItem {
         </section>
 
         <app-page-rail-outlet [resetToken]="railResetToken()" [sections]="pageRail.sections()" />
-        <section class="rail-navigation" [attr.aria-label]="loc.t('app.navigation')">
-          <button
-            type="button"
-            [disabled]="!navigationHistory.canGoBack()"
-            [attr.aria-label]="loc.t('app.navigateBack')"
-            (click)="navigateHistory('back')"
-          >
-            ←
-          </button>
-          <span>{{ loc.t("app.navigation") }}</span>
-          <button
-            type="button"
-            [disabled]="!navigationHistory.canGoForward()"
-            [attr.aria-label]="loc.t('app.navigateForward')"
-            (click)="navigateHistory('forward')"
-          >
-            →
-          </button>
-        </section>
-        <app-client-console-window />
+        <div class="rail-bottom-tools">
+          <section class="rail-navigation" [attr.aria-label]="loc.t('app.navigation')">
+            <button
+              type="button"
+              [disabled]="!navigationHistory.canGoBack()"
+              [attr.aria-label]="loc.t('app.navigateBack')"
+              (click)="navigateHistory('back')"
+            >
+              ←
+            </button>
+            <span>{{ loc.t("app.navigation") }}</span>
+            <button
+              type="button"
+              [disabled]="!navigationHistory.canGoForward()"
+              [attr.aria-label]="loc.t('app.navigateForward')"
+              (click)="navigateHistory('forward')"
+            >
+              →
+            </button>
+          </section>
+          <app-client-console-window />
+        </div>
       </aside>
 
       <section class="page-body" [attr.aria-label]="loc.t('app.currentPage')">
@@ -175,8 +177,13 @@ interface ShellMenuItem extends RadialNavigationItem {
         display: grid;
         gap: 0.45rem;
         grid-template-columns: 2rem minmax(0, 1fr) 2rem;
-        margin-top: auto;
         padding: 0.3rem;
+      }
+
+      .rail-bottom-tools {
+        display: grid;
+        gap: var(--space-3);
+        margin-top: auto;
       }
 
       .rail-navigation button {

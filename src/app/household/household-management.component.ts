@@ -236,6 +236,14 @@ import { ToastService } from "../shared/toast.service";
         justify-self: start;
       }
 
+      .management-panel .ui-button {
+        align-items: center;
+        display: inline-flex;
+        font-size: 0.84rem;
+        min-height: 2.15rem;
+        padding: 0.35rem 0.7rem;
+      }
+
       .management-reset-panel {
         border-color: color-mix(in srgb, var(--color-status-danger) 42%, var(--line-panel));
       }

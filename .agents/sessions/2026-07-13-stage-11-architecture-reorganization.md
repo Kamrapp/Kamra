@@ -103,6 +103,10 @@
   and delete a user with confirmation. Sole-owner households are deleted with their content; shared
   households remain and the next active member is promoted. Current-admin self-deletion is blocked,
   and repository/route tests cover password, deletion, cleanup, and promotion behavior.
+- Applied the remaining rail and presentation feedback: navigation and Activity now share a bottom
+  tools group, household-management buttons use the compact shared sizing, and Manual terminology
+  rows have a more readable type scale. The live runbook now retains only the new browser/configured
+  retests for invitations, deletion, workspace action positions/theme, feature flags, and users.
 
 ## Changed Files
 
