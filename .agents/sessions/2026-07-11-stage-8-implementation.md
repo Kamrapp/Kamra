@@ -670,3 +670,17 @@ Stage 9 remains in implementation. At this checkpoint, the next required slice i
 - Before the configured smoke is treated as green, run the new validator action and then its
   migration action in the approved disposable database. The smoke itself does not change validators,
   maintenance acknowledgements, catalogue records, archive data, or repair data.
+
+## Stage 11 automation audit — Stage 9 admin contracts (2026-07-13)
+
+- Added HTTP-boundary coverage for Shop Market, Shop Product, and Shop Price Observation admin
+  creates: admin authorization, required-field validation, positive package quantities, supported
+  price kinds, non-negative prices, successful persistence, and duplicate responses.
+- Added ingestion review coverage for accepted, corrected, and rejected outcomes, preserved purchase
+  facts and notes, admin-only access, stale revision conflicts, and already-reviewed conflicts.
+- The runbook now keeps only the browser-visible form, Activity, locale, overlap, and stale-feedback
+  checks in the manual section; deterministic HTTP outcomes are recorded in its covered ledger.
+- A narrow validation fix rejects malformed Shop Product and Price Observation requests before they
+  reach persistence, preventing a configured validator from being the only boundary for bad admin
+  input.
+- Focused Stage 9 route/repository/integration tests, typecheck, formatting, and lint pass locally.

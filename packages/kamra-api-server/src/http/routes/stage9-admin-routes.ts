@@ -24,10 +24,10 @@ export const adminShopMarketsRoute: AppRoute = {
     const body = parseObject(request.bodyText);
     if (
       !body ||
-      typeof body["id"] !== "string" ||
-      typeof body["displayName"] !== "string" ||
-      typeof body["countryCode"] !== "string" ||
-      typeof body["currencyCode"] !== "string"
+      !isNonEmptyString(body["id"]) ||
+      !isNonEmptyString(body["displayName"]) ||
+      !isNonEmptyString(body["countryCode"]) ||
+      !isNonEmptyString(body["currencyCode"])
     )
       return json(400, { error: "invalid_shop_market" });
     const now = new Date().toISOString();
@@ -123,12 +123,12 @@ export const adminShopProductsRoute: AppRoute = {
     const body = parseObject(request.bodyText);
     if (
       !body ||
-      !isString(body["id"]) ||
-      !isString(body["productId"]) ||
-      !isString(body["shopMarketId"]) ||
-      !isString(body["displayName"]) ||
-      !isFiniteNumber(body["packageQuantity"]) ||
-      !isString(body["packageUnit"])
+      !isNonEmptyString(body["id"]) ||
+      !isNonEmptyString(body["productId"]) ||
+      !isNonEmptyString(body["shopMarketId"]) ||
+      !isNonEmptyString(body["displayName"]) ||
+      !isPositiveFiniteNumber(body["packageQuantity"]) ||
+      !isNonEmptyString(body["packageUnit"])
     )
       return json(400, { error: "invalid_shop_product" });
     const product: ShopProductRecord = {
@@ -169,12 +169,12 @@ export const adminPriceObservationsRoute: AppRoute = {
     const body = parseObject(request.bodyText);
     if (
       !body ||
-      !isString(body["id"]) ||
-      !isString(body["shopProductId"]) ||
-      !isString(body["currencyCode"]) ||
-      !isString(body["kind"]) ||
-      !isString(body["observedAt"]) ||
-      !isFiniteNumber(body["price"])
+      !isNonEmptyString(body["id"]) ||
+      !isNonEmptyString(body["shopProductId"]) ||
+      !isNonEmptyString(body["currencyCode"]) ||
+      !isPriceObservationKind(body["kind"]) ||
+      !isNonEmptyString(body["observedAt"]) ||
+      !isNonNegativeFiniteNumber(body["price"])
     )
       return json(400, { error: "invalid_price_observation" });
     try {
@@ -211,8 +211,17 @@ function parseObject(bodyText: string | undefined): Record<string, unknown> | nu
 function isString(value: unknown): value is string {
   return typeof value === "string";
 }
+function isNonEmptyString(value: unknown): value is string {
+  return isString(value) && value.trim().length > 0;
+}
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
+}
+function isPositiveFiniteNumber(value: unknown): value is number {
+  return isFiniteNumber(value) && value > 0;
+}
+function isNonNegativeFiniteNumber(value: unknown): value is number {
+  return isFiniteNumber(value) && value >= 0;
 }
 function isDuplicateKeyError(error: unknown): boolean {
   return (
@@ -237,6 +246,15 @@ function queryValue(value: string | string[] | undefined): string | undefined {
 }
 function isReviewStatus(value: unknown): value is "accepted" | "corrected" | "rejected" {
   return value === "accepted" || value === "corrected" || value === "rejected";
+}
+function isPriceObservationKind(value: unknown): value is PriceObservationCandidate["kind"] {
+  return (
+    value === "base" ||
+    value === "offer" ||
+    value === "coupon" ||
+    value === "loyalty_card" ||
+    value === "purchase_paid"
+  );
 }
 function contextualStatus(
   value: string | string[] | undefined
