@@ -484,6 +484,20 @@ basic Home shopping experience.
 - The Home Trip panel now uses the canonical `--line-panel` and `--surface-soft-background` values directly instead of undefined local `--ui-*` references. No markup, endpoint, or persistence behavior changed.
 - Remaining Step 8A evidence is browser light/dark/focus/responsive confirmation; larger Home layout changes stay post-MVP unless manual review identifies a concrete usability defect.
 
+## Stage 10 Step 11 release documentation checkpoint (2026-07-13)
+
+- Added the Alpha reviewer/operator surface: README demo journey and safety notes, `CONTRIBUTING.md`,
+  `SECURITY.md`, `docs/alpha-operations.md`, and `docs/alpha-release-checklist.md`.
+- Updated `.agents/plans/mvp-followups.md` to distinguish implemented archive/export foundations from
+  the still-open configured restore drill, browser/configured acceptance, parser evidence, legacy-list
+  retirement, and other intentionally deferred work. The five high-value ideas and three frontend
+  simplification candidates remain explicitly post-MVP.
+- Validation for the documentation slice: `npm run format:check` and `git diff --check` pass. The
+  documentation does not claim configured Mongo, archive-restore, or browser evidence.
+- Next safe slice: review the remaining Step 9/10 code boundary for a concrete non-functional gap,
+  then run the full local validation before any final-review checkpoint. Stop when configured/browser
+  evidence becomes the next meaningful action.
+
 Historical open-issue entries above describe intermediate checkpoints and are superseded by
 this closeout section where they say the Home bridge is still pending or Stage 8 cannot close.
 

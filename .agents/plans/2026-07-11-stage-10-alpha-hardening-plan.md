@@ -1,6 +1,6 @@
 # Stage 10 Alpha 1.0 Hardening Plan
 
-Status: In implementation — Step 4A household Trip safety/UI slice implemented; configured and browser evidence remain open (2026-07-13). Keep hardening tied to concrete Stage 8/9 findings; do not expand into a rewrite.
+Status: In implementation — Steps 4A, 6, 7, and 8A code slices plus Step 11 release documentation are implemented; configured and browser evidence remain open (2026-07-13). Keep hardening tied to concrete Stage 8/9 findings; do not expand into a rewrite.
 
 ## Objective And Classification
 
@@ -384,7 +384,8 @@ Implementation ownership map:
 ### Step 11 - Repository and Alpha release documentation
 
 - Complete concise setup/contribution/security/domain/demo/limitations docs and final validation checklist.
-- Acceptance: a new technical reviewer can run, seed, exercise, test, and understand the project without private conversation history.
+- **Implemented (2026-07-13):** README Alpha journey and safety boundary, `CONTRIBUTING.md`, `SECURITY.md`, `docs/alpha-operations.md`, and `docs/alpha-release-checklist.md` now describe the current Product Group/Shopping Trip runtime and clearly separate automated, configured, and browser evidence.
+- Acceptance: a new technical reviewer can run, seed, exercise, test, and understand the project without private conversation history. Remaining acceptance is the configured/operator and browser evidence listed in the release checklist.
 - Commit: `docs: prepare kamra alpha 1.0`
 
 ### Step 12 - Final Alpha review
