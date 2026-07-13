@@ -341,6 +341,11 @@
 - Refined the live runbook in `99e95b7`: the completed local preflight is checked rather than left
   as an open manual item, the automated Group aggregation probe was removed from open risks, and
   the document explicitly separates automated evidence from remaining browser/configured checks.
+- Reconciled the runbook against the accepted `257f07e` state in `a2c7fac`: previously accepted
+  access, fixture, Home workspace, shopping UI, settings, and admin checks are now covered rather
+  than repeated. Active work is limited to the post-`257f07e` expiry/count and target-comparison
+  retests, the previously skipped Shopping Trip/pricing/ingestion work, configured archive/repair,
+  final evidence, and the remaining idempotency probe.
 
 Run the focused demo seed against the approved disposable database, then rerun
 `npm run smoke:demo-household` before browser verification. Do not use the full seed unless
