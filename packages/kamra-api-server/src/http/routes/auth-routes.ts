@@ -10,6 +10,7 @@ import { MongoUserRepository } from "../../auth/mongo-user-repository.js";
 import { hashPassword } from "../../auth/password-hash.js";
 import { createUserToken } from "../../auth/user-token.js";
 import { createDefaultHouseholdRepository } from "../app-route-context.js";
+import { MongoHouseholdInvitationRepository } from "../../household/current/mongo-household-invitation-repository.js";
 import { writeServerLog } from "../../logging/kamra-logger.js";
 import {
   describeRequest,
@@ -103,6 +104,13 @@ function readAlphaUserPayload(
   }
 }
 
+function readRegistrationPayload(
+  bodyText: string | undefined
+): { email: string; password: string } | null {
+  const payload = readAlphaUserPayload(bodyText);
+  return payload;
+}
+
 async function createUserRepository(
   context: Parameters<AppRoute["handle"]>[1]
 ): Promise<UserRepository | null> {
@@ -132,6 +140,16 @@ async function createHouseholdRepository(
   return context.dependencies.createHouseholdRepository
     ? context.dependencies.createHouseholdRepository(database)
     : createDefaultHouseholdRepository(database);
+}
+
+async function createInvitationRepository(
+  context: Parameters<AppRoute["handle"]>[1]
+): Promise<MongoHouseholdInvitationRepository | null> {
+  const config = context.config;
+  if (!config.mongodb.uri || !config.mongodb.databaseName) return null;
+
+  const client = await context.getMongoClient(config.mongodb.uri, config.mongodb.dnsServers);
+  return new MongoHouseholdInvitationRepository(client.db(config.mongodb.databaseName));
 }
 
 export const loginRoute: AppRoute = {
@@ -182,6 +200,75 @@ export const loginRoute: AppRoute = {
       token,
       tokenType: "Bearer",
       user: result.user
+    });
+  }
+};
+
+export const registerInvitedUserRoute: AppRoute = {
+  match: (request) => request.method === "POST" && request.path === "/api/register",
+  handle: async (request, context) => {
+    const payload = readRegistrationPayload(request.bodyText);
+    if (!payload) {
+      return json(400, {
+        error: "invalid_registration_payload",
+        message: "An email and a password of at least 8 characters are required."
+      });
+    }
+
+    const userRepository = await createUserRepository(context);
+    const invitationRepository = await createInvitationRepository(context);
+    const config = context.config;
+    if (!userRepository || !invitationRepository || !config.auth.tokenSecret) {
+      return json(503, { error: "registration_not_configured" });
+    }
+
+    const pendingInvitations = await invitationRepository.listPendingForEmail(payload.email);
+    if (pendingInvitations.length === 0) {
+      return json(409, {
+        error: "registration_invitation_required",
+        messageKey: "app.registrationInvitationRequired"
+      });
+    }
+
+    if (await userRepository.findUserByEmail(payload.email)) {
+      return json(409, {
+        error: "user_already_exists",
+        messageKey: "app.registrationAlreadyExists"
+      });
+    }
+
+    if (!userRepository.createRegisteredUser) {
+      return json(503, { error: "registration_not_supported" });
+    }
+
+    const createdUser = await userRepository.createRegisteredUser({
+      email: payload.email,
+      passwordHash: await hashPassword(payload.password),
+      role: "user",
+      status: "active"
+    });
+    const acceptedCount = await invitationRepository.acceptAllForEmail({
+      email: createdUser.email,
+      now: new Date().toISOString()
+    });
+    const authenticatedUser = toAuthenticatedUser(createdUser);
+    const token = createUserToken({
+      email: authenticatedUser.email,
+      maxAgeSeconds: config.auth.tokenMaxAgeSeconds,
+      role: authenticatedUser.role,
+      secret: config.auth.tokenSecret
+    });
+
+    writeServerLog("info", "Invited user registered", {
+      acceptedInvitationCount: acceptedCount,
+      ...describeRequest(request),
+      username: authenticatedUser.email
+    });
+
+    return json(201, {
+      token,
+      tokenType: "Bearer",
+      user: authenticatedUser
     });
   }
 };

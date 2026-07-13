@@ -44,6 +44,8 @@ export type LoginResult =
       status: "error";
     };
 
+export type RegisterResult = LoginResult;
+
 const userTokenStorageKey = "kamra_user_token";
 
 @Injectable({
@@ -117,6 +119,44 @@ export class AuthService {
               : await readApiErrorMessage(response, this.loc.t("app.loginFailure"), (messageKey) =>
                   this.loc.t(messageKey as TranslationKey)
                 ),
+        status: "error"
+      };
+    }
+
+    const payload = (await response.json()) as LoginResponse;
+    this.storeToken(payload.token);
+    this.user.set(this.normalizeUser(payload.user));
+
+    return { status: "ok" };
+  }
+
+  async register(email: string, password: string): Promise<RegisterResult> {
+    let response: Response;
+    try {
+      response = await fetch(buildApiUrl("/api/register"), {
+        body: JSON.stringify({ email, password }),
+        headers: {
+          accept: "application/json",
+          "content-type": "application/json"
+        },
+        method: "POST"
+      });
+    } catch {
+      return {
+        message: this.loc.t("app.registrationRequestFailed"),
+        status: "error"
+      };
+    }
+
+    if (!response.ok) {
+      return {
+        message: await readApiErrorMessage(
+          response,
+          response.status === 503
+            ? this.loc.t("app.registrationNotConfigured")
+            : this.loc.t("app.registrationFailure"),
+          (messageKey) => this.loc.t(messageKey as TranslationKey)
+        ),
         status: "error"
       };
     }

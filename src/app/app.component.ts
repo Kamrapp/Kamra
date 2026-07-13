@@ -92,6 +92,8 @@ interface ShellMenuItem extends RadialNavigationItem {
           (languageChanged)="setLanguage($event)"
           (loginRequested)="login($event)"
           (logoutRequested)="logout()"
+          (registerRequested)="register($event)"
+          (invitationAccepted)="invitationAccepted($event)"
           (themeChanged)="setTheme($event)"
         />
 
@@ -507,6 +509,32 @@ export class AppComponent implements OnInit {
     } finally {
       this.loginState.set("idle");
     }
+  }
+
+  async register(credentials: ShellLoginCredentials): Promise<void> {
+    this.loginState.set("loading");
+    try {
+      const result = await this.auth.register(credentials.email, credentials.password);
+
+      if (result.status === "error") {
+        this.toast.push(result.message, "error");
+        return;
+      }
+
+      this.theme.applyUserTheme(this.auth.user()?.profile.theme);
+      this.loc.applyUserLanguage(this.auth.user()?.profile.language);
+      this.loginResetToken.update((token) => token + 1);
+      this.toast.push(this.loc.t("app.registrationCompleted"), "success");
+    } catch {
+      this.toast.push(this.loc.t("app.registrationFailure"), "error");
+    } finally {
+      this.loginState.set("idle");
+    }
+  }
+
+  async invitationAccepted(householdId: string): Promise<void> {
+    this.toast.push(this.loc.t("app.invitationAccepted"), "success");
+    await this.router.navigateByUrl(`/household/${encodeURIComponent(householdId)}`);
   }
 
   async logout(): Promise<void> {

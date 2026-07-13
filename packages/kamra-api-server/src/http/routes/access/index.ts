@@ -3,6 +3,7 @@ import {
   createAlphaUserRoute,
   currentUserRoute,
   loginRoute,
+  registerInvitedUserRoute,
   logoutRoute,
   userPreferencesRoute
 } from "../auth-routes.js";
@@ -10,6 +11,7 @@ import {
 export const accessRoutes: AppRoute[] = [
   loginRoute,
   createAlphaUserRoute,
+  registerInvitedUserRoute,
   logoutRoute,
   currentUserRoute,
   userPreferencesRoute

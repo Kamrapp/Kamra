@@ -37,6 +37,12 @@ export const databaseMaintenanceEntries: readonly DatabaseMaintenanceEntry[] = [
   },
   {
     details:
+      "Creates the pending household invitation collection and indexes used by the small no-email membership flow. The validator action changes accepted invitation documents; the migration action is acknowledgement-only because invitations have no legacy source data.",
+    id: "household-invitations-v1",
+    title: "Household invitations"
+  },
+  {
+    details:
       "Creates the final Product Concept, Product Attribute, relation, and product-classification assignment collections and migrates legacy category/attribute tags without treating keyword hints as eligibility rules.",
     id: "catalog-classification-v1",
     title: "Catalog product classification"

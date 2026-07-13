@@ -40,6 +40,12 @@ export interface UserRepository {
     role: UserRole;
     status: UserDocument["status"];
   }): Promise<UserDocument>;
+  createRegisteredUser?(input: {
+    email: string;
+    passwordHash: PasswordHash;
+    role: UserRole;
+    status: UserDocument["status"];
+  }): Promise<UserDocument>;
   findActiveUserByEmail(email: string): Promise<UserDocument | null>;
   findUserByEmail(email: string): Promise<UserDocument | null>;
   updateUserProfile(email: string, profile: UserProfile): Promise<UserDocument | null>;

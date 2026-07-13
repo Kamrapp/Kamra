@@ -58,6 +58,10 @@ const householdMembershipStatusSchema = {
   enum: ["active", "removed"]
 };
 
+const householdInvitationStatusSchema = {
+  enum: ["pending", "accepted", "revoked"]
+};
+
 const householdLocalProductStatusSchema = {
   enum: ["active", "archived"]
 };
@@ -192,6 +196,20 @@ export const householdV1CollectionSchemas: Record<HouseholdV1CollectionName, Jso
       status: householdMembershipStatusSchema,
       updatedAt: isoDateStringSchema,
       userId: nonEmptyStringSchema
+    }
+  ),
+  household_invitations: requiredObjectSchema(
+    ["createdAt", "email", "householdId", "id", "invitedByUserId", "status", "updatedAt"],
+    {
+      acceptedAt: optionalStringSchema,
+      acceptedByUserId: optionalStringSchema,
+      createdAt: isoDateStringSchema,
+      email: nonEmptyStringSchema,
+      householdId: nonEmptyStringSchema,
+      id: nonEmptyStringSchema,
+      invitedByUserId: nonEmptyStringSchema,
+      status: householdInvitationStatusSchema,
+      updatedAt: isoDateStringSchema
     }
   ),
   household_feature_flags: requiredObjectSchema(

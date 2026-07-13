@@ -71,6 +71,23 @@ const collectionPlans: CollectionIndexPlan[] = [
     indexes: [
       {
         key: { id: 1 },
+        options: { name: "household_invitations_id_unique", unique: true }
+      },
+      {
+        key: { householdId: 1, email: 1, status: 1 },
+        options: { name: "household_invitations_household_email_status" }
+      },
+      {
+        key: { email: 1, status: 1, createdAt: -1 },
+        options: { name: "household_invitations_email_status_created_at" }
+      }
+    ],
+    name: "household_invitations"
+  },
+  {
+    indexes: [
+      {
+        key: { id: 1 },
         options: { name: "household_local_products_id_unique", unique: true }
       },
       {
@@ -907,6 +924,9 @@ export class MongoHouseholdRepository {
     deletedShoppingLists: number;
     deletedStockItems: number;
   }> {
+    await this.database.collection("household_invitations").deleteMany({
+      householdId: { $in: ids.householdIds }
+    });
     const [
       deletedMemberships,
       deletedLocalProducts,

@@ -275,6 +275,12 @@ async function runValidatorAction(
       : createDefaultHouseholdRepository(database);
     return await repository.upgradeHouseholdValidators();
   }
+  if (entryId === "household-invitations-v1") {
+    const repository = context.dependencies.createHouseholdRepository
+      ? context.dependencies.createHouseholdRepository(database)
+      : createDefaultHouseholdRepository(database);
+    return await repository.upgradeHouseholdValidators();
+  }
   if (entryId === "catalog-product-validation") {
     const repository = context.dependencies.createCatalogRepository
       ? context.dependencies.createCatalogRepository(database)
@@ -340,6 +346,9 @@ async function runMigrationAction(
       ? context.dependencies.createHouseholdRepository(database)
       : createDefaultHouseholdRepository(database);
     return await repository.migrateGroupTargetShoppingMode();
+  }
+  if (entryId === "household-invitations-v1") {
+    return { status: "ready", migratedCount: 0 };
   }
   if (entryId === "catalog-product-validation") {
     const repository = context.dependencies.createCatalogRepository

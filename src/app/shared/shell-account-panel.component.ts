@@ -2,6 +2,7 @@ import { Component, effect, inject, input, output } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 
 import type { AuthenticatedUser } from "../auth.service";
+import { HouseholdInvitationService } from "../household/household-invitation.service";
 import { LocalizationService, type LanguagePreference } from "./localization.service";
 import type { ThemePreference } from "./theme-preference.service";
 
@@ -21,8 +22,38 @@ export interface ShellLoginCredentials {
           <span>{{ signedInUser.email }}</span>
           <button type="button" (click)="logoutRequested.emit()">{{ loc.t("app.logout") }}</button>
         </div>
+        @if (invitationService.pendingInvitations().length > 0) {
+          <div class="pending-invitations">
+            <strong>{{ loc.t("app.pendingInvitations") }}</strong>
+            @for (invitation of invitationService.pendingInvitations(); track invitation.id) {
+              <div class="pending-invitation">
+                <span>
+                  {{
+                    loc.t("app.invitationForHousehold", {
+                      household: invitation.householdName ?? invitation.householdId
+                    })
+                  }}
+                </span>
+                <button
+                  type="button"
+                  [disabled]="acceptingInvitationId === invitation.id"
+                  (click)="acceptInvitation(invitation.id)"
+                >
+                  {{
+                    acceptingInvitationId === invitation.id
+                      ? loc.t("app.loading")
+                      : loc.t("app.acceptInvitation")
+                  }}
+                </button>
+              </div>
+            }
+          </div>
+        }
       } @else {
-        <form class="login-form" (ngSubmit)="submitLogin()">
+        @if (registerMode) {
+          <p class="auth-hint">{{ loc.t("app.registrationHint") }}</p>
+        }
+        <form class="login-form" (ngSubmit)="submitAuth()">
           <input
             autocomplete="username"
             name="email"
@@ -32,7 +63,7 @@ export interface ShellLoginCredentials {
             [disabled]="loginLoading()"
           />
           <input
-            autocomplete="current-password"
+            [autocomplete]="registerMode ? 'new-password' : 'current-password'"
             name="password"
             [placeholder]="loc.t('app.password')"
             type="password"
@@ -40,9 +71,20 @@ export interface ShellLoginCredentials {
             [disabled]="loginLoading()"
           />
           <button type="submit" [disabled]="loginLoading()">
-            {{ loginLoading() ? loc.t("app.loadingLogin") : loc.t("app.login") }}
+            {{
+              loginLoading()
+                ? registerMode
+                  ? loc.t("app.registering")
+                  : loc.t("app.loadingLogin")
+                : registerMode
+                  ? loc.t("app.register")
+                  : loc.t("app.login")
+            }}
           </button>
         </form>
+        <button class="auth-mode-button" type="button" (click)="toggleRegisterMode()">
+          {{ registerMode ? loc.t("app.switchToLogin") : loc.t("app.switchToRegistration") }}
+        </button>
       }
 
       <label class="preference-field">
@@ -78,6 +120,13 @@ export interface ShellLoginCredentials {
         align-items: center;
         display: grid;
         gap: var(--space-2);
+      }
+
+      .auth-hint {
+        color: var(--color-text-muted);
+        font-size: 0.76rem;
+        line-height: 1.3;
+        margin: 0 0 var(--space-2);
       }
 
       .login-form input,
@@ -119,6 +168,56 @@ export interface ShellLoginCredentials {
       .login-form button:disabled {
         cursor: progress;
         opacity: 0.72;
+      }
+
+      .auth-mode-button {
+        background: transparent;
+        border: 0;
+        color: var(--color-text-muted);
+        cursor: pointer;
+        font: inherit;
+        font-size: 0.72rem;
+        margin-top: var(--space-2);
+        padding: 0.2rem 0;
+        text-decoration: underline;
+      }
+
+      .pending-invitations {
+        border-top: 1px solid var(--line-subtle);
+        display: grid;
+        gap: 0.35rem;
+        margin-top: var(--space-2);
+        padding-top: var(--space-2);
+      }
+
+      .pending-invitations > strong {
+        color: var(--color-text-muted);
+        font-size: 0.7rem;
+        text-transform: uppercase;
+      }
+
+      .pending-invitation {
+        align-items: center;
+        display: grid;
+        gap: 0.4rem;
+        grid-template-columns: minmax(0, 1fr) auto;
+      }
+
+      .pending-invitation span {
+        color: var(--color-text);
+        font-size: 0.78rem;
+      }
+
+      .pending-invitation button {
+        background: var(--control-primary-background);
+        border: 1px solid var(--control-primary-border);
+        border-radius: var(--radius-ui);
+        color: white;
+        cursor: pointer;
+        font: inherit;
+        font-size: 0.72rem;
+        font-weight: 700;
+        padding: 0.3rem 0.45rem;
       }
 
       .user-chip {
@@ -172,6 +271,7 @@ export interface ShellLoginCredentials {
 })
 export class ShellAccountPanelComponent {
   readonly loc = inject(LocalizationService);
+  readonly invitationService = inject(HouseholdInvitationService);
   readonly user = input<AuthenticatedUser | null>(null);
   readonly loginLoading = input(false);
   readonly theme = input.required<ThemePreference>();
@@ -179,23 +279,52 @@ export class ShellAccountPanelComponent {
   readonly loginResetToken = input(0);
 
   readonly loginRequested = output<ShellLoginCredentials>();
+  readonly registerRequested = output<ShellLoginCredentials>();
+  readonly invitationAccepted = output<string>();
   readonly logoutRequested = output<void>();
   readonly themeChanged = output<ThemePreference>();
   readonly languageChanged = output<LanguagePreference>();
 
   loginEmail = "";
   loginPassword = "";
+  registerMode = false;
+  acceptingInvitationId = "";
 
   private readonly resetPassword = effect(() => {
     this.loginResetToken();
     this.loginPassword = "";
+    this.registerMode = false;
+  });
+  private readonly loadInvitations = effect(() => {
+    const user = this.user();
+    if (user) {
+      void this.invitationService.loadPending();
+    } else {
+      this.invitationService.clear();
+    }
   });
 
-  submitLogin(): void {
-    this.loginRequested.emit({
+  submitAuth(): void {
+    const credentials = {
       email: this.loginEmail,
       password: this.loginPassword
-    });
+    };
+    if (this.registerMode) {
+      this.registerRequested.emit(credentials);
+      return;
+    }
+    this.loginRequested.emit(credentials);
+  }
+
+  toggleRegisterMode(): void {
+    this.registerMode = !this.registerMode;
+  }
+
+  async acceptInvitation(invitationId: string): Promise<void> {
+    this.acceptingInvitationId = invitationId;
+    const result = await this.invitationService.accept(invitationId);
+    this.acceptingInvitationId = "";
+    if (result.status === "ok") this.invitationAccepted.emit(result.invitation.householdId);
   }
 
   setLanguage(value: string): void {

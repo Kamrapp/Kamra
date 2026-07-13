@@ -3,6 +3,7 @@ import { featureFlagKeys, type FeatureFlagKey } from "../../feature-toggles/cont
 export const householdV1CollectionNames = [
   "households",
   "household_memberships",
+  "household_invitations",
   "household_local_products",
   "household_stock_items",
   "household_feature_flags",
@@ -21,6 +22,9 @@ export type HouseholdMembershipRole = (typeof householdMembershipRoles)[number];
 
 export const householdMembershipStatuses = ["active", "removed"] as const;
 export type HouseholdMembershipStatus = (typeof householdMembershipStatuses)[number];
+
+export const householdInvitationStatuses = ["pending", "accepted", "revoked"] as const;
+export type HouseholdInvitationStatus = (typeof householdInvitationStatuses)[number];
 
 export const householdLocalProductStatuses = ["active", "archived"] as const;
 export type HouseholdLocalProductStatus = (typeof householdLocalProductStatuses)[number];
@@ -105,6 +109,28 @@ export interface HouseholdMembershipRecord {
   status: HouseholdMembershipStatus;
   updatedAt: string;
   userId: string;
+}
+
+export interface HouseholdInvitationRecord {
+  acceptedAt?: string | null;
+  acceptedByUserId?: string | null;
+  createdAt: string;
+  email: string;
+  householdId: string;
+  id: string;
+  invitedByUserId: string;
+  status: HouseholdInvitationStatus;
+  updatedAt: string;
+}
+
+export interface HouseholdInvitationListItem {
+  createdAt: string;
+  email: string;
+  householdId: string;
+  householdName?: string;
+  id: string;
+  status: HouseholdInvitationStatus;
+  updatedAt: string;
 }
 
 export interface HouseholdFeatureFlagRecord {

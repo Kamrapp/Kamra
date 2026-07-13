@@ -4,6 +4,10 @@ import { FormsModule } from "@angular/forms";
 import { ActivatedRoute, RouterLink } from "@angular/router";
 
 import { HouseholdStockService, type HouseholdListItem } from "./household-stock.service";
+import {
+  HouseholdInvitationService,
+  type HouseholdInvitation
+} from "./household-invitation.service";
 import { HouseholdV2Service } from "./household-v2.service";
 import { LocalizationService } from "../shared/localization.service";
 import { ToastService } from "../shared/toast.service";
@@ -53,7 +57,35 @@ import { ToastService } from "../shared/toast.service";
           <p class="ui-kicker">{{ loc.t("household.managementInviteKicker") }}</p>
           <h2 class="ui-card-title">{{ loc.t("household.managementInviteTitle") }}</h2>
           <p class="ui-copy-muted">{{ loc.t("household.managementInviteDescription") }}</p>
-          <p class="ui-copy-muted">{{ loc.t("household.managementInvitePlaceholder") }}</p>
+          @if (household(); as currentHousehold) {
+            <form class="invite-form" (ngSubmit)="invite(currentHousehold.id)">
+              <label>
+                <span>{{ loc.t("household.inviteEmail") }}</span>
+                <input
+                  class="ui-form-control"
+                  name="inviteEmail"
+                  type="email"
+                  [(ngModel)]="inviteEmailDraft"
+                />
+              </label>
+              <button class="ui-button ui-button-sm" type="submit" [disabled]="inviting()">
+                {{ inviting() ? loc.t("household.inviting") : loc.t("household.invite") }}
+              </button>
+            </form>
+            @if (invitations().length > 0) {
+              <div class="invitation-list">
+                <strong>{{ loc.t("household.pendingInvitations") }}</strong>
+                @for (invitation of invitations(); track invitation.id) {
+                  <div class="invitation-row">
+                    <span>{{ invitation.email }}</span>
+                    <time [attr.datetime]="invitation.createdAt">
+                      {{ invitation.createdAt | date: "shortDate" }}
+                    </time>
+                  </div>
+                }
+              </div>
+            }
+          }
         </article>
 
         <article class="ui-panel-card management-panel">
@@ -121,6 +153,11 @@ import { ToastService } from "../shared/toast.service";
         margin: 0;
       }
 
+      .invite-form {
+        display: grid;
+        gap: var(--space-2);
+      }
+
       .management-panel label {
         align-items: center;
         color: var(--color-text-muted);
@@ -153,6 +190,33 @@ import { ToastService } from "../shared/toast.service";
         justify-self: start;
       }
 
+      .invitation-list {
+        border-top: 1px solid var(--line-subtle);
+        display: grid;
+        gap: 0.25rem;
+        padding-top: var(--space-2);
+      }
+
+      .invitation-list > strong {
+        color: var(--color-text-muted);
+        font-size: 0.7rem;
+        text-transform: uppercase;
+      }
+
+      .invitation-row {
+        align-items: center;
+        color: var(--color-text);
+        display: grid;
+        font-size: 0.78rem;
+        gap: var(--space-2);
+        grid-template-columns: minmax(0, 1fr) auto;
+      }
+
+      .invitation-row time {
+        color: var(--color-text-muted);
+        font-size: 0.7rem;
+      }
+
       @media (min-width: 900px) {
         .management-grid {
           grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -164,18 +228,22 @@ import { ToastService } from "../shared/toast.service";
 export class HouseholdManagementComponent {
   readonly loc = inject(LocalizationService);
   private readonly householdService = inject(HouseholdStockService);
+  private readonly invitationService = inject(HouseholdInvitationService);
   private readonly householdV2Service = inject(HouseholdV2Service);
   private readonly route = inject(ActivatedRoute);
   private readonly toast = inject(ToastService);
 
   readonly household = signal<HouseholdListItem | null>(null);
   readonly errorMessage = signal("");
+  readonly invitations = signal<HouseholdInvitation[]>([]);
+  readonly inviting = signal(false);
   allowExpiredItemsDraft = true;
   maxLimitMultiplierDraft = 2;
   groupTargetShoppingModeDraft:
     "add_products_and_group_item" | "add_products_only" | "ignore_group_targets" =
     "add_products_and_group_item";
   nameDraft = "";
+  inviteEmailDraft = "";
 
   constructor() {
     void this.loadHousehold();
@@ -201,6 +269,26 @@ export class HouseholdManagementComponent {
     this.groupTargetShoppingModeDraft =
       household?.groupTargetShoppingMode ?? "add_products_and_group_item";
     this.nameDraft = household?.name ?? "";
+    this.invitations.set(
+      household ? await this.invitationService.listForHousehold(household.id) : []
+    );
+  }
+
+  async invite(householdId: string): Promise<void> {
+    const email = this.inviteEmailDraft.trim();
+    if (!email) return;
+
+    this.inviting.set(true);
+    const result = await this.invitationService.invite(householdId, email);
+    this.inviting.set(false);
+    if (result.status === "error") {
+      this.toast.push(result.message ?? this.loc.t("household.invitationFailure"), "error");
+      return;
+    }
+
+    this.inviteEmailDraft = "";
+    this.invitations.set(await this.invitationService.listForHousehold(householdId));
+    this.toast.push(this.loc.t("household.invitationSent"), "success");
   }
 
   async saveSettings(): Promise<void> {
