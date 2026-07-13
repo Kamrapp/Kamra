@@ -62,6 +62,21 @@
   a stable adjacent Custom-unit slot so switching between built-in and custom units does not move
   the surrounding details. The operator-confirmed Manual title and Group/Product detail checks are
   now marked complete; only the final amount-column alignment retest remains.
+- Implemented the attached Section 4 shopping follow-ups in `757f252` and `3ed9f28`: Build mode is
+  now owned by the visible Product Group/Product table, selected owners flow into the V2-compatible
+  generator, the header cycles collapsed/default/all expansion states, and inline Product/Group
+  target values complete a missing counterpart from the household multiplier.
+- Added compact shopping rows with Product, Group-level, and impulse surfaces, additive same-unit
+  impulse merging, clear unit-conflict feedback, completion-time V2 refresh, and completed-list
+  clearing. The V2 completion path stores completed status before the browser panel clears.
+- Fixed the Shopping Trip market-loading race by deferring requests until a household is selected.
+  Added Custom shop selection with an optional persisted `shopNameSnapshot`; existing trip documents
+  remain valid, and the existing `shopping-trip-foundation-v1` maintenance entry records that no
+  backfill is required.
+- Replaced the Section 4 implementation reminders in `scripts/stage11-mvp-manual-test.md` with
+  browser/configured checks only. The deterministic generator and trip-domain cases are automated
+  evidence; remaining checks cover visible selection, mode outcomes, list styling,
+  completion refresh/clear, additive impulse behavior, and custom-shop UI behavior.
 
 ## Changed Files
 
@@ -83,11 +98,27 @@
 - `src/app/i18n/en.json`
 - `src/app/i18n/hu.json`
 - `src/app/household/household-v2-workspace.component.html`
+- `src/app/household/household-v2-workspace.component.ts`
+- `src/app/household/household-v2-workspace.component.css`
+- `src/app/household/household-shopping-list.component.ts`
+- `src/app/household/household-shopping-list.component.html`
+- `src/app/household/household-shopping-list.component.css`
+- `src/app/household/household-shopping-trip-panel.component.ts`
+- `src/app/household/shopping-list-line.component.ts`
+- `src/app/household/household-v2.service.ts`
 - `src/app/dev-admin/admin-feature-flags-card.component.ts`
 - `src/app/dev-admin/admin-alpha-access-card.component.ts`
 - `src/app/dev-admin/admin-dashboard.component.ts`
 - `src/app/dev-admin/admin-dashboard.component.html`
 - `packages/kamra-api-server/src/http/routes/`
+- `packages/kamra-api-server/src/household/v2/shopping-needs.ts`
+- `packages/kamra-api-server/src/household/v2/shopping-needs.test.ts`
+- `packages/kamra-api-server/src/household/v2/shopping-trip-domain.ts`
+- `packages/kamra-api-server/src/household/v2/shopping-trip-domain.test.ts`
+- `packages/kamra-api-server/src/household/v2/stage9-contracts.ts`
+- `packages/kamra-api-server/src/household/v2/product-group-read-model.ts`
+- `packages/kamra-api-server/src/household/v2/mongo-product-group-read-repository.ts`
+- `packages/kamra-api-server/src/database-maintenance/registry.ts`
 - `packages/kamra-api-server/src/http/app-handler.ts`
 - `src/app/dev-admin/feature-flags/`
 - `src/app/site-admin/stage9-pricing/`
@@ -147,6 +178,9 @@
 - A later smoke run found no `household1` in the selected database at all. The validator now reports the selected database and instructs the operator to run `npm run seed:demo-household` before retrying; no automatic database write was performed.
 - The focused seed then exposed the underlying schema drift before fixture deletion: `kamra_dev.households` is missing `groupTargetShoppingMode` in its MongoDB validator. The seed now fails early with the exact maintenance entry and distinguishes running the validator action from merely marking it complete.
 - The teardown guard was verified without the confirmation argument; it failed closed before any database write.
+- After the Section 4 implementation, `npm run typecheck`, `npm run build:web`, and `git diff --check`
+  passed. Focused V2 shopping-needs, Shopping Trip domain, route, and household shopping-completion
+  suites passed (11 tests in the latter three suites; 8 shopping-needs tests separately).
 
 ## Decisions
 
@@ -169,13 +203,21 @@
   consistency/accessibility checks. The new light-theme contrast and reset-flow checks are also
   pending.
 - Stage 10 configured/browser release evidence remains open and is not waived by this plan.
+- Section 4 browser evidence remains open in the live runbook: visible Build checkboxes and
+  tri-state expansion, exact selected-owner output, group-mode presentation, compact source colors,
+  additive impulse behavior, completion clear/refresh, and Custom shop creation still need operator
+  confirmation against the approved disposable household.
+- The legacy shopping-list API remains a compatibility fallback only when no V2 Product Group/Product
+  rows exist; the normal seeded household path now generates from the V2 workspace and visible table
+  selection.
 - The operator must edit the live runbook with actual findings during the final pass; those edits become input to the final fixer session. The shortened manual pass should start with `npm run mvp:preflight`, then the fixture/configured smokes, then browser-only checks.
 
 ## Next Step
 
 Run the focused demo seed against the approved disposable database, then rerun `npm run smoke:demo-household` before browser verification. Do not use the full seed unless catalogue/admin data is also required.
 
-Execute `scripts/stage11-mvp-manual-test.md` as one continuous Stage 8–11 pass. Add observed
+Execute `scripts/stage11-mvp-manual-test.md` as one continuous Stage 8–11 pass, starting with
+Section 4 now that the attached shopping feedback is implemented. Add observed
 behavior and environment details to the runbook without credentials or private exports. Treat the
 operator-edited runbook as the only source for Step 11.10 fixes; do not restart separate Stage 8–10
 acceptance sessions.

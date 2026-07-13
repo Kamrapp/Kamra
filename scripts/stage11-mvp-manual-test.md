@@ -198,32 +198,36 @@ consistency/accessibility checks and the light-theme contrast pass above.
 
 ## 4. Shopping list and household purchase application
 
-- [ ] Generate/build shopping starts from the current Product Group/Product data, not an unrelated
-      legacy table. Group Products appear once and manual impulse items are distinct.
-- [ ] Product shortages use target minus Current. Group shortage is recalculated after planned
-      Products; verify the configured mode for planned Product split, earliest-expiry fallback,
-      first-Product fallback, and Group impulse fallback.
-- [ ] Build shopping list selects the level-eligible rows automatically. Changing the scale resets
-      selection from the scale. Manual checkbox changes persist until generation.
-- [ ] Cancel after Build removes selection mode and checkboxes. Generate exits selection mode and
-      creates the list from exactly the selected rows.
-- [ ] Add the same impulse name twice with different casing/accents. No duplicate is created; the
-      input remains filled and Activity reports the already-added action.
-- [ ] Edit, skip, restore, regenerate, and cancel shopping lines. Confirm one active list and no
-      unexpected Shop Product, Price Observation, Product, or Purchase side effects.
-- [ ] Mark a Product line purchased, adjust quantity, and apply. A new Product-owned Batch appears
-      after refresh with the correct dates/quantity.
-- [ ] Apply a Group impulse line. A concrete household Product is created under the intended Group
-      before the Batch is acquired.
-- [ ] Repeat application/reload once from the UI. The deterministic integration test already
-      covers idempotent completion; the browser check confirms the UI exits retry/loading state and
-      shows the existing result without a duplicate row.
+- [ ] Click Build shopping list. Checkboxes appear in the main Product Group/Product table; the
+      scale selects shortage-eligible rows, manual changes persist, and changing the scale reseeds
+      the selection. Groups and Products are shown once, and Group/impulse rows are distinguishable
+      from normal Product rows in the generated list.
+- [ ] Select an otherwise steady Product and a Group manually, generate, and confirm the resulting
+      list contains exactly the selected owners. Cancel from Build removes checkboxes without
+      creating a list; Generate also exits selection mode.
+- [ ] Verify the generated quantities use target minus Current, then check one configured Group in
+      each household group-target mode. Confirm planned Product split, earliest-expiry fallback,
+      first-Product fallback, and Group impulse behavior match the setting. The deterministic
+      shopping-needs test covers the arithmetic; this check is for the visible list and setting.
+- [ ] Confirm shopping rows are compact enough to scan and use the expected muted Product,
+      Group-level, and impulse surfaces. Edit, skip, restore, regenerate, and cancel lines without
+      creating unrelated Shop Product, Price Observation, Product, or Purchase records.
+- [ ] Add the same impulse name twice with different casing/accents and the same unit. Confirm one
+      row remains, its amount increases additively, the input stays filled, and Activity explains the
+      increase. Repeat with a different unit and confirm the add is rejected with an explanation.
+- [ ] Mark a Product line purchased, adjust quantity, and apply. Confirm a Product-owned Batch
+      appears with the expected date/quantity, the main workspace refreshes without a second manual
+      refresh, the completed shopping list is cleared, and a finished-shopping message is visible.
+- [ ] Apply a Group impulse line. Confirm a concrete household Product is created under the intended
+      Group before its Batch is acquired; repeat/reload once and confirm no duplicate result appears.
 
 Operator notes and discoveries:
 
 ## 5. Concrete Shopping Trip, pricing, and ingestion review
 
-- [ ] Start a Trip from an open Shopping Need by selecting exactly one active Shop Market and date.
+- [ ] Start a Trip from an open Shopping Need by selecting exactly one active Shop Market and
+      date. Confirm the market list loads after the household is selected, then repeat with Custom
+      shop and a saved custom shop name; the custom trip remains usable without a configured market.
 - [ ] Confirm matching shows package count, expected total, applicable Price Observation, and
       explanation. No-price, stale, future, conditional, expired, and incompatible states remain
       explicit.
