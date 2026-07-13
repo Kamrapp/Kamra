@@ -201,26 +201,33 @@
                 <span>
                   <small>{{ loc.t("household.trackingUnit") }}</small>
                   @if (editingGroupId() === row.group.group.id) {
-                    <select
-                      class="inline-group-select"
-                      [ngModel]="editingGroupUnitOption()"
-                      (ngModelChange)="editingGroupUnitOption.set($event)"
-                      [attr.aria-label]="loc.t('household.trackingUnit')"
-                    >
-                      @for (unit of trackingUnitOptions; track unit) {
-                        <option [ngValue]="unit">{{ unit }}</option>
-                      }
-                      <option [ngValue]="'custom'">{{ loc.t("household.customUnit") }}</option>
-                    </select>
-                    @if (editingGroupUnitOption() === "custom") {
-                      <input
-                        class="inline-name-input custom-unit-input"
-                        [ngModel]="editingGroupCustomUnit()"
-                        (ngModelChange)="editingGroupCustomUnit.set($event)"
-                        [attr.aria-label]="loc.t('household.customUnitSuffix')"
-                        [placeholder]="loc.t('household.customUnitSuffix')"
-                      />
-                    }
+                    <span class="group-unit-editor">
+                      <select
+                        class="inline-group-select"
+                        [ngModel]="editingGroupUnitOption()"
+                        (ngModelChange)="editingGroupUnitOption.set($event)"
+                        [attr.aria-label]="loc.t('household.trackingUnit')"
+                      >
+                        @for (unit of trackingUnitOptions; track unit) {
+                          <option [ngValue]="unit">{{ unit }}</option>
+                        }
+                        <option [ngValue]="'custom'">{{ loc.t("household.customUnit") }}</option>
+                      </select>
+                      <span
+                        class="custom-unit-slot"
+                        [class.custom-unit-slot-empty]="editingGroupUnitOption() !== 'custom'"
+                      >
+                        @if (editingGroupUnitOption() === "custom") {
+                          <input
+                            class="inline-name-input custom-unit-input"
+                            [ngModel]="editingGroupCustomUnit()"
+                            (ngModelChange)="editingGroupCustomUnit.set($event)"
+                            [attr.aria-label]="loc.t('household.customUnitSuffix')"
+                            [placeholder]="loc.t('household.customUnitSuffix')"
+                          />
+                        }
+                      </span>
+                    </span>
                   } @else {
                     <strong
                       [class.custom-unit]="isCustomTrackingUnit(row.group.group.trackingUnit)"
