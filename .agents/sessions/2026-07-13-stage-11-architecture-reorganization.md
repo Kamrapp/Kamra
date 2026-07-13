@@ -320,6 +320,25 @@
 - After `68e244e`, the focused comparison test passed with 3 cases, plus typecheck, lint, diff
   checks, and the production web build.
 
+## Automated manual-check audit (2026-07-13)
+
+- Added `26f44ab` with pure client-side shopping-scale eligibility tests for no-policy rows, all
+  four scale levels, and expiry-warning boundaries.
+- Added `afc886e` with generator tests for Product/Group above-target no-op behavior and all empty
+  group policies, extending the existing distribution and earliest-expiry coverage.
+- Added `0e9eafd` with quick-add normalization tests for accents, punctuation, case, known Product
+  matching, and no-match behavior while keeping the debounce/control UI manual.
+- Added `e80cbe7` with a read-model fix and regression test: expired active Batches remain visible
+  and count toward physical Product batch totals while the expiry policy still excludes them from
+  derived Current. The formatter-only follow-up is `4e3cba6`.
+- Updated the automated coverage ledger in `scripts/stage11-mvp-manual-test.md` as `f23478e`.
+  Existing handler/repository/integration tests already cover feature-flag persistence, Batch
+  correction/discard routes, invitations, reset/deletion, stale revisions, trip completion,
+  ingestion review, and demo-fixture invariants; those were not duplicated.
+- `npm run mvp:preflight` passed after these changes: 74 test files/269 tests, 8 deterministic
+  integration tests, formatting, lint, typecheck, web build, API build, and diff checks. Browser,
+  configured MongoDB, and operator-session checks remain manual by design.
+
 Run the focused demo seed against the approved disposable database, then rerun
 `npm run smoke:demo-household` before browser verification. Do not use the full seed unless
 catalogue/admin data is also required.
