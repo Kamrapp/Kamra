@@ -3,7 +3,7 @@
 - Date: 2026-07-13
 - Plan: `.agents/plans/2026-07-13-stage-11-vertical-slice-locality-plan.md`
 - Branch: `dev/bg/stage-9-10`
-- Current objective: Finish the bounded vertical-slice reorganization and hand the complete Stage 8–11 MVP verification to one operator runbook.
+- Current objective: Finish the bounded vertical-slice reorganization and hand the complete Stage 8–11 MVP verification to one manual-only operator runbook.
 
 ## Completed
 
@@ -116,6 +116,15 @@
   navigation, admin, and diagnostics checks moved to the accepted ledger; remaining checks are
   invitation placement/title, manual/activity readability, reset/deletion retest, amount-track and
   state-badge presentation, Crawl review theme, and configured archive/repair/ingestion evidence.
+- Committed the ingestion-review admin refinement in `9539163`: review rows now expose status,
+  decline reason, match confidence, and compact accept/decline actions; the review dialog stays open
+  until its close control is used and the rail label is localized as Ingestion management.
+- Committed the final shopping quick-add bridge in `a78d96c`: quick-add names now match known
+  household Products after a short debounce, align and lock the Product unit, and persist the line
+  against that Product so completion updates the existing stock anchor.
+- Rewrote `scripts/stage11-mvp-manual-test.md` as the single manual-only Stage 8–11 runbook. Active
+  sections contain executable checks and evidence collection only; accepted prior work is tracked in
+  its bottom table, while operator notes and discoveries remain editable.
 
 ## Changed Files
 
@@ -245,10 +254,10 @@
   behavior, and accessibility checks. The live runbook retains only shared header/body amount-column
   alignment and final state-badge presentation.
 - Stage 10 configured/browser release evidence remains open and is not waived by this plan.
-- Section 4 browser evidence remains open in the live runbook: visible Build checkboxes and
-  tri-state expansion, exact selected-owner output, group-mode presentation, compact source colors,
-  additive impulse behavior, completion clear/refresh, and Custom shop creation still need operator
-  confirmation against the approved disposable household.
+- The live runbook now contains only manual/configured checks. Its remaining browser evidence covers
+  invitation/member actions, final Home alignment/theme checks, Build/generate/cancel behavior,
+  known-household-Product quick-add matching, completion feedback, Shopping Trip creation, pricing,
+  ingestion review, archive/repair operations, and final risk probes.
 - The legacy shopping-list API remains a compatibility fallback only when no V2 Product Group/Product
   rows exist; the normal seeded household path now generates from the V2 workspace and visible table
   selection.
@@ -296,14 +305,18 @@
 - No frontend behavior or layout structure was changed intentionally. Validation passed after this
   review: formatting, lint, app/API typecheck, web build, and diff check.
 
-## Next Step
+## Latest validation and next step
+
+- After `a78d96c`, targeted Prettier, app/API typecheck, zero-warning lint, and diff checks passed.
+- The ingestion-review slice was formatted, typechecked, linted, and committed as `9539163`.
+- The runbook rewrite was formatted and diff-checked; it is intentionally a separate pending
+  documentation commit so its operator-facing changes can be reviewed independently.
 
 Run the focused demo seed against the approved disposable database, then rerun
 `npm run smoke:demo-household` before browser verification. Do not use the full seed unless
 catalogue/admin data is also required.
 
-Execute `scripts/stage11-mvp-manual-test.md` as one continuous Stage 8–11 pass, starting with
-Section 4 now that the attached shopping feedback is implemented. Add observed
-behavior and environment details to the runbook without credentials or private exports. Treat the
-operator-edited runbook as the only source for Step 11.10 fixes; do not restart separate Stage 8–10
-acceptance sessions.
+Execute `scripts/stage11-mvp-manual-test.md` as one continuous Stage 8–11 pass, starting with the
+automated preflight and then the remaining browser/configured checks. Add observed behavior and
+environment details to the runbook without credentials or private exports. Treat operator edits as
+the only source for Step 11.10 fixes; do not restart separate Stage 8–10 acceptance sessions.

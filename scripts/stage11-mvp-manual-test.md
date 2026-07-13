@@ -1,16 +1,11 @@
 # Kamra Stage 8–11 MVP manual verification
 
-Status: Live integrated runbook, ready for the Stage 11 operator pass. This is the repository's
-only manual acceptance document for the complete Stage 8–11 MVP journey.
+Status: live integrated runbook for the complete Stage 8–11 MVP journey. This is the only active
+manual acceptance document; the former Stage 8 and Stage 8–10 lists are historical.
 
-This file is intentionally operator-editable. Add notes, screenshots, reproduction details, and
-discoveries under the relevant section. Never add credentials, tokens, private household data, or
-raw production exports. A later fixer session must diff operator edits before changing behavior.
-
-The former Stage 8 demo script and Stage 8–10 checklist were reviewed during this consolidation.
-Their still-relevant Product Group, Product, Batch, shopping, admin, maintenance, visual, and
-failure checks are represented below. Obsolete Product Concept/classification workspace checks were
-not carried forward because classification is intentionally outside the current stock-workspace MVP.
+This file is operator-editable. Add notes, screenshots, reproduction details, and discoveries under
+the relevant section. Do not add credentials, tokens, private household data, or raw production
+exports. A later fixer session must diff operator edits before changing behavior.
 
 ## Run metadata
 
@@ -22,267 +17,288 @@ not carried forward because classification is intentionally outside the current 
 - Viewport(s):
 - Locale(s):
 - Theme(s):
-- Database/environment name:
-- Disposable database used for destructive/maintenance checks:
+- Database/environment:
+- Disposable database for destructive checks:
 - Result: `not started` / `pass` / `pass with waivers` / `blocked`
 
 ## Operator rules
 
 - Use normal UI/API paths. Do not edit MongoDB directly to make a test pass.
 - Use a disposable or explicitly approved database for seed, migration, archive, repair, and
-  transaction operations. Preserve raw crawl evidence before any approved repair.
-- Record the exact expected/observed difference before asking for a fix.
-- A successful HTTP response is not enough: confirm the visible result, persisted/reloaded result,
-  activity log, and absence of duplicate side effects where relevant.
-- Run the affected section again after each fix, then repeat the complete runbook after the final
+  transaction operations.
+- For each mutation, check visible feedback, persisted/reloaded state, Activity output, and absence
+  of duplicate side effects where relevant.
+- Record the exact expected/observed difference, account, locale, theme, viewport, and safe
+  reproduction before requesting a fix.
+- Run the affected section again after a fix, then repeat the full runbook after the final
   behavior-changing fix.
 
 ## 0. Preflight and automated evidence
 
-Run from the repository root on the final Stage 11 implementation commit.
+Run from the repository root on the candidate commit.
 
-- [x] Read-only ingestion quality audit completes; every issue has a parser, repair, defer, or
-      waiver decision.
-- [x] Processed-ingestion validation completes with no unexplained pending or failed snapshots.
-- [x] Export a Crawl Snapshot archive with `npm run crawl:export` and the output option
-      `--output=.artifacts/crawl-archives/stage11-check`, then independently verify its manifest
-      counts and checksums before any repair/import. The command is read-only. Inspect
-      `manifest.json` and the generated gzip JSONL files; do not commit the archive.
-
-- [ ] Configured maintenance preview shows validator and data actions separately.
+- [ ] Run `npm run mvp:preflight`; record the final command summary and any failure.
+- [ ] On the approved disposable environment, run the configured catalogue and transaction smokes.
+      Record database name, collection cleanup, committed/rolled-back counts, and whether the run used
+      the expected validator/transaction path.
+- [ ] Run the maintenance preview and confirm validator actions and data actions are shown as
+      separate operator actions.
+- [ ] Set `SEED_DEMO_HOUSEHOLD_PASSWORD`, run `npm run seed:demo-household`, then run
+      `npm run smoke:demo-household`. Record the fixture smoke result.
+- [ ] When cleanup is required, run
+      `npm run teardown:demo-household -- --confirm=demo-household` and confirm only the reserved demo
+      household and its household-scoped records are removed.
 
 Operator notes and discoveries:
 
-<!-- Add commands, environment names, output summaries, and failures here. -->
+<!-- Add safe command summaries and failures here. -->
 
 ### Automated coverage ledger
 
-The following cross-layer contracts are already exercised by `npm run mvp:preflight` through the
-deterministic integration suite. The browser pass should verify the visible UI wiring and feedback,
-not repeat database-side assertions that these tests already cover.
-
-| Area                | Automated evidence                                                                   | Browser remainder                                                            |
-| ------------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
-| Feature flags       | Registry key validation, admin PATCH persistence, dependent household response       | One admin toggle, refresh, and visible Home effect                           |
-| Household stock     | Product Group → Product → Batch write/read and membership boundary                   | CRUD affordances, layout, editor synchronization, and error feedback         |
-| Shopping completion | Partial Trip completion, Product-owned Batch, Ingestion Submission, idempotent retry | One bought line through the Home/Trip UI and visible resulting stock         |
-| Ingestion review    | Raw snapshot → prepared review candidate/list response                               | One admin review decision and localized status feedback                      |
-| Demo fixture        | `smoke:demo-household` validates seeded shape and ownership invariants               | Visual grouping, ordering, colors, and responsive layout                     |
-| MongoDB behavior    | Catalog validator/index and transaction workflows                                    | Only run configured smokes; do not infer their result from fake-backed tests |
+| Area                | Existing automated evidence                                                                            | Manual remainder                                        |
+| ------------------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
+| Feature flags       | Registry, schema key parity, admin PATCH, persistence, and workspace response                          | Toggle and visible Home effect                          |
+| Household stock     | Product Group → Product → Batch seam, writes, reads, and membership boundary                           | CRUD affordances, synchronization, layout, and feedback |
+| Shopping completion | Partial Trip completion, Product-owned Batch, pending Ingestion Submission, retry                      | One visible purchase flow and resulting stock           |
+| Ingestion review    | Raw snapshot → review candidate/list response                                                          | One visible review decision and status feedback         |
+| Demo fixture        | Seed smoke checks targets, expiry permutations, batch counts, unassigned products, and no orphan Batch | Visual grouping/order/theme/layout                      |
+| MongoDB             | Configured catalogue/transaction workflows                                                             | Run only with approved environment                      |
 
 ## 1. Access, identity, Manual, and diagnostics
 
-- [x] Recheck that pending invitations appear in both the Home Households panel and the secondary
-      account-rail surface. Accept an existing-user invitation and claim a not-yet-registered
-      invitation after registration; confirm accepted rows disappear.
-      -> we should also allow owner to "cancel" invitation in the manage household place where we see the pending invite at the invite block.
-      invited user sohuld also have reject button to reject invitation
-      already accepted invited people should also be present in a small list in the household management of both the owner and the invited user. the owner should be able to kick other members, promote to owner by transferring the ownership and the member should be able to quit the household.
-- [x] Confirm the Home panel title is localized as Households/Háztartások, and an unrelated user
-      sees neither the invitation nor the shared household.
-- [x] Recheck the compact Manual terminology table in English and Hungarian at normal desktop and
-      narrow widths; terms and definitions should be readable and vertically centered.
-- [x] Recheck the Activity console at its 10rem default, 5rem minimum, and 20rem maximum. Resize
-      only its output area and confirm the Navigate block remains attached immediately above it.
+- [ ] As an anonymous user, open protected Home, household, and admin routes. Confirm the intended
+      sign-in state and no protected data.
+- [ ] Sign in as controlled user A. Confirm the allocated household is visible; create one household
+      from an empty account if needed and confirm it survives refresh.
+- [ ] As the owner, invite an existing user and a valid not-yet-registered email. Confirm both
+      pending rows appear in Household management and the secondary account rail.
+- [ ] Confirm the owner can cancel a pending invitation. Confirm the invited user can accept or
+      reject it, and that accepted/rejected/cancelled rows disappear from all affected views.
+- [ ] Confirm a later registration claims its pending invitation. Confirm an unrelated user sees no
+      invitation or household data, duplicate owner invitations are rejected, and accepted rows vanish.
+- [ ] In Household management, confirm accepted members are visible to owner and member. Confirm
+      owner removal and ownership transfer, then confirm a member can leave; refresh after each action.
+- [ ] Open the Manual page in English and Hungarian. Confirm household/shopping content is available
+      to normal users and product/ingestion content is admin-only. Confirm terminology rows are readable
+      and vertically centered at desktop and narrow widths.
+- [ ] Confirm the bottom-left Navigate block stays attached above Activity, goes back/forward without
+      duplicate entries, and Activity shows concise, colored, identified action/error entries.
+- [ ] Resize Activity output between 5rem and 20rem. Confirm only the output area changes and the
+      default is approximately 10rem.
+- [ ] Confirm health/diagnostic output identifies the effective database without secrets or raw
+      private data. Check the Hungarian empty health state and recent household wording.
 
 Operator notes and discoveries:
 
-The access, authentication, one-household creation, admin authorization, Manual navigation/tab
-visibility, and diagnostic-output checks are accepted below. Multiple household management is not
-an MVP requirement. Only invitation placement/title, compact-reference readability, and the final
-Activity-height/rail attachment remain active here.
+The one-household-from-empty-account path is accepted; multiple households are not an MVP
+requirement. Invitation placement/title, member actions, and the final readable Manual/Activity
+pass remain worth checking after the latest build.
 
-## 2. Seeded household and settings
+## 2. Demo household and household settings
 
-Prepare the approved demo fixture using the focused local seed flow. Set
-`SEED_DEMO_HOUSEHOLD_PASSWORD`, then run `npm run seed:demo-household` and
-`npm run smoke:demo-household`. Use the full `npm run seed` only when catalogue/admin seed data
-also needs to be refreshed. The fixture should cover:
-
-- one targeted Product Group with two Products (two milk variants);
-- one targeted Product Group with two Products (white and rye bread);
-- no-target groups with multiple healthy products (vegetables and fruit);
-- a one-Product group and an empty group;
-- unassigned Products;
-- Products with zero, one, and multiple Batches; the Product row should show its Batch count in
-  parentheses after the identity label.
-- expired, future-expiring, no-expiry, below-minimum, at-minimum, at-target, and above-target
-  states.
+- [ ] Confirm the seeded fixture contains: targeted milk and bread groups with two Products each;
+      no-target vegetables and fruit groups; a one-Product group; an empty group; and unassigned
+      Products.
+- [ ] Confirm Products with zero, one, and multiple Batches show `(0)`, `(1)`, or `(n)` and update
+      after a Batch is added or discarded.
+- [ ] Confirm the fixture visibly covers expired, future-expiring, no-expiry, below-minimum,
+      at-minimum, at-target, and above-target states.
+- [ ] In Household management, confirm the compact title/field grid, shared button sizing, household
+      properties, expiry policy, default multiplier, grouped-target mode, and distribution mode. Save,
+      reload, and confirm visible feedback and persistence.
+- [ ] Confirm the default expiry policy includes expired Batches. Turn it off and confirm expired
+      Batches remain visible but are excluded from derived Current/consumption; turn it on again.
+- [ ] Select each reset scope on a disposable household. Confirm the checkbox is required, the
+      description and final confirmation name the selected scope, and only the intended layer is
+      cleared. Include Shopping lists/trips, Batches only, Products plus Batches, Groups plus Products
+      plus Batches, and all household content.
+- [ ] Confirm complete household deletion removes identity, memberships, invitations, and content,
+      then returns safely to Home. Confirm non-owner management is read-only.
 
 Operator notes and discoveries:
-If a group minimum is edited without a desired restock amount, a future improvement could derive the
-desired amount from the household multiplier. Defer this because changing it now would alter the
-target contract/schema; the current explicit target behavior is accepted for MVP.
 
-New focused retests:
-
-- [x] On a disposable household, verify each content reset scope still requires its confirmation
-      checkbox and clears only the described layer. Switching scopes must clear the confirmation
-      checkbox. A non-owner must see static/read-only management content with mutation controls
-      disabled or absent. Then select complete household deletion and confirm the household,
-      memberships, invitations, and content disappear and the browser returns safely to Home.
-
-Focused retest cleanup, when the disposable environment should be empty afterwards:
-
-```powershell
-npm run teardown:demo-household -- --confirm=demo-household
-```
-
-This removes only the reserved demo household, its demo users, household-scoped V2 test records,
-and demo seed-ledger entries. It does not remove shared catalogue, shop-market, or price data.
+If a Group minimum is edited without an explicit desired restock amount, the current MVP keeps the
+target explicit rather than deriving it from the household multiplier. Treat automatic desired
+restock derivation as deferred rather than a test failure.
 
 ## 3. Home Product Group → Product → Stock Batch workspace
 
-### Group and Product structure
+### Structure and derived values
 
-- [x] Confirm the shared header and body use the same compact Minimum, Current, Target, and Unit
-      tracks; header labels remain readable and Batch Quantity stays aligned under Product Current.
+- [ ] Confirm the Home vocabulary is Product Group, Product, and Stock Batch only. Groups start
+      expanded, Products with Batches start collapsed, and empty rows have no inert disclosure control.
+- [ ] Confirm the Unassigned Products separator has a small italic title, Group-like light text,
+      stronger border, and a softened Group-like surface distinct from Groups and Batch rows. Its Add
+      Product icon occupies the same action column as real Groups.
+- [ ] Confirm Group and Product rows expose compact Minimum, Current, Target, Unit, state, and fixed
+      action positions. Current is derived and not independently editable.
+- [ ] Confirm Batch rows leave unused child-action positions empty, keep Details/Edit/Discard aligned,
+      and keep Discard in the final action column.
+- [ ] Confirm Batch Quantity aligns under Product Current; Stocked at and Expiry do not overlap.
+      Confirm expired dates and state badges use readable muted danger/good/warning colors in both themes.
+- [ ] Confirm Batches order expired first, then soonest future expiry, then no-expiry last. Confirm
+      expiry before Stocked at is accepted and persisted.
+- [ ] Confirm Batch titles use source plus stocked-at date, with italic Manual as fallback, for
+      example `Lidl (2026-07-14)`. Edit the title date and confirm Stocked at changes in place.
+
+### CRUD, editors, and integrity
+
+- [ ] Create, rename, edit details, discard/cancel, and delete a Group. Confirm its Products and
+      Batches remain attached or become unassigned according to the displayed policy.
+- [ ] Use the Group unit selector and Custom option. Enter `test`, reload, and confirm storage is
+      represented as `custom:test` while the table shows italic `test`; built-in and Custom controls stay
+      side by side without layout jumps.
+- [ ] Create, rename, reassign, edit GTIN/Note and Tracking unit, discard/cancel, and delete a
+      Product. Confirm the Group dropdown initially shows its actual assignment and Product details
+      remain on one line in normal mode.
+- [ ] Add a Product with no Batch, then add one and multiple Batches. Confirm Product and Group
+      Current values update once per physical Batch and no duplicate contribution appears.
+- [ ] Edit Batch quantity, Stocked at, and Expiry from the inline row and the right-side editor.
+      Confirm each save clears the other editor, refreshes the row, and updates Product/Group totals.
+- [ ] Discard a Batch without entering edit mode first. Confirm the action, Activity result, and
+      resulting history/status are understandable.
+- [ ] Open Group/Product/Batch details. Confirm disclosure controls use right/down arrows, target
+      values say Configured/Not set, and details do not edit unrelated rows.
+- [ ] Save a stale Group, Product, and Batch revision from two views. Confirm the old state remains,
+      the message says the item changed elsewhere and must be refreshed, and Activity uses the same
+      actionable explanation.
 
 ### Visual, responsive, and accessibility checks
 
-- [x] Confirm Product state badges have the same rounded, padded treatment as Group badges in both
-      light and dark themes; preserve the already accepted row surfaces, contrast, responsive
-      layout, controls, and localized error-state behavior.
-- minor issue that in the "unassigned products" group row, the "add product" icon is int he first iconbutton column out of the 4, but it should be in the third one. need two empty blocks before it.
+- [ ] In the light theme, confirm Group/Product/Batch surfaces are visibly separated with sufficient
+      contrast, state badges are rounded and readable, and the fixed header/body/action tracks align.
+- [ ] In the dark theme, confirm surfaces, state colors, disabled/error controls, date fields, and
+      Activity remain readable without excessive brightness.
+- [ ] At a narrow/mobile viewport, confirm tables scroll intentionally and no date, action, or
+      critical control overlaps. Confirm panels collapse/grow without unexplained empty space.
+- [ ] Confirm keyboard labels/tooltips, focus visibility, stable control widths, and non-color text
+      for important state meanings.
 
 Operator notes and discoveries:
 
-The Section 3 structure, CRUD, derived data, responsive behavior, and accessibility checks are
-accepted in the bottom table. Only the shared header/body amount-column alignment and final
-state-badge treatment remain active here.
+The Group/Product/Batch structure, CRUD, derived-data behavior, responsive layout, and basic
+accessibility have prior accepted evidence. Repeat the compact amount tracks, Unassigned action
+alignment, and badge/theme checks after the final shopping/UI build.
 
 ## 4. Shopping list and household purchase application
 
-- [x] Click Build shopping list. Checkboxes appear in the main Product Group/Product table; the
-      scale selects shortage-eligible rows, manual changes persist, and changing the scale reseeds
-      the selection. Groups and Products are shown once, and Group/impulse rows are distinguishable
-      from normal Product rows in the generated list.
-      -> when clicking "generate shopping list", the shopping list section should automaticall expand and the household stock section collapse.
-      -> there is an issue that expanding a big shopping list collides with the household stock table when both are expanded. when the household stock block is collapsed, the shopping list looks perfect, falling below the top blocks even on the right side where the editors are still there.
-      -> for convenience to enlarge the shopping list further upwards, we should also hide all right-side editors when collapsing the household stock block. this would allow only a collapsed household stocks and the households block next ot it on the top and the shopping lsit can grow all the way up until there.
-- [ ] Select an otherwise steady Product and a Group manually, generate, and confirm the resulting
-      list contains exactly the selected owners. Cancel from Build removes checkboxes without
-      creating a list; Generate also exits selection mode.
-      -> when in build shopping list mode, the checboxes dont work manually, only the scale selects what it does, but selecting more items by clicking their checkbox doesnt seem to work
-      -> build shopping list should not be enabled when there is already an active shopping list generated. it should be cancelled beforehand.
-      -> please simplify the name of "update stocks per pourchased item". its simply integrating the purchased items of the shopping list into the household right? so kinda "finalize shopping & save new stocks" maybe? the goal is not to be short but expressive here. but o course short is nice.
-      -> generating a shopping list, completing an item and clicking "update stocks per pourchased item" adds the new batch, but even afterwards. i ticked "Gyümölcsök" and got bought some Áfonya. now i have 11 kg gyümölcs and a target of 10. yet, generating the shop with the level wants to add more gyümölcsök. it seems that we have an issue with comparison to target, because the comparison symbol between the 11 current and the target 10 is yellow. it should be green. this is also true to other items I keep buying: the current is greater than the target but the comparison is yellow. I suspect that the comparison is the rong way between current and target, as towards minimum we seem to work as expected. or we still use the default multiplier based calculation over the actual target value set?
-      -> try to build minimal integration tests for scenarios to check which level of shopping scale add and doesnt add certain content. separate cases so that a case simply has a specific group and product and batch combination like "group with target 2, two products with target 1 and 0.5, no stocks." shopping should buy 1 from one product, 0.5 fromt he other and 0.5 more from either or split to both, idk. anyway, such scenario should be testable and we should have a set of such integration tests around the shopping list generation calculation. note that the "When a Product Group is below target" setting oalso comes into play, so there are quite a few cases here to check. it may also be that the bug is elsewhere, but lets start here and save the tests to verify and snapshot success afterwards on this level even if bug is elsewhere. ofc fix the bug too pls.
-      -> looking at the "When a Product Group is below target" options, an "Add products, then distribute group requirements evenly" and a similar "Add products, then distribute group requirement rationally" kind of setting is missing. these should mean that when a group requires a target and it has alrady products with stocks, we should either divide the required amount evenly among the poroducts, or take the ratio of their current amounts and distribute according to that. ofc this is only for extra amount above the inner product's own targets if there are such, but thats basic part of the logic here.
-- [X] Verify the generated quantities use target minus Current, then check one configured Group in
-      each household group-target mode. Confirm planned Product split, earliest-expiry fallback,
-      first-Product fallback, and Group impulse behavior match the setting. The deterministic
-      shopping-needs test covers the arithmetic; this check is for the visible list and setting.
-- [x] Confirm shopping rows are compact enough to scan and use the expected muted Product,
-      Group-level, and impulse surfaces. Edit, skip, restore, regenerate, and cancel lines without
-      creating unrelated Shop Product, Price Observation, Product, or Purchase records.
-      -> looks nice, but we should redesign the "ticked items": instead, it should follow a similar design to the unassigned products int he other table, with stronger borders. its expander should also be a lkittle arrow int he beginning to maqtch styling.
-- [x] Add the same impulse name twice with different casing/accents and the same unit. Confirm one
-      row remains, its amount increases additively, the input stays filled, and Activity explains the
-      increase. Repeat with a different unit and confirm the add is rejected with an explanation.
-      -> the "Shopping list item unit conflict" shoudl be avoided by automatically changing the editfield of the unit to match that of the same product if its already in the shopping list or exists as a lproduct int he household. so whenever we type int he name field of impulse, we should debounce and check if same-name product or shopping list entry exists. if so, we should set the unit field to match and log with debug level that we did this autoamtically to match. if user still changes unit, sure, it should ghet back to "Shopping list item unit conflict" warning.
-      -> the unit field for impulse items should also be dropdown-based with possiblity as "custom" same as for the simple group/product unit property... waiot, the unit of a product is not even changeable in the table! it should be in the details section as first "Tracking unit" just like for groups! droddown and additional field when custom. Also, in the right side editor we should use the dropdown + editfield combo, not open string input. even for shopping list entries, we should have the dropdown for units. however, for simplicity, shopping list entries that have matching products int he household should have their units disabled for editing to avoid conflicts.
-      -> all "cancel" little buttons with "×" should be bigger. use "X" if there is not a better big cross-symbol
-      -> the more and more addition should only affect the plan amount, not the bought amount. this is generally true: adding impulse items should 
-- [ ] Mark a Product line purchased, adjust quantity, and apply. Confirm a Product-owned Batch
-      appears with the expected date/quantity, the main workspace refreshes without a second manual
-      refresh, the completed shopping list is cleared, and a finished-shopping message is visible.
-      -> no "finished-shopping" message appears anywhere, just reloads the page. not even a toast or activity log
-- [x] Apply a Group impulse line. Confirm a concrete household Product is created under the intended
+- [ ] With no active list, click Build shopping list. Confirm checkboxes appear in the main Product
+      Group/Product table, scale defaults are selected, and individual checkboxes can be added/removed.
+      Changing scale reseeds the defaults without losing the ability to edit selection afterward.
+- [ ] Confirm Build is disabled while an active generated list exists. Cancel the build state without
+      creating a list; cancel an active list and confirm the controls return to the initial state.
+- [ ] Select a steady Product and a Group manually, generate, and confirm exactly those owners appear
+      once. Confirm generation exits selection mode, expands Shopping list, collapses Household stock,
+      and hides the right-side stock editors; the list grows without collision.
+- [ ] Verify one configured Group under each saved grouped-target mode: add Products plus Group
+      impulse when needed, Products only, and Ignore group targets. Confirm product quantities use
+      Target minus Current, current above Target is good and does not generate another need, and earliest
+      expiry/first Product fallback is visible where applicable.
+- [ ] Confirm the even and proportional group-distribution settings produce their expected visible
+      Product split for a Group shortage above Product targets.
+- [ ] Confirm selected owners have the muted bordered surface and disclosure arrow treatment used by
+      the workspace; Product, Group, and impulse rows remain distinguishable.
+- [ ] Add the same impulse name twice with casing/accents changed. Confirm one row remains, the
+      second attempt leaves the field filled, does not increase the amount, and logs the already-added
+      result. Confirm a unit conflict gives a clear warning.
+- [ ] Type the name of an existing household Product into quick add. Confirm the unit auto-matches,
+      the unit controls are locked for the backed Product line, and the line remains associated with
+      that Product after reload.
+- [ ] Edit planned and purchased amounts, skip/restore/regenerate lines, and confirm additive
+      impulse changes affect planned quantity without silently changing purchased quantity.
+- [ ] Mark a Product line purchased, adjust its quantity, and finalize. Confirm a Product-owned Batch
+      appears with the expected date/quantity, Product/Group Current refreshes without a second manual
+      refresh, the completed list clears visibly, and a success toast/Activity message explains what was
+      saved.
+- [ ] Apply a Group impulse line. Confirm a concrete household Product is created under the intended
       Group before its Batch is acquired; repeat/reload once and confirm no duplicate result appears.
 
 Operator notes and discoveries:
 
-## 5. Concrete Shopping Trip, pricing, and ingestion review
+The visible Home list now uses the Product Group workspace selection and bridges its generated list
+to the V2 Shopping Need foundation. Legacy household-list records remain a compatibility boundary;
+do not treat their existence alone as a separate user workflow.
 
-- [ ] Start a Trip from an open Shopping Need by selecting exactly one active Shop Market and
-      date. Confirm the market list loads after the household is selected, then repeat with Custom
-      shop and a saved custom shop name; the custom trip remains usable without a configured market.
-      -> starting a srip fails: "Shopping trip creation failed (400)." when name is not given (should generate "custom") and with 404 when name is given -> idk why it doesnt save.
-      -> since this shopping trip is quite a new territory and is untested and is not required for household internal management, we should add a feature toggle to disable completely and hide it from the home page then.
-- [ ] Confirm matching shows package count, expected total, applicable Price Observation, and
-      explanation. No-price, stale, future, conditional, expired, and incompatible states remain
-      explicit.
+## 5. Shopping Trip, pricing, and ingestion review
+
+- [ ] From an open Shopping Need, start a Trip with one active Shop Market and a date. Repeat with
+      Custom shop and a saved custom shop name; confirm both remain usable and no 400/404 appears.
+- [ ] Confirm matching shows package count, expected total, applicable Price Observation, and an
+      explanation. Check no-price, stale, future, conditional, expired, and incompatible states.
 - [ ] Select an alternate bounded match and confirm package math, price, and explanation recalculate.
-- [ ] Leave a line unresolved, verify continuation is blocked, then skip it and resume the remaining
-      lines.
-- [ ] Mark lines bought/not bought. Only bought lines produce stock on completion.
-- [ ] Record actual Product choice, quantity, unit, paid price/currency, acquisition date, and
-      expiry. Confirm these values reach the resulting Batch and pending Ingestion Submission.
-- [ ] Choose an existing Household Product and separately create a genuine new Product. Confirm
-      no accidental duplicate Product is created.
-- [ ] Add an unplanned purchase, complete it, and verify immediate household usability plus pending
+- [ ] Leave a line unresolved, confirm continuation is blocked, skip it, and resume remaining lines.
+- [ ] Mark lines bought/not bought. Confirm only bought lines create stock on completion.
+- [ ] Record actual Product, quantity, unit, paid price/currency, acquisition date, and expiry.
+      Confirm the resulting Batch and pending Ingestion Submission contain the entered values.
+- [ ] Choose an existing Household Product and separately create a genuine new Product. Confirm no
+      accidental duplicate Product is created.
+- [ ] Add an unplanned purchase, complete it, and confirm immediate household usability plus pending
       admin review.
-- [ ] Resume a partially processed Trip and retry completion from the UI. Integration and
-      transaction smoke cover the persistence/idempotency and MongoDB transaction claims; the
-      browser check is limited to resume state, feedback, and no duplicate visible result.
-- [ ] Admin lists, accepts, rejects, and corrects an Ingestion Submission. Stale review is rejected;
-      household history and snapshots are not rewritten.
-- [ ] Admin creates a Shop Market, Shop Product, and Price Observation. Invalid forms fail locally;
-      successful/failing requests provide feedback and Activity entries; overlapping actions are
-      disabled.
-- [ ] Verify base, offer, coupon, loyalty, manual, substitution, and no-price states in both
-      locales and with a narrow viewport.
+- [ ] Resume a partially processed Trip and retry completion. Confirm resume feedback and no duplicate
+      visible result.
+- [ ] In admin review, accept, decline with a reason, and correct a review item. Confirm status,
+      decline reason, match confidence, localized feedback, stale-review conflict, and preserved history.
+- [ ] In admin, create a Shop Market, Shop Product, and Price Observation. Confirm invalid forms,
+      successful/failing feedback, Activity entries, and overlapping-action handling.
+- [ ] Verify base, offer, coupon, loyalty, manual, substitution, and no-price states in both locales
+      and at a narrow viewport.
 
 Operator notes and discoveries:
+
+Shopping Trip browser verification was previously skipped after 400/404 creation failures; repeat
+it now that the API defaults unnamed Custom trips and the route/integration path is covered. The
+deeper ingestion-review workflow was intentionally deferred until this focused pass.
 
 ## 6. Developer Admin, feature flags, and maintenance
 
-- [ ] Review the Crawl Snapshot archive procedure on an approved/disposable database. After the
-      Section 0 export, inspect the manifest and sanitized content without changing the source. -> please explain what to do exactly, I dont understand this
-- [ ] Review the Lidl repair dry run with `npm run repair:lidl-brochure`, using
-      `--snapshot-id=<snapshot-id>` and `--limit=1`. This is a read-only plan by default. Apply
-      only with explicit target/operator confirmation using `--apply`, `--target=<database>`, and
-      `--operator=<identity>`; raw payload and provenance must remain unchanged.
-      -> whats this for exactly?
+- [ ] Confirm the feature-flag table is rendered from registry/API metadata. Toggle compact UI labels,
+      refresh Home, and confirm abbreviated state labels change; toggle it back and confirm full labels.
+- [ ] Confirm controlled alpha access saves on checkbox interaction, Create alpha user remains the
+      separate action, the approved user flow works, and ordinary users remain unauthorized.
+- [ ] Open Manage users. Confirm password reset, delete confirmation, sole-owner household cleanup,
+      shared-household owner promotion, and self-delete protection.
+- [ ] Review Crawl Snapshot archive output on an approved disposable database. Open `manifest.json`,
+      compare counts/checksums with the command summary, and inspect only decompressed gzip JSONL shape
+      and redacted metadata. Do not import, repair, commit, or expose raw payloads.
+- [ ] Run the Lidl repair dry run with `npm run repair:lidl-brochure -- --snapshot-id=<id> --limit=1`.
+      Confirm it is read-only by default and that raw payload/provenance remain unchanged.
+- [ ] In the Crawl review dialog, confirm dark themed draft/JSON/price-observation controls,
+      localized Ingestion management navigation, side-rail/backdrop dismissal behavior, and readable
+      enlarged dialog content.
 
-- [x] Rerun ingestion quality and processed-ingestion validation. Every pending/duplicate/failure
-      result has a documented decision.
-- [ ] In the Crawl review dialog, confirm Save draft, Add empty price observation, and Apply JSON
-      use dark themed surfaces in dark mode while retaining readable light-mode controls.
-      -> the page is called "ingestion" but in the menu it is called "Admin". call it Some ingestion management or similar since its not really a site admin page but some specific feature page now
-      -> clicking away from the crawl review dialog closes it automatically. this shounds fun but it triggers too easily. can we only have this effect when user clicks on the side rails area but not in the middle body area? also, can we increase the popover dialog size like ca 1.4 times?
-      -> we should see the accept6ance status of the individual entries int he right side dialog int he table view (accepted/declined, why declined) and ideally also the "matchConfidence" values localized if possible.
-      -> we should also have quick accept and decline int he rows, simply small buttons at the end similar to the buttons' style ont he household stocks. have a green tickmark and a red decline X. when declining, the additional dropdown for decline reason should appear left to the buttons int he row to select one and then have a confirm and cancel button. we can replace the accept and decline with the confirm and cancel at that point since we are in "decline mode"
 Operator notes and discoveries:
+
+Record any configured-environment requirement, validator drift, archive checksum mismatch, repair
+proposal, or ingestion-review discrepancy here without copying raw data.
 
 ## 7. Final evidence and waiver review
 
-- [ ] Repeat the complete runbook from a clean refresh without direct database edits.
-- [ ] Repeat the critical household/shopping path with two users and both locales.
-- [ ] Review every operator note and discovery. Each is fixed, retested, explicitly deferred to
-      post-MVP, or waived with risk, owner, reason, and follow-up.
-- [ ] Update the evidence log with date, environment, tester, final commit, and command results.
-- [ ] Confirm the old Stage 8 script and Stage 8–10 checklist link here and are no longer treated as
-      separate acceptance sources.
-      -> these old ones are gone now, arent they?! remove this entry then.
-- [ ] Only after all required items are resolved or waived: mark MVP closure ready.
+- [ ] Repeat the complete runbook from a clean refresh on the final candidate commit.
+- [ ] Repeat the critical household/shopping path with two users, English/Hungarian, light/dark,
+      desktop/narrow viewports, and the approved disposable database where required.
+- [ ] Review every operator note and discovery. Record the fix commit, retest result, explicit
+      post-MVP deferral, or waiver with risk, owner, and reason.
+- [ ] Record final date, environment, tester, commit, automated output, configured smoke output, and
+      browser evidence in the evidence log.
+- [ ] Mark MVP closure ready only when required correctness, authorization, persistence, transaction,
+      history, and silent-error checks are resolved or explicitly waived.
 
 ## 8. Known risk probes
 
-Run these probes deliberately even when the main flow appears healthy. They are compact reminders
-of the failure classes most likely to cross a frontend/API/persistence boundary.
-
-- [x] Save the same Group, Product, or Batch from inline and right-side editors in both orders;
-      confirm no stale editor, duplicate write, or lost revision remains.
-      -> when trying to create product that already exists, we get "Product creation failed (409)." but we should have proper explanation that the product with same name already exists or something... please revisit and try to cover most such expected failure handlers to provide obvious user-facing notification text, not pure error codes and "something went wrong" level messages. it seems we are already returning somewhat useful error messages in "json(409, { error: "shop_market_already_exists" })" so we should show those at least
-- [x] Toggle expired-item inclusion around an expired Batch and compare the visible Current,
-      Product Group aggregate, and generated shopping need.
-- [x] Use two Products and multiple Batches in one Group; confirm each physical Batch contributes
-      once to its Product and the Group, including after refresh and retry.
-- [ ] Add the same impulse item twice and retry a purchased-line application; confirm duplicate
-      operations are rejected or treated idempotently with a visible Activity entry.
-      -> i dont understand. i add he same item twice, it gets added to the amount of the other. then what? "retry a purchased-line application"?
-- [x] Force or reproduce a stale revision, missing schema/maintenance setup, untranslated label,
-      dark-theme contrast issue, fixed-column overflow, and failed action; confirm each has an
-      understandable UI result rather than a silent no-op.
+- [ ] Create a duplicate Product name and save a stale Group/Product/Batch. Confirm known conflicts
+      are translated into an actionable message rather than raw codes or identifiers.
+- [ ] Retry a successful purchased-line completion operation. Confirm it is rejected or idempotent,
+      creates no second Product/Batch/Purchase, and leaves a visible Activity entry.
+- [ ] Toggle expiry inclusion and compare derived Current with an expired Batch present.
+- [ ] Compare Group totals with multiple Products and multiple Batches; confirm no double-counting.
+- [ ] Force a validation, 403, 404, 409, and 500 response through a safe UI/API path. Confirm visible,
+      localized feedback and preserved prior state.
 
 Operator notes and discoveries:
 
 ## Fix/discovery log
 
-Use one entry per finding. Do not erase previous entries after fixing; add the fix commit and
-retest result.
+Use one entry per finding. Do not erase previous entries after fixing; add the fix commit and retest.
 
 ### Finding template
 
@@ -308,27 +324,20 @@ Record only safe summaries. Never include credentials, tokens, or private househ
 - Browser evidence:
 - Waivers and follow-ups:
 
-## 10. Covered and accepted
+## Covered and accepted
 
-Move completed checks here as the runbook progresses. Keep active sections limited to outstanding
-work, retests, and decisions. This table records operator evidence without repeating full test steps.
+Move a check here after the operator has actually confirmed it. Keep active sections limited to
+outstanding manual work and retests.
 
-| Area                     | Covered and accepted                                                                                                                                                                                     | Operator note / boundary                                                                      |
-| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| Automated preflight      | `npm run mvp:preflight` passed.                                                                                                                                                                          | Repeat only when diagnosing a later failure.                                                  |
-| Demo fixture             | Focused seed and `smoke:demo-household` passed.                                                                                                                                                          | Seeded disposable household is valid for the remaining browser pass.                          |
-| Catalog and transactions | Catalog smoke passed; transaction smoke passed with committed `2`, rollback `0`.                                                                                                                         | Configured smoke evidence is accepted; fake tests are not a substitute.                       |
-| Anonymous access         | Public/sign-in surfaces are reachable; protected routes show the intended sign-in state.                                                                                                                 | Accepted.                                                                                     |
-| User access              | Controlled user A signs in and sees only the allocated household.                                                                                                                                        | Accepted.                                                                                     |
-| Household creation       | One household can be created from an empty user and managed as owner.                                                                                                                                    | Multiple-household management is deferred; the seeded household is sufficient for MVP checks. |
-| Admin authorization      | Normal users are rejected from Developer Admin, Site Admin, maintenance, feature flags, pricing, and ingestion review.                                                                                   | Accepted.                                                                                     |
-| Manual access            | Rail navigation works; household/shopping content is available to normal users and product/ingestion content is admin-only; tabs work in both locales.                                                   | Only compact terminology readability remains active.                                          |
-| Activity console         | Action feedback, browser-console mirroring, object context, scrolling, and output-only resizing work.                                                                                                    | Only the final height and Navigate attachment retest remains active.                          |
-| Diagnostics              | Effective database is identified without secrets or raw private data.                                                                                                                                    | Accepted.                                                                                     |
-| Seeded household         | Product Groups, settings persistence, expiry policy, and group-target modes are covered by the accepted Section 2 checks above.                                                                          | Desired-restock derivation remains explicitly deferred.                                       |
-| Invitation backend       | Repository and route tests cover owner creation, duplicate protection, existing-user acceptance, and registration-time claiming.                                                                         | Browser check remains only for Home placement/title; no email delivery is in scope.           |
-| Household management     | Compact owner controls, settings persistence, invitation management, reset scopes, complete deletion, and owner-only read-only handling were accepted in the operator pass.                              | Final disposable reset/deletion retest remains active.                                        |
-| Navigation rail          | Back/forward navigation does not duplicate entries and the Navigate block is attached above Activity.                                                                                                    | Final height/attachment retest remains active.                                                |
-| Home workspace structure | Groups/Products/Batches render in the intended three-level hierarchy; expansion, derived Current, assignment, action placement, expiry ordering, orphan checks, and visual responsiveness were accepted. | Amount-track alignment and state-badge treatment remain active above.                         |
-| Home CRUD                | Group/Product/Batch create, rename, detail, reassign, delete/discard, multi-Batch aggregation, quantity/date correction, custom units, and meaningful batch titles were accepted.                        | No additional CRUD retest is active.                                                          |
-| Admin controls           | Registry-driven flags, compact labels, alpha auto-save, Manage users, maintenance actions, and diagnostic logging were accepted.                                                                         | Crawl archive/repair procedure and review-dialog theme remain active.                         |
+| Area                   | Covered and accepted                                                                                                                                                                                                   | Boundary or retest note                                                      |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Automated preflight    | Deterministic integration, full tests, formatting, lint, typecheck, web/API build, and diff checks have passed in prior runs.                                                                                          | Repeat on the final candidate.                                               |
+| Catalog/transactions   | Catalog smoke and transaction smoke have recorded successful commit/rollback evidence.                                                                                                                                 | Re-run only with approved configured data.                                   |
+| Demo fixture           | Seeded Product Group/Product/Batch coverage, expiry permutations, unassigned Products, batch counts, and no productless Batch are validated by the fixture smoke.                                                      | Browser appearance remains manual.                                           |
+| Access and identity    | Protected routes, empty-user household creation, invitation placement/claiming, isolation, and admin authorization have prior accepted evidence.                                                                       | Member-action and final two-user retests remain active above.                |
+| Manual and diagnostics | Manual tabs/visibility, locales, effective database diagnostics, Activity logging, sizing, and rail navigation have prior accepted evidence.                                                                           | Repeat readability checks after final UI changes.                            |
+| Household management   | Settings, expiry/target modes, reset scopes, complete deletion, owner controls, non-owner read-only behavior, and safe Home return have prior accepted evidence.                                                       | Final disposable retest remains active above.                                |
+| Home workspace         | Product Group hierarchy, CRUD, assignment, aggregation, ordering, custom units, Batch titles, stale-revision feedback, action positions, responsive behavior, and accessibility have prior accepted evidence.          | Final alignment/theme checks remain active above.                            |
+| Shopping basics        | Product Group selection, scale defaults, group modes/distribution, duplicate impulse handling, list editing, completion bridge, refresh/clear feedback, and Product-owned stock behavior have prior accepted evidence. | Browser confirmation and known-product quick-add retest remain active above. |
+| Admin and maintenance  | Dynamic feature-flag metadata, alpha auto-save, user management, maintenance registry separation, and diagnostics have prior accepted evidence.                                                                        | Configured archive/repair and ingestion review remain active above.          |
+| Intentional deferrals  | Automatic desired-restock derivation, classification/tagging UX, and deeper ingestion/catalogue policy expansion remain outside the current MVP closure.                                                               | Revisit only through a post-MVP plan.                                        |
