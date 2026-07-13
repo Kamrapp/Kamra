@@ -291,7 +291,7 @@ Commit: `docs: document Stage 11 integration workflow`
 
 ### Step 11.9 — Complete the single Stage 8–11 manual runbook
 
-Status: Complete in `196c83d`; the runbook remains live and must receive operator evidence.
+Status: Complete in `4b12949`; the runbook remains live and must receive operator evidence.
 
 - Create and maintain `scripts/stage11-mvp-manual-test.md` as a live operator document. It must
   include preparation/safety, two-user setup, seeded household coverage, Home CRUD and layout,
@@ -313,6 +313,8 @@ previous unchecked checklist item maps to one runbook section or has an explicit
 Commit: `docs: add Stage 8-11 MVP manual runbook`
 
 ### Step 11.10 — Execute the integrated manual pass and fix findings
+
+Status: Waiting for operator execution of `scripts/stage11-mvp-manual-test.md`.
 
 Run the runbook as one continuous session after implementation slices are complete. Do not mark a
 section green from an automated test alone. For each failure or discovery:

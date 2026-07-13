@@ -76,10 +76,13 @@
 
 ## Open Issues
 
-- Steps 11.1–11.9 are implementation-complete. The integrated manual pass and any narrow findings remain.
+- Steps 11.1–11.9 are implementation-complete in separate commits, ending with `4b12949`. The integrated manual pass and any narrow findings remain.
 - Stage 10 configured/browser release evidence remains open and is not waived by this plan.
 - The operator must edit the live runbook with actual findings during the final pass; those edits become input to the final fixer session.
 
 ## Next Step
 
-Run the closeout validation for Step 11.8, commit it separately, then pause for the operator to execute `scripts/stage11-mvp-manual-test.md`. Treat the operator-edited runbook as the only source for Step 11.10 fixes; do not restart separate Stage 8–10 acceptance sessions.
+Execute `scripts/stage11-mvp-manual-test.md` as one continuous Stage 8–11 pass. Add observed
+behavior and environment details to the runbook without credentials or private exports. Treat the
+operator-edited runbook as the only source for Step 11.10 fixes; do not restart separate Stage 8–10
+acceptance sessions.
