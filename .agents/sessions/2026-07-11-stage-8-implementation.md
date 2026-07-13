@@ -405,6 +405,13 @@ basic Home shopping experience.
 - Validation passed: 55 test files / 211 tests, `npm run format:check`, `npm run typecheck`, `npm run lint`, `npm run build:web`, and `npm run build:api`.
 - Commit is pending because the managed elevated Git reviewer was unavailable due capacity. Do not use amend, push, reset, checkout, or any workaround; stage these files and create one new commit when the approved additional-commit path is available.
 
+## Stage 10 Step 1 checkpoint (2026-07-13)
+
+- The Stage 9 wrapup commit is `f130abc`; the working tree was clean before this slice.
+- `docs/alpha-hardening-baseline.md` records the passing validation baseline and assigns observed risks to later Stage 9/10 slices. The most important findings are missing Crawl Snapshot archive tooling, the raw Market-id Home entry, an incomplete actual-result editor, route-owned shopping orchestration, unbounded Product lookup/match options, and transitional legacy Shopping List/Trip coexistence.
+- Baseline validation passed: 55 test files / 211 tests, formatting, lint, typecheck, web build, and API build. Configured Mongo/browser/archive checks remain intentionally unrun and are tracked in the central manual checklist.
+- Next safe slice: implement verified read-only Crawl Snapshot export with manifest/checksum tests. Do not rename or import raw data until the export evidence is independently verified.
+
 Historical open-issue entries above describe intermediate checkpoints and are superseded by
 this closeout section where they say the Home bridge is still pending or Stage 8 cannot close.
 

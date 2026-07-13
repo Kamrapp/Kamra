@@ -1,6 +1,6 @@
 # Stage 10 Alpha 1.0 Hardening Plan
 
-Status: In implementation (user-approved 2026-07-13). Keep hardening tied to concrete Stage 8/9 findings; do not expand into a rewrite.
+Status: In implementation — Step 1 baseline captured (2026-07-13). Keep hardening tied to concrete Stage 8/9 findings; do not expand into a rewrite.
 
 ## Objective And Classification
 
@@ -283,7 +283,7 @@ Implementation ownership map:
 
 ### Step 1 - Alpha baseline capture
 
-- Inventory every legacy/final term across routes, collections/fields, contracts/files, UI/i18n, logs, seeds, and docs; run full tests/build/lint/typecheck, the end-to-end scenario, file/change-locality inventory, and query/index review. Record each finding with severity, owner, and the exact later step that owns it.
+- Inventory every legacy/final term across routes, collections/fields, contracts/files, UI/i18n, logs, seeds, and docs; run full tests/build/lint/typecheck, the end-to-end scenario, file/change-locality inventory, and query/index review. Record each finding with severity, owner, and the exact later step that owns it. The captured baseline is `docs/alpha-hardening-baseline.md`.
 - Acceptance: no refactor begins without an observed problem and validation baseline.
 - Commit: `docs: record alpha hardening baseline`
 
