@@ -164,6 +164,13 @@ export function generateProductGroupShoppingNeeds(input: {
     }
   }
 
+  if (input.selectedOwnerIds) {
+    const selectedNeeds = needs.filter(
+      (need) => typeof need.ownerId === "string" && input.selectedOwnerIds!.has(need.ownerId)
+    );
+    needs.splice(0, needs.length, ...selectedNeeds);
+  }
+
   if (input.selectedOwnerIds?.size) {
     for (const row of rows) {
       if (!input.selectedOwnerIds.has(row.product.id) || productNeeds.has(row.product.id)) continue;

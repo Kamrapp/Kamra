@@ -207,6 +207,23 @@ describe("shopping needs", () => {
       ])
     );
   });
+  it("returns no generated rows when the explicit selection is empty", () => {
+    const workspace = createWorkspace({
+      groupCurrent: 0,
+      groupMinimum: 1,
+      groupDesired: 2,
+      products: [{ current: 0, displayName: "Milk", id: "milk", nextExpiryOn: null }]
+    });
+
+    expect(
+      generateProductGroupShoppingNeeds({
+        mode: "add_products_and_group_item",
+        needIdPrefix: "selected",
+        selectedOwnerIds: new Set(),
+        workspace
+      })
+    ).toEqual([]);
+  });
 });
 
 function createWorkspace(input: {
