@@ -26,6 +26,8 @@ Ingestion is separate from catalog:
   - deterministic processors that convert raw ingestion snapshots into catalog write sets
 - `current/`
   - MongoDB repository for `ingestion_runs` and `ingestion_raw_snapshots`
+- `audit/`
+  - read-only quality reporting and the reviewed correction-overlay contract
 
 ## Contract Rules
 
@@ -54,6 +56,8 @@ npx tsc -p tsconfig.api.json --noEmit
 ```
 
 Mongo-backed script checks require `MONGODB_URI` and `MONGODB_DB_NAME`.
+
+The quality audit and correction-overlay contract are intentionally separate from normal ingestion repositories. The audit never mutates raw snapshots, and overlays never replace raw payloads.
 
 ## Operational Docs
 

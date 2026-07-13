@@ -215,6 +215,19 @@ npm run validate:processed-ingestion
 
 Read-only MongoDB validation script. Use it after processing snapshots to confirm catalog-side products, product sources, price observations, and processing states exist for the crawled sources.
 
+### `audit-ingestion-quality.ts`
+
+Runs the bounded, read-only Crawl Snapshot quality audit. It reports source/run identity problems, malformed parsed rows, duplicate row identities, invalid prices/date ranges, identifier issues, and snapshots without a matching run. It never changes MongoDB and emits only a bounded issue list.
+
+Command:
+
+```powershell
+npm run audit:ingestion-quality
+npm run audit:ingestion-quality -- --issue-limit=1000
+```
+
+Correction overlays are a separate reviewed JSONL concern. They must reference a snapshot id, row index, source fingerprint, reviewer, tool version, reason, and only normalized fields allowed by `ingestion-correction-overlay-v1`; they must never contain or rewrite raw payload text.
+
 ### `remove-crawled-content.ts`
 
 Deletes ingestion run and raw snapshot records for one crawl run id.

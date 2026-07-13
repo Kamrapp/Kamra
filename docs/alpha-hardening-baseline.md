@@ -68,3 +68,19 @@ Existing indexes cover the primary Product Group, Shop Product, Price Observatio
 5. Run non-functional and Alpha documentation closeout after configured/manual evidence exists.
 
 Any checksum mismatch, ambiguous legacy identity, unexpected validator rejection, or authorization/transaction failure is a stop condition. The agent must record the finding and return to the owning Stage 9/10 slice instead of repairing by guesswork.
+
+## MVP-hole revalidation (2026-07-13)
+
+The current runtime was rechecked after the initial baseline. The following are still implementation or
+evidence gaps, not documentation-only follow-ups:
+
+- Home Trip creation still accepts a raw Market id instead of presenting a household-visible active-market choice.
+- The Home Trip panel does not yet expose the backend's actual quantity, unit, paid price, acquisition date, expiry date, and unplanned-purchase inputs as a compact completion editor.
+- Match candidates are returned without an explicit bound/truncation contract.
+- Trip completion still performs a full Household Product list scan for a catalogue-product fallback.
+- Legacy Stage 8 Shopping Need/list routes and components coexist with the Trip path; removal requires equivalence evidence.
+- Archive, cutover, and audit tooling are implemented but require configured-database/operator execution and conflict review.
+- Minor theme/CSS/HTML consistency remains open and is deliberately isolated as a later visual Step 8A.
+
+These are now owned by the Stage 10 MVP-hole gate (Step 4A), the existing Stage 9 behavior owner where
+appropriate, and the frontend facelift step. Alpha completion must not be declared from automated tests alone.

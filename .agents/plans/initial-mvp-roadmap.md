@@ -27,7 +27,7 @@ Roadmap priorities:
 | Stage 7 | Controlled alpha access and app module shell | Implemented | Admin-created alpha users with database-backed creation/login gating, empty household allocation, and direct product-lookup, household, site-admin, and dev-admin route grouping are implemented. |
 | Stage 8 | Household-domain correctness and complete user-side shopping | Completed user-side; manual closeout pending | Product Groups with optional Group/Product target policies, Product-owned Batches/Movements, Shopping Needs, household settings, migrations, localized Home/Manual surfaces, v2-driven list generation, editable shopping lines, and transactional purchase-to-Product/Batch finalization are implemented. Remaining Stage 8 work is browser verification and bugfixing only. |
 | Stage 9 | Shop, catalogue, price, and purchase-ingestion connection | Implementation complete; acceptance/bug-fix closeout pending | Shop Markets, Shop Products, Price Observations, matcher-driven Trip planning with override/skip, admin review, Trip persistence/completion, and Home Trip UI are implemented. Remaining work is configured seed/API/browser evidence and narrowly scoped bug fixes; Stage 9 must not reimplement the basic household list or purchase-to-stock loop. |
-| Stage 10 | Alpha 1.0 hardening | In implementation; baseline, archive export, and cutover action prepared | Applies the final domain language, preserves/exports/imports Crawl Snapshots, fixes confirmed parser/data defects, improves demonstrated change-locality problems, and prepares external Alpha review through one continuous sequence of independently committed slices. Baseline findings are recorded in `docs/alpha-hardening-baseline.md`; verified raw archive export and the guarded final-domain-language cutover action are committed. |
+| Stage 10 | Alpha 1.0 hardening | In implementation; baseline, archive, cutover, and audit tooling prepared | Applies the final domain language, preserves/exports/imports Crawl Snapshots, fixes confirmed parser/data defects, improves demonstrated change-locality problems, and prepares external Alpha review through one continuous sequence of independently committed slices. Baseline findings are recorded in `docs/alpha-hardening-baseline.md`; verified archive export, guarded cutover, and read-only quality-audit tooling are committed. |
 | MVP closure | Release validation and bounded polish | Planned after Stage 10 | Runs the complete Stage 8–10 matrix, closes anticipated failure classes, records waivers, and permits only low-risk visual/interaction polish that does not alter domain behavior. |
 
 Non-MVP and post-MVP ideas are tracked in `mvp-followups.md` so this roadmap stays focused on the shortest useful household grocery-planning MVP.
@@ -454,6 +454,7 @@ Scope:
 - read-only development crawl-data audit followed by confirmed parser fixes and dry-run-first repair/reprocessing tools
 - architecture/change-locality review using concrete change probes; refactor only demonstrated poor locality or dangerous coupling
 - targeted route/repository/service/component responsibility cleanup; no broad rewrite
+- an explicit MVP-hole gate for the concrete Trip/browser completion gaps, followed only by low-risk frontend theme/CSS/HTML simplification
 - schema/validation consistency and explicit compatibility/migration/repair ownership
 - loading/empty/error/partial/conflict, logging/redaction, permissions, pagination/index, accessibility/responsive, and realistic-volume checks proportional to the Alpha path and observed risk
 - dead compatibility/temporary flag removal
@@ -522,7 +523,7 @@ Without those items Kamra would remain an inventory tracker plus catalogue brows
 - **Shopping Need (`ShoppingNeed`):** generic demand derived from a Product Group or Household Product target-policy shortage, or entered ad hoc. It is not yet a selected product or purchase.
 - **Shopping Trip (`ShoppingTrip`):** selected shop/date plus planned/unresolved items and resumable shopping results. Avoid using generic “shopping list” for both needs and trips.
 - **Trip Item (`ShoppingTripItem`):** one need/selection/result line within a shopping trip.
-- **Purchase (`Purchase`) / Purchase Item (`PurchaseItem`):** immutable historical record of what was actually bought, including actual product/manual snapshot, quantity, prices, expiry splits, and stock/ingestion references.
+- **Trip result:** the current MVP's historical bought result stored on a Trip Item, including actual product choice, quantity, and stock/ingestion references. A separate Purchase aggregate is intentionally deferred until the runtime demonstrates a need for one.
 - **Shop market:** country-specific retailer market. Extract a separate Shop Chain only when active markets need shared administration; physical branches remain deferred.
 - **Ingestion Source (`IngestionSource`):** acquisition method/adapter, separate from shop identity; introduce a separate persisted record only when it needs independent lifecycle or review management.
 - **Crawl Snapshot (`CrawlSnapshot`):** immutable crawler-captured source payload plus capture/parser provenance.
@@ -559,7 +560,7 @@ Vocabulary rules:
 
 1. **Stage 8 — household correctness:** no Stage 9 concrete shopping writes land on the legacy one-row stock model. Complete and reconcile Product Groups with Group/Product target policies, Product-owned Batches/Movements, Shopping Needs, feature toggles, and logging first.
 2. **Stage 9 — MVP usability:** correct Shop Product/Price Observation foundations before automatic matching; then add Shopping Trips, matching, UI, Purchase conversion/Ingestion, and workflow validation.
-3. **Stage 10 — Alpha maintainability:** verify the Crawl Snapshot archive first, apply final-language migration/reset, audit/reprocess actual data, then perform evidence-based cleanup. Move behavior bugs back to the owning feature.
+3. **Stage 10 — Alpha maintainability:** verify the Crawl Snapshot archive first, apply final-language migration/reset, audit/reprocess actual data, close revalidated MVP holes, then perform evidence-based cleanup and bounded frontend polish. Move behavior bugs back to the owning feature.
 4. **Post-MVP:** optimize, automate, visualize, predict, and broaden only after internal use validates the loop.
 
 Detailed ordered steps, commit boundaries, validation, migration, and acceptance criteria live in the linked stage plans. Review each commit-sized unit before continuing.

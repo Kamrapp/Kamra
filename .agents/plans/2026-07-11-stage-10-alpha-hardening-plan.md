@@ -1,6 +1,6 @@
 # Stage 10 Alpha 1.0 Hardening Plan
 
-Status: In implementation — Step 3 domain-language cutover action prepared (2026-07-13). Keep hardening tied to concrete Stage 8/9 findings; do not expand into a rewrite.
+Status: In implementation — Step 4 audit prepared; MVP-hole gate and bounded frontend facelift added (2026-07-13). Keep hardening tied to concrete Stage 8/9 findings; do not expand into a rewrite.
 
 ## Objective And Classification
 
@@ -10,19 +10,41 @@ Stage 10 is **required for maintainability before Alpha 1.0**. It is not authori
 
 ## Entry Criteria
 
-- The complete Stage 8 household loop and Stage 9 concrete shopping loop work manually.
+- The Stage 8 household loop and Stage 9 concrete shopping loop are implemented, but the revalidated browser/data-integrity holes in the MVP-hole table below are still open until their owning fixes and acceptance evidence exist.
 - Their migrations are reconciled, current write paths use the new models, and known behavior bugs are fixed in their owning stages.
 - A realistic development database contains Crawl Snapshots and Purchase Ingestion Submissions suitable for inspection.
 - The Alpha acceptance scenario has been attempted at least once, so hardening is driven by observed friction rather than guesses.
 
 Current implementation has the Stage 9 Trip, matcher-driven planning and override/skip path, persistence,
 purchase-to-Product/Batch completion, Ingestion Submission persistence/review routes, strict completion
-input validation, the Home Trip panel, and the richer admin Shop Product/Price editor. Stage 9 now has
-implementation-complete status; configured browser/API evidence, realistic seed coverage, and bug fixes
-remain before Alpha closeout.
+input validation, the Home Trip panel, and the richer admin Shop Product/Price editor. The core Stage 9
+circle is present, but market selection, actual-result editing, bounded matches, focused completion lookup,
+legacy-list retirement evidence, and configured/browser acceptance remain MVP-hole work before Alpha closeout.
 
 Stage 10 may begin on bounded hardening findings while that acceptance evidence is collected, but it must
 not waive a failed Stage 9 correctness check or move a behavior bug into cleanup documentation.
+
+## MVP-hole revalidation (2026-07-13)
+
+The earlier baseline was rechecked against the current runtime rather than treated as closed because the
+backend contracts are richer than the browser path in several places. Stage 10 now has an explicit hole
+closure gate before Alpha closeout:
+
+| Area | Current truth | Stage 10 treatment |
+| --- | --- | --- |
+| Stage 8 Product Group workspace | Product Groups, Household Products, Product-owned Batches, target policies, expiry setting, and purchase finalization paths exist. | Keep the central manual acceptance matrix open until the configured/browser flows are confirmed. |
+| Concrete Shopping Trip entry | The Home panel still accepts a raw Shop Market id; there is no household-visible active-market picker. | Close in MVP-hole Step 4A with an authenticated household market read/picker. |
+| Actual purchase result | Backend accepts actual quantity/unit/price/acquisition/expiry and Product choice, but the Home panel primarily exposes bought/not-bought and Product selection. | Close in Step 4A with a compact actual-result editor and an explicit unplanned-purchase path. |
+| Match safety | Trip creation returns all compatible match candidates without a declared response-size/truncation policy. | Close in Step 4A with a bounded candidate contract and an explicit truncation indication. |
+| Completion lookup | Completion still scans all Household Products when falling back from a matched catalog Product. | Close in Step 4A with a focused indexed lookup and regression coverage. |
+| Legacy Shopping Need/list boundary | Legacy Stage 8 list routes/components remain alongside Trips. | Prove Trip equivalence first; remove or isolate dead writes in Step 9 only after evidence. |
+| Purchase history language | Current runtime stores purchase results in Trip Items and creates Ingestion Submissions; it has no separate `household_purchases` aggregate. | Keep Trip as the MVP history envelope and remove stale “Purchase aggregate” claims from current docs. |
+| Ingestion/admin loop | Submission persistence/review and admin Shop Product/Price routes exist; configured and browser evidence is still open. | Verify during the final Alpha scenario; do not add receipt ingestion in Stage 10. |
+| Data operations | Archive export, final-language cutover tooling, and read-only audit tooling are now implemented, but not run against the configured database. | Require operator evidence and conflict review before Alpha completion. |
+| Frontend consistency | Theme tokens exist, but local component CSS still mixes repeated color-mix values, hardcoded layout assumptions, and verbose templates. | Add the bounded visual/CSS cleanup Step 8A; no domain or route behavior changes in that step. |
+
+The gate is not complete when code merely compiles. Each row must be implemented and tested, manually
+confirmed where visual/configured evidence is required, or explicitly waived into post-MVP with an owner.
 
 ## Open Questions
 
@@ -71,7 +93,7 @@ Stage 8 and Stage 9 create new code with these names. Stage 10 removes remaining
 | Stock Movement | Immutable quantity change/history event | movement |
 | Shopping Need | Generic shortage/ad-hoc intent before a shop is selected | shopping-list line, requirement line |
 | Shopping Trip / Trip Item | Concrete one-market shopping plan and its items | shopping list, shopping line |
-| Purchase / Purchase Item | Historical bought result | purchase order, completed shopping line |
+| Trip result | Historical bought result stored on a Trip Item | purchase order, completed shopping line |
 | Shop Market | Country-specific commercial market; a separate Shop Chain exists only if active markets need shared administration | store, shop source |
 | Ingestion Source | Adapter/feed that supplies evidence; a separate record exists only when it needs independent lifecycle/review management | shop, product source |
 | Crawl Snapshot | Immutable raw fetched evidence | crawl content, raw product |
@@ -262,10 +284,12 @@ Recommended continuous sequence:
 2. Crawl Snapshot export and checksum verification tooling.
 3. Final-domain-language maintenance action and deterministic cutover/reset support.
 4. Read-only ingestion quality audit and correction-overlay schema.
+4A. MVP-hole closure for the concrete Trip/browser/data-integrity gaps above; return behavior bugs to Stage 9 ownership.
 5. Confirmed source-specific parser/normalizer fixes, one source per commit.
 6. Crawl import/reprocessing and approved dry-run repair tools.
 7. Targeted backend change-locality cleanup from the baseline findings.
 8. Targeted frontend/contract boundary cleanup from observed workflow friction.
+8A. Frontend minor facelift and CSS/HTML simplification after behavior is stable.
 9. Schema, compatibility, registry, and dead-flag cleanup.
 10. Non-functional, authorization, failure-state, redaction, pagination, accessibility, and operational hardening.
 11. Repository and Alpha release documentation.
@@ -304,8 +328,15 @@ Implementation ownership map:
 ### Step 4 - Read-only crawl-data audit and correction-overlay preparation
 
 - Add/run `scripts/audit-ingestion-quality.ts` around reusable audit logic, document it, and produce `docs/crawl-data-quality.md`, sanitized fixtures, and the validated correction-overlay schema; make no data changes.
-- Acceptance: all active sources and required field classes are covered; report is reproducible; overlays cannot mutate or masquerade as raw evidence.
+- Acceptance: all active sources and required field classes are covered; report is reproducible and bounded; overlays cannot mutate or masquerade as raw evidence. **Implementation prepared (2026-07-13):** the pure audit service, bounded paged script, correction-overlay validator, tests, and operator documentation are committed. Running it against the configured development database remains an operator evidence step.
 - Commit: `chore: audit ingestion data quality`
+
+### Step 4A - MVP-hole closure gate
+
+- Close the revalidated Stage 9 gaps before calling the Alpha user loop complete: add a household-visible active Shop Market picker, expose actual purchase result fields (quantity, unit, paid price, acquisition/expiry, Product/new-product choice), support unplanned purchases, bound match options with truncation state, add focused catalog-to-Household Product lookup, and prove the legacy Shopping Need/list boundary does not bypass Trip completion. Keep matching/completion policy in focused services rather than expanding the route.
+- Acceptance: route/domain tests cover every new command and failure path; the browser panel can select a valid market, resolve/skip matches, record an actual result, finalize it into Product-owned Batches and Ingestion Submissions, retry without duplicates, and recover from stale revisions. Update the central manual checklist and return any behavior regression to Stage 9.
+- Stop condition: if the active-market ownership model, unplanned-purchase identity, or legacy-list retirement would materially change the approved domain, pause for a decision rather than infer one.
+- Commit per independent concern: `fix: close <trip or completion> MVP gap`.
 
 ### Step 5 - Source-specific parser/normalization fixes
 
@@ -331,6 +362,13 @@ Implementation ownership map:
 - Acceptance: Stage 8/9 workflows behave identically; core states are explicit and localized; no broad UI rewrite.
 - Commit per slice: `refactor: simplify <feature> frontend boundary`
 
+### Step 8A - Frontend minor facelift and CSS/HTML simplification
+
+- After Step 4A behavior is stable, audit shared theme tokens and the Stage 8–9 surfaces for repeated hardcoded colors, dark/light mismatches, duplicated control styles, unnecessary wrapper/grid rules, and templates whose structure obscures state. Reuse global classes/tokens before adding local values; simplify markup only when bindings and accessibility semantics remain clear.
+- Keep this slice visual and low-risk: no endpoint, persistence, target-policy, shopping, or authorization changes. Preserve the current compact table/editor hierarchy, responsive overflow behavior, fixed headers, and keyboard labels. Prefer a small shared utility/token addition over a new styling framework.
+- Acceptance: light and dark screenshots/manual checks show consistent surfaces, status colors, controls, disabled/error states, focus rings, and readable contrast; `npm run format:check`, lint, typecheck, web build, and relevant component tests pass. Record any larger layout redesign as post-MVP instead of stretching this slice.
+- Commit per independent surface: `style: simplify <surface> theme consistency`.
+
 ### Step 9 - Schema, compatibility, and maintenance cleanup
 
 - Consolidate domain-specific fragments, document/remove dead adapters and flags, move all one-time glue out of runtime repositories, verify registry/reconciliation.
@@ -352,7 +390,7 @@ Implementation ownership map:
 ### Step 12 - Final Alpha review
 
 - Run full automated validation, terminology search, locale/schema parity, configured database smoke/reconciliation, archive checksum/restore drill, crawl quality check, two-user browser scenario, and independent review focused on correctness/regression/missing tests.
-- Acceptance: no open blocker in the Alpha readiness checklist; remaining items are explicitly post-MVP.
+- Acceptance: the MVP-hole gate and Stage 8–10 manual matrix have no open blocker; remaining items are explicitly post-MVP; frontend polish remains limited to the approved minor facelift boundary.
 - Commit only narrow fixes found by review.
 
 ## Explicit Deferrals

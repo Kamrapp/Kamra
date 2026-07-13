@@ -427,6 +427,20 @@ basic Home shopping experience.
 - Focused maintenance tests and full validation are green: 57 test files / 215 tests, lint, format check, typecheck, and API build.
 - The repository still contains old allocation routes/repositories as an explicit compatibility boundary. Do not rename or delete them without configured-data evidence that no supported client or unresolved legacy history depends on them. The next safe slice is the read-only Crawl Snapshot quality audit and correction-overlay schema; operator execution of this cutover remains a configured-environment check.
 
+## Stage 10 Step 4 checkpoint (2026-07-13)
+
+- The read-only ingestion quality slice adds `auditIngestionQuality`, `ingestion-correction-overlay-v1`, `npm run audit:ingestion-quality`, and `docs/crawl-data-quality.md`. The audit pages raw runs/snapshots in bounded chunks, reports identity/provenance/row/price/date/identifier issues, and caps returned issue detail; it never mutates MongoDB or raw payloads.
+- Correction overlays are separately validated normalized-field records keyed by snapshot id, row index, and source fingerprint. Raw `payloadText` and unknown fields are rejected; applying overlays remains deferred to the future import/reprocessing step.
+- Full validation passed: 58 test files / 217 tests, lint, typecheck, API build, web build, and format check. The configured database audit has not been run and is intentionally left as operator evidence.
+- Next safe slice: source-specific parser/normalizer corrections only after the audit report identifies a concrete defect. Do not invent parser fixes from sanitized tests alone; if no configured report is available, proceed to importer/reprocessing infrastructure instead.
+
+## Stage 10 plan revalidation checkpoint (2026-07-13)
+
+- The Stage 10 plan now contains an explicit MVP-hole revalidation table and Step 4A gate. It records that the Home Trip path still needs a household-visible Shop Market picker, compact actual-result editing (quantity/unit/paid price/acquisition/expiry), an unplanned-purchase path, bounded match options, focused catalogue-to-Household Product lookup, and legacy Shopping Need/list equivalence evidence before Alpha closure.
+- The plan also adds Step 8A for a bounded frontend facelift: reuse shared theme tokens/classes, remove repeated hardcoded color/layout values, simplify CSS/HTML where semantics stay clear, and verify light/dark/focus/responsive behavior. It must not change domain or endpoint behavior.
+- The roadmap/domain wording now treats Trip Items as the current purchase-history envelope; no separate Purchase aggregate is claimed. Archive, cutover, and audit tools remain implemented-but-configured-evidence-open.
+- No implementation was started for the new plan steps in this planning update. The existing validated audit slice remains uncommitted from the previous Git reviewer-capacity block; commit it before beginning Step 4A or Step 8A.
+
 Historical open-issue entries above describe intermediate checkpoints and are superseded by
 this closeout section where they say the Home bridge is still pending or Stage 8 cannot close.
 
