@@ -41,13 +41,6 @@ not carried forward because classification is intentionally outside the current 
 
 Run from the repository root on the final Stage 11 implementation commit.
 
-- [x] `npm run mvp:preflight` passes. This bundles the seven local checks listed in
-      `scripts/README.md`; do not rerun them individually unless diagnosing a failure.
-- [ ] After `npm run seed:demo-household`, `npm run smoke:demo-household` passes against the
-      approved disposable database. This replaces manually counting seeded groups/products/batches
-      and checking the product-owner invariant.
-- [ ] `npm run smoke:catalog` passes against an approved disposable/configured database.
-- [ ] `npm run smoke:transactions` passes with committed `2`, rollback `0`, and cleanup confirmed.
 - [ ] Read-only ingestion quality audit completes; every issue has a parser, repair, defer, or
       waiver decision.
 - [ ] Processed-ingestion validation completes with no unexplained pending or failed snapshots.
@@ -75,23 +68,21 @@ not repeat database-side assertions that these tests already cover.
 
 ## 1. Access, identity, Manual, and diagnostics
 
-- [ ] Anonymous user reaches only public/sign-in surfaces; protected Home, admin, and household
-      routes show the intended sign-in state.
-- [ ] Controlled user A can sign in and sees only the allocated household.
-- [ ] User A creates or opens a household and can manage it as owner.
-- [ ] User A invites/accepts controlled user B if the invitation path is enabled; B sees the shared
-      household, while an unrelated user sees no household data.
-- [ ] Admin-only Developer Admin, Site Admin, maintenance, feature-flag, pricing, and ingestion
-      review surfaces reject a normal user with the intended 403/unauthorized behavior.
-- [ ] The Manual page is reachable from the rail; household/shopping content is available to normal
-      users, while product/ingestion content is admin-only. Check English and Hungarian terminology.
-- [ ] Activity console shows concise action start/success/failure messages, mirrors errors to the
-      browser console as designed, identifies the affected object where available, scrolls, and
-      resizes only its output area.
-- [ ] Health/diagnostic output identifies the effective database without exposing secrets or raw
-      private data.
+- [ ] Recheck the minimal household invitation lifecycle without email delivery: the owner invites
+      an existing user and a not-yet-registered email, both pending rows are visible, the existing
+      user can accept, and later registration claims the second invitation.
+- [ ] Confirm an unrelated signed-in user sees no invitation or shared household, duplicate owner
+      invites are rejected with feedback, and accepted invitations disappear from the pending list.
+- [ ] Recheck the compact, table-like Manual terminology in English and Hungarian for readability.
+- [ ] Recheck that the Activity console is slightly taller by default and its resize handle still
+      changes only the output area.
 
 Operator notes and discoveries:
+
+The access, authentication, one-household creation, admin authorization, Manual navigation/tab
+visibility, Activity behavior, and diagnostic-output checks are accepted below. Multiple household
+management is not an MVP requirement. The invitation, compact-reference, Activity-height, navigation,
+and settings-layout changes are implemented and remain active only as focused retests.
 
 ## 2. Seeded household and settings
 
@@ -105,22 +96,34 @@ also needs to be refreshed. The fixture should cover:
 - no-target groups with multiple healthy products (vegetables and fruit);
 - a one-Product group and an empty group;
 - unassigned Products;
-- Products with zero, one, and multiple Batches;
+- Products with zero, one, and multiple Batches; the Product row should show its Batch count in
+  parentheses after the identity label.
 - expired, future-expiring, no-expiry, below-minimum, at-minimum, at-target, and above-target
   states.
 
-- [ ] Seed/reseed completes without validator errors, then the demo fixture smoke passes.
-- [ ] Refreshing Home shows Product Groups plus Unassigned Products, then Products, then Batches;
+- [x] Seed/reseed completes without validator errors, then the demo fixture smoke passes.
+- [x] Refreshing Home shows Product Groups plus Unassigned Products, then Products, then Batches;
       no Product Concept or Stock Target top-level vocabulary remains.
-- [ ] Manage household exposes editable expiry policy, default max-limit multiplier, group-target
+- [x] Manage household exposes editable expiry policy, default max-limit multiplier, group-target
       shopping mode, and sensible household properties; save gives visible feedback and survives
       refresh.
-- [ ] Default `allowExpiredItems` behavior is permissive. Turning it off keeps expired Batches
+- [x] Default `allowExpiredItems` behavior is permissive. Turning it off keeps expired Batches
       visible but excludes them from derived Current/consumption; turning it on includes them again.
-- [ ] Group-target mode defaults to adding Products and a Group impulse only when needed. Verify
+- [x] Group-target mode defaults to adding Products and a Group impulse only when needed. Verify
       Product-only and Ignore group targets modes save and survive refresh.
 
 Operator notes and discoveries:
+If a group minimum is edited without a desired restock amount, a future improvement could derive the
+desired amount from the household multiplier. Defer this because changing it now would alter the
+target contract/schema; the current explicit target behavior is accepted for MVP.
+
+New focused retests:
+
+- [ ] Product rows show `(0)`, `(1)`, or `(n)` Batch counts and update after adding/discarding a Batch.
+- [ ] Manage household uses a compact title/field grid and the smaller back button; its settings
+      still save with visible feedback and survive refresh.
+- [ ] The left rail Navigate block goes back/forward through visited pages without duplicating
+      entries after a history move.
 
 Focused retest cleanup, when the disposable environment should be empty afterwards:
 
@@ -328,3 +331,23 @@ Record only safe summaries. Never include credentials, tokens, or private househ
 - Configured evidence:
 - Browser evidence:
 - Waivers and follow-ups:
+
+## 10. Covered and accepted
+
+Move completed checks here as the runbook progresses. Keep active sections limited to outstanding
+work, retests, and decisions. This table records operator evidence without repeating full test steps.
+
+| Area                     | Covered and accepted                                                                                                                                   | Operator note / boundary                                                                      |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| Automated preflight      | `npm run mvp:preflight` passed.                                                                                                                        | Repeat only when diagnosing a later failure.                                                  |
+| Demo fixture             | Focused seed and `smoke:demo-household` passed.                                                                                                        | Seeded disposable household is valid for the remaining browser pass.                          |
+| Catalog and transactions | Catalog smoke passed; transaction smoke passed with committed `2`, rollback `0`.                                                                       | Configured smoke evidence is accepted; fake tests are not a substitute.                       |
+| Anonymous access         | Public/sign-in surfaces are reachable; protected routes show the intended sign-in state.                                                               | Accepted.                                                                                     |
+| User access              | Controlled user A signs in and sees only the allocated household.                                                                                      | Accepted.                                                                                     |
+| Household creation       | One household can be created from an empty user and managed as owner.                                                                                  | Multiple-household management is deferred; the seeded household is sufficient for MVP checks. |
+| Admin authorization      | Normal users are rejected from Developer Admin, Site Admin, maintenance, feature flags, pricing, and ingestion review.                                 | Accepted.                                                                                     |
+| Manual access            | Rail navigation works; household/shopping content is available to normal users and product/ingestion content is admin-only; tabs work in both locales. | Compact terminology layout still needs the focused visual retest above.                       |
+| Activity console         | Action feedback, browser-console mirroring, object context, scrolling, and output-only resizing work.                                                  | Slightly taller default output still needs the focused visual retest above.                   |
+| Diagnostics              | Effective database is identified without secrets or raw private data.                                                                                  | Accepted.                                                                                     |
+| Seeded household         | Product Groups, settings persistence, expiry policy, and group-target modes are covered by the accepted Section 2 checks above.                        | Desired-restock derivation remains explicitly deferred.                                       |
+| Invitation backend       | Repository and route tests cover owner creation, duplicate protection, existing-user acceptance, and registration-time claiming.                       | Browser retest remains active; no email delivery is in scope.                                 |

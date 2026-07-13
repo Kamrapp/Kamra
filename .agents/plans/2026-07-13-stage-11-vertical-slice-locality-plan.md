@@ -289,7 +289,8 @@ Commit: `docs: document Stage 11 integration workflow`
 
 ### Step 11.9 — Complete the single Stage 8–11 manual runbook
 
-Status: Complete in `4b12949`; the runbook remains live and must receive operator evidence.
+Status: Complete in `4b12949`; the compact UI/navigation and household invitation follow-ups are
+implemented in `8d4419e` and `f857b7c`. The runbook remains live and must receive operator evidence.
 
 - Create and maintain `scripts/stage11-mvp-manual-test.md` as a live operator document. It must
   include preparation/safety, two-user setup, seeded household coverage, Home CRUD and layout,
@@ -382,7 +383,8 @@ Commit: `docs: close Stage 11 MVP evidence`
 
 ## Implementation boundary
 
-The planned implementation work is complete through Step 11.9. Pause before changing a public
+The planned implementation work is complete through Step 11.9, including the focused Section 1/2
+follow-ups recorded in the live runbook. Pause before changing a public
 contract, persistence shape, authorization boundary, or lifecycle ownership in response to the
 operator runbook unless that finding is recorded as a narrow Step 11.10 fix. Stage 10 remains
 implementation-complete but release closure still depends on its configured/browser evidence; Stage

@@ -26,6 +26,13 @@
 - Added a read-only `smoke:demo-household` validator for the seeded V2 fixture. It checks household defaults, required groups/products, target/no-target coverage, expiry permutations, multiple batches, unassigned products, and the no-productless-Batch invariant.
 - Added `mvp:preflight`, a Windows-safe local command that runs deterministic integration tests, the full suite, formatting, lint, typecheck, web build, and API build in one pass. The live runbook now treats those as one automated item and leaves only browser/configured evidence manual.
 - Added guarded `seed:demo-household` and `teardown:demo-household -- --confirm=demo-household` commands for quick household-only retest cycles without reseeding or deleting shared catalogue/admin data.
+- Implemented the remaining Section 1/2 follow-ups in `8d4419e` and `f857b7c`: compact Manual
+  terminology, a slightly taller output-only Activity console, Product Batch counts, compact
+  household settings/button styling, left-rail back/forward history, and a minimal no-email
+  household invitation lifecycle.
+- Invitation support includes owner-only pending creation, duplicate/member guards, existing-user
+  acceptance, invited-email registration with automatic claiming, a new `household_invitations`
+  validator/index maintenance entry, and deterministic repository/route tests.
 
 ## Changed Files
 
@@ -66,11 +73,19 @@
 - `scripts/teardown-demo-household.ts`
 - `packages/kamra-api-server/src/household/current/demo-household-seed.ts`
 - `packages/kamra-api-server/src/household/current/demo-household-seed.test.ts`
+- `packages/kamra-api-server/src/household/current/mongo-household-invitation-repository.ts`
+- `packages/kamra-api-server/src/http/routes/household-invitation-routes.ts`
+- `src/app/household/household-invitation.service.ts`
+- `src/app/shared/navigation-history.service.ts`
 
 ## Validation
 
 - Ran before this closeout: `npm run test:integration`, `npm test`, `npm run lint -- --no-warn-ignored`, `npm run typecheck`, `npm run format:check`, `npm run build:api`, and `git diff --check`.
 - Result: 7 focused integration tests, 65 test files/240 tests, lint, typecheck, formatting, API build, and diff checks passed.
+- After the focused follow-ups, `npm test` passed with 243 tests across 67 files; the invitation
+  repository and route suites pass independently, and the app typecheck/lint pass.
+- `npm run mvp:preflight` passed after the follow-ups: 7 integration tests, 243 tests across 67
+  files, formatting, lint, typecheck, web build, and API build.
 - Note: an initial full-test attempt included the unsupported Vitest flag `--runInBand`; the corrected `npm test` run passed.
 - Closeout validation is pending after the documentation/workflow edits; it must include the focused integration suite, full tests, formatting, lint, typecheck, API build, and diff checks.
 - `npm run mvp:preflight` passed locally with 240 tests/65 files, 7 integration tests, formatting, lint, typecheck, web build, and API build.
@@ -90,7 +105,10 @@
 
 ## Open Issues
 
-- Steps 11.1–11.9 are implementation-complete in separate commits, ending with `4b12949`. The integrated manual pass and any narrow findings remain.
+- Steps 11.1–11.9 are implementation-complete in separate commits, with focused follow-ups in
+  `8d4419e` and `f857b7c`. The integrated manual pass and any narrow findings remain.
+- The new household invitation validator entry must be run against the configured disposable
+  database before using the browser invitation flow; the deterministic tests do not update MongoDB.
 - Stage 10 configured/browser release evidence remains open and is not waived by this plan.
 - The operator must edit the live runbook with actual findings during the final pass; those edits become input to the final fixer session. The shortened manual pass should start with `npm run mvp:preflight`, then the fixture/configured smokes, then browser-only checks.
 

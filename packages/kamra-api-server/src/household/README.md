@@ -20,5 +20,11 @@ Durable product and operations context lives in `docs/household.md`.
 - Stage 6 shopping-list generation lives in `current/shopping-list.ts` as a pure helper so the API and UI can reuse the same inclusion, ordering, and target-amount rules.
 - Shopping-list target amount uses `idealMaxLimit` when a stock row has one; otherwise it falls back to `minLimit * household.defaultCalculatedMaxLimitMultiplier`, with the household multiplier defaulting to `2`.
 - Missing catalog or source linkage should stay explicit in shopping-list output through uncertainty flags instead of hiding household-local items.
+- Household invitations are a small no-email membership slice: an owner creates a pending email
+  invitation, an existing account can accept it, and invited registration claims pending invitations.
+  Email delivery, expiry, revocation, and broad member administration remain outside the MVP.
 
-Stage 8 uses `v2` vocabulary: Stock Targets are demand policies, Stock Batches are physical acquisitions, and Stock Allocations are the only source of aggregate stock. `v1` remains migration input only while the cutover is in progress.
+The current household workspace uses Product Groups, Household Products, and Stock Batches. Product
+Groups and Products may own target policies; Batches belong to Products and provide the physical
+quantity/date history. The older `v1` household collections remain migration input or compatibility
+surfaces where explicitly noted.
