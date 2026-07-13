@@ -95,6 +95,10 @@
   by the revision-aware Mongo store. Added the explicit `feature-flag-revision-v1` maintenance
   entry with a no-op data migration, and changed the controlled-alpha checkbox to save immediately
   so its card no longer presents a misleading Save action.
+- Refined the Product Group workspace action grid so Group/Product/Batch rows reserve the same four
+  action positions. Batch editing now keeps Save, Cancel, an intentional empty child-action slot,
+  and Discard aligned; Product state badges use the same rounded token treatment as Group badges.
+  Light-theme Product and Batch surfaces now use the requested intermediate contrast.
 
 ## Changed Files
 

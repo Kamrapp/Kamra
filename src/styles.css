@@ -95,13 +95,13 @@
   );
   --household-product-row-background: color-mix(
     in srgb,
-    var(--pulse-row-background) 66%,
-    var(--color-wood-deep) 34%
+    var(--surface-soft-background) 70%,
+    var(--color-wood-deep) 30%
   );
   --household-batch-row-background: color-mix(
     in srgb,
-    var(--surface-soft-background) 70%,
-    var(--color-wood-deep) 30%
+    var(--surface-soft-background) 64%,
+    var(--color-wood-deep) 36%
   );
   --pulse-sheen-background: color-mix(in srgb, var(--color-card-tint) 42%, transparent);
   --pulse-core-background: color-mix(

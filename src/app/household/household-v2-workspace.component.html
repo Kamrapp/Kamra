@@ -516,7 +516,7 @@
       </span>
     </span>
     <span
-      class="ui-copy-muted stock-state"
+      class="ui-token ui-token-muted stock-state"
       [class.stock-state-good]="stateClass(row.aggregate.state) === 'good'"
       [class.stock-state-danger]="stateClass(row.aggregate.state) === 'danger'"
     >
@@ -713,18 +713,19 @@
               ▣
             </app-table-icon-button>
             <app-table-icon-button
-              [ariaLabel]="loc.t('household.discardStockBatch')"
-              [titleText]="loc.t('household.discardStockBatch')"
-              (press)="discardBatch(batch)"
-            >
-              ⌫
-            </app-table-icon-button>
-            <app-table-icon-button
               [ariaLabel]="loc.t('household.cancelStockBatchEdit')"
               [titleText]="loc.t('household.cancelStockBatchEdit')"
               (press)="cancelBatchEdit()"
             >
               ×
+            </app-table-icon-button>
+            <span class="batch-action-gap" aria-hidden="true"></span>
+            <app-table-icon-button
+              [ariaLabel]="loc.t('household.discardStockBatch')"
+              [titleText]="loc.t('household.discardStockBatch')"
+              (press)="discardBatch(batch)"
+            >
+              ⌫
             </app-table-icon-button>
           </span>
         } @else {
@@ -750,6 +751,7 @@
             >
               ✎
             </app-table-icon-button>
+            <span class="batch-action-gap" aria-hidden="true"></span>
             <app-table-icon-button
               [ariaLabel]="loc.t('household.discardStockBatch')"
               [titleText]="loc.t('household.discardStockBatch')"
