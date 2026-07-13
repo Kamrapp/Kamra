@@ -1,5 +1,10 @@
 # Stage 8 household-stock manual verification — user-side closeout
 
+> Historical input only. Future cross-stage operator verification must use
+> [`scripts/stage11-mvp-manual-test.md`](stage11-mvp-manual-test.md), which combines this flow
+> with Stage 9 shopping, Stage 10 operations, integration evidence, and the final fix/discovery
+> loop. Keep this file for historical comparison; do not run it as a separate acceptance session.
+
 The Stage 8 user-side implementation is complete on the current branch. Use this file only
 for manual/browser evidence and any resulting bug fixes. The Product Group terminology,
 expansion hierarchy, Group/Product rename and reassignment, and right-side Product loading

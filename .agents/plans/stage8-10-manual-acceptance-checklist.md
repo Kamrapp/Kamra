@@ -1,6 +1,10 @@
 # Stage 8–10 Manual Acceptance Checklist
 
-This is the single source of truth for manual/browser verification carried forward from Stage 8 through Stage 10. Plan files describe ownership and automated validation; this file records the human journey and its current status. Do not mark an item complete from unit tests alone.
+This is a historical inventory of manual/browser verification carried forward from Stage 8 through
+Stage 10. The single future operator source of truth is
+[`scripts/stage11-mvp-manual-test.md`](../../scripts/stage11-mvp-manual-test.md), which absorbs
+these items and adds the Stage 11 integration/closure loop. Do not run this file as a separate
+acceptance session or mark an item complete from unit tests alone.
 
 ## Current status
 

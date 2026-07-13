@@ -1,8 +1,9 @@
 # Stage 11 Vertical-Slice Locality And Integration Contracts
 
-Status: Draft for implementation approval. Planning was requested after the Stage 10 code
-hardening pass; implementation must remain commit-sized and must not reopen the Stage 8–10
-domain model without a concrete integration finding.
+Status: Draft for implementation approval. This is the single technical and manual wrap-up stage
+for the MVP: it absorbs the remaining Stage 8–10 evidence, suspected UI/data-integrity checks,
+and narrowly scoped fixes while preserving the Stage 10 release gate. Implementation must remain
+commit-sized and must not reopen the Stage 8–10 domain model without a concrete finding.
 
 ## Objective
 
@@ -20,6 +21,40 @@ but fail globally, such as:
 - a household command persisting data that the grouped read model cannot return;
 - a shopping-trip completion creating stock without its ingestion submission or retry boundary;
 - an ingestion processing change not reaching the review/catalogue boundary.
+
+Stage 11 also replaces fragmented manual verification. Operators should not run separate Stage 8,
+Stage 9, and Stage 10 acceptance sessions after this plan is approved. The final live runbook is
+`scripts/stage11-mvp-manual-test.md`; it combines the existing Stage 8 demo script, the Stage 8–10
+acceptance checklist, and the cross-layer checks introduced here. The operator may add notes and
+discoveries directly to that file. A later fixer session diffs those notes, implements the owned
+changes, updates the runbook, and reruns only the affected sections before the final full pass.
+
+## Cross-stage closure ownership
+
+Stage 11 owns the final pass over all user-visible and operator-visible concerns that were left
+open by Stage 8–10:
+
+- Product Group → Household Product → Stock Batch CRUD, hierarchy, target derivation, expiry
+  policy, ordering, history, stale revisions, unassigned products, and Product-owned stock;
+- Home layout behavior: panel collapse/growth, fixed and aligned columns, detail/edit/discard
+  actions, right-side editor synchronization, dark/light themes, compact labels, responsive
+  layout, focus/keyboard labels, loading/empty/error/403/404/409/500 states, and activity logs;
+- household settings, feature-flag persistence/effect, group-target shopping modes, generated
+  Product/Group/impulse lines, duplicate impulse prevention, selection/build/generate/cancel flows,
+  and final application into Products and Batches;
+- Shopping Trip market selection, matching/price explanations, no-price/stale/incompatible cases,
+  overrides, skip/resume, actual purchase results, existing/new Product choice, unplanned purchase,
+  idempotent retry, stale revision, transaction rollback, and pending Ingestion Submissions;
+- admin market/Product/Price Observation and Ingestion Submission workflows, authorization,
+  localized success/failure feedback, revision conflicts, and history preservation;
+- developer-admin flags, maintenance/validator-vs-migration actions, audit/redaction/effective
+  database diagnostics, archive checksum/export/import/repair/reprocessing, and realistic-volume
+  behavior.
+
+The old `scripts/stage8-demo-manual-test.md` and `.agents/plans/stage8-10-manual-acceptance-checklist.md`
+remain useful historical inventories while Stage 11 is being implemented. At wrap-up, the new
+Stage 11 runbook supersedes them as the only operator checklist; the older files should link to it
+rather than invite a second independent test session.
 
 ## Why this stage is needed now
 
@@ -232,6 +267,69 @@ for cross-layer changes, and no workflow silently requires private configuration
 checks.
 
 Commit: `docs: document Stage 11 integration workflow`
+
+### Step 11.9 — Complete the single Stage 8–11 manual runbook
+
+- Create and maintain `scripts/stage11-mvp-manual-test.md` as a live operator document. It must
+  include preparation/safety, two-user setup, seeded household coverage, Home CRUD and layout,
+  settings/flags, shopping-list generation/application, Shopping Trips, admin review/pricing,
+  ingestion/archive/maintenance operations, automated commands, and final evidence/waiver rules.
+- Carry forward every still-open item from the old Stage 8 demo script and Stage 8–10 checklist,
+  but remove duplicate instructions and explicitly name the expected result for each action.
+- Add an `Operator notes and discoveries` area under every major section. The operator may edit
+  unchecked items, add reproduction details, browser/environment information, and screenshots or
+  file references, but must not add credentials or private data.
+- Add a short `Known risk probes` section for likely regressions: inline/right-editor desynchrony,
+  expired-batch inclusion, group/product total double-counting, duplicate impulse lines, stale
+  revision handling, missing schema/maintenance setup, untranslated labels, dark-mode contrast,
+  fixed-column overflow, and silent failed actions.
+
+Acceptance: the runbook is the only planned future operator walkthrough for Stage 8–11; every
+previous unchecked checklist item maps to one runbook section or has an explicit waiver owner.
+
+Commit: `docs: add Stage 8-11 MVP manual runbook`
+
+### Step 11.10 — Execute the integrated manual pass and fix findings
+
+Run the runbook as one continuous session after implementation slices are complete. Do not mark a
+section green from an automated test alone. For each failure or discovery:
+
+1. Add the exact observed behavior, expected behavior, account/locale/theme/viewport, and a safe
+   reproduction to the live runbook.
+2. Classify it as a Stage 8 household bug, Stage 9 shopping/admin bug, Stage 10 operational bug,
+   Stage 11 locality/integration bug, or an explicit post-MVP deferral.
+3. Implement one narrow fix, add a focused regression/integration test where appropriate, update
+   the runbook expectation, and commit it separately.
+4. Rerun the affected section, then repeat the full runbook after the last behavior-changing fix.
+
+The final pass must include both light and dark themes, narrow and desktop widths, a normal member
+and an admin, and a disposable/configured database for any validator, transaction, archive, repair,
+or maintenance action. A visual issue may remain open only if it is explicitly classified as a
+bounded post-MVP polish item.
+
+Acceptance: no open correctness, authorization, persistence, transaction, history, or silent-error
+finding lacks an owning commit or a named waiver. The runbook records actual evidence, not planned
+claims.
+
+Commit per finding: `fix: close MVP manual finding <short-scope>`
+
+### Step 11.11 — Final cross-stage reconciliation
+
+- Diff the operator-edited runbook and review every note/discovery since the previous implementation
+  commit; do not overwrite operator notes while updating expected results.
+- Run the complete automated suite, deterministic integration suite, configured smokes/maintenance
+  actions, and the final browser walkthrough from the same final commit.
+- Update `docs/alpha-release-checklist.md`, `docs/vertical-slice-map.md`, the roadmap, and the
+  Stage 11 session handoff with evidence, waivers, known limitations, and the final commit.
+- Change the old Stage 8 script and Stage 8–10 checklist headers to point to the Stage 11 runbook
+  as the single source of truth. Retain their historical content unless a separate cleanup is
+  explicitly approved.
+- Only then move MVP Closure from planned validation into a completed/waived release decision.
+
+Acceptance: a new operator can run one document for the complete Stage 8–11 MVP journey, and a new
+developer can identify the owning code/test paths without reconstructing prior session history.
+
+Commit: `docs: close Stage 11 MVP evidence`
 
 ## Schema, migration, and compatibility guardrails
 

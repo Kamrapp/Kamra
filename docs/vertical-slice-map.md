@@ -35,5 +35,5 @@ repositories.
 - `npm run smoke:catalog` / `npm run smoke:transactions` — configured existing smokes.
 - Future Stage 11 configured integration smoke — only for persistence/schema/maintenance/API
   changes and only against an approved disposable database.
-- Browser/manual checklist — UI, visual, two-user, and configured behavior that code tests cannot
-  establish.
+- `scripts/stage11-mvp-manual-test.md` — the single integrated UI, visual, two-user, configured,
+  and operator runbook after Stage 11 implementation.
