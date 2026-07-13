@@ -185,6 +185,28 @@ describe("shopping needs", () => {
       })
     ).toEqual([]);
   });
+  it("honors manually selected Product and Group owners even when they are not below a target", () => {
+    const workspace = createWorkspace({
+      groupCurrent: 3,
+      groupMinimum: 1,
+      groupDesired: 2,
+      products: [{ current: 3, displayName: "Milk", id: "milk", nextExpiryOn: null }]
+    });
+
+    const needs = generateProductGroupShoppingNeeds({
+      mode: "add_products_and_group_item",
+      needIdPrefix: "selected",
+      selectedOwnerIds: new Set(["milk", "group:milk"]),
+      workspace
+    });
+
+    expect(needs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ ownerId: "milk", plannedQuantity: 1 }),
+        expect.objectContaining({ ownerId: "group:milk", ownerKind: "product_group" })
+      ])
+    );
+  });
 });
 
 function createWorkspace(input: {

@@ -429,6 +429,11 @@ export function assertCreateHouseholdShoppingListRequest(
   assertNonEmptyString(value["householdId"], `${label}.householdId`);
   assertEnum(value["scale"], householdShoppingScales, `${label}.scale`);
   assertOptionalNonEmptyString(value["shopId"], `${label}.shopId`);
+  if (value["selectedOwnerIds"] !== undefined) {
+    assertArray(value["selectedOwnerIds"], `${label}.selectedOwnerIds`);
+    for (const [index, id] of value["selectedOwnerIds"].entries())
+      assertNonEmptyString(id, `${label}.selectedOwnerIds[${index}]`);
+  }
   if (value["selectedStockItemIds"] !== undefined) {
     assertArray(value["selectedStockItemIds"], `${label}.selectedStockItemIds`);
     for (const [index, id] of value["selectedStockItemIds"].entries())

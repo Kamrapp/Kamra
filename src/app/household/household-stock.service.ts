@@ -132,6 +132,7 @@ export interface HouseholdShoppingListLine {
   minLimit?: number | null;
   observedPrice?: HouseholdObservedPriceInput | null;
   plannedAmount: number;
+  productGroupId?: string | null;
   productSourceId?: string | null;
   purchasedAmount: number;
   reasonCode?: "at_minimum" | "below_minimum" | "broad_restock" | "low_soon" | null;
@@ -193,6 +194,7 @@ export interface HouseholdShoppingListPreview {
 
 export interface CreateHouseholdShoppingListInput {
   householdId: string;
+  selectedOwnerIds?: string[];
   selectedStockItemIds?: string[];
   scale: "business_as_usual" | "keep_it_chill" | "start_fresh" | "stock_em_up";
   shopId?: string | null;

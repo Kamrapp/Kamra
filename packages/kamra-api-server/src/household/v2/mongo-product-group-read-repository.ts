@@ -25,11 +25,15 @@ export class MongoProductGroupReadRepository {
         .find({ householdId })
         .toArray(),
       this.database
-        .collection<{ allowExpiredItems?: boolean | null }>("households")
+        .collection<{
+          allowExpiredItems?: boolean | null;
+          defaultCalculatedMaxLimitMultiplier?: number | null;
+        }>("households")
         .findOne({ id: householdId })
     ]);
     return buildProductGroupWorkspace({
       allowExpiredItems: household?.allowExpiredItems ?? true,
+      defaultCalculatedMaxLimitMultiplier: household?.defaultCalculatedMaxLimitMultiplier,
       batches,
       groups,
       products,

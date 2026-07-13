@@ -376,10 +376,12 @@ export const householdShoppingListsRoute: AppRoute = {
       ).getWorkspace(body.householdId, new Date().toISOString().slice(0, 10));
       const hasV2Products =
         v2Workspace.productGroups.length > 0 || v2Workspace.unassignedProducts.length > 0;
+      const selectedOwnerIds = body.selectedOwnerIds ? new Set(body.selectedOwnerIds) : null;
       const v2Needs = hasV2Products
         ? generateProductGroupShoppingNeeds({
             mode: stockPage.household.groupTargetShoppingMode ?? "add_products_and_group_item",
             needIdPrefix: `shopping-needs:${body.householdId}`,
+            selectedOwnerIds,
             workspace: v2Workspace
           })
         : [];

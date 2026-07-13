@@ -31,6 +31,7 @@ export interface ProductGroupNode {
 
 export interface ProductGroupWorkspaceReadModel {
   allowExpiredItems: boolean;
+  defaultCalculatedMaxLimitMultiplier: number;
   productGroups: ProductGroupNode[];
   unassignedBatches: StockBatch[];
   unassignedProducts: Array<{
@@ -42,6 +43,7 @@ export interface ProductGroupWorkspaceReadModel {
 
 export function buildProductGroupWorkspace(input: {
   allowExpiredItems: boolean;
+  defaultCalculatedMaxLimitMultiplier?: number | null;
   batches: StockBatch[];
   groups: ProductGroup[];
   products: HouseholdProduct[];
@@ -99,6 +101,7 @@ export function buildProductGroupWorkspace(input: {
   );
   return {
     allowExpiredItems: input.allowExpiredItems,
+    defaultCalculatedMaxLimitMultiplier: input.defaultCalculatedMaxLimitMultiplier ?? 2,
     productGroups,
     unassignedBatches,
     unassignedProducts: input.products

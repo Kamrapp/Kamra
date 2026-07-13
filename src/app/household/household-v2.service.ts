@@ -60,6 +60,7 @@ export interface HouseholdV2ProductGroup {
 }
 export interface HouseholdV2Workspace {
   allowExpiredItems: boolean;
+  defaultCalculatedMaxLimitMultiplier?: number;
   productGroups: HouseholdV2ProductGroup[];
   unassignedBatches: HouseholdV2Batch[];
   unassignedProducts: HouseholdV2ProductRow[];

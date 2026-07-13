@@ -120,6 +120,8 @@ export class HomeComponent implements OnDestroy {
   readonly shoppingScale = signal<ShoppingScale>("chill");
   readonly shoppingSelectionMode = signal(false);
   readonly selectedShoppingItemIds = signal<ReadonlySet<string>>(new Set());
+  readonly shoppingSelectionCandidates = signal<readonly string[]>([]);
+  readonly shoppingSelectionDefaults = signal<readonly string[]>([]);
   readonly statusMessage = signal("");
   readonly shoppingScaleDisplayOptions = shoppingScaleDisplayOptions;
   readonly shoppingScaleOptions = shoppingScaleOptions;
@@ -237,7 +239,7 @@ export class HomeComponent implements OnDestroy {
         .filter((id): id is string => !!id) ?? []
     );
   });
-  readonly shoppingItemCount = computed(() => this.shoppingItems().length);
+  readonly shoppingItemCount = computed(() => this.shoppingSelectionCandidates().length);
   readonly railShoppingItemCount = computed(() =>
     this.auth.isAuthenticated() ? this.shoppingItemCount() : this.previewShoppingItems().length
   );
@@ -498,6 +500,13 @@ export class HomeComponent implements OnDestroy {
       return next;
     });
   }
+  setShoppingSelectionCandidates(ids: readonly string[]): void {
+    this.shoppingSelectionCandidates.set(ids);
+  }
+  setShoppingSelectionDefaults(ids: readonly string[]): void {
+    this.shoppingSelectionDefaults.set(ids);
+    if (this.shoppingSelectionMode()) this.selectedShoppingItemIds.set(new Set(ids));
+  }
 
   private beginShoppingSelection(): void {
     this.shoppingSelectionMode.set(true);
@@ -508,7 +517,7 @@ export class HomeComponent implements OnDestroy {
     this.selectedShoppingItemIds.set(new Set());
   }
   private resetShoppingSelection(): void {
-    this.selectedShoppingItemIds.set(new Set(this.shoppingItems().map((item) => item.id)));
+    this.selectedShoppingItemIds.set(new Set(this.shoppingSelectionDefaults()));
   }
   private async generateSelectedShoppingList(): Promise<void> {
     await this.shoppingListPanel()?.generateShoppingList();

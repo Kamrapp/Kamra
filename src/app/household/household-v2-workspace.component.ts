@@ -42,6 +42,12 @@ export class HouseholdV2WorkspaceComponent {
   readonly newProductRequested = output<HouseholdV2ProductGroup | null>();
   readonly groupSelected = output<HouseholdV2ProductGroup>();
   readonly changed = output<void>();
+  readonly shoppingSelectionMode = input(false);
+  readonly selectedShoppingOwnerIds = input<ReadonlySet<string>>(new Set());
+  readonly shoppingSelectionScale = input("keep_it_chill");
+  readonly shoppingSelectionToggled = output<string>();
+  readonly shoppingSelectionCandidatesChanged = output<readonly string[]>();
+  readonly shoppingSelectionDefaultsChanged = output<readonly string[]>();
   readonly workspace = signal<HouseholdV2Workspace | null>(null);
   readonly errorMessage = signal("");
   readonly loadState = signal<"idle" | "loading" | "ready" | "error">("idle");
@@ -51,13 +57,16 @@ export class HouseholdV2WorkspaceComponent {
   readonly editingGroupName = signal("");
   readonly editingGroupUnitOption = signal<HouseholdTrackingUnitOption>("count");
   readonly editingGroupCustomUnit = signal("");
-  readonly editingGroupMinimum = signal(0);
-  readonly editingGroupDesired = signal(0);
+  readonly editingGroupMinimum = signal<number | null>(null);
+  readonly editingGroupDesired = signal<number | null>(null);
   readonly editingGroupHasTarget = signal(false);
   readonly editingProductName = signal("");
   readonly editingProductGtin = signal("");
   readonly editingProductNote = signal("");
   readonly editingProductGroupId = signal("");
+  readonly editingProductMinimum = signal<number | null>(null);
+  readonly editingProductDesired = signal<number | null>(null);
+  readonly editingProductHasTarget = signal(false);
   readonly editingBatchAcquiredOn = signal("");
   readonly expandedGroupIds = signal<ReadonlySet<string>>(new Set());
   readonly expandedProductIds = signal<ReadonlySet<string>>(new Set());
@@ -66,6 +75,8 @@ export class HouseholdV2WorkspaceComponent {
   readonly batchDetailsIds = signal<ReadonlySet<string>>(new Set());
   readonly unassignedExpanded = signal(true);
   readonly sectionExpanded = signal(true);
+  readonly expansionLevel = signal<0 | 1 | 2>(1);
+  private expansionCycleStarted = false;
   readonly icons = householdDomainIcons;
   readonly trackingUnitOptions = householdTrackingUnitOptions;
   private readonly service = inject(HouseholdV2Service);
@@ -81,6 +92,13 @@ export class HouseholdV2WorkspaceComponent {
         this.resetEditingState();
       }
       if (householdId) void this.load(householdId);
+    });
+    effect(() => {
+      this.workspace();
+      this.shoppingSelectionMode();
+      this.selectedShoppingOwnerIds();
+      this.shoppingSelectionScale();
+      this.emitShoppingSelectionState();
     });
   }
   async refresh(): Promise<void> {
@@ -98,8 +116,7 @@ export class HouseholdV2WorkspaceComponent {
       return;
     }
     const workspace = result.workspace ?? null;
-    if (!this.workspace() && workspace)
-      this.expandedGroupIds.set(new Set(this.groupIds(workspace.productGroups)));
+    if (!this.workspace() && workspace) this.setExpansionLevel(1, workspace);
     this.workspace.set(workspace);
     this.loadState.set("ready");
   }
@@ -122,6 +139,22 @@ export class HouseholdV2WorkspaceComponent {
   }
   toggleGroup(groupId: string): void {
     this.toggleSet(this.expandedGroupIds, groupId);
+  }
+  cycleExpansionLevel(): void {
+    const nextLevel =
+      !this.expansionCycleStarted && this.expansionLevel() === 1
+        ? 0
+        : this.expansionLevel() === 0
+          ? 1
+          : this.expansionLevel() === 1
+            ? 2
+            : 0;
+    this.expansionCycleStarted = true;
+    this.setExpansionLevel(nextLevel);
+    this.resetEditingState();
+  }
+  expansionLabel(): string {
+    return this.expansionLevel() === 0 ? "▸" : this.expansionLevel() === 1 ? "▾" : "▾▾";
   }
   isGroupExpanded(groupId: string): boolean {
     return this.expandedGroupIds().has(groupId);
@@ -150,6 +183,42 @@ export class HouseholdV2WorkspaceComponent {
   isBatchDetailsOpen(batchId: string): boolean {
     return this.batchDetailsIds().has(batchId);
   }
+  isShoppingOwnerSelected(ownerId: string): boolean {
+    return this.selectedShoppingOwnerIds().has(ownerId);
+  }
+  toggleShoppingOwner(ownerId: string): void {
+    this.shoppingSelectionToggled.emit(ownerId);
+  }
+  setGroupTargetEnabled(enabled: boolean): void {
+    this.editingGroupHasTarget.set(enabled);
+    if (!enabled) {
+      this.editingGroupMinimum.set(null);
+      this.editingGroupDesired.set(null);
+    }
+  }
+  setProductTargetEnabled(enabled: boolean): void {
+    this.editingProductHasTarget.set(enabled);
+    if (!enabled) {
+      this.editingProductMinimum.set(null);
+      this.editingProductDesired.set(null);
+    }
+  }
+  setGroupMinimum(value: number | string): void {
+    this.editingGroupHasTarget.set(true);
+    this.editingGroupMinimum.set(readOptionalAmount(value));
+  }
+  setGroupDesired(value: number | string): void {
+    this.editingGroupHasTarget.set(true);
+    this.editingGroupDesired.set(readOptionalAmount(value));
+  }
+  setProductMinimum(value: number | string): void {
+    this.editingProductHasTarget.set(true);
+    this.editingProductMinimum.set(readOptionalAmount(value));
+  }
+  setProductDesired(value: number | string): void {
+    this.editingProductHasTarget.set(true);
+    this.editingProductDesired.set(readOptionalAmount(value));
+  }
   selectGroup(group: HouseholdV2ProductGroup): void {
     this.groupSelected.emit(group);
   }
@@ -170,8 +239,8 @@ export class HouseholdV2WorkspaceComponent {
     this.editingGroupName.set(group.group.displayName);
     this.editingGroupUnitOption.set(trackingUnit.option);
     this.editingGroupCustomUnit.set(trackingUnit.customSuffix);
-    this.editingGroupMinimum.set(group.group.targetPolicy?.minimumQuantity ?? 0);
-    this.editingGroupDesired.set(group.group.targetPolicy?.desiredQuantity ?? 0);
+    this.editingGroupMinimum.set(group.group.targetPolicy?.minimumQuantity ?? null);
+    this.editingGroupDesired.set(group.group.targetPolicy?.desiredQuantity ?? null);
     this.editingGroupHasTarget.set(Boolean(group.group.targetPolicy));
     this.editingGroupId.set(group.group.id);
     this.groupDetailsIds.update((ids) => new Set(ids).add(group.group.id));
@@ -182,8 +251,8 @@ export class HouseholdV2WorkspaceComponent {
     this.editingGroupName.set("");
     this.editingGroupUnitOption.set("count");
     this.editingGroupCustomUnit.set("");
-    this.editingGroupMinimum.set(0);
-    this.editingGroupDesired.set(0);
+    this.editingGroupMinimum.set(null);
+    this.editingGroupDesired.set(null);
     this.editingGroupHasTarget.set(false);
   }
   editProduct(product: HouseholdV2Product): void {
@@ -193,6 +262,9 @@ export class HouseholdV2WorkspaceComponent {
     );
     this.editingProductNote.set(product.note ?? "");
     this.editingProductGroupId.set(product.productGroupId ?? "");
+    this.editingProductMinimum.set(product.targetPolicy?.minimumQuantity ?? null);
+    this.editingProductDesired.set(product.targetPolicy?.desiredQuantity ?? null);
+    this.editingProductHasTarget.set(Boolean(product.targetPolicy));
     this.editingProductId.set(product.id);
     this.productDetailsIds.update((ids) => new Set(ids).add(product.id));
     this.productSelected.emit(product);
@@ -203,6 +275,9 @@ export class HouseholdV2WorkspaceComponent {
     this.editingProductGtin.set("");
     this.editingProductNote.set("");
     this.editingProductGroupId.set("");
+    this.editingProductMinimum.set(null);
+    this.editingProductDesired.set(null);
+    this.editingProductHasTarget.set(false);
   }
   editBatch(
     batch: HouseholdV2Batch,
@@ -303,25 +378,19 @@ export class HouseholdV2WorkspaceComponent {
       this.editingGroupUnitOption(),
       this.editingGroupCustomUnit()
     );
-    const minimumQuantity = this.editingGroupMinimum();
-    const desiredQuantity = this.editingGroupDesired();
-    if (
-      !name ||
-      !trackingUnit ||
-      !Number.isFinite(minimumQuantity) ||
-      !Number.isFinite(desiredQuantity) ||
-      minimumQuantity < 0 ||
-      desiredQuantity < minimumQuantity
-    ) {
+    const targetPolicyValues = this.editingGroupHasTarget()
+      ? this.completeTargetValues(this.editingGroupMinimum(), this.editingGroupDesired())
+      : null;
+    if (!name || !trackingUnit || targetPolicyValues === "invalid") {
       this.errorMessage.set(this.loc.t("household.groupSaveInvalid"));
       return;
     }
-    const targetPolicy = this.editingGroupHasTarget()
+    const targetPolicy = targetPolicyValues
       ? {
           consumptionPolicy: group.targetPolicy?.consumptionPolicy ?? "earliest_expiry_first",
-          desiredQuantity,
+          desiredQuantity: targetPolicyValues.desiredQuantity,
           expiryWarningDays: group.targetPolicy?.expiryWarningDays ?? 0,
-          minimumQuantity,
+          minimumQuantity: targetPolicyValues.minimumQuantity,
           trackingUnit
         }
       : null;
@@ -352,11 +421,20 @@ export class HouseholdV2WorkspaceComponent {
     displayName: string,
     productGroupId: string,
     gtin: string,
-    note: string
+    note: string,
+    minimum: number | null,
+    desired: number | null
   ): Promise<void> {
     const name = displayName.trim();
     if (!name) {
       this.errorMessage.set(this.loc.t("household.productNameRequired"));
+      return;
+    }
+    const targetPolicyValues = this.editingProductHasTarget()
+      ? this.completeTargetValues(minimum, desired)
+      : null;
+    if (targetPolicyValues === "invalid") {
+      this.errorMessage.set(this.loc.t("household.productSaveInvalid"));
       return;
     }
     const result = await this.service.updateProductIdentity({
@@ -372,7 +450,16 @@ export class HouseholdV2WorkspaceComponent {
       note: note.trim() || null,
       productGroupId: productGroupId || null,
       productId: product.id,
-      targetPolicy: product.targetPolicy ?? null
+      targetPolicy: targetPolicyValues
+        ? {
+            consumptionPolicy: product.targetPolicy?.consumptionPolicy ?? "earliest_expiry_first",
+            desiredQuantity: targetPolicyValues.desiredQuantity,
+            expiryWarningDays: product.targetPolicy?.expiryWarningDays ?? 0,
+            minimumQuantity: targetPolicyValues.minimumQuantity,
+            trackingUnit:
+              product.targetPolicy?.trackingUnit ?? product.defaultTrackingUnit ?? "count"
+          }
+        : null
     });
     if (result.status === "error") {
       const message = result.message ?? this.loc.t("household.productSaveFailure");
@@ -503,6 +590,96 @@ export class HouseholdV2WorkspaceComponent {
     this.cancelProductEdit();
     this.cancelBatchEdit();
   }
+  private setExpansionLevel(level: 0 | 1 | 2, workspace = this.workspace()): void {
+    this.expansionLevel.set(level);
+    const groups = workspace?.productGroups ?? [];
+    this.expandedGroupIds.set(level === 0 ? new Set() : new Set(this.groupIds(groups)));
+    this.expandedProductIds.set(
+      level === 2
+        ? new Set(this.productIds(groups, workspace?.unassignedProducts ?? []))
+        : new Set()
+    );
+  }
+  private productIds(
+    groups: HouseholdV2ProductGroup[],
+    unassigned: HouseholdV2ProductRow[]
+  ): string[] {
+    return [
+      ...groups.flatMap((group) => [
+        ...group.products.map((row) => row.product.id),
+        ...this.productIds(group.childGroups, [])
+      ]),
+      ...unassigned.map((row) => row.product.id)
+    ];
+  }
+  private completeTargetValues(
+    minimum: number | null,
+    desired: number | null
+  ): { minimumQuantity: number; desiredQuantity: number } | "invalid" | null {
+    const multiplier = this.workspace()?.defaultCalculatedMaxLimitMultiplier ?? 2;
+    let nextMinimum = minimum;
+    let nextDesired = desired;
+    if (nextMinimum === null && nextDesired === null) return null;
+    if (nextMinimum === null && nextDesired !== null) nextMinimum = nextDesired / multiplier;
+    if (nextDesired === null && nextMinimum !== null) nextDesired = nextMinimum * multiplier;
+    if (
+      nextMinimum === null ||
+      nextDesired === null ||
+      !Number.isFinite(nextMinimum) ||
+      !Number.isFinite(nextDesired) ||
+      nextMinimum < 0 ||
+      nextDesired < nextMinimum
+    )
+      return "invalid";
+    return { desiredQuantity: nextDesired, minimumQuantity: nextMinimum };
+  }
+  private emitShoppingSelectionState(): void {
+    const workspace = this.workspace();
+    if (!workspace) return;
+    const groups = this.flattenGroups(workspace.productGroups);
+    const rows = [
+      ...workspace.unassignedProducts,
+      ...workspace.productGroups.flatMap((group) => this.allProductRows(group))
+    ];
+    this.shoppingSelectionCandidatesChanged.emit([
+      ...groups.map((group) => group.id),
+      ...new Set(rows.map((row) => row.product.id))
+    ]);
+    const defaults = [
+      ...groups
+        .filter((group) => {
+          const aggregate = this.groupAggregate(group.id)?.aggregate;
+          return Boolean(
+            group.targetPolicy &&
+            aggregate &&
+            aggregate.availableQuantity < group.targetPolicy.minimumQuantity
+          );
+        })
+        .map((group) => group.id),
+      ...rows
+        .filter(
+          (row) =>
+            row.product.targetPolicy &&
+            row.aggregate.availableQuantity < row.product.targetPolicy.minimumQuantity
+        )
+        .map((row) => row.product.id)
+    ];
+    this.shoppingSelectionDefaultsChanged.emit([...new Set(defaults)]);
+  }
+  private allProductRows(group: HouseholdV2ProductGroup): HouseholdV2ProductRow[] {
+    return [...group.products, ...group.childGroups.flatMap((child) => this.allProductRows(child))];
+  }
+  private groupAggregate(groupId: string): HouseholdV2ProductGroup | null {
+    const visit = (groups: HouseholdV2ProductGroup[]): HouseholdV2ProductGroup | null => {
+      for (const group of groups) {
+        if (group.group.id === groupId) return group;
+        const child = visit(group.childGroups);
+        if (child) return child;
+      }
+      return null;
+    };
+    return visit(this.workspace()?.productGroups ?? []);
+  }
   private toggleSet(target: ReturnType<typeof signal<ReadonlySet<string>>>, id: string): void {
     target.update((ids) => {
       const next = new Set(ids);
@@ -517,4 +694,10 @@ export class HouseholdV2WorkspaceComponent {
   private flattenGroups(groups: HouseholdV2ProductGroup[]): HouseholdV2ProductGroup["group"][] {
     return groups.flatMap((group) => [group.group, ...this.flattenGroups(group.childGroups)]);
   }
+}
+
+function readOptionalAmount(value: number | string): number | null {
+  if (value === "" || value === null) return null;
+  const amount = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(amount) ? amount : null;
 }

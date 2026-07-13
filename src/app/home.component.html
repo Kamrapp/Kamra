@@ -11,11 +11,17 @@
       <app-household-v2-workspace
         [householdId]="selectedHouseholdId()"
         [refreshRevision]="v2WorkspaceRevision()"
+        [shoppingSelectionMode]="shoppingSelectionMode()"
+        [selectedShoppingOwnerIds]="selectedShoppingItemIds()"
+        [shoppingSelectionScale]="apiShoppingScale()"
         (newProductRequested)="startV2ProductCreate($event)"
         (newBatchRequested)="startV2BatchCreate($event)"
         (productSelected)="selectV2Product($event)"
         (batchSelected)="selectV2Batch($event)"
         (groupSelected)="selectV2Group($event)"
+        (shoppingSelectionToggled)="toggleShoppingItem($event)"
+        (shoppingSelectionCandidatesChanged)="setShoppingSelectionCandidates($event)"
+        (shoppingSelectionDefaultsChanged)="setShoppingSelectionDefaults($event)"
         (changed)="refreshV2Workspace()"
       />
       <aside class="household-editor-side">
@@ -58,7 +64,7 @@
       class="shopping-bottom-row"
       [householdId]="selectedHouseholdId()"
       [shoppingScale]="apiShoppingScale()"
-      [selectedStockItemIds]="shoppingSelectionMode() ? selectedShoppingItemIdsArray() : null"
+      [selectedOwnerIds]="shoppingSelectionMode() ? selectedShoppingItemIdsArray() : null"
       (stockPageUpdated)="applyShoppingListStockPage($event)"
     />
     <app-household-shopping-trip-panel

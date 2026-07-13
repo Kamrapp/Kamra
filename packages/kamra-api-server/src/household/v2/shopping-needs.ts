@@ -91,6 +91,7 @@ export function createAdHocShoppingNeed(input: {
 export function generateProductGroupShoppingNeeds(input: {
   mode: GroupTargetShoppingMode;
   needIdPrefix: string;
+  selectedOwnerIds?: ReadonlySet<string> | null;
   workspace: ProductGroupWorkspaceReadModel;
 }): ShoppingNeed[] {
   const rows = allProductRows(input.workspace);
@@ -160,6 +161,51 @@ export function generateProductGroupShoppingNeeds(input: {
           })
         );
       }
+    }
+  }
+
+  if (input.selectedOwnerIds?.size) {
+    for (const row of rows) {
+      if (!input.selectedOwnerIds.has(row.product.id) || productNeeds.has(row.product.id)) continue;
+      const policy = row.product.targetPolicy;
+      const unit = policy?.trackingUnit ?? row.aggregate.trackingUnit ?? "count";
+      const plannedQuantity = policy
+        ? Math.max(1, policy.desiredQuantity - row.aggregate.availableQuantity)
+        : 1;
+      const need = createTargetPolicyNeed({
+        displayName: row.product.displayName,
+        id: row.product.id,
+        needId: `${input.needIdPrefix}:product:${row.product.id}`,
+        plannedQuantity,
+        policy: policy ?? {
+          consumptionPolicy: "earliest_expiry_first",
+          desiredQuantity: plannedQuantity,
+          expiryWarningDays: 0,
+          minimumQuantity: 0,
+          trackingUnit: unit
+        }
+      });
+      productNeeds.set(row.product.id, need);
+      needs.push(need);
+    }
+    for (const group of allGroups(input.workspace.productGroups)) {
+      if (
+        !input.selectedOwnerIds.has(group.group.id) ||
+        needs.some((need) => need.ownerId === group.group.id)
+      )
+        continue;
+      const policy = group.group.targetPolicy;
+      needs.push(
+        createGroupShoppingNeed({
+          displayName: group.group.displayName,
+          groupId: group.group.id,
+          needId: `${input.needIdPrefix}:group:${group.group.id}`,
+          plannedQuantity: policy
+            ? Math.max(1, policy.desiredQuantity - group.aggregate.availableQuantity)
+            : 1,
+          unit: policy?.trackingUnit ?? group.aggregate.trackingUnit ?? group.group.trackingUnit
+        })
+      );
     }
   }
 
