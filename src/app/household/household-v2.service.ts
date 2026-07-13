@@ -63,6 +63,24 @@ export interface HouseholdV2Workspace {
   unassignedProducts: HouseholdV2ProductRow[];
   useAbbreviatedUiLabels?: boolean;
 }
+export interface HouseholdShoppingTripItem {
+  actualQuantity?: number | null;
+  createdBatchIds?: string[];
+  displayNameSnapshot: string;
+  id: string;
+  planStatus: "unresolved" | "selected" | "skipped";
+  requiredQuantity: number;
+  requiredUnit: string;
+  resultStatus: "pending" | "bought" | "not_bought";
+}
+export interface HouseholdShoppingTrip {
+  id: string;
+  items: HouseholdShoppingTripItem[];
+  plannedDate: string;
+  revision: number;
+  shopMarketId: string | null;
+  status: string;
+}
 
 @Injectable({ providedIn: "root" })
 export class HouseholdV2Service {
@@ -96,6 +114,106 @@ export class HouseholdV2Service {
       workspace?: HouseholdV2Workspace;
     };
     return { status: "ok", workspace: payload.productGroupWorkspace ?? payload.workspace };
+  }
+
+  async listShoppingTrips(
+    householdId: string
+  ): Promise<{ message?: string; status: "error" | "ok"; trips: HouseholdShoppingTrip[] }> {
+    const response = await fetch(
+      buildApiUrl(`/api/households/${encodeURIComponent(householdId)}/shopping-trips`),
+      {
+        headers: { accept: "application/json", ...this.auth.getAuthorizationHeaders() },
+        method: "GET"
+      }
+    );
+    if (!response.ok)
+      return {
+        message: `Shopping trips could not be loaded (${response.status}).`,
+        status: "error",
+        trips: []
+      };
+    const payload = (await response.json()) as { trips: HouseholdShoppingTrip[] };
+    return { status: "ok", trips: payload.trips };
+  }
+
+  async createShoppingTrip(input: {
+    householdId: string;
+    plannedDate: string;
+    shopMarketId: string;
+  }): Promise<{ message?: string; status: "error" | "ok"; trip?: HouseholdShoppingTrip }> {
+    const response = await fetch(
+      buildApiUrl(`/api/households/${encodeURIComponent(input.householdId)}/shopping-trips`),
+      {
+        body: JSON.stringify(input),
+        headers: this.headers(),
+        method: "POST"
+      }
+    );
+    if (!response.ok)
+      return { message: `Shopping trip creation failed (${response.status}).`, status: "error" };
+    const payload = (await response.json()) as { result: HouseholdShoppingTrip };
+    return { status: "ok", trip: payload.result };
+  }
+
+  async updateShoppingTrip(input: {
+    householdId: string;
+    tripId: string;
+    expectedRevision: number;
+    itemId?: string;
+    resultStatus?: "bought" | "not_bought";
+    actualQuantity?: number;
+    planStatus?: "selected" | "skipped";
+    transition?: string;
+  }): Promise<{ message?: string; status: "error" | "ok"; trip?: HouseholdShoppingTrip }> {
+    const response = await fetch(
+      buildApiUrl(
+        `/api/households/${encodeURIComponent(input.householdId)}/shopping-trips/${encodeURIComponent(input.tripId)}`
+      ),
+      {
+        body: JSON.stringify({
+          expectedRevision: input.expectedRevision,
+          itemId: input.itemId,
+          resultStatus: input.resultStatus,
+          planStatus: input.planStatus,
+          transition: input.transition
+        }),
+        headers: this.headers(),
+        method: "PATCH"
+      }
+    );
+    if (!response.ok)
+      return { message: `Shopping trip update failed (${response.status}).`, status: "error" };
+    const payload = (await response.json()) as { result: HouseholdShoppingTrip };
+    return { status: "ok", trip: payload.result };
+  }
+
+  async completeShoppingTrip(input: {
+    householdId: string;
+    tripId: string;
+    operationId: string;
+    items: Array<{
+      itemId: string;
+      resultStatus: "bought" | "not_bought";
+      actualQuantity?: number;
+    }>;
+  }): Promise<{ message?: string; status: "error" | "ok"; trip?: HouseholdShoppingTrip }> {
+    const response = await fetch(
+      buildApiUrl(
+        `/api/households/${encodeURIComponent(input.householdId)}/shopping-trips/${encodeURIComponent(input.tripId)}/complete`
+      ),
+      {
+        body: JSON.stringify({ operationId: input.operationId, items: input.items }),
+        headers: this.headers(),
+        method: "POST"
+      }
+    );
+    if (!response.ok)
+      return {
+        message: `Shopping trip finalization failed (${response.status}).`,
+        status: "error"
+      };
+    const payload = (await response.json()) as { result: HouseholdShoppingTrip };
+    return { status: "ok", trip: payload.result };
   }
 
   async updateProductIdentity(input: {

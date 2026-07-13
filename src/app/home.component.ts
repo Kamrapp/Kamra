@@ -26,6 +26,7 @@ import {
 } from "./household/household-stock-editor.component";
 import { HouseholdStockPanelComponent } from "./household/household-stock-panel.component";
 import { HouseholdShoppingListComponent } from "./household/household-shopping-list.component";
+import { HouseholdShoppingTripPanelComponent } from "./household/household-shopping-trip-panel.component";
 import { HouseholdProductEditorComponent } from "./household/household-product-editor.component";
 import { HouseholdV2WorkspaceComponent } from "./household/household-v2-workspace.component";
 import type {
@@ -85,6 +86,7 @@ const stockStatusPriority: Record<HouseholdStockItemListItem["stockStatus"], num
   imports: [
     HouseholdPreviewWorkspaceComponent,
     HouseholdShoppingListComponent,
+    HouseholdShoppingTripPanelComponent,
     HouseholdProductEditorComponent,
     HouseholdStockPanelComponent,
     HouseholdV2WorkspaceComponent

@@ -61,5 +61,9 @@
       [selectedStockItemIds]="shoppingSelectionMode() ? selectedShoppingItemIdsArray() : null"
       (stockPageUpdated)="applyShoppingListStockPage($event)"
     />
+    <app-household-shopping-trip-panel
+      class="shopping-bottom-row"
+      [householdId]="selectedHouseholdId()"
+    />
   </section>
 }
