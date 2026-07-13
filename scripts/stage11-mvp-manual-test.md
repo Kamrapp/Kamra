@@ -176,8 +176,9 @@ proposal, or ingestion-review discrepancy here without copying raw data.
 ## 8. Known risk probes
 
 - [ ] Add the same impulse item twice and retry a purchased-line application. Confirm the second
-      impulse attempt follows the accepted additive rule, the retry creates no duplicate Product,
-      Batch, or Purchase, and Activity explains the result.
+      impulse attempt creates no second line, keeps the draft available, reports that the item is
+      already present, and the retry creates no duplicate Product, Batch, or Purchase. Activity
+      should explain both results.
 
 Operator notes and discoveries:
 
@@ -227,4 +228,5 @@ outstanding manual work and retests.
 | Shopping basics           | Product Group selection, scale defaults, group modes/distribution, duplicate impulse handling, list editing, completion bridge, refresh/clear feedback, and Product-owned stock behavior were accepted before `257f07e`.                                                            | Selection, target comparison, and final purchase feedback remain active above.                    |
 | Admin and maintenance     | Dynamic feature-flag metadata, alpha auto-save, user management, maintenance registry separation, and diagnostics were accepted before `257f07e`.                                                                                                                                   | Archive/repair and ingestion review remain active above.                                          |
 | Stage 11 route contracts  | Matcher/planning state matrix, Trip completion persistence/idempotency, configured Shopping Trip Mongo smoke, Shop Market/Product/Price Observation request validation and duplicate handling, and ingestion review status/conflict/history contracts are covered by focused tests. | Browser presentation, locale, Activity, and configured maintenance-action evidence remain manual. |
+| Quick-add duplicate seam  | Normalized quick-add matching and duplicate-key behavior are covered by pure tests; the component keeps the draft and does not add a second line.                                                                                                                                   | Browser toast, Activity wording, and purchase-application presentation remain manual.             |
 | Intentional deferrals     | Automatic desired-restock derivation, classification/tagging UX, and deeper ingestion/catalogue policy expansion remain outside the current MVP closure.                                                                                                                            | Revisit only through a post-MVP plan.                                                             |

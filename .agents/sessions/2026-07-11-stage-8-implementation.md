@@ -684,3 +684,15 @@ Stage 9 remains in implementation. At this checkpoint, the next required slice i
   reach persistence, preventing a configured validator from being the only boundary for bad admin
   input.
 - Focused Stage 9 route/repository/integration tests, typecheck, formatting, and lint pass locally.
+
+## Stage 11 automation audit — duplicate impulse reconciliation (2026-07-13)
+
+- The existing `shopping-quick-add-matching` helper is the correct narrow seam for duplicate
+  detection. It is used by the quick-add component and tested for normalized accents, punctuation,
+  case, known-product matching, and no-match behavior; no component-test infrastructure was added.
+- The manual runbook now states the actual accepted behavior: a duplicate impulse keeps the draft,
+  creates no second line, and reports that the item is already present. Browser Activity/toast
+  presentation and the purchased-line retry remain manual.
+- Stage 11 deterministic audit coverage is now complete through matcher/planning tests, Trip
+  persistence/retry integration coverage, configured Mongo smoke, admin route contracts, and the
+  duplicate quick-add pure seam. Remaining items are browser/configured operator evidence only.

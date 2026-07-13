@@ -178,15 +178,15 @@ approved target database.
 
 ### Step 5 — Duplicate impulse boundary and reconciliation
 
-- Reuse a small pure lookup helper in quick-add duplicate detection and test normalized duplicate
-  rejection independently of the component, only if this remains a local mechanical extraction.
+- The small pure lookup helper is already reused by quick-add duplicate detection and has focused
+  normalized-name tests. No Angular component-test infrastructure or further extraction is justified
+  for this local boundary.
 - Correct the runbook's ambiguous duplicate wording to match the accepted behavior: keep the draft,
   make no second line, and report that the item is already present. Retain visible feedback/Activity
   verification as manual because the current harness does not test Angular wiring.
 - Update the runbook ledger and Stage 11 session handoff with exact automated evidence and remaining
   manual boundaries.
 - Run the complete preflight after all focused tests pass.
-- Commit: `test: cover duplicate impulse detection`
 - Commit: `docs: reconcile Stage 11 automated evidence`
 
 ## Risks
