@@ -44,4 +44,27 @@ describe("runDemoHouseholdSeed", () => {
     });
     expect(db.__collections["users"]!.docs.map((doc) => doc.email)).toEqual(["usera", "userb"]);
   });
+
+  it("tears down only the reserved demo household data", async () => {
+    const db = createFakeDb();
+    const repository = new MongoHouseholdDemoSeedRepository(db);
+
+    await runDemoHouseholdSeed(
+      {
+        userPassword: "demo-password"
+      },
+      repository,
+      new Date("2026-07-09T10:00:00.000Z")
+    );
+
+    const result = await repository.teardownDemoHousehold();
+
+    expect(result.deletedHouseholds).toBe(1);
+    expect(result.deletedUsers).toBe(2);
+    expect(db.__collections["users"]!.docs).toHaveLength(0);
+    expect(db.__collections["households"]!.docs).toHaveLength(0);
+    expect(db.__collections["household_products"]!.docs).toHaveLength(0);
+    expect(db.__collections["household_stock_batches"]!.docs).toHaveLength(0);
+    expect(db.__collections["seed_ledger"]!.docs).toHaveLength(0);
+  });
 });

@@ -25,6 +25,7 @@
 - Completed Step 11.8 documentation and CI closeout: normal app checks identify the combined unit/deterministic-integration run, focused integration reruns are documented, and the existing catalog/transaction Smoke workflows now cover the relevant catalog/schema and household transaction/persistence/maintenance paths without adding a duplicate configured workflow.
 - Added a read-only `smoke:demo-household` validator for the seeded V2 fixture. It checks household defaults, required groups/products, target/no-target coverage, expiry permutations, multiple batches, unassigned products, and the no-productless-Batch invariant.
 - Added `mvp:preflight`, a Windows-safe local command that runs deterministic integration tests, the full suite, formatting, lint, typecheck, web build, and API build in one pass. The live runbook now treats those as one automated item and leaves only browser/configured evidence manual.
+- Added guarded `seed:demo-household` and `teardown:demo-household -- --confirm=demo-household` commands for quick household-only retest cycles without reseeding or deleting shared catalogue/admin data.
 
 ## Changed Files
 
@@ -61,15 +62,20 @@
 - `scripts/README.md`
 - `scripts/demo-household-smoke.ts`
 - `scripts/mvp-preflight.ts`
+- `scripts/seed-demo-household.ts`
+- `scripts/teardown-demo-household.ts`
+- `packages/kamra-api-server/src/household/current/demo-household-seed.ts`
+- `packages/kamra-api-server/src/household/current/demo-household-seed.test.ts`
 
 ## Validation
 
 - Ran before this closeout: `npm run test:integration`, `npm test`, `npm run lint -- --no-warn-ignored`, `npm run typecheck`, `npm run format:check`, `npm run build:api`, and `git diff --check`.
-- Result: 7 focused integration tests, 65 test files/239 tests, lint, typecheck, formatting, API build, and diff checks passed.
+- Result: 7 focused integration tests, 65 test files/240 tests, lint, typecheck, formatting, API build, and diff checks passed.
 - Note: an initial full-test attempt included the unsupported Vitest flag `--runInBand`; the corrected `npm test` run passed.
 - Closeout validation is pending after the documentation/workflow edits; it must include the focused integration suite, full tests, formatting, lint, typecheck, API build, and diff checks.
-- `npm run mvp:preflight` passed locally with 239 tests/65 files, 7 integration tests, formatting, lint, typecheck, web build, and API build.
+- `npm run mvp:preflight` passed locally with 240 tests/65 files, 7 integration tests, formatting, lint, typecheck, web build, and API build.
 - `npm run smoke:demo-household` reached the configured MongoDB database but failed because the current disposable household document lacks `groupTargetShoppingMode`; this is a useful stale-seed/schema signal and was not masked. Reseed/migrate that environment before operator testing.
+- The teardown guard was verified without the confirmation argument; it failed closed before any database write.
 
 ## Decisions
 

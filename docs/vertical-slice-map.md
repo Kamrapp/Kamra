@@ -36,6 +36,8 @@ repositories.
 - `npm run test:integration` — only deterministic cross-layer integration tests.
 - `npm run smoke:demo-household` — read-only validation of the seeded household fixture against an
   approved disposable database.
+- `npm run seed:demo-household` / `npm run teardown:demo-household -- --confirm=demo-household` —
+  guarded household-only fixture reset/cleanup for repeated manual sessions.
 - `npm run smoke:catalog` / `npm run smoke:transactions` — configured existing smokes.
 - The catalog and transaction workflows are the configured MongoDB signals. Their path filters
   cover catalog/schema changes and household transaction/persistence/maintenance changes without

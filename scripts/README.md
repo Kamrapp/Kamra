@@ -68,6 +68,28 @@ Demo household seeding uses `SEED_DEMO_HOUSEHOLD_PASSWORD`. If the value is miss
 The current demo login identifiers are `usera` and `userb`, matching the auth layer's lowercase login normalization.
 Admins can also reset the same stable dataset from `/admin/dashboard`, which calls `POST /api/admin/dashboard/reseed-demo-household`.
 
+### Focused demo household commands
+
+Use these when repeating household/browser checks without reseeding the catalogue or admin data:
+
+```powershell
+$env:SEED_DEMO_HOUSEHOLD_PASSWORD = "your-local-demo-password"
+npm run seed:demo-household
+npm run smoke:demo-household
+```
+
+`seed:demo-household` refreshes only the reserved `household1` fixture and its `usera`/`userb`
+accounts. It requires the disposable database guard and the password environment variable.
+
+After the test session, remove only that household fixture with the explicit confirmation:
+
+```powershell
+npm run teardown:demo-household -- --confirm=demo-household
+```
+
+The teardown is refused without the exact confirmation and only permits `kamra_dev`, `kamra_test`,
+or `kamra_smoke`. It does not delete shared catalogue, market, or price data.
+
 ### `catalog-smoke.ts`
 
 Checks current catalog collection setup against MongoDB.

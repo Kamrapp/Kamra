@@ -307,6 +307,9 @@ Status: Complete in `4b12949`; the runbook remains live and must receive operato
 - Use `npm run mvp:preflight` for the repeatable local checks and `npm run smoke:demo-household` for
   post-seed fixture invariants so the operator focuses on browser-only behavior and configured
   database evidence.
+- Use `npm run seed:demo-household` and the explicitly confirmed `npm run teardown:demo-household --
+  --confirm=demo-household` for quick household-only retest cycles; the full seed remains available
+  when catalogue/admin data must also be refreshed.
 
 Acceptance: the runbook is the only planned future operator walkthrough for Stage 8–11; every
 previous unchecked checklist item maps to one runbook section or has an explicit waiver owner.

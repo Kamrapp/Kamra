@@ -55,9 +55,22 @@ export interface DemoHouseholdSeedCounts {
   stockItems: number;
 }
 
+export interface DemoHouseholdTeardownCounts {
+  deletedHouseholds: number;
+  deletedLocalProducts: number;
+  deletedMemberships: number;
+  deletedPurchasePriceObservations: number;
+  deletedShoppingLists: number;
+  deletedStockItems: number;
+  deletedV2Records: number;
+  deletedSeedLedgerRecords: number;
+  deletedUsers: number;
+}
+
 export interface DemoHouseholdSeedRepository {
   recordSeed(record: SeedLedgerRecord): Promise<void>;
   reseedDemoHousehold(input: DemoHouseholdSeedInput, now?: Date): Promise<DemoHouseholdSeedCounts>;
+  teardownDemoHousehold(): Promise<DemoHouseholdTeardownCounts>;
   setup(): Promise<{ databaseName: string; ensuredCollections: string[] }>;
 }
 
@@ -191,29 +204,7 @@ export class MongoHouseholdDemoSeedRepository implements DemoHouseholdSeedReposi
     const passwordHash = await hashPassword(input.userPassword);
     const dataset = createDemoHouseholdSeedDataset(now, passwordHash);
 
-    const deletedUsers = await this.usersCollection.deleteMany({
-      email: { $in: [...demoHouseholdUserIds] }
-    });
-
-    const deletedHouseholdData = await this.householdRepository.clearSeedHouseholdData({
-      householdIds: [demoHouseholdId]
-    });
-    await Promise.all(
-      [
-        "household_products",
-        "household_stock_targets",
-        "household_stock_batches",
-        "household_stock_allocations",
-        "household_stock_movements",
-        "household_domain_operations",
-        "household_shopping_need_lists"
-      ].map(
-        async (collectionName) =>
-          await this.database
-            .collection(collectionName)
-            .deleteMany({ householdId: demoHouseholdId })
-      )
-    );
+    const teardownCounts = await this.teardownDemoHousehold();
 
     await this.upsertDemoUsers(dataset.users);
     await this.householdRepository.upsertSeedDataset({
@@ -229,13 +220,13 @@ export class MongoHouseholdDemoSeedRepository implements DemoHouseholdSeedReposi
     await seedDemoHouseholdV2Data(this.database, now);
 
     const counts: DemoHouseholdSeedCounts = {
-      deletedHouseholds: deletedHouseholdData.deletedHouseholds,
-      deletedLocalProducts: deletedHouseholdData.deletedLocalProducts,
-      deletedMemberships: deletedHouseholdData.deletedMemberships,
-      deletedPurchasePriceObservations: deletedHouseholdData.deletedPurchasePriceObservations,
-      deletedShoppingLists: deletedHouseholdData.deletedShoppingLists,
-      deletedStockItems: deletedHouseholdData.deletedStockItems,
-      deletedUsers: deletedUsers.deletedCount ?? 0,
+      deletedHouseholds: teardownCounts.deletedHouseholds,
+      deletedLocalProducts: teardownCounts.deletedLocalProducts,
+      deletedMemberships: teardownCounts.deletedMemberships,
+      deletedPurchasePriceObservations: teardownCounts.deletedPurchasePriceObservations,
+      deletedShoppingLists: teardownCounts.deletedShoppingLists,
+      deletedStockItems: teardownCounts.deletedStockItems,
+      deletedUsers: teardownCounts.deletedUsers,
       households: dataset.households.length,
       localProducts: dataset.householdLocalProducts.length,
       memberships: dataset.householdMemberships.length,
@@ -251,6 +242,51 @@ export class MongoHouseholdDemoSeedRepository implements DemoHouseholdSeedReposi
     });
 
     return counts;
+  }
+
+  async teardownDemoHousehold(): Promise<DemoHouseholdTeardownCounts> {
+    const deletedUsers = await this.usersCollection.deleteMany({
+      email: { $in: [...demoHouseholdUserIds] }
+    });
+    const deletedHouseholdData = await this.householdRepository.clearSeedHouseholdData({
+      householdIds: [demoHouseholdId]
+    });
+    const deletedHouseholdScopedRecords = await Promise.all(
+      [
+        "household_feature_flags",
+        "household_product_concepts",
+        "household_products",
+        "household_product_groups",
+        "household_stock_targets",
+        "household_stock_batches",
+        "household_stock_allocations",
+        "household_stock_movements",
+        "household_domain_operations",
+        "household_shopping_need_lists",
+        "household_shopping_trips",
+        "ingestion_submissions"
+      ].map(async (collectionName) => {
+        const result = await this.database
+          .collection(collectionName)
+          .deleteMany({ householdId: demoHouseholdId });
+        return result.deletedCount ?? 0;
+      })
+    );
+    const deletedSeedLedgerRecords = await this.seedLedgerCollection.deleteMany({
+      seedName: demoHouseholdSeedName
+    });
+
+    return {
+      deletedLocalProducts: deletedHouseholdData.deletedLocalProducts,
+      deletedMemberships: deletedHouseholdData.deletedMemberships,
+      deletedPurchasePriceObservations: deletedHouseholdData.deletedPurchasePriceObservations,
+      deletedShoppingLists: deletedHouseholdData.deletedShoppingLists,
+      deletedStockItems: deletedHouseholdData.deletedStockItems,
+      deletedV2Records: deletedHouseholdScopedRecords.reduce((total, count) => total + count, 0),
+      deletedHouseholds: deletedHouseholdData.deletedHouseholds,
+      deletedSeedLedgerRecords: deletedSeedLedgerRecords.deletedCount ?? 0,
+      deletedUsers: deletedUsers.deletedCount ?? 0
+    };
   }
 
   async recordSeed(record: SeedLedgerRecord): Promise<void> {

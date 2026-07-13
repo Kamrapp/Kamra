@@ -43,9 +43,9 @@ Run from the repository root on the final Stage 11 implementation commit.
 
 - [ ] `npm run mvp:preflight` passes. This bundles the seven local checks listed in
       `scripts/README.md`; do not rerun them individually unless diagnosing a failure.
-- [ ] After `npm run seed`, `npm run smoke:demo-household` passes against the approved disposable
-      database. This replaces manually counting seeded groups/products/batches and checking the
-      product-owner invariant.
+- [ ] After `npm run seed:demo-household`, `npm run smoke:demo-household` passes against the
+      approved disposable database. This replaces manually counting seeded groups/products/batches
+      and checking the product-owner invariant.
 - [ ] `npm run smoke:catalog` passes against an approved disposable/configured database.
 - [ ] `npm run smoke:transactions` passes with committed `2`, rollback `0`, and cleanup confirmed.
 - [ ] Read-only ingestion quality audit completes; every issue has a parser, repair, defer, or
@@ -95,7 +95,10 @@ Operator notes and discoveries:
 
 ## 2. Seeded household and settings
 
-Prepare the approved demo fixture using the documented local seed flow. The fixture should cover:
+Prepare the approved demo fixture using the focused local seed flow. Set
+`SEED_DEMO_HOUSEHOLD_PASSWORD`, then run `npm run seed:demo-household` and
+`npm run smoke:demo-household`. Use the full `npm run seed` only when catalogue/admin seed data
+also needs to be refreshed. The fixture should cover:
 
 - one targeted Product Group with two Products (two milk variants);
 - one targeted Product Group with two Products (white and rye bread);
@@ -118,6 +121,15 @@ Prepare the approved demo fixture using the documented local seed flow. The fixt
       Product-only and Ignore group targets modes save and survive refresh.
 
 Operator notes and discoveries:
+
+Focused retest cleanup, when the disposable environment should be empty afterwards:
+
+```powershell
+npm run teardown:demo-household -- --confirm=demo-household
+```
+
+This removes only the reserved demo household, its demo users, household-scoped V2 test records,
+and demo seed-ledger entries. It does not remove shared catalogue, shop-market, or price data.
 
 ## 3. Home Product Group → Product → Stock Batch workspace
 
