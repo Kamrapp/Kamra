@@ -33,6 +33,13 @@
 - Invitation support includes owner-only pending creation, duplicate/member guards, existing-user
   acceptance, invited-email registration with automatic claiming, a new `household_invitations`
   validator/index maintenance entry, and deterministic repository/route tests.
+- Implemented the remaining Section 3 workspace refinement in 6d29a56: Batch action alignment,
+  a softened Unassigned Products separator, built-in/custom Group unit editing and normalized
+  custom-unit display, source-plus-stocked-at Batch titles, in-place stocked-at editing, and
+  compact aligned quantity columns. Added focused pure unit tests for the custom-unit contract.
+- Corrected the fixed-clock integration harness token lifetime in c8c7bc4; the five-minute test
+  token had expired during later-day runs and caused misleading 401 failures.
+- Updated the live runbook in e5a2c52 to retain only the resulting browser retests.
 
 ## Changed Files
 
@@ -87,7 +94,8 @@
 - `npm run mvp:preflight` passed after the follow-ups: 7 integration tests, 243 tests across 67
   files, formatting, lint, typecheck, web build, and API build.
 - Note: an initial full-test attempt included the unsupported Vitest flag `--runInBand`; the corrected `npm test` run passed.
-- Closeout validation is pending after the documentation/workflow edits; it must include the focused integration suite, full tests, formatting, lint, typecheck, API build, and diff checks.
+- Final validation after the workspace refinement: 7 focused integration tests, 245 tests across 68
+  files, formatting, lint, typecheck, and diff checks passed.
 - `npm run mvp:preflight` passed locally with 240 tests/65 files, 7 integration tests, formatting, lint, typecheck, web build, and API build.
 - `npm run smoke:demo-household` reached the configured MongoDB database but failed because the current disposable household document lacks `groupTargetShoppingMode`; this is a useful stale-seed/schema signal and was not masked. Reseed/migrate that environment before operator testing.
 - A later smoke run found no `household1` in the selected database at all. The validator now reports the selected database and instructs the operator to run `npm run seed:demo-household` before retrying; no automatic database write was performed.
@@ -110,9 +118,8 @@
 - The new household invitation validator entry must be run against the configured disposable
   database before using the browser invitation flow; the deterministic tests do not update MongoDB.
 - The operator accepted the Section 3 workspace structure and first CRUD/derived-data pass. The
-  live runbook now retains only the remaining action-column alignment, Unassigned Products styling,
-  global/custom unit presentation, source-plus-date Batch titles, narrower amount columns, and the
-  previously open consistency/accessibility checks.
+  latest workspace refinement is implemented; the live runbook retains only its visual/behavioral
+  retests plus the previously open consistency/accessibility checks.
 - Stage 10 configured/browser release evidence remains open and is not waived by this plan.
 - The operator must edit the live runbook with actual findings during the final pass; those edits become input to the final fixer session. The shortened manual pass should start with `npm run mvp:preflight`, then the fixture/configured smokes, then browser-only checks.
 
