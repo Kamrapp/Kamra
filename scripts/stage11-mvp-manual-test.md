@@ -41,10 +41,10 @@ not carried forward because classification is intentionally outside the current 
 
 Run from the repository root on the final Stage 11 implementation commit.
 
-- [ ] Read-only ingestion quality audit completes; every issue has a parser, repair, defer, or
+- [x] Read-only ingestion quality audit completes; every issue has a parser, repair, defer, or
       waiver decision.
-- [ ] Processed-ingestion validation completes with no unexplained pending or failed snapshots.
-- [ ] Export a Crawl Snapshot archive with `npm run crawl:export` and the output option
+- [x] Processed-ingestion validation completes with no unexplained pending or failed snapshots.
+- [x] Export a Crawl Snapshot archive with `npm run crawl:export` and the output option
       `--output=.artifacts/crawl-archives/stage11-check`, then independently verify its manifest
       counts and checksums before any repair/import. The command is read-only. Inspect
       `manifest.json` and the generated gzip JSONL files; do not commit the archive.
@@ -72,14 +72,17 @@ not repeat database-side assertions that these tests already cover.
 
 ## 1. Access, identity, Manual, and diagnostics
 
-- [ ] Recheck that pending invitations appear in both the Home Households panel and the secondary
+- [x] Recheck that pending invitations appear in both the Home Households panel and the secondary
       account-rail surface. Accept an existing-user invitation and claim a not-yet-registered
       invitation after registration; confirm accepted rows disappear.
-- [ ] Confirm the Home panel title is localized as Households/Háztartások, and an unrelated user
+      -> we should also allow owner to "cancel" invitation in the manage household place where we see the pending invite at the invite block.
+      invited user sohuld also have reject button to reject invitation
+      already accepted invited people should also be present in a small list in the household management of both the owner and the invited user. the owner should be able to kick other members, promote to owner by transferring the ownership and the member should be able to quit the household.
+- [x] Confirm the Home panel title is localized as Households/Háztartások, and an unrelated user
       sees neither the invitation nor the shared household.
-- [ ] Recheck the compact Manual terminology table in English and Hungarian at normal desktop and
+- [x] Recheck the compact Manual terminology table in English and Hungarian at normal desktop and
       narrow widths; terms and definitions should be readable and vertically centered.
-- [ ] Recheck the Activity console at its 10rem default, 5rem minimum, and 20rem maximum. Resize
+- [x] Recheck the Activity console at its 10rem default, 5rem minimum, and 20rem maximum. Resize
       only its output area and confirm the Navigate block remains attached immediately above it.
 
 Operator notes and discoveries:
@@ -113,7 +116,7 @@ target contract/schema; the current explicit target behavior is accepted for MVP
 
 New focused retests:
 
-- [ ] On a disposable household, verify each content reset scope still requires its confirmation
+- [x] On a disposable household, verify each content reset scope still requires its confirmation
       checkbox and clears only the described layer. Switching scopes must clear the confirmation
       checkbox. A non-owner must see static/read-only management content with mutation controls
       disabled or absent. Then select complete household deletion and confirm the household,
@@ -132,14 +135,15 @@ and demo seed-ledger entries. It does not remove shared catalogue, shop-market, 
 
 ### Group and Product structure
 
-- [ ] Confirm the shared header and body use the same compact Minimum, Current, Target, and Unit
+- [x] Confirm the shared header and body use the same compact Minimum, Current, Target, and Unit
       tracks; header labels remain readable and Batch Quantity stays aligned under Product Current.
 
 ### Visual, responsive, and accessibility checks
 
-- [ ] Confirm Product state badges have the same rounded, padded treatment as Group badges in both
+- [x] Confirm Product state badges have the same rounded, padded treatment as Group badges in both
       light and dark themes; preserve the already accepted row surfaces, contrast, responsive
       layout, controls, and localized error-state behavior.
+- minor issue that in the "unassigned products" group row, the "add product" icon is int he first iconbutton column out of the 4, but it should be in the third one. need two empty blocks before it.
 
 Operator notes and discoveries:
 
@@ -149,27 +153,42 @@ state-badge treatment remain active here.
 
 ## 4. Shopping list and household purchase application
 
-- [ ] Click Build shopping list. Checkboxes appear in the main Product Group/Product table; the
+- [x] Click Build shopping list. Checkboxes appear in the main Product Group/Product table; the
       scale selects shortage-eligible rows, manual changes persist, and changing the scale reseeds
       the selection. Groups and Products are shown once, and Group/impulse rows are distinguishable
       from normal Product rows in the generated list.
+      -> when clicking "generate shopping list", the shopping list section should automaticall expand and the household stock section collapse.
+      -> there is an issue that expanding a big shopping list collides with the household stock table when both are expanded. when the household stock block is collapsed, the shopping list looks perfect, falling below the top blocks even on the right side where the editors are still there.
+      -> for convenience to enlarge the shopping list further upwards, we should also hide all right-side editors when collapsing the household stock block. this would allow only a collapsed household stocks and the households block next ot it on the top and the shopping lsit can grow all the way up until there.
 - [ ] Select an otherwise steady Product and a Group manually, generate, and confirm the resulting
       list contains exactly the selected owners. Cancel from Build removes checkboxes without
       creating a list; Generate also exits selection mode.
-- [ ] Verify the generated quantities use target minus Current, then check one configured Group in
+      -> when in build shopping list mode, the checboxes dont work manually, only the scale selects what it does, but selecting more items by clicking their checkbox doesnt seem to work
+      -> build shopping list should not be enabled when there is already an active shopping list generated. it should be cancelled beforehand.
+      -> please simplify the name of "update stocks per pourchased item". its simply integrating the purchased items of the shopping list into the household right? so kinda "finalize shopping & save new stocks" maybe? the goal is not to be short but expressive here. but o course short is nice.
+      -> generating a shopping list, completing an item and clicking "update stocks per pourchased item" adds the new batch, but even afterwards. i ticked "Gyümölcsök" and got bought some Áfonya. now i have 11 kg gyümölcs and a target of 10. yet, generating the shop with the level wants to add more gyümölcsök. it seems that we have an issue with comparison to target, because the comparison symbol between the 11 current and the target 10 is yellow. it should be green. this is also true to other items I keep buying: the current is greater than the target but the comparison is yellow. I suspect that the comparison is the rong way between current and target, as towards minimum we seem to work as expected. or we still use the default multiplier based calculation over the actual target value set?
+      -> try to build minimal integration tests for scenarios to check which level of shopping scale add and doesnt add certain content. separate cases so that a case simply has a specific group and product and batch combination like "group with target 2, two products with target 1 and 0.5, no stocks." shopping should buy 1 from one product, 0.5 fromt he other and 0.5 more from either or split to both, idk. anyway, such scenario should be testable and we should have a set of such integration tests around the shopping list generation calculation. note that the "When a Product Group is below target" setting oalso comes into play, so there are quite a few cases here to check. it may also be that the bug is elsewhere, but lets start here and save the tests to verify and snapshot success afterwards on this level even if bug is elsewhere. ofc fix the bug too pls.
+      -> looking at the "When a Product Group is below target" options, an "Add products, then distribute group requirements evenly" and a similar "Add products, then distribute group requirement rationally" kind of setting is missing. these should mean that when a group requires a target and it has alrady products with stocks, we should either divide the required amount evenly among the poroducts, or take the ratio of their current amounts and distribute according to that. ofc this is only for extra amount above the inner product's own targets if there are such, but thats basic part of the logic here.
+- [X] Verify the generated quantities use target minus Current, then check one configured Group in
       each household group-target mode. Confirm planned Product split, earliest-expiry fallback,
       first-Product fallback, and Group impulse behavior match the setting. The deterministic
       shopping-needs test covers the arithmetic; this check is for the visible list and setting.
-- [ ] Confirm shopping rows are compact enough to scan and use the expected muted Product,
+- [x] Confirm shopping rows are compact enough to scan and use the expected muted Product,
       Group-level, and impulse surfaces. Edit, skip, restore, regenerate, and cancel lines without
       creating unrelated Shop Product, Price Observation, Product, or Purchase records.
-- [ ] Add the same impulse name twice with different casing/accents and the same unit. Confirm one
+      -> looks nice, but we should redesign the "ticked items": instead, it should follow a similar design to the unassigned products int he other table, with stronger borders. its expander should also be a lkittle arrow int he beginning to maqtch styling.
+- [x] Add the same impulse name twice with different casing/accents and the same unit. Confirm one
       row remains, its amount increases additively, the input stays filled, and Activity explains the
       increase. Repeat with a different unit and confirm the add is rejected with an explanation.
+      -> the "Shopping list item unit conflict" shoudl be avoided by automatically changing the editfield of the unit to match that of the same product if its already in the shopping list or exists as a lproduct int he household. so whenever we type int he name field of impulse, we should debounce and check if same-name product or shopping list entry exists. if so, we should set the unit field to match and log with debug level that we did this autoamtically to match. if user still changes unit, sure, it should ghet back to "Shopping list item unit conflict" warning.
+      -> the unit field for impulse items should also be dropdown-based with possiblity as "custom" same as for the simple group/product unit property... waiot, the unit of a product is not even changeable in the table! it should be in the details section as first "Tracking unit" just like for groups! droddown and additional field when custom. Also, in the right side editor we should use the dropdown + editfield combo, not open string input. even for shopping list entries, we should have the dropdown for units. however, for simplicity, shopping list entries that have matching products int he household should have their units disabled for editing to avoid conflicts.
+      -> all "cancel" little buttons with "×" should be bigger. use "X" if there is not a better big cross-symbol
+      -> the more and more addition should only affect the plan amount, not the bought amount. this is generally true: adding impulse items should 
 - [ ] Mark a Product line purchased, adjust quantity, and apply. Confirm a Product-owned Batch
       appears with the expected date/quantity, the main workspace refreshes without a second manual
       refresh, the completed shopping list is cleared, and a finished-shopping message is visible.
-- [ ] Apply a Group impulse line. Confirm a concrete household Product is created under the intended
+      -> no "finished-shopping" message appears anywhere, just reloads the page. not even a toast or activity log
+- [x] Apply a Group impulse line. Confirm a concrete household Product is created under the intended
       Group before its Batch is acquired; repeat/reload once and confirm no duplicate result appears.
 
 Operator notes and discoveries:
@@ -179,6 +198,8 @@ Operator notes and discoveries:
 - [ ] Start a Trip from an open Shopping Need by selecting exactly one active Shop Market and
       date. Confirm the market list loads after the household is selected, then repeat with Custom
       shop and a saved custom shop name; the custom trip remains usable without a configured market.
+      -> starting a srip fails: "Shopping trip creation failed (400)." when name is not given (should generate "custom") and with 404 when name is given -> idk why it doesnt save.
+      -> since this shopping trip is quite a new territory and is untested and is not required for household internal management, we should add a feature toggle to disable completely and hide it from the home page then.
 - [ ] Confirm matching shows package count, expected total, applicable Price Observation, and
       explanation. No-price, stale, future, conditional, expired, and incompatible states remain
       explicit.
@@ -208,17 +229,21 @@ Operator notes and discoveries:
 ## 6. Developer Admin, feature flags, and maintenance
 
 - [ ] Review the Crawl Snapshot archive procedure on an approved/disposable database. After the
-      Section 0 export, inspect the manifest and sanitized content without changing the source.
+      Section 0 export, inspect the manifest and sanitized content without changing the source. -> please explain what to do exactly, I dont understand this
 - [ ] Review the Lidl repair dry run with `npm run repair:lidl-brochure`, using
       `--snapshot-id=<snapshot-id>` and `--limit=1`. This is a read-only plan by default. Apply
       only with explicit target/operator confirmation using `--apply`, `--target=<database>`, and
       `--operator=<identity>`; raw payload and provenance must remain unchanged.
+      -> whats this for exactly?
 
-- [ ] Rerun ingestion quality and processed-ingestion validation. Every pending/duplicate/failure
+- [x] Rerun ingestion quality and processed-ingestion validation. Every pending/duplicate/failure
       result has a documented decision.
 - [ ] In the Crawl review dialog, confirm Save draft, Add empty price observation, and Apply JSON
       use dark themed surfaces in dark mode while retaining readable light-mode controls.
-
+      -> the page is called "ingestion" but in the menu it is called "Admin". call it Some ingestion management or similar since its not really a site admin page but some specific feature page now
+      -> clicking away from the crawl review dialog closes it automatically. this shounds fun but it triggers too easily. can we only have this effect when user clicks on the side rails area but not in the middle body area? also, can we increase the popover dialog size like ca 1.4 times?
+      -> we should see the accept6ance status of the individual entries int he right side dialog int he table view (accepted/declined, why declined) and ideally also the "matchConfidence" values localized if possible.
+      -> we should also have quick accept and decline int he rows, simply small buttons at the end similar to the buttons' style ont he household stocks. have a green tickmark and a red decline X. when declining, the additional dropdown for decline reason should appear left to the buttons int he row to select one and then have a confirm and cancel button. we can replace the accept and decline with the confirm and cancel at that point since we are in "decline mode"
 Operator notes and discoveries:
 
 ## 7. Final evidence and waiver review
@@ -230,6 +255,7 @@ Operator notes and discoveries:
 - [ ] Update the evidence log with date, environment, tester, final commit, and command results.
 - [ ] Confirm the old Stage 8 script and Stage 8–10 checklist link here and are no longer treated as
       separate acceptance sources.
+      -> these old ones are gone now, arent they?! remove this entry then.
 - [ ] Only after all required items are resolved or waived: mark MVP closure ready.
 
 ## 8. Known risk probes
@@ -237,15 +263,17 @@ Operator notes and discoveries:
 Run these probes deliberately even when the main flow appears healthy. They are compact reminders
 of the failure classes most likely to cross a frontend/API/persistence boundary.
 
-- [ ] Save the same Group, Product, or Batch from inline and right-side editors in both orders;
+- [x] Save the same Group, Product, or Batch from inline and right-side editors in both orders;
       confirm no stale editor, duplicate write, or lost revision remains.
-- [ ] Toggle expired-item inclusion around an expired Batch and compare the visible Current,
+      -> when trying to create product that already exists, we get "Product creation failed (409)." but we should have proper explanation that the product with same name already exists or something... please revisit and try to cover most such expected failure handlers to provide obvious user-facing notification text, not pure error codes and "something went wrong" level messages. it seems we are already returning somewhat useful error messages in "json(409, { error: "shop_market_already_exists" })" so we should show those at least
+- [x] Toggle expired-item inclusion around an expired Batch and compare the visible Current,
       Product Group aggregate, and generated shopping need.
-- [ ] Use two Products and multiple Batches in one Group; confirm each physical Batch contributes
+- [x] Use two Products and multiple Batches in one Group; confirm each physical Batch contributes
       once to its Product and the Group, including after refresh and retry.
 - [ ] Add the same impulse item twice and retry a purchased-line application; confirm duplicate
       operations are rejected or treated idempotently with a visible Activity entry.
-- [ ] Force or reproduce a stale revision, missing schema/maintenance setup, untranslated label,
+      -> i dont understand. i add he same item twice, it gets added to the amount of the other. then what? "retry a purchased-line application"?
+- [x] Force or reproduce a stale revision, missing schema/maintenance setup, untranslated label,
       dark-theme contrast issue, fixed-column overflow, and failed action; confirm each has an
       understandable UI result rather than a silent no-op.
 

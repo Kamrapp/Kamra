@@ -4,9 +4,11 @@ import { FormsModule } from "@angular/forms";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 
 import { HouseholdStockService, type HouseholdListItem } from "./household-stock.service";
+import { AuthService } from "../auth.service";
 import {
   HouseholdInvitationService,
-  type HouseholdInvitation
+  type HouseholdInvitation,
+  type HouseholdMember
 } from "./household-invitation.service";
 import { HouseholdV2Service } from "./household-v2.service";
 import { LocalizationService } from "../shared/localization.service";
@@ -92,6 +94,52 @@ import { ToastService } from "../shared/toast.service";
                     <time [attr.datetime]="invitation.createdAt">
                       {{ invitation.createdAt | date: "shortDate" }}
                     </time>
+                    <button
+                      class="ui-button ui-button-danger ui-button-sm"
+                      type="button"
+                      (click)="revokeInvitation(invitation.id)"
+                      [disabled]="busyMemberId() === invitation.id"
+                    >
+                      {{ loc.t("household.invitationCancel") }}
+                    </button>
+                  </div>
+                }
+              </div>
+            }
+            @if (members().length > 0) {
+              <div class="member-list">
+                <strong>{{ loc.t("household.members") }}</strong>
+                @for (member of members(); track member.userId) {
+                  <div class="member-row">
+                    <span>{{ member.userId }}</span>
+                    <span class="member-role">{{ member.role }}</span>
+                    @if (canManageHousehold() && member.role !== "owner") {
+                      <button
+                        class="ui-button ui-button-quiet ui-button-sm"
+                        type="button"
+                        [disabled]="busyMemberId() === member.userId"
+                        (click)="transferOwnership(member.userId)"
+                      >
+                        {{ loc.t("household.memberTransfer") }}
+                      </button>
+                      <button
+                        class="ui-button ui-button-danger ui-button-sm"
+                        type="button"
+                        [disabled]="busyMemberId() === member.userId"
+                        (click)="removeMember(member.userId)"
+                      >
+                        {{ loc.t("household.memberRemove") }}
+                      </button>
+                    } @else if (member.userId === currentUserId()) {
+                      <button
+                        class="ui-button ui-button-danger ui-button-sm"
+                        type="button"
+                        [disabled]="busyMemberId() === member.userId"
+                        (click)="leaveHousehold()"
+                      >
+                        {{ loc.t("household.memberLeave") }}
+                      </button>
+                    }
                   </div>
                 }
               </div>
@@ -354,12 +402,39 @@ import { ToastService } from "../shared/toast.service";
         display: grid;
         font-size: 0.78rem;
         gap: var(--space-2);
-        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-columns: minmax(0, 1fr) auto auto;
       }
 
       .invitation-row time {
         color: var(--color-text-muted);
         font-size: 0.7rem;
+      }
+
+      .member-list {
+        border-top: 1px solid var(--line-subtle);
+        display: grid;
+        gap: 0.35rem;
+        padding-top: var(--space-2);
+      }
+
+      .member-list > strong {
+        color: var(--color-text-muted);
+        font-size: 0.7rem;
+        text-transform: uppercase;
+      }
+
+      .member-row {
+        align-items: center;
+        display: grid;
+        font-size: 0.78rem;
+        gap: var(--space-2);
+        grid-template-columns: minmax(0, 1fr) auto auto auto;
+      }
+
+      .member-role {
+        color: var(--color-text-muted);
+        font-size: 0.7rem;
+        text-transform: uppercase;
       }
 
       @media (min-width: 900px) {
@@ -372,6 +447,7 @@ import { ToastService } from "../shared/toast.service";
 })
 export class HouseholdManagementComponent {
   readonly loc = inject(LocalizationService);
+  private readonly auth = inject(AuthService);
   private readonly householdService = inject(HouseholdStockService);
   private readonly invitationService = inject(HouseholdInvitationService);
   private readonly householdV2Service = inject(HouseholdV2Service);
@@ -382,6 +458,8 @@ export class HouseholdManagementComponent {
   readonly household = signal<HouseholdListItem | null>(null);
   readonly errorMessage = signal("");
   readonly invitations = signal<HouseholdInvitation[]>([]);
+  readonly members = signal<HouseholdMember[]>([]);
+  readonly busyMemberId = signal("");
   readonly inviting = signal(false);
   readonly resetting = signal(false);
   allowExpiredItemsDraft = true;
@@ -442,6 +520,11 @@ export class HouseholdManagementComponent {
     this.invitations.set(
       household ? await this.invitationService.listForHousehold(household.id) : []
     );
+    this.members.set(household ? await this.invitationService.listMembers(household.id) : []);
+  }
+
+  currentUserId(): string {
+    return this.auth.user()?.email ?? "";
   }
 
   async invite(householdId: string): Promise<void> {
@@ -459,6 +542,60 @@ export class HouseholdManagementComponent {
     this.inviteEmailDraft = "";
     this.invitations.set(await this.invitationService.listForHousehold(householdId));
     this.toast.push(this.loc.t("household.invitationSent"), "success");
+  }
+
+  async revokeInvitation(invitationId: string): Promise<void> {
+    const household = this.household();
+    if (!household || !window.confirm(this.loc.t("household.confirmMemberAction"))) return;
+    this.busyMemberId.set(invitationId);
+    const result = await this.invitationService.revoke(household.id, invitationId);
+    this.busyMemberId.set("");
+    if (result.status === "error") {
+      this.toast.push(result.message ?? this.loc.t("household.invitationFailure"), "error");
+      return;
+    }
+    this.invitations.set(await this.invitationService.listForHousehold(household.id));
+    this.toast.push(this.loc.t("household.invitationCancelled"), "success");
+  }
+
+  async removeMember(userId: string): Promise<void> {
+    const household = this.household();
+    if (!household || !window.confirm(this.loc.t("household.confirmMemberAction"))) return;
+    this.busyMemberId.set(userId);
+    const result = await this.invitationService.removeMember(household.id, userId);
+    this.busyMemberId.set("");
+    if (result.status === "error") {
+      this.toast.push(result.message ?? this.loc.t("household.memberRemoveFailure"), "error");
+      return;
+    }
+    this.members.set(await this.invitationService.listMembers(household.id));
+    this.toast.push(this.loc.t("household.memberRemoved"), "success");
+  }
+
+  async leaveHousehold(): Promise<void> {
+    const household = this.household();
+    if (!household || !window.confirm(this.loc.t("household.confirmMemberAction"))) return;
+    const result = await this.invitationService.leave(household.id);
+    if (result.status === "error") {
+      this.toast.push(result.message ?? this.loc.t("household.memberRemoveFailure"), "error");
+      return;
+    }
+    this.toast.push(this.loc.t("household.memberLeft"), "success");
+    await this.router.navigateByUrl("/");
+  }
+
+  async transferOwnership(userId: string): Promise<void> {
+    const household = this.household();
+    if (!household || !window.confirm(this.loc.t("household.confirmMemberAction"))) return;
+    this.busyMemberId.set(userId);
+    const result = await this.invitationService.transferOwnership(household.id, userId);
+    this.busyMemberId.set("");
+    if (result.status === "error") {
+      this.toast.push(result.message ?? this.loc.t("household.memberTransferFailure"), "error");
+      return;
+    }
+    await this.loadHousehold();
+    this.toast.push(this.loc.t("household.memberTransferred"), "success");
   }
 
   async saveSettings(): Promise<void> {

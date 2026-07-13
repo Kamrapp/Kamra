@@ -119,6 +119,65 @@ describe("household invitation routes", () => {
     await expect(
       householdRepository.listHouseholdsForUser("newcomer@example.test")
     ).resolves.toHaveLength(1);
+
+    const members = await request(
+      {
+        headers: { authorization: `Bearer ${ownerToken}` },
+        method: "GET",
+        path: "/api/households/household-1/members"
+      },
+      dependencies
+    );
+    expect(members.status).toBe(200);
+    expect(JSON.parse(members.body)).toMatchObject({
+      members: [
+        { role: "owner", userId: "owner@example.test" },
+        { role: "member", userId: "member@example.test" },
+        { role: "member", userId: "newcomer@example.test" }
+      ]
+    });
+
+    const cancellable = await request(
+      {
+        bodyText: JSON.stringify({ email: "cancel@example.test" }),
+        headers: { authorization: `Bearer ${ownerToken}` },
+        method: "POST",
+        path: "/api/households/household-1/invitations"
+      },
+      dependencies
+    );
+    const cancellableId = (JSON.parse(cancellable.body) as { invitation: { id: string } })
+      .invitation.id;
+    const cancelled = await request(
+      {
+        headers: { authorization: `Bearer ${ownerToken}` },
+        method: "DELETE",
+        path: `/api/households/household-1/invitations/${encodeURIComponent(cancellableId)}`
+      },
+      dependencies
+    );
+    expect(cancelled.status).toBe(200);
+
+    const rejectable = await request(
+      {
+        bodyText: JSON.stringify({ email: "reject@example.test" }),
+        headers: { authorization: `Bearer ${ownerToken}` },
+        method: "POST",
+        path: "/api/households/household-1/invitations"
+      },
+      dependencies
+    );
+    const rejectableId = (JSON.parse(rejectable.body) as { invitation: { id: string } }).invitation
+      .id;
+    const rejected = await request(
+      {
+        headers: { authorization: `Bearer ${tokenFor("reject@example.test", "user")}` },
+        method: "POST",
+        path: `/api/invitations/${encodeURIComponent(rejectableId)}/reject`
+      },
+      dependencies
+    );
+    expect(rejected.status).toBe(200);
   });
 });
 

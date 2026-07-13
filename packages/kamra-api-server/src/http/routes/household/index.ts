@@ -2,6 +2,8 @@ import type { AppRoute } from "../../app-route-context.js";
 import {
   acceptHouseholdInvitationRoute,
   householdInvitationsRoute,
+  householdInvitationMutationRoute,
+  householdMembersRoute,
   pendingHouseholdInvitationsRoute
 } from "../household-invitation-routes.js";
 import {
@@ -42,6 +44,8 @@ import {
 
 export const householdRoutes: AppRoute[] = [
   householdInvitationsRoute,
+  householdInvitationMutationRoute,
+  householdMembersRoute,
   pendingHouseholdInvitationsRoute,
   acceptHouseholdInvitationRoute,
   householdsRoute,

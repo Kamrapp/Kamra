@@ -13,6 +13,16 @@ export type CreateHouseholdInvitationResult =
 export type AcceptHouseholdInvitationResult =
   { invitation: HouseholdInvitationRecord; status: "accepted" } | { status: "not_found" };
 
+export type HouseholdInvitationMutationResult =
+  { status: "updated" } | { status: "not_found" | "owner_required" | "cannot_remove_owner" };
+
+export interface HouseholdMemberListItem {
+  role: HouseholdMembershipRecord["role"];
+  status: HouseholdMembershipRecord["status"];
+  updatedAt: string;
+  userId: string;
+}
+
 export class MongoHouseholdInvitationRepository {
   private readonly householdInvitationsCollection: MongoCollectionLike<HouseholdInvitationRecord>;
   private readonly householdMembershipsCollection: MongoCollectionLike<HouseholdMembershipRecord>;
@@ -117,6 +127,133 @@ export class MongoHouseholdInvitationRepository {
     return invitations.map((invitation) =>
       toListItem(invitation, householdNames.get(invitation.householdId))
     );
+  }
+
+  async revokeInvitation(input: {
+    householdId: string;
+    invitationId: string;
+    userId: string;
+    now: string;
+  }): Promise<HouseholdInvitationMutationResult> {
+    const owner = await this.householdMembershipsCollection.findOne({
+      householdId: input.householdId,
+      role: "owner",
+      status: "active",
+      userId: input.userId
+    });
+    if (!owner) return { status: "owner_required" };
+
+    const result = await this.householdInvitationsCollection.updateOne(
+      { householdId: input.householdId, id: input.invitationId, status: "pending" },
+      { $set: { status: "revoked", updatedAt: input.now } }
+    );
+    return result.matchedCount ? { status: "updated" } : { status: "not_found" };
+  }
+
+  async rejectInvitation(input: {
+    email: string;
+    invitationId: string;
+    now: string;
+  }): Promise<HouseholdInvitationMutationResult> {
+    const result = await this.householdInvitationsCollection.updateOne(
+      { email: input.email, id: input.invitationId, status: "pending" },
+      { $set: { status: "revoked", updatedAt: input.now } }
+    );
+    return result.matchedCount ? { status: "updated" } : { status: "not_found" };
+  }
+
+  async listMembers(input: {
+    householdId: string;
+    userId: string;
+  }): Promise<HouseholdMemberListItem[] | null> {
+    const membership = await this.householdMembershipsCollection.findOne({
+      householdId: input.householdId,
+      status: "active",
+      userId: input.userId
+    });
+    if (!membership) return null;
+
+    const members = await this.householdMembershipsCollection
+      .find({ householdId: input.householdId, status: "active" })
+      .sort({ role: -1, userId: 1 })
+      .toArray();
+    return members.map(({ role, status, updatedAt, userId }) => ({
+      role,
+      status,
+      updatedAt,
+      userId
+    }));
+  }
+
+  async removeMember(input: {
+    householdId: string;
+    actorUserId: string;
+    memberUserId: string;
+    now: string;
+  }): Promise<HouseholdInvitationMutationResult> {
+    const actor = await this.householdMembershipsCollection.findOne({
+      householdId: input.householdId,
+      role: "owner",
+      status: "active",
+      userId: input.actorUserId
+    });
+    if (!actor) {
+      if (input.actorUserId !== input.memberUserId) return { status: "owner_required" };
+      const self = await this.householdMembershipsCollection.findOne({
+        householdId: input.householdId,
+        role: "member",
+        status: "active",
+        userId: input.memberUserId
+      });
+      if (!self) return { status: "not_found" };
+    }
+
+    const member = await this.householdMembershipsCollection.findOne({
+      householdId: input.householdId,
+      status: "active",
+      userId: input.memberUserId
+    });
+    if (!member) return { status: "not_found" };
+    if (member.role === "owner") return { status: "cannot_remove_owner" };
+
+    const result = await this.householdMembershipsCollection.updateOne(
+      { householdId: input.householdId, userId: input.memberUserId, status: "active" },
+      { $set: { status: "removed", updatedAt: input.now } }
+    );
+    return result.matchedCount ? { status: "updated" } : { status: "not_found" };
+  }
+
+  async transferOwnership(input: {
+    householdId: string;
+    ownerUserId: string;
+    newOwnerUserId: string;
+    now: string;
+  }): Promise<HouseholdInvitationMutationResult> {
+    const owner = await this.householdMembershipsCollection.findOne({
+      householdId: input.householdId,
+      role: "owner",
+      status: "active",
+      userId: input.ownerUserId
+    });
+    if (!owner) return { status: "owner_required" };
+
+    const newOwner = await this.householdMembershipsCollection.findOne({
+      householdId: input.householdId,
+      role: "member",
+      status: "active",
+      userId: input.newOwnerUserId
+    });
+    if (!newOwner) return { status: "not_found" };
+
+    await this.householdMembershipsCollection.updateOne(
+      { id: owner.id, status: "active" },
+      { $set: { role: "member", updatedAt: input.now } }
+    );
+    await this.householdMembershipsCollection.updateOne(
+      { id: newOwner.id, status: "active" },
+      { $set: { role: "owner", updatedAt: input.now } }
+    );
+    return { status: "updated" };
   }
 
   async acceptInvitation(input: {

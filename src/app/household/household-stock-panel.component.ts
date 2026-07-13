@@ -78,6 +78,14 @@ import { LocalizationService, type TranslationKey } from "../shared/localization
                     : loc.t("app.acceptInvitation")
                 }}
               </button>
+              <button
+                class="ui-button ui-button-danger ui-button-sm"
+                type="button"
+                [disabled]="acceptingInvitationId === invitation.id"
+                (click)="rejectInvitation(invitation.id)"
+              >
+                {{ loc.t("app.rejectInvitation") }}
+              </button>
             </div>
           }
         </div>
@@ -626,5 +634,12 @@ export class HouseholdStockPanelComponent {
     const result = await this.invitationService.accept(invitationId);
     this.acceptingInvitationId = "";
     if (result.status === "ok") this.invitationAccepted.emit(result.invitation.householdId);
+  }
+
+  async rejectInvitation(invitationId: string): Promise<void> {
+    this.acceptingInvitationId = invitationId;
+    const result = await this.invitationService.reject(invitationId);
+    this.acceptingInvitationId = "";
+    if (result.status === "error") return;
   }
 }
