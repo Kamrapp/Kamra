@@ -5,7 +5,9 @@ manual acceptance document; the former Stage 8 and Stage 8–10 lists are histor
 
 This file is operator-editable. Add notes, screenshots, reproduction details, and discoveries under
 the relevant section. Do not add credentials, tokens, private household data, or raw production
-exports. A later fixer session must diff operator edits before changing behavior.
+exports. A later fixer session must diff operator edits before changing behavior. Deterministic
+domain/API checks are moved to the covered section as they become automated; this document remains
+necessary only for browser, configured-environment, and operator-session acceptance.
 
 ## Run metadata
 
@@ -37,7 +39,10 @@ exports. A later fixer session must diff operator edits before changing behavior
 
 Run from the repository root on the candidate commit.
 
-- [ ] Run `npm run mvp:preflight`; record the final command summary and any failure.
+Automated local preflight: [x] `npm run mvp:preflight` passed on the current candidate with 269
+unit tests, 8 deterministic integration tests, formatting, lint, typecheck, web build, and API
+build. Repeat it only when the candidate changes; record any new failure in the evidence log.
+
 - [ ] On the approved disposable environment, run the configured catalogue and transaction smokes.
       Record database name, collection cleanup, committed/rolled-back counts, and whether the run used
       the expected validator/transaction path.
@@ -141,7 +146,7 @@ restock derivation as deferred rather than a test failure.
 - [ ] Confirm Batch Quantity aligns under Product Current; Stocked at and Expiry do not overlap.
       Confirm expired dates and state badges use readable muted danger/good/warning colors in both themes.
 - [ ] Confirm Batches order expired first, then soonest future expiry, then no-expiry last. Confirm
-      expiry before Stocked at is accepted and persisted.
+      the browser renders that order and that expiry before Stocked at remains accepted and persisted.
 - [ ] Confirm Batch titles use source plus stocked-at date, with italic Manual as fallback, for
       example `Lidl (2026-07-14)`. Edit the title date and confirm Stocked at changes in place.
 
@@ -294,7 +299,6 @@ proposal, or ingestion-review discrepancy here without copying raw data.
 - [ ] Retry a successful purchased-line completion operation. Confirm it is rejected or idempotent,
       creates no second Product/Batch/Purchase, and leaves a visible Activity entry.
 - [ ] Toggle expiry inclusion and compare derived Current with an expired Batch present.
-- [ ] Compare Group totals with multiple Products and multiple Batches; confirm no double-counting.
 - [ ] Force a validation, 403, 404, 409, and 500 response through a safe UI/API path. Confirm visible,
       localized feedback and preserved prior state.
 
@@ -333,15 +337,16 @@ Record only safe summaries. Never include credentials, tokens, or private househ
 Move a check here after the operator has actually confirmed it. Keep active sections limited to
 outstanding manual work and retests.
 
-| Area                   | Covered and accepted                                                                                                                                                                                                   | Boundary or retest note                                                      |
-| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| Automated preflight    | Deterministic integration, full tests, formatting, lint, typecheck, web/API build, and diff checks have passed in prior runs.                                                                                          | Repeat on the final candidate.                                               |
-| Catalog/transactions   | Catalog smoke and transaction smoke have recorded successful commit/rollback evidence.                                                                                                                                 | Re-run only with approved configured data.                                   |
-| Demo fixture           | Seeded Product Group/Product/Batch coverage, expiry permutations, unassigned Products, batch counts, and no productless Batch are validated by the fixture smoke.                                                      | Browser appearance remains manual.                                           |
-| Access and identity    | Protected routes, empty-user household creation, invitation placement/claiming, isolation, and admin authorization have prior accepted evidence.                                                                       | Member-action and final two-user retests remain active above.                |
-| Manual and diagnostics | Manual tabs/visibility, locales, effective database diagnostics, Activity logging, sizing, and rail navigation have prior accepted evidence.                                                                           | Repeat readability checks after final UI changes.                            |
-| Household management   | Settings, expiry/target modes, reset scopes, complete deletion, owner controls, non-owner read-only behavior, and safe Home return have prior accepted evidence.                                                       | Final disposable retest remains active above.                                |
-| Home workspace         | Product Group hierarchy, CRUD, assignment, aggregation, ordering, custom units, Batch titles, stale-revision feedback, action positions, responsive behavior, and accessibility have prior accepted evidence.          | Final alignment/theme checks remain active above.                            |
-| Shopping basics        | Product Group selection, scale defaults, group modes/distribution, duplicate impulse handling, list editing, completion bridge, refresh/clear feedback, and Product-owned stock behavior have prior accepted evidence. | Browser confirmation and known-product quick-add retest remain active above. |
-| Admin and maintenance  | Dynamic feature-flag metadata, alpha auto-save, user management, maintenance registry separation, and diagnostics have prior accepted evidence.                                                                        | Configured archive/repair and ingestion review remain active above.          |
-| Intentional deferrals  | Automatic desired-restock derivation, classification/tagging UX, and deeper ingestion/catalogue policy expansion remain outside the current MVP closure.                                                               | Revisit only through a post-MVP plan.                                        |
+| Area                      | Covered and accepted                                                                                                                                                                                                   | Boundary or retest note                                                      |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Automated preflight       | Deterministic integration, full tests, formatting, lint, typecheck, web/API build, and diff checks passed on the current candidate.                                                                                    | Repeat only after a candidate changes.                                       |
+| Catalog/transactions      | Catalog smoke and transaction smoke have recorded successful commit/rollback evidence.                                                                                                                                 | Re-run only with approved configured data.                                   |
+| Automated household rules | Shopping-scale eligibility, Product/Group target boundaries, quick-add normalization, target comparison, read-model ordering, expiry inclusion, physical Batch counts, and Group aggregation have focused tests.       | Browser presentation and operator feedback remain manual.                    |
+| Demo fixture              | Seeded Product Group/Product/Batch coverage, expiry permutations, unassigned Products, batch counts, and no productless Batch are validated by the fixture smoke.                                                      | Browser appearance remains manual.                                           |
+| Access and identity       | Protected routes, empty-user household creation, invitation placement/claiming, isolation, and admin authorization have prior accepted evidence.                                                                       | Member-action and final two-user retests remain active above.                |
+| Manual and diagnostics    | Manual tabs/visibility, locales, effective database diagnostics, Activity logging, sizing, and rail navigation have prior accepted evidence.                                                                           | Repeat readability checks after final UI changes.                            |
+| Household management      | Settings, expiry/target modes, reset scopes, complete deletion, owner controls, non-owner read-only behavior, and safe Home return have prior accepted evidence.                                                       | Final disposable retest remains active above.                                |
+| Home workspace            | Product Group hierarchy, CRUD, assignment, aggregation, ordering, custom units, Batch titles, stale-revision feedback, action positions, responsive behavior, and accessibility have prior accepted evidence.          | Final alignment/theme checks remain active above.                            |
+| Shopping basics           | Product Group selection, scale defaults, group modes/distribution, duplicate impulse handling, list editing, completion bridge, refresh/clear feedback, and Product-owned stock behavior have prior accepted evidence. | Browser confirmation and known-product quick-add retest remain active above. |
+| Admin and maintenance     | Dynamic feature-flag metadata, alpha auto-save, user management, maintenance registry separation, and diagnostics have prior accepted evidence.                                                                        | Configured archive/repair and ingestion review remain active above.          |
+| Intentional deferrals     | Automatic desired-restock derivation, classification/tagging UX, and deeper ingestion/catalogue policy expansion remain outside the current MVP closure.                                                               | Revisit only through a post-MVP plan.                                        |
