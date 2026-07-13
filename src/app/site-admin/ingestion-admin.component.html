@@ -53,14 +53,66 @@
                 role="row"
                 [style.grid-template-columns]="rowTable.columnTemplate()"
               >
-                <span class="action-cell" role="cell">
-                  <app-table-icon-button
-                    [titleText]="loc.t('common.reviewProduct')"
-                    [ariaLabel]="loc.t('common.reviewProduct')"
-                    (press)="openReviewEditor(snapshot, row)"
-                  >
-                    ✓
-                  </app-table-icon-button>
+                <span class="action-cell row-review-actions" role="cell">
+                  @if (reviewItemForRow(row); as reviewItem) {
+                    @if (decliningReviewId() === reviewItem.id) {
+                      <select
+                        [ngModel]="decliningReviewReason()"
+                        (ngModelChange)="decliningReviewReason.set($event)"
+                        [attr.aria-label]="loc.t('editor.declineReason')"
+                      >
+                        @for (reason of productReviewDecisionReasons; track reason) {
+                          <option [ngValue]="reason">{{ declineReasonLabel(reason) }}</option>
+                        }
+                      </select>
+                      <app-table-icon-button
+                        [titleText]="loc.t('common.confirm')"
+                        [ariaLabel]="loc.t('common.confirm')"
+                        (press)="confirmRowDecline(reviewItem)"
+                      >
+                        ✓
+                      </app-table-icon-button>
+                      <app-table-icon-button
+                        [titleText]="loc.t('common.close')"
+                        [ariaLabel]="loc.t('common.close')"
+                        (press)="cancelRowDecline()"
+                      >
+                        ×
+                      </app-table-icon-button>
+                    } @else {
+                      <app-table-icon-button
+                        [titleText]="loc.t('common.reviewProduct')"
+                        [ariaLabel]="loc.t('common.reviewProduct')"
+                        (press)="openReviewEditor(snapshot, row)"
+                      >
+                        ✎
+                      </app-table-icon-button>
+                      @if (reviewItem.status === "pending") {
+                        <app-table-icon-button
+                          [titleText]="loc.t('common.accept')"
+                          [ariaLabel]="loc.t('common.accept')"
+                          (press)="acceptReviewItem(reviewItem.id, null)"
+                        >
+                          ✓
+                        </app-table-icon-button>
+                        <app-table-icon-button
+                          [titleText]="loc.t('common.decline')"
+                          [ariaLabel]="loc.t('common.decline')"
+                          (press)="beginRowDecline(reviewItem)"
+                        >
+                          ×
+                        </app-table-icon-button>
+                      }
+                    }
+                  } @else {
+                    <app-table-icon-button
+                      [titleText]="loc.t('common.reviewProduct')"
+                      [ariaLabel]="loc.t('common.reviewProduct')"
+                      (press)="openReviewEditor(snapshot, row)"
+                    >
+                      ✎
+                    </app-table-icon-button>
+                  }
                 </span>
                 <span role="cell">
                   <strong>{{ row.displayName }}</strong>
@@ -69,6 +121,20 @@
                 <span role="cell">{{ row.sourceProductKey || loc.t("common.none") }}</span>
                 <span role="cell">{{ formatPrice(row) }}</span>
                 <span role="cell">{{ formatValidity(row) }}</span>
+                @if (reviewItemForRow(row); as reviewItem) {
+                  <span role="cell" class="review-status-cell">
+                    {{ reviewStatusLabel(reviewItem.status) }}
+                    @if (reviewItem.decision?.declineReason; as reason) {
+                      <small>{{ declineReasonLabel(reason) }}</small>
+                    }
+                  </span>
+                  <span role="cell" class="review-status-cell">
+                    {{ candidateMatchLabel(reviewItem.candidateMatch) }}
+                  </span>
+                } @else {
+                  <span role="cell">{{ loc.t("common.pending") }}</span>
+                  <span role="cell">{{ loc.t("common.unknown") }}</span>
+                }
               </article>
             }
           </div>

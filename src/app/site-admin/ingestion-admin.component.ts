@@ -60,7 +60,7 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
     { key: "state", label: this.loc.t("common.state"), minWidth: 80, maxWidth: 640, width: 120 }
   ]);
   readonly rowColumns = computed<readonly ResizableTableColumn[]>(() => [
-    { key: "actions", label: "", minWidth: 52, maxWidth: 72, width: 56 },
+    { key: "actions", label: "", minWidth: 120, maxWidth: 220, width: 150 },
     {
       key: "product",
       label: this.loc.t("common.product"),
@@ -75,7 +75,15 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
       label: this.loc.t("common.validity"),
       minWidth: 130,
       maxWidth: 540,
-      width: 240
+      width: 180
+    },
+    { key: "status", label: this.loc.t("common.state"), minWidth: 90, maxWidth: 220, width: 120 },
+    {
+      key: "match",
+      label: this.loc.t("crawl.matchConfidence"),
+      minWidth: 110,
+      maxWidth: 280,
+      width: 150
     }
   ]);
   readonly errorMessage = signal("");
@@ -92,6 +100,8 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
   readonly selectedSnapshotId = signal<string | null>(null);
   readonly editingReviewItem = signal<IngestionProductReviewItem | null>(null);
   readonly reviewEditorOpen = signal(false);
+  readonly decliningReviewId = signal<string | null>(null);
+  readonly decliningReviewReason = signal<ProductReviewDecisionReason>("bad_name");
   readonly reviewItemsBySnapshot = signal<Record<string, IngestionProductReviewItem[]>>({});
   readonly crawlSourceFilterTouched = signal(false);
   readonly crawlSourceNames = signal<string[]>([]);
@@ -255,6 +265,48 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
 
   selectSnapshot(snapshotId: string): void {
     this.selectedSnapshotId.set(snapshotId);
+    void this.ensureReviewItems(snapshotId);
+  }
+
+  reviewItemForRow(row: IngestionRowPreview): IngestionProductReviewItem | null {
+    const snapshot = this.selectedSnapshot();
+    if (!snapshot) return null;
+    return (
+      this.reviewItemsBySnapshot()[snapshot.id]?.find(
+        (item) =>
+          item.rawRowPreview["sourceRecordId"] === row.sourceRecordId ||
+          item.rawRowPreview["sourceProductKey"] === row.sourceProductKey ||
+          item.rawRowPreview["displayName"] === row.displayName
+      ) ?? null
+    );
+  }
+
+  reviewStatusLabel(status: IngestionProductReviewItem["status"]): string {
+    return this.loc.t(`reviewStatus.${status}` as TranslationKey);
+  }
+
+  candidateMatchLabel(match: IngestionProductReviewItem["candidateMatch"]): string {
+    return this.loc.t(`candidateMatch.${match}` as TranslationKey);
+  }
+
+  declineReasonLabel(reason: ProductReviewDecisionReason): string {
+    return this.loc.t(`reviewReason.${reason}` as TranslationKey);
+  }
+
+  beginRowDecline(item: IngestionProductReviewItem): void {
+    this.decliningReviewId.set(item.id);
+    this.decliningReviewReason.set(item.decision?.declineReason ?? "bad_name");
+  }
+
+  cancelRowDecline(): void {
+    this.decliningReviewId.set(null);
+    this.decliningReviewReason.set("bad_name");
+  }
+
+  async confirmRowDecline(item: IngestionProductReviewItem): Promise<void> {
+    const reason = this.decliningReviewReason();
+    this.cancelRowDecline();
+    await this.declineReviewItem(item.id, reason, null);
   }
 
   setShowAcceptedItems(showAccepted: boolean): void {
@@ -408,7 +460,9 @@ export class IngestionAdminComponent implements OnInit, OnDestroy {
       }
       this.hasNextSnapshotPage.set(result.pagination.hasNextPage);
       if (!this.selectedSnapshotId()) {
-        this.selectedSnapshotId.set(result.snapshots[0]?.id ?? null);
+        const firstSnapshotId = result.snapshots[0]?.id ?? null;
+        this.selectedSnapshotId.set(firstSnapshotId);
+        if (firstSnapshotId) void this.ensureReviewItems(firstSnapshotId);
       }
       this.loadState.set("success");
       this.statusMessage.set(this.loc.t("crawl.loadedCount", { count: this.snapshots().length }));

@@ -18,7 +18,7 @@ type EditorMode = "catalog" | "review";
   standalone: true,
   template: `
     @if (open) {
-      <section class="dialog-backdrop" role="presentation" (click)="close.emit()">
+      <section class="dialog-backdrop" role="presentation">
         <article
           class="editor-dialog"
           role="dialog"
@@ -209,8 +209,8 @@ type EditorMode = "catalog" | "review";
         box-shadow: 0 1.4rem 4rem color-mix(in srgb, black 24%, transparent);
         display: grid;
         gap: var(--space-4);
-        max-height: min(92vh, 58rem);
-        max-width: min(94vw, 74rem);
+        max-height: min(94vh, 70rem);
+        max-width: min(96vw, 92rem);
         overflow: auto;
         padding: 1rem;
         width: 100%;

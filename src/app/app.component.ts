@@ -463,7 +463,7 @@ export class AppComponent implements OnInit {
       angle: 135,
       exact: false,
       iconPath: "M4 5H20V9H4V5ZM6 11H18V14H6V11ZM8 16H16V19H8V16Z",
-      labelKey: "common.siteAdmin",
+      labelKey: "common.ingestionManagement",
       path: "/site-admin/ingestion",
       requiresAdmin: true
     }
@@ -598,7 +598,7 @@ export class AppComponent implements OnInit {
 
   private pageTitleForUrl(url: string): string {
     if (url.startsWith("/site-admin/ingestion")) {
-      return this.loc.t("common.siteAdmin");
+      return this.loc.t("common.ingestionManagement");
     }
 
     if (url.startsWith("/product-lookup")) {

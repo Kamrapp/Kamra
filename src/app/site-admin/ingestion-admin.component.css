@@ -141,6 +141,26 @@ small {
   align-items: center;
   display: flex;
 }
+.row-review-actions {
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+.row-review-actions select {
+  background: var(--form-field-background);
+  border: 1px solid var(--line-subtle);
+  border-radius: var(--radius-ui);
+  color: var(--color-text);
+  font: inherit;
+  max-width: 8rem;
+  min-height: 2rem;
+}
+.review-status-cell {
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 small {
   color: var(--color-text-muted);
