@@ -1183,8 +1183,9 @@ export const householdV2ShoppingTripsRoute: AppRoute = {
           : `shopping-needs:${householdId}`;
       const marketId = typeof body!["shopMarketId"] === "string" ? body!["shopMarketId"] : null;
       const customShopName =
-        typeof body!["shopNameSnapshot"] === "string" ? body!["shopNameSnapshot"].trim() : "";
-      if (!marketId && !customShopName) return json(400, { error: "shop_market_required" });
+        typeof body!["shopNameSnapshot"] === "string" && body!["shopNameSnapshot"].trim()
+          ? body!["shopNameSnapshot"].trim()
+          : "Custom";
       const market = marketId ? await new MongoShopMarketRepository(database).get(marketId) : null;
       if (marketId && !market) return json(400, { error: "shop_market_not_found" });
       const needs = await database

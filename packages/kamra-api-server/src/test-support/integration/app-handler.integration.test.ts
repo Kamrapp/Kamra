@@ -308,6 +308,14 @@ describe("Stage 11 application integration harness", () => {
     });
     expect(trip.status).toBe(201);
     expect(JSON.parse(trip.body).result.items).toHaveLength(1);
+
+    const customTrip = await harness.send({
+      bodyText: JSON.stringify({ plannedDate: "2026-07-15" }),
+      method: "POST",
+      path: `/api/households/${harness.householdId}/shopping-trips`
+    });
+    expect(customTrip.status).toBe(201);
+    expect(JSON.parse(customTrip.body).result.shopNameSnapshot).toBe("Custom");
   });
 
   it("creates a Product-owned Batch and one Ingestion Submission across an idempotent partial trip retry", async () => {
