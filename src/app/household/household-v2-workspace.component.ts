@@ -18,6 +18,7 @@ import {
   type HouseholdV2Product,
   type HouseholdV2ProductGroup,
   type HouseholdV2ProductRow,
+  type HouseholdV2TargetPolicy,
   type HouseholdV2Workspace
 } from "./household-v2.service";
 import { householdDomainIcons } from "./household-domain-icons";
@@ -44,7 +45,7 @@ export class HouseholdV2WorkspaceComponent {
   readonly changed = output<void>();
   readonly shoppingSelectionMode = input(false);
   readonly selectedShoppingOwnerIds = input<ReadonlySet<string>>(new Set());
-  readonly shoppingSelectionScale = input("keep_it_chill");
+  readonly shoppingSelectionScale = input<ShoppingSelectionScale>("keep_it_chill");
   readonly shoppingSelectionToggled = output<string>();
   readonly shoppingSelectionCandidatesChanged = output<readonly string[]>();
   readonly shoppingSelectionDefaultsChanged = output<readonly string[]>();
@@ -636,6 +637,7 @@ export class HouseholdV2WorkspaceComponent {
   private emitShoppingSelectionState(): void {
     const workspace = this.workspace();
     if (!workspace) return;
+    const selectionScale = this.shoppingSelectionScale();
     const groups = this.flattenGroups(workspace.productGroups);
     const rows = [
       ...workspace.unassignedProducts,
@@ -647,20 +649,25 @@ export class HouseholdV2WorkspaceComponent {
     ]);
     const defaults = [
       ...groups
-        .filter((group) => {
-          const aggregate = this.groupAggregate(group.id)?.aggregate;
-          return Boolean(
-            group.targetPolicy &&
-            aggregate &&
-            aggregate.availableQuantity < group.targetPolicy.minimumQuantity
-          );
-        })
-        .map((group) => group.id),
+        .map((group) => this.groupAggregate(group.id))
+        .filter((group): group is HouseholdV2ProductGroup =>
+          Boolean(
+            group &&
+            this.isShoppingSelectionEligible(
+              group.aggregate,
+              group.group.targetPolicy ?? null,
+              selectionScale
+            )
+          )
+        )
+        .map((group) => group.group.id),
       ...rows
-        .filter(
-          (row) =>
-            row.product.targetPolicy &&
-            row.aggregate.availableQuantity < row.product.targetPolicy.minimumQuantity
+        .filter((row) =>
+          this.isShoppingSelectionEligible(
+            row.aggregate,
+            row.product.targetPolicy ?? null,
+            selectionScale
+          )
         )
         .map((row) => row.product.id)
     ];
@@ -679,6 +686,20 @@ export class HouseholdV2WorkspaceComponent {
       return null;
     };
     return visit(this.workspace()?.productGroups ?? []);
+  }
+  private isShoppingSelectionEligible(
+    aggregate: HouseholdV2ProductRow["aggregate"],
+    policy: HouseholdV2TargetPolicy | null,
+    scale: ShoppingSelectionScale
+  ): boolean {
+    if (!policy || aggregate.state === "not_tracked") return false;
+    if (scale === "start_fresh") return false;
+    if (scale === "stock_em_up") return true;
+    if (aggregate.state === "below_minimum") return true;
+    if (scale === "business_as_usual") return false;
+    if (aggregate.state === "between_minimum_and_target") return true;
+
+    return isExpiryWithinWarningWindow(aggregate.nextExpiryOn, policy.expiryWarningDays);
   }
   private toggleSet(target: ReturnType<typeof signal<ReadonlySet<string>>>, id: string): void {
     target.update((ids) => {
@@ -700,4 +721,16 @@ function readOptionalAmount(value: number | string): number | null {
   if (value === "" || value === null) return null;
   const amount = typeof value === "number" ? value : Number(value);
   return Number.isFinite(amount) ? amount : null;
+}
+
+type ShoppingSelectionScale = "business_as_usual" | "keep_it_chill" | "start_fresh" | "stock_em_up";
+
+function isExpiryWithinWarningWindow(expiryOn: string | null, warningDays: number): boolean {
+  if (!expiryOn || warningDays <= 0) return false;
+  const today = new Date();
+  const todayValue = today.toISOString().slice(0, 10);
+  if (expiryOn < todayValue) return false;
+  const warningEnd = new Date(`${todayValue}T00:00:00.000Z`);
+  warningEnd.setUTCDate(warningEnd.getUTCDate() + warningDays);
+  return expiryOn <= warningEnd.toISOString().slice(0, 10);
 }

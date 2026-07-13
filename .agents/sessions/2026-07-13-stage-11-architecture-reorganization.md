@@ -77,6 +77,9 @@
   browser/configured checks only. The deterministic generator and trip-domain cases are automated
   evidence; remaining checks cover visible selection, mode outcomes, list styling,
   completion refresh/clear, additive impulse behavior, and custom-shop UI behavior.
+- Followed up on the scale-selection gap: V2 Build defaults now honor Start fresh, Business as
+  usual, Keep it chill (including configured soon-expiry batches), and Stock 'em up semantics while
+  leaving no-target rows available for manual selection only.
 
 ## Changed Files
 
@@ -181,6 +184,8 @@
 - After the Section 4 implementation, `npm run typecheck`, `npm run build:web`, and `git diff --check`
   passed. Focused V2 shopping-needs, Shopping Trip domain, route, and household shopping-completion
   suites passed (11 tests in the latter three suites; 8 shopping-needs tests separately).
+- After the scale-selection follow-up, `npm run typecheck`, `npm run lint -- --no-warn-ignored`,
+  and `npm test` passed (69 files, 250 tests).
 
 ## Decisions
 
