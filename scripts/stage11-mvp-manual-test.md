@@ -138,22 +138,20 @@ and demo seed-ledger entries. It does not remove shared catalogue, shop-market, 
 
 ### Group and Product structure
 
-- [ ] Remove the unused Add Product/Add Batch action slots from Batch rows so Batch discard stays
-      in the final action column and all row action sets align consistently.
-- [ ] Refine the Unassigned Products separator: smaller italic title, the same light text color as
-      real Groups, a stronger border, and a softened Group-like surface distinct from both Groups
-      and Batch rows.
+- [ ] Confirm Batch rows leave the child-action position empty and keep Details, Edit, and Discard
+      aligned with the other row action sets, with Discard in the final position.
+- [ ] Confirm the Unassigned Products separator has a small italic title, Group-like light text,
+      a stronger border, and a softened surface distinct from both Groups and Batch rows.
 
 ### CRUD and derived data
 
-- [ ] Replace the free-form Group unit field with a global unit selector plus a `Custom` option.
-      Selecting Custom reveals a suffix field; entering `test` persists `custom:test`, while the
-      table displays only italic `test` (and similarly `db` rather than `custom:db`).
-- [ ] Give each Batch a meaningful title from its source and stocked-at date, for example
-      `Lidl (2026-07-14)`, instead of the generic Stock Batch label. Editing the title's date should
-      edit Stocked at in place, without inserting a misaligned extra column.
-- [ ] Narrow the Minimum, Current, and Target columns while preserving readable values and the
-      aligned Batch Quantity column.
+- [ ] Edit a Group unit through the built-in selector and the Custom option. Entering test persists
+      custom:test; the table displays italic test without the storage prefix.
+- [ ] Confirm Batch titles use the available source and stocked-at date, with Manual as the explicit
+      fallback when no source snapshot exists. Edit the title date and confirm it updates Stocked at
+      without adding a misaligned column.
+- [ ] Confirm the compact Minimum, Current, Target, and Unit columns remain readable and Batch
+      Quantity stays aligned under Product Current.
 - [ ] Test Product Group/Product/Batch stale revision or concurrent-edit failure. The old state
       remains intact and the UI explains the conflict.
 - [ ] Save from the inline editor and from the right-side editor. Each path clears the other editor,
@@ -181,8 +179,8 @@ and demo seed-ledger entries. It does not remove shared catalogue, shop-market, 
 Operator notes and discoveries:
 
 The Section 3 structure and first CRUD checks are accepted in the bottom table. This section now
-contains only the action-slot, Unassigned Products styling, unit selector, Batch title/date,
-quantity-column, and remaining consistency/accessibility retests.
+contains only the focused presentation and behavior retests introduced by the latest workspace
+refinement, plus the remaining consistency/accessibility checks.
 
 ## 4. Shopping list and household purchase application
 
