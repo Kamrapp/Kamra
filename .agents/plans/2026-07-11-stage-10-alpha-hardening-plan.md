@@ -352,8 +352,8 @@ Implementation ownership map:
 
 ### Step 7 - Targeted backend vertical-slice cleanup
 
-- Move confirmed route/repository policy into feature domain services and isolate migrations/compatibility/repair code. Split large files only along these owners.
-- Acceptance: selected change probes touch fewer unrelated responsibilities; behavior tests remain green; no generic framework appears.
+- Move confirmed route/repository policy into feature domain services and isolate migrations/compatibility/repair code. Split large files only along these owners. **First slice implemented (2026-07-13):** Shopping Trip creation matching and response shaping now live in the focused `shopping-trip-planning` service; the route remains responsible for authentication, persistence, and HTTP validation.
+- Acceptance: selected change probes touch fewer unrelated responsibilities; behavior tests remain green; no generic framework appears. **Remaining:** only extract further responsibilities when a concrete route-locality problem is demonstrated.
 - Commit per slice: `refactor: localize <feature> responsibilities`
 
 ### Step 8 - Targeted frontend and contract cleanup

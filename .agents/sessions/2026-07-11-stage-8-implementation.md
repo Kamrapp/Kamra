@@ -472,6 +472,12 @@ basic Home shopping experience.
 - Audit and processor tests pass for valid correction, raw immutability, stale fingerprint rejection, malformed overlays, and existing deterministic outputs. Configured overlay generation, real parser/source regression selection, and clean-database reprocessing remain operator/review evidence.
 - Next safe slice: targeted backend change-locality or schema/compatibility cleanup from the Alpha baseline; do not invent source parser changes without a concrete audit report.
 
+## Stage 10 Step 7 backend locality checkpoint (2026-07-13)
+
+- Shopping Trip creation no longer owns matching policy and response-shaping details in the HTTP route. `shopping-trip-planning.ts` builds explicit Trip Items from open Shopping Needs, Shop Products, price observations, bounded match options, and truncation metadata.
+- The route still owns request authentication, market/need loading, optimistic persistence, and direct match override validation. No generic framework or behavior change was introduced.
+- Pure planning coverage passes for package math, expected total, selected catalog Product, and explicit match options. Full validation remains the next commit gate.
+
 Historical open-issue entries above describe intermediate checkpoints and are superseded by
 this closeout section where they say the Home bridge is still pending or Stage 8 cannot close.
 

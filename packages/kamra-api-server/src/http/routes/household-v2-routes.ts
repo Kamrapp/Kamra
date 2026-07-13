@@ -19,7 +19,8 @@ import { MongoShoppingTripRepository } from "../../household/v2/mongo-shopping-t
 import { MongoShopMarketRepository } from "../../household/v2/mongo-shop-market-repository.js";
 import { MongoShopProductRepository } from "../../household/v2/mongo-shop-product-repository.js";
 import { MongoPriceObservationRepository } from "../../household/v2/mongo-price-observation-repository.js";
-import { limitShoppingMatches, matchShoppingNeed } from "../../household/v2/shopping-matcher.js";
+import { matchShoppingNeed } from "../../household/v2/shopping-matcher.js";
+import { buildShoppingTripItems } from "../../household/v2/shopping-trip-planning.js";
 import {
   addShoppingTripItem,
   createShoppingTrip,
@@ -30,8 +31,7 @@ import {
 import type {
   ShoppingTripItemPlanStatus,
   ShoppingTripItemResultStatus,
-  ShoppingTripStatus,
-  ShoppingTripMatchOption
+  ShoppingTripStatus
 } from "../../household/v2/stage9-contracts.js";
 import { FeatureFlagService } from "../../feature-toggles/service.js";
 import { MongoFeatureFlagStore } from "../../feature-toggles/mongo-store.js";
@@ -1178,57 +1178,18 @@ export const householdV2ShoppingTripsRoute: AppRoute = {
       const now = new Date().toISOString();
       const shopProducts = await new MongoShopProductRepository(database).list(marketId);
       const prices = new MongoPriceObservationRepository(database);
-      const matchedItems = await Promise.all(
-        needs.items
-          .filter((need) => need.state === "open")
-          .map(async (need) => {
-            const matches = matchShoppingNeed({
-              candidates: await Promise.all(
-                shopProducts.map(async (product) => ({
-                  shopProduct: product,
-                  priceObservations: await prices.list(product.id)
-                }))
-              ),
-              currencyCode: market.currencyCode,
-              preferredProductId: need.preferredProductId,
-              requiredQuantity: need.plannedQuantity,
-              requiredUnit: need.unit,
-              shoppingDate: body!["plannedDate"] as string
-            });
-            const match = matches[0];
-            const limitedMatches = limitShoppingMatches(matches);
-            const matchOptions: ShoppingTripMatchOption[] = limitedMatches.matches.map(
-              (candidate) => ({
-                displayName:
-                  shopProducts.find((product) => product.id === candidate.shopProductId)
-                    ?.displayName ?? candidate.shopProductId,
-                expectedPackageCount: candidate.packageCount,
-                expectedTotal: candidate.expectedTotal,
-                priceState: candidate.applicablePrice.state,
-                selectedPriceObservationId: candidate.applicablePrice.observationId,
-                shopProductId: candidate.shopProductId
-              })
-            );
-            return {
-              id: `shopping-trip-item:${need.id}`,
-              needId: need.id,
-              displayNameSnapshot: need.ownerDisplayNameSnapshot ?? "Shopping need",
-              requiredQuantity: need.plannedQuantity,
-              requiredUnit: need.unit,
-              planStatus: match ? ("selected" as const) : ("unresolved" as const),
-              resultStatus: "pending" as const,
-              selectedProductId: match?.productId ?? null,
-              selectedShopProductId: match?.shopProductId ?? null,
-              selectedPriceObservationId: match?.applicablePrice.observationId ?? null,
-              expectedPackageCount: match?.packageCount ?? null,
-              expectedTotal: match?.expectedTotal ?? null,
-              priceState: match?.applicablePrice.state ?? "no_price",
-              matchExplanation: match?.explanation ?? "No compatible Shop Product found",
-              matchOptions,
-              matchOptionsTruncated: limitedMatches.truncated
-            };
-          })
+      const priceObservationsByShopProductId = new Map(
+        await Promise.all(
+          shopProducts.map(async (product) => [product.id, await prices.list(product.id)] as const)
+        )
       );
+      const matchedItems = buildShoppingTripItems({
+        currencyCode: market.currencyCode,
+        needs,
+        plannedDate: body!["plannedDate"] as string,
+        priceObservationsByShopProductId,
+        shopProducts
+      });
       const trip = createShoppingTrip({
         createdAt: now,
         createdByUserId: user.email,
