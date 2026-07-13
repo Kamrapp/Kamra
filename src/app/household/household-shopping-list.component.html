@@ -53,7 +53,7 @@
             <select
               [ngModel]="quickAddUnitOption()"
               (ngModelChange)="setQuickAddUnitOption($event)"
-              [disabled]="isReadOnly()"
+              [disabled]="isReadOnly() || quickAddMatchesHouseholdProduct()"
               [attr.aria-label]="loc.t('household.unit')"
             >
               @for (unit of trackingUnitOptions; track unit) {
@@ -65,7 +65,11 @@
               [class.quick-add-custom-placeholder]="quickAddUnitOption() !== 'custom'"
               [ngModel]="quickAddCustomUnit()"
               (ngModelChange)="setQuickAddCustomUnit($event)"
-              [disabled]="isReadOnly() || quickAddUnitOption() !== 'custom'"
+              [disabled]="
+                isReadOnly() ||
+                quickAddMatchesHouseholdProduct() ||
+                quickAddUnitOption() !== 'custom'
+              "
               [attr.aria-label]="loc.t('household.customUnitSuffix')"
               [placeholder]="loc.t('household.customUnitSuffix')"
             />

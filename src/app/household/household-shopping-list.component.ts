@@ -8,6 +8,7 @@ import {
   inject,
   signal,
   type OnChanges,
+  type OnDestroy,
   type SimpleChanges
 } from "@angular/core";
 
@@ -43,6 +44,16 @@ interface QuickAddDraft {
   unit: string;
 }
 
+export interface HouseholdKnownProduct {
+  currentAmount?: number | null;
+  displayName: string;
+  householdProductId: string;
+  idealMaxLimit?: number | null;
+  minLimit?: number | null;
+  stockGroupKey?: string | null;
+  unit: string;
+}
+
 interface PendingConfirmation {
   allowedModes: ShoppingListCompletionMode[];
 }
@@ -54,9 +65,10 @@ interface PendingConfirmation {
   templateUrl: "./household-shopping-list.component.html",
   styleUrl: "./household-shopping-list.component.css"
 })
-export class HouseholdShoppingListComponent implements OnChanges {
+export class HouseholdShoppingListComponent implements OnChanges, OnDestroy {
   @Input({ required: true }) householdId = "";
   @Input() demoShoppingList: HouseholdShoppingList | null = null;
+  @Input() knownProducts: readonly HouseholdKnownProduct[] = [];
   @Input() shoppingScale: HouseholdShoppingList["scale"] = "keep_it_chill";
   @Input() selectedOwnerIds: readonly string[] | null = null;
   @Output() stockPageUpdated = new EventEmitter<HouseholdStockPage>();
@@ -104,6 +116,7 @@ export class HouseholdShoppingListComponent implements OnChanges {
     [...(this.shoppingList()?.items ?? [])].filter((item) => item.ticked).sort(compareShoppingLines)
   );
   readonly stockAppliedAt = signal(todayDateInputValue());
+  private quickAddMatchTimer: ReturnType<typeof setTimeout> | null = null;
   private loadSerial = 0;
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -125,6 +138,10 @@ export class HouseholdShoppingListComponent implements OnChanges {
     }
   }
 
+  ngOnDestroy(): void {
+    if (this.quickAddMatchTimer) clearTimeout(this.quickAddMatchTimer);
+  }
+
   isReadOnly(): boolean {
     return this.demoShoppingList !== null;
   }
@@ -138,13 +155,17 @@ export class HouseholdShoppingListComponent implements OnChanges {
     return !this.isGroupShoppingLine(item) && !this.isImpulseShoppingLine(item);
   }
 
+  quickAddMatchesHouseholdProduct(): boolean {
+    return Boolean(this.findKnownProduct(this.quickAddDraft().displayName));
+  }
+
   async addManualLine(): Promise<void> {
     if (this.isReadOnly()) {
       return;
     }
 
     const list = this.shoppingList();
-    const draft = this.quickAddDraft();
+    let draft = this.quickAddDraft();
     if (!list) {
       this.toast.push(this.loc.t("household.generateShoppingList"), "info");
       return;
@@ -157,6 +178,17 @@ export class HouseholdShoppingListComponent implements OnChanges {
 
     const displayName = draft.displayName.trim();
     const stockGroupKey = normalizeStockGroupKey(displayName);
+    const knownProduct = this.findKnownProduct(displayName);
+    if (knownProduct && normalizeUnit(knownProduct.unit) !== normalizeUnit(draft.unit)) {
+      draft = { ...draft, unit: knownProduct.unit };
+      this.quickAddDraft.update((current) => ({ ...current, unit: knownProduct.unit }));
+      this.logger.log(
+        "debug",
+        "Shopping list impulse unit matched household Product",
+        { displayName: knownProduct.displayName, unit: knownProduct.unit },
+        { sendToServer: false }
+      );
+    }
     const existing = list.items.find(
       (item) => normalizeStockGroupKey(item.displayName) === stockGroupKey
     );
@@ -179,22 +211,23 @@ export class HouseholdShoppingListComponent implements OnChanges {
     }
 
     const manualLine: HouseholdShoppingListLine = {
-      currentAmount: 0,
+      currentAmount: knownProduct?.currentAmount ?? 0,
       displayName,
       id: `manual_${Date.now()}_${stockGroupKey}`,
-      idealMaxLimit: null,
-      minLimit: 0,
+      idealMaxLimit: knownProduct?.idealMaxLimit ?? null,
+      minLimit: knownProduct?.minLimit ?? 0,
       observedPrice: null,
       plannedAmount: coerceNumber(draft.purchasedAmount, 1),
+      householdProductId: knownProduct?.householdProductId ?? null,
       purchasedAmount: coerceNumber(draft.purchasedAmount, 1),
       reasonCode: null,
       sourceKind: "manual",
       status: "not_applied",
-      stockGroupKey,
+      stockGroupKey: knownProduct?.stockGroupKey ?? stockGroupKey,
       suggestedBuyAmount: coerceNumber(draft.purchasedAmount, 1),
       targetAmount: coerceNumber(draft.purchasedAmount, 1),
       ticked: false,
-      uncertaintyFlags: ["missing_catalog_product", "missing_product_source"],
+      uncertaintyFlags: knownProduct ? [] : ["missing_catalog_product", "missing_product_source"],
       unit: draft.unit.trim()
     };
     const nextItems = [...list.items, manualLine];
@@ -548,18 +581,35 @@ export class HouseholdShoppingListComponent implements OnChanges {
       ...draft,
       displayName: value
     }));
-    const existing = this.shoppingList()?.items.find(
-      (item) => normalizeStockGroupKey(item.displayName) === normalizeStockGroupKey(value)
-    );
-    if (existing && normalizeUnit(existing.unit) !== normalizeUnit(this.quickAddDraft().unit)) {
-      this.quickAddDraft.update((draft) => ({ ...draft, unit: existing.unit }));
-      this.logger.log(
-        "debug",
-        "Shopping list impulse unit matched existing line",
-        { displayName: existing.displayName, unit: existing.unit },
-        { sendToServer: false }
+    if (this.quickAddMatchTimer) clearTimeout(this.quickAddMatchTimer);
+    this.quickAddMatchTimer = setTimeout(() => {
+      this.quickAddMatchTimer = null;
+      const existing = this.shoppingList()?.items.find(
+        (item) => normalizeStockGroupKey(item.displayName) === normalizeStockGroupKey(value)
       );
-    }
+      const knownProduct = this.findKnownProduct(value);
+      const matched = existing ?? knownProduct;
+      if (matched && normalizeUnit(matched.unit) !== normalizeUnit(this.quickAddDraft().unit)) {
+        this.quickAddDraft.update((draft) => ({ ...draft, unit: matched.unit }));
+        this.logger.log(
+          "debug",
+          existing
+            ? "Shopping list impulse unit matched existing line"
+            : "Shopping list impulse unit matched household Product",
+          { displayName: matched.displayName, unit: matched.unit },
+          { sendToServer: false }
+        );
+      }
+    }, 150);
+  }
+
+  private findKnownProduct(displayName: string): HouseholdKnownProduct | null {
+    const key = normalizeStockGroupKey(displayName);
+    if (!key) return null;
+    return (
+      this.knownProducts.find((product) => normalizeStockGroupKey(product.displayName) === key) ??
+      null
+    );
   }
 
   updateQuickAddUnit(value: string): void {

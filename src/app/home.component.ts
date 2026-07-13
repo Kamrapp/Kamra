@@ -26,7 +26,10 @@ import {
   type HouseholdStockEditorMode
 } from "./household/household-stock-editor.component";
 import { HouseholdStockPanelComponent } from "./household/household-stock-panel.component";
-import { HouseholdShoppingListComponent } from "./household/household-shopping-list.component";
+import {
+  HouseholdShoppingListComponent,
+  type HouseholdKnownProduct
+} from "./household/household-shopping-list.component";
 import { HouseholdShoppingTripPanelComponent } from "./household/household-shopping-trip-panel.component";
 import { HouseholdProductEditorComponent } from "./household/household-product-editor.component";
 import { HouseholdV2WorkspaceComponent } from "./household/household-v2-workspace.component";
@@ -236,6 +239,22 @@ export class HomeComponent implements OnDestroy {
       shouldBuyForScale(item.stockStatus, this.shoppingScale())
     )
   );
+  readonly knownHouseholdProducts = computed<readonly HouseholdKnownProduct[]>(() => {
+    const products = new Map<string, HouseholdKnownProduct>();
+    for (const item of this.stockItems()) {
+      if (products.has(item.householdProductId)) continue;
+      products.set(item.householdProductId, {
+        currentAmount: item.currentAmount,
+        displayName: item.displayName,
+        householdProductId: item.householdProductId,
+        idealMaxLimit: item.idealMaxLimit,
+        minLimit: item.minLimit,
+        stockGroupKey: item.stockGroupKey,
+        unit: item.unit
+      });
+    }
+    return [...products.values()];
+  });
   readonly selectedShoppingItemIdsArray = computed(() => [...this.selectedShoppingItemIds()]);
   readonly existingShoppingLineItemIds = computed(() => {
     const shoppingList = this.shoppingListPanel()?.shoppingList();

@@ -67,6 +67,7 @@
       #shoppingListPanel
       class="shopping-bottom-row"
       [householdId]="selectedHouseholdId()"
+      [knownProducts]="knownHouseholdProducts()"
       [shoppingScale]="apiShoppingScale()"
       [selectedOwnerIds]="shoppingSelectionMode() ? selectedShoppingItemIdsArray() : null"
       (stockPageUpdated)="applyShoppingListStockPage($event)"
