@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MongoHouseholdRepository } from "../../household/current/mongo-household-repository.js";
 import type { HouseholdProduct } from "../../household/v2/contracts.js";
 import type { ShoppingTrip } from "../../household/v2/stage9-contracts.js";
+import type { IngestionRawSnapshotRecord } from "../../ingestion/v1/contracts.js";
 import { createIntegrationHarness } from "./app-harness.js";
 
 beforeEach(() => {
@@ -353,5 +354,87 @@ describe("Stage 11 application integration harness", () => {
         .collection("household_domain_operations")
         .countDocuments({ id: `trip-complete-1:${boughtItemId}` })
     ).toBe(1);
+  });
+
+  it("turns a raw ingestion snapshot into a persisted admin review candidate", async () => {
+    const harness = createIntegrationHarness({
+      user: { email: "stage11-ingestion-admin@kamra.test", role: "admin" }
+    });
+    const snapshot: IngestionRawSnapshotRecord = {
+      capturedAt: "2026-07-13T08:00:00.000Z",
+      contentHash: "stage11-content-hash",
+      contentType: "text/html",
+      crawlDate: "2026-07-13",
+      crawlRunId: "stage11-crawl-1",
+      id: "lidl:milk-row:2026-07-13",
+      parserName: "stage11-fixture-parser",
+      parserVersion: "1.0.0",
+      parsedRows: [
+        {
+          categoryLabel: "Dairy",
+          countryCode: "HU",
+          displayName: "Pilos 1.5% tej",
+          packageLabel: "1 l",
+          priceObservations: [
+            {
+              currencyCode: "HUF",
+              observedAt: "2026-07-13T08:00:00.000Z",
+              price: 299,
+              priceKind: "base"
+            }
+          ],
+          priceValue: 299,
+          rawName: "Pilos 1.5% tej 1 l",
+          sourceName: "lidl",
+          sourceProductKey: "milk-1l",
+          sourceRecordId: "milk-row",
+          sourceUrl: "https://example.test/lidl/milk-1l",
+          storeBrandKey: "pilos"
+        }
+      ],
+      payloadText: "sanitized stage11 fixture",
+      sourceName: "lidl",
+      sourceRecordId: "milk-row",
+      sourceUrl: "https://example.test/lidl/2026-07-13",
+      workflowName: "stage11-integration-fixture"
+    };
+    await harness.database.collection("ingestion_raw_snapshots").insertOne(snapshot);
+
+    const prepared = await harness.send({
+      bodyText: JSON.stringify({ snapshotId: snapshot.id }),
+      method: "POST",
+      path: "/api/admin/ingestion/prepare-review-items"
+    });
+    expect(prepared.status).toBe(200);
+    expect(JSON.parse(prepared.body)).toMatchObject({
+      preparedCount: 1,
+      snapshotId: snapshot.id
+    });
+
+    const listed = await harness.send({
+      method: "GET",
+      path: "/api/admin/ingestion/review-items",
+      query: { snapshotId: snapshot.id }
+    });
+    expect(listed.status).toBe(200);
+    expect(JSON.parse(listed.body)).toMatchObject({
+      reviewItems: [
+        {
+          candidate: {
+            matchConfidence: "strong_source_key",
+            product: {
+              measurements: [{ normalizedUnit: "ml", normalizedValue: 1000 }],
+              name: "Pilos 1.5% tej"
+            },
+            source: {
+              sourceName: "lidl",
+              sourceProductKey: "milk-1l"
+            }
+          },
+          id: `${snapshot.id}:0`,
+          status: "pending"
+        }
+      ]
+    });
   });
 });
