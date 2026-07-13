@@ -372,7 +372,8 @@ Implementation ownership map:
 ### Step 9 - Schema, compatibility, and maintenance cleanup
 
 - Consolidate domain-specific fragments, document/remove dead adapters and flags, move all one-time glue out of runtime repositories, verify registry/reconciliation.
-- Acceptance: every remaining compatibility path has owner/removal condition; normal reads do no repair work.
+- **Implemented slice (2026-07-13):** corrected `shopping-trip-foundation-v1` so its validator action initializes Shop Markets, Shopping Needs, Shopping Trips, and Ingestion Submissions together. A focused maintenance test protects the collection boundary.
+- Acceptance: every remaining compatibility path has owner/removal condition; normal reads do no repair work. Remaining compatibility cleanup still depends on configured data/conflict evidence.
 - Commit: `refactor: isolate schema migration compatibility`
 
 ### Step 10 - Non-functional and observability hardening

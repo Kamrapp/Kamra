@@ -19,6 +19,8 @@ import { MongoShopMarketRepository } from "../../household/v2/mongo-shop-market-
 import { MongoShopProductRepository } from "../../household/v2/mongo-shop-product-repository.js";
 import { MongoPriceObservationRepository } from "../../household/v2/mongo-price-observation-repository.js";
 import { MongoIngestionSubmissionRepository } from "../../household/v2/mongo-ingestion-submission-repository.js";
+import { MongoShoppingNeedRepository } from "../../household/v2/mongo-shopping-need-repository.js";
+import { MongoShoppingTripRepository } from "../../household/v2/mongo-shopping-trip-repository.js";
 import { describeRequest, json, unauthorized, type AppRoute } from "../app-route-context.js";
 import { MongoAlphaDomainLanguageMaintenance } from "../../database-maintenance/alpha-domain-language-maintenance.js";
 
@@ -253,6 +255,8 @@ async function runValidatorAction(
   }
   if (entryId === "shopping-trip-foundation-v1") {
     await new MongoShopMarketRepository(database).setupCollections();
+    await new MongoShoppingNeedRepository(database).setupCollections();
+    await new MongoShoppingTripRepository(database).setupCollections();
     return await new MongoIngestionSubmissionRepository(database).setupCollections();
   }
   if (entryId === "shop-product-price-foundation-v1") {

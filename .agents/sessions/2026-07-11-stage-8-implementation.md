@@ -511,6 +511,17 @@ basic Home shopping experience.
   realistic-volume/index evidence. Do not add client paging controls without a real screen need; the
   current admin surface still expects its first bounded page and can be extended later.
 
+## Stage 10 Step 9 foundation maintenance checkpoint (2026-07-13)
+
+- The `shopping-trip-foundation-v1` validator action now initializes all of its actual runtime
+  dependencies: `shop_markets`, `household_shopping_need_lists`, `household_shopping_trips`, and
+  `ingestion_submissions`. Previously it omitted the Need and Trip repository setup even though the
+  registry described the Trip foundation.
+- Added a focused test that protects the four-collection maintenance boundary. No existing data is
+  migrated, deleted, or rewritten by this correction.
+- Remaining Step 9 work is configured registry/reconciliation evidence and explicit cleanup of legacy
+  adapters only after supported-client/conflict evidence exists.
+
 Historical open-issue entries above describe intermediate checkpoints and are superseded by
 this closeout section where they say the Home bridge is still pending or Stage 8 cannot close.
 
