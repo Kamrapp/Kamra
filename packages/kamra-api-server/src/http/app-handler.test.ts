@@ -1677,6 +1677,11 @@ describe("handleAppRequest auth guards", () => {
           id: "feature-flag-audit-v1",
           migrationCompleted: false,
           validatorUpdated: false
+        },
+        {
+          id: "feature-flag-revision-v1",
+          migrationCompleted: false,
+          validatorUpdated: false
         }
       ]
     });
@@ -1823,7 +1828,9 @@ describe("handleAppRequest auth guards", () => {
         "shop-product-price-foundation-v1:validator",
         "shop-product-price-foundation-v1:migration",
         "feature-flag-audit-v1:validator",
-        "feature-flag-audit-v1:migration"
+        "feature-flag-audit-v1:migration",
+        "feature-flag-revision-v1:validator",
+        "feature-flag-revision-v1:migration"
       ]
     });
   });

@@ -488,7 +488,7 @@ export class AdminDashboardComponent implements OnInit {
     this.allowControlledAlphaAccessEnabled.set(enabled);
     const flag = this.controlledAlphaAccessFlag();
     if (flag) {
-      this.updateFeatureFlag({ enabled, key: flag.key });
+      void this.saveFeatureFlag(flag.key, enabled);
     }
   }
 
@@ -496,23 +496,6 @@ export class AdminDashboardComponent implements OnInit {
     this.updateFeatureFlag(change);
     if (this.controlledAlphaAccessFlag()?.key === change.key) {
       this.allowControlledAlphaAccessEnabled.set(change.enabled);
-    }
-  }
-
-  async saveAlphaAccessFlag(): Promise<void> {
-    if (
-      !this.requireAdminAccess(
-        this.featureFlagsState,
-        this.featureFlagsMessage,
-        "health.signInBeforeFeatureFlags"
-      )
-    ) {
-      return;
-    }
-
-    const flag = this.controlledAlphaAccessFlag();
-    if (flag) {
-      await this.saveFeatureFlag(flag.key, this.allowControlledAlphaAccessEnabled());
     }
   }
 

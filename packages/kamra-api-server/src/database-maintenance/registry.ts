@@ -88,6 +88,12 @@ export const databaseMaintenanceEntries: readonly DatabaseMaintenanceEntry[] = [
       "Ensures the feature_flag_change_audits collection and its indexes for persisted old/new values, actor, reason, and revision. This is an audit-schema action; it does not change the current value of any feature flag.",
     id: "feature-flag-audit-v1",
     title: "Feature flag audit history"
+  },
+  {
+    details:
+      "Adds the optional revision field to the shared household feature-flag validator so revision-aware admin flag writes are accepted. Existing V1 flag documents remain valid and no data backfill is required.",
+    id: "feature-flag-revision-v1",
+    title: "Feature flag revision compatibility"
   }
 ];
 

@@ -91,6 +91,10 @@
   destructive scope separately from content-only resets.
 - Follow-up validation fixed strict index-signature access in the deletion result map; application
   and API typechecking now pass with the new scope.
+- Fixed the shared household feature-flag validator to accept the revision field already written
+  by the revision-aware Mongo store. Added the explicit `feature-flag-revision-v1` maintenance
+  entry with a no-op data migration, and changed the controlled-alpha checkbox to save immediately
+  so its card no longer presents a misleading Save action.
 
 ## Changed Files
 

@@ -221,6 +221,7 @@ export const householdV1CollectionSchemas: Record<HouseholdV1CollectionName, Jso
       },
       id: nonEmptyStringSchema,
       key: householdFeatureFlagKeySchema,
+      revision: nonNegativeNumberSchema,
       updatedAt: isoDateStringSchema,
       updatedByUserId: nonEmptyStringSchema
     }

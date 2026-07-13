@@ -50,14 +50,6 @@ import type { AdminFeatureFlagViewModel } from "./admin-feature-flags-card.compo
         <button
           class="run-button ui-button"
           type="button"
-          (click)="saveRequested.emit()"
-          [disabled]="busy()"
-        >
-          {{ featureFlagsLoading() ? loc.t("health.updating") : loc.t("health.saveAlphaAccess") }}
-        </button>
-        <button
-          class="run-button ui-button"
-          type="button"
           (click)="createRequested.emit()"
           [disabled]="busy() || !enabled()"
         >
@@ -185,5 +177,4 @@ export class AdminAlphaAccessCardComponent {
   readonly emailChanged = output<string>();
   readonly enabledChanged = output<boolean>();
   readonly passwordChanged = output<string>();
-  readonly saveRequested = output<void>();
 }
