@@ -1,9 +1,11 @@
+import { createHash } from "node:crypto";
 import type {
   IngestionRawSnapshotRecord,
   IngestionRunRecord,
   ParsedShopProductIdentifier,
   ParsedShopProductRow
 } from "../v1/contracts.js";
+import { stableStringify } from "../archive/crawl-archive.js";
 
 export const ingestionCorrectionOverlaySchemaVersion = "ingestion-correction-overlay-v1" as const;
 
@@ -238,6 +240,56 @@ export function assertIngestionCorrectionOverlay(
     if (key === "productIdentifiers" && !isIdentifierList(fieldValue))
       throw new Error("correction_overlay_identifiers_invalid");
   }
+}
+
+export function createIngestionCorrectionSourceFingerprint(
+  snapshot: IngestionRawSnapshotRecord,
+  rowIndex: number
+): string {
+  const row = snapshot.parsedRows[rowIndex];
+  if (!row) throw new Error("correction_overlay_row_not_found");
+  return createHash("sha256")
+    .update(
+      stableStringify({
+        contentHash: snapshot.contentHash,
+        row,
+        rowIndex,
+        snapshotId: snapshot.id
+      }),
+      "utf8"
+    )
+    .digest("hex");
+}
+
+export function applyIngestionCorrectionOverlays(
+  snapshot: IngestionRawSnapshotRecord,
+  overlays: readonly IngestionCorrectionOverlay[]
+): IngestionRawSnapshotRecord {
+  const applicable = overlays.filter((overlay) => overlay.snapshotId === snapshot.id);
+  if (applicable.length === 0) return snapshot;
+  const rowIndexes = new Set<number>();
+  for (const overlay of applicable) {
+    assertIngestionCorrectionOverlay(overlay);
+    if (rowIndexes.has(overlay.rowIndex)) throw new Error("correction_overlay_duplicate_row");
+    if (!snapshot.parsedRows[overlay.rowIndex]) throw new Error("correction_overlay_row_not_found");
+    rowIndexes.add(overlay.rowIndex);
+  }
+  const parsedRows = snapshot.parsedRows.map((row, rowIndex) => {
+    const overlay = applicable.find((candidate) => candidate.rowIndex === rowIndex);
+    if (!overlay) return row;
+    assertIngestionCorrectionOverlay(overlay);
+    if (
+      overlay.sourceFingerprint !== createIngestionCorrectionSourceFingerprint(snapshot, rowIndex)
+    )
+      throw new Error(`correction_overlay_source_conflict:${snapshot.id}:${rowIndex}`);
+    const correctedRow = { ...row };
+    for (const [key, value] of Object.entries(overlay.correctedFields)) {
+      if (value === null) delete correctedRow[key as keyof typeof correctedRow];
+      else Object.assign(correctedRow, { [key]: value });
+    }
+    return correctedRow;
+  });
+  return { ...snapshot, parsedRows };
 }
 
 function auditRow(

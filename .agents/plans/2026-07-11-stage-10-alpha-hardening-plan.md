@@ -346,8 +346,8 @@ Implementation ownership map:
 
 ### Step 6 - Crawl import, reprocessing, and approved repair tools
 
-- Implement the shared import service/thin `crawl:import` script, correction-overlay validation/application during reprocessing, and separate dry-run-first idempotent repairs only for approved audit findings. Do not import derived Products/Price Observations. **Implemented archive import foundation (2026-07-13):** manifest/checksum-verified runs/snapshots import, stable identity/content conflict reporting, dry-run default, explicit target/apply guard, and repeat no-op behavior.
-- Acceptance: import dry run is default; explicit target/apply is required; repeated identical import is a no-op; conflicts do not overwrite; raw truth remains intact; corrected parser output becomes reviewable Product Candidates; post-run reconciliation is proven. **Remaining:** correction-overlay application, parser reprocessing, and configured clean-database restore evidence.
+- Implement the shared import service/thin `crawl:import` script, correction-overlay validation/application during reprocessing, and separate dry-run-first idempotent repairs only for approved audit findings. Do not import derived Products/Price Observations. **Implemented foundation (2026-07-13):** manifest/checksum-verified runs/snapshots import, stable identity/content conflict reporting, dry-run default, explicit target/apply guard, repeat no-op behavior, and reviewed overlay application to an in-memory snapshot copy before existing parser processing.
+- Acceptance: import dry run is default; explicit target/apply is required; repeated identical import is a no-op; conflicts do not overwrite; raw truth remains intact; corrected parser output becomes reviewable Product Candidates; post-run reconciliation is proven. **Remaining:** parser-specific regression evidence, approved repair tools, and configured clean-database restore evidence.
 - Commit per repair class: `chore: add <scope> data repair`
 
 ### Step 7 - Targeted backend vertical-slice cleanup

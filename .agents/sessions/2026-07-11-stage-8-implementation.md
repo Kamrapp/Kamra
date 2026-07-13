@@ -465,6 +465,13 @@ basic Home shopping experience.
 - Remaining Step 6 work is correction-overlay application/parser reprocessing and configured clean-database restore evidence; no archive was imported into a real database in this session.
 - Next safe slice: add overlay-aware reprocessing into the existing source processing pipeline, or stop if a concrete parser/data defect requires a configured audit report first.
 
+## Stage 10 Step 6 overlay-aware reprocessing checkpoint (2026-07-13)
+
+- Reviewed `ingestion-correction-overlay-v1` records can now be loaded from JSONL by `scripts/process-ingestion.ts` with `--reprocess --overlay-file=<path>`. The loader validates each record, rejects duplicate snapshot/row keys, requires selected snapshots, and refuses overlay use without reprocessing.
+- `applyIngestionCorrectionOverlays` verifies the current snapshot/row source fingerprint, rejects stale or duplicate/out-of-range overlays, applies only the reviewed normalized fields to a cloned snapshot, and leaves raw Mongo data untouched. Existing deterministic `processSourceOfferSnapshot` processing then writes the normal reviewable catalog dataset.
+- Audit and processor tests pass for valid correction, raw immutability, stale fingerprint rejection, malformed overlays, and existing deterministic outputs. Configured overlay generation, real parser/source regression selection, and clean-database reprocessing remain operator/review evidence.
+- Next safe slice: targeted backend change-locality or schema/compatibility cleanup from the Alpha baseline; do not invent source parser changes without a concrete audit report.
+
 Historical open-issue entries above describe intermediate checkpoints and are superseded by
 this closeout section where they say the Home bridge is still pending or Stage 8 cannot close.
 

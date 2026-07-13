@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { IngestionRawSnapshotRecord, IngestionRunRecord } from "../v1/contracts.js";
 import {
+  applyIngestionCorrectionOverlays,
   assertIngestionCorrectionOverlay,
   auditIngestionQuality,
+  createIngestionCorrectionSourceFingerprint,
   ingestionCorrectionOverlaySchemaVersion
 } from "./ingestion-quality-audit.js";
 
@@ -91,5 +93,29 @@ describe("ingestion quality audit", () => {
         tool: { name: "manual-review", version: "1.0.0" }
       })
     ).toThrow("correction_overlay_field_not_allowed:payloadText");
+  });
+
+  it("applies a reviewed row correction without changing the raw snapshot", () => {
+    const source = snapshot([{ countryCode: "HU", displayName: "Tej", sourceRecordId: "row-1" }]);
+    const overlay = {
+      correctedFields: { displayName: "Corrected milk" },
+      reason: "Verified against the source page.",
+      reviewedAt: "2026-07-13T10:00:00.000Z",
+      reviewer: { id: "admin", name: "Admin" },
+      rowIndex: 0,
+      schemaVersion: ingestionCorrectionOverlaySchemaVersion,
+      snapshotId: source.id,
+      sourceFingerprint: createIngestionCorrectionSourceFingerprint(source, 0),
+      tool: { name: "manual-review", version: "1.0.0" }
+    } as const;
+    const corrected = applyIngestionCorrectionOverlays(source, [overlay]);
+
+    expect(corrected.parsedRows[0]?.displayName).toBe("Corrected milk");
+    expect(source.parsedRows[0]?.displayName).toBe("Tej");
+    expect(() =>
+      applyIngestionCorrectionOverlays(source, [
+        { ...overlay, sourceFingerprint: "stale-fingerprint" }
+      ])
+    ).toThrow("correction_overlay_source_conflict");
   });
 });
