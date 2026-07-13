@@ -21,6 +21,7 @@ import { MongoShopProductRepository } from "../../household/v2/mongo-shop-produc
 import { MongoPriceObservationRepository } from "../../household/v2/mongo-price-observation-repository.js";
 import { limitShoppingMatches, matchShoppingNeed } from "../../household/v2/shopping-matcher.js";
 import {
+  addShoppingTripItem,
   createShoppingTrip,
   setShoppingTripMarket,
   transitionShoppingTrip,
@@ -85,6 +86,22 @@ export const householdV2WorkspaceRoute: AppRoute = {
           new Date().toISOString().slice(0, 10)
         )
       })
+    );
+  }
+};
+
+export const householdV2ShopMarketsRoute: AppRoute = {
+  match: (request) =>
+    request.method === "GET" && /^\/api\/households\/[^/]+\/shop-markets$/.test(request.path),
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request);
+    if (!user) return unauthorized("apiErrors.signInRequired");
+    const householdId = pathSegment(
+      request.path.match(/^\/api\/households\/([^/]+)\/shop-markets$/)?.[1]
+    );
+    if (!householdId) return json(400, { error: "invalid_household_path" });
+    return await withHouseholdDatabase(context, householdId, user.email, async (database) =>
+      json(200, { markets: await new MongoShopMarketRepository(database).list() })
     );
   }
 };
@@ -1248,6 +1265,28 @@ export const householdV2ShoppingTripRoute: AppRoute = {
       if (!existing) return json(404, { error: "shopping_trip_not_found" });
       try {
         let updated = existing;
+        const unplanned = body["unplannedPurchase"];
+        if (unplanned && typeof unplanned === "object" && !Array.isArray(unplanned)) {
+          const value = unplanned as Record<string, unknown>;
+          if (
+            typeof value["id"] !== "string" ||
+            typeof value["displayName"] !== "string" ||
+            typeof value["quantity"] !== "number" ||
+            typeof value["unit"] !== "string"
+          )
+            return json(400, { error: "invalid_unplanned_purchase" });
+          try {
+            assertTrackingUnit(value["unit"]);
+          } catch {
+            return json(400, { error: "invalid_unplanned_purchase_unit" });
+          }
+          updated = addShoppingTripItem(updated, {
+            displayNameSnapshot: value["displayName"],
+            id: `shopping-trip-item:${tripId}:manual:${value["id"]}`,
+            requiredQuantity: value["quantity"],
+            requiredUnit: value["unit"]
+          });
+        }
         if (typeof body["shopMarketId"] === "string")
           updated = setShoppingTripMarket(updated, body["shopMarketId"] as string);
         if (isTripStatus(body["transition"]))
@@ -1296,6 +1335,51 @@ export const householdV2ShoppingTripRoute: AppRoute = {
               selectedShopProductId: selected.shopProductId
             });
           } else {
+            if (
+              body["actualQuantity"] !== undefined &&
+              (typeof body["actualQuantity"] !== "number" ||
+                !Number.isFinite(body["actualQuantity"]) ||
+                body["actualQuantity"] <= 0)
+            )
+              return json(400, { error: "invalid_purchase_quantity" });
+            let actualUnit: TrackingUnit | null | undefined;
+            if (body["actualUnit"] === null) actualUnit = null;
+            else if (body["actualUnit"] !== undefined) {
+              if (typeof body["actualUnit"] !== "string")
+                return json(400, { error: "invalid_purchase_unit" });
+              try {
+                assertTrackingUnit(body["actualUnit"]);
+              } catch {
+                return json(400, { error: "invalid_purchase_unit" });
+              }
+              actualUnit = body["actualUnit"] as TrackingUnit;
+            }
+            if (
+              body["actualPaidPrice"] !== undefined &&
+              body["actualPaidPrice"] !== null &&
+              (typeof body["actualPaidPrice"] !== "number" ||
+                !Number.isFinite(body["actualPaidPrice"]) ||
+                body["actualPaidPrice"] < 0)
+            )
+              return json(400, { error: "invalid_paid_price" });
+            if (
+              body["acquiredOn"] !== undefined &&
+              body["acquiredOn"] !== null &&
+              !isIsoDate(body["acquiredOn"])
+            )
+              return json(400, { error: "invalid_acquired_on" });
+            if (
+              body["expiryOn"] !== undefined &&
+              body["expiryOn"] !== null &&
+              !isIsoDate(body["expiryOn"])
+            )
+              return json(400, { error: "invalid_expiry_on" });
+            if (
+              body["actualCurrencyCode"] !== undefined &&
+              body["actualCurrencyCode"] !== null &&
+              typeof body["actualCurrencyCode"] !== "string"
+            )
+              return json(400, { error: "invalid_currency_code" });
             updated = updateShoppingTripItem(updated, body["itemId"] as string, {
               planStatus: isTripPlanStatus(body["planStatus"]) ? body["planStatus"] : undefined,
               resultStatus: isTripResultStatus(body["resultStatus"])
@@ -1303,8 +1387,24 @@ export const householdV2ShoppingTripRoute: AppRoute = {
                 : undefined,
               actualQuantity:
                 typeof body["actualQuantity"] === "number" ? body["actualQuantity"] : undefined,
+              actualUnit,
               actualPaidPrice:
-                typeof body["actualPaidPrice"] === "number" ? body["actualPaidPrice"] : undefined,
+                body["actualPaidPrice"] === null || typeof body["actualPaidPrice"] === "number"
+                  ? (body["actualPaidPrice"] as number | null)
+                  : undefined,
+              actualCurrencyCode:
+                body["actualCurrencyCode"] === null ||
+                typeof body["actualCurrencyCode"] === "string"
+                  ? (body["actualCurrencyCode"] as string | null)
+                  : undefined,
+              actualAcquiredOn:
+                body["acquiredOn"] === null || typeof body["acquiredOn"] === "string"
+                  ? (body["acquiredOn"] as string | null)
+                  : undefined,
+              actualExpiryOn:
+                body["expiryOn"] === null || typeof body["expiryOn"] === "string"
+                  ? (body["expiryOn"] as string | null)
+                  : undefined,
               purchaseHouseholdProductId:
                 body["householdProductId"] === null ||
                 typeof body["householdProductId"] === "string"
@@ -1385,6 +1485,36 @@ export const householdV2ShoppingTripCompleteRoute: AppRoute = {
               return json(400, { error: "invalid_purchase_unit" });
             }
           }
+          if (value["acquiredOn"] !== undefined && !isIsoDate(value["acquiredOn"]))
+            return json(400, { error: "invalid_acquired_on" });
+          if (
+            value["expiryOn"] !== undefined &&
+            value["expiryOn"] !== null &&
+            !isIsoDate(value["expiryOn"])
+          )
+            return json(400, { error: "invalid_expiry_on" });
+          if (
+            value["actualPaidPrice"] !== undefined &&
+            value["actualPaidPrice"] !== null &&
+            (typeof value["actualPaidPrice"] !== "number" ||
+              !Number.isFinite(value["actualPaidPrice"]) ||
+              value["actualPaidPrice"] < 0)
+          )
+            return json(400, { error: "invalid_paid_price" });
+          if (
+            value["actualCurrencyCode"] !== undefined &&
+            value["actualCurrencyCode"] !== null &&
+            typeof value["actualCurrencyCode"] !== "string"
+          )
+            return json(400, { error: "invalid_currency_code" });
+          const now = new Date().toISOString();
+          const acquiredOn = isIsoDate(value["acquiredOn"])
+            ? (value["acquiredOn"] as string)
+            : now.slice(0, 10);
+          const expiryOn =
+            value["expiryOn"] === null || isIsoDate(value["expiryOn"])
+              ? ((value["expiryOn"] as string | null | undefined) ?? null)
+              : null;
           const operationId = `${body["operationId"]}:${itemId}`;
           const hasExplicitPurchaseProduct =
             typeof value["householdProductId"] === "string" || value["householdProductId"] === null;
@@ -1409,15 +1539,12 @@ export const householdV2ShoppingTripCompleteRoute: AppRoute = {
           if (productId) {
             const product = await householdProducts.get(householdId, productId);
             if (!product) return json(404, { error: "household_product_not_found" });
-            const now = new Date().toISOString();
             batchId = `stock-batch:${householdId}:${operationId}`;
             await new MongoStockCommandRepository(database, client).acquireBatch({
               operationId,
               requestFingerprint: JSON.stringify(value),
               batch: {
-                acquiredOn: isIsoDate(value["acquiredOn"])
-                  ? (value["acquiredOn"] as string)
-                  : now.slice(0, 10),
+                acquiredOn,
                 acquisitionSnapshot: { displayName: product.displayName },
                 classificationSnapshot: {
                   capturedAt: now,
@@ -1428,10 +1555,7 @@ export const householdV2ShoppingTripCompleteRoute: AppRoute = {
                 },
                 createdAt: now,
                 createdByUserId: user.email,
-                expiryOn:
-                  value["expiryOn"] === null || isIsoDate(value["expiryOn"])
-                    ? (value["expiryOn"] as string | null)
-                    : null,
+                expiryOn,
                 householdId,
                 householdProductId: product.id,
                 id: batchId,
@@ -1457,8 +1581,9 @@ export const householdV2ShoppingTripCompleteRoute: AppRoute = {
             ).createProductWithBatch({
               actorUserId: user.email,
               batch: {
-                acquiredOn: new Date().toISOString().slice(0, 10),
+                acquiredOn,
                 displayName: item.displayNameSnapshot,
+                expiryOn,
                 originalQuantity: quantity,
                 unit
               },
@@ -1479,6 +1604,10 @@ export const householdV2ShoppingTripCompleteRoute: AppRoute = {
             actualUnit: unit,
             actualPaidPrice:
               typeof value["actualPaidPrice"] === "number" ? value["actualPaidPrice"] : null,
+            actualCurrencyCode:
+              typeof value["actualCurrencyCode"] === "string" ? value["actualCurrencyCode"] : null,
+            actualAcquiredOn: acquiredOn,
+            actualExpiryOn: expiryOn,
             createdBatchIds: [batchId],
             purchaseHouseholdProductId: productId
           });
@@ -1494,6 +1623,17 @@ export const householdV2ShoppingTripCompleteRoute: AppRoute = {
               shopMarketId: updated.shopMarketId,
               quantity,
               unit,
+              acquiredOn,
+              expiryOn,
+              currencyCode:
+                typeof value["actualCurrencyCode"] === "string"
+                  ? value["actualCurrencyCode"]
+                  : null,
+              shopProductId:
+                typeof value["shopProductId"] === "string"
+                  ? value["shopProductId"]
+                  : (item.selectedShopProductId ?? null),
+              productId,
               paidPrice:
                 typeof value["actualPaidPrice"] === "number" ? value["actualPaidPrice"] : null
             },

@@ -448,6 +448,15 @@ basic Home shopping experience.
 - Focused validation passed: matcher/repository tests (6 passed) and `npm run typecheck`.
 - Next slice: expose household-visible active Shop Markets and replace the Home Trip raw-id field with a picker; then add the actual-result/unplanned purchase editor.
 
+## Stage 10 Step 4A household Trip safety checkpoint (2026-07-13)
+
+- The household-visible Trip slice is now implemented: active Shop Markets are served through `GET /api/households/:id/shop-markets` and selected from a localized Home picker; raw market-id entry is removed.
+- Trip Items now expose a compact actual-result editor for quantity, unit, paid price, currency, acquisition, and expiry. The same fields are persisted on the Trip Item, used when creating the Product-owned Stock Batch, and copied to the pending Ingestion Submission.
+- In-progress Trips can add idempotent unplanned purchases. They become normal Trip Items and can be finalized into a new Household Product and Stock Batch without bypassing the Trip workflow.
+- Match options remain bounded at 12 with explicit truncation metadata; completion uses the focused catalog-product lookup from the previous checkpoint. Domain coverage includes an idempotent unplanned-item test.
+- Validation for this unit: focused domain/matcher/repository tests pass, `npm run typecheck`, `npm run lint -- --max-warnings=0`, and Prettier formatting pass. Full suite/build and the authenticated browser/configured Mongo checks remain next evidence.
+- Next safe slice: run full validation and commit this unit, then prove/isolate the legacy Shopping Need/list boundary before the Step 8A frontend-only facelift.
+
 Historical open-issue entries above describe intermediate checkpoints and are superseded by
 this closeout section where they say the Home bridge is still pending or Stage 8 cannot close.
 

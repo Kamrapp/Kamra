@@ -66,12 +66,18 @@ export interface HouseholdV2Workspace {
 }
 export interface HouseholdShoppingTripItem {
   actualQuantity?: number | null;
+  actualUnit?: string | null;
+  actualPaidPrice?: number | null;
+  actualCurrencyCode?: string | null;
+  actualAcquiredOn?: string | null;
+  actualExpiryOn?: string | null;
   createdBatchIds?: string[];
   displayNameSnapshot: string;
   expectedPackageCount?: number | null;
   expectedTotal?: number | null;
   id: string;
   matchExplanation?: string | null;
+  matchOptionsTruncated?: boolean;
   matchOptions?: Array<{
     displayName: string;
     expectedPackageCount: number;
@@ -96,6 +102,13 @@ export interface HouseholdShoppingTrip {
   revision: number;
   shopMarketId: string | null;
   status: string;
+}
+export interface HouseholdV2ShopMarket {
+  countryCode: string;
+  currencyCode: string;
+  displayName: string;
+  id: string;
+  status: "active" | "archived";
 }
 
 @Injectable({ providedIn: "root" })
@@ -171,6 +184,26 @@ export class HouseholdV2Service {
     return { status: "ok", trip: payload.result };
   }
 
+  async listShopMarkets(
+    householdId: string
+  ): Promise<{ markets: HouseholdV2ShopMarket[]; message?: string; status: "error" | "ok" }> {
+    const response = await fetch(
+      buildApiUrl(`/api/households/${encodeURIComponent(householdId)}/shop-markets`),
+      {
+        headers: { accept: "application/json", ...this.auth.getAuthorizationHeaders() },
+        method: "GET"
+      }
+    );
+    if (!response.ok)
+      return {
+        markets: [],
+        message: `Shop markets could not be loaded (${response.status}).`,
+        status: "error"
+      };
+    const payload = (await response.json()) as { markets: HouseholdV2ShopMarket[] };
+    return { markets: payload.markets, status: "ok" };
+  }
+
   async updateShoppingTrip(input: {
     householdId: string;
     tripId: string;
@@ -180,8 +213,19 @@ export class HouseholdV2Service {
     householdProductId?: string | null;
     resultStatus?: "bought" | "not_bought";
     actualQuantity?: number;
+    actualUnit?: string | null;
+    actualPaidPrice?: number | null;
+    actualCurrencyCode?: string | null;
+    actualAcquiredOn?: string | null;
+    actualExpiryOn?: string | null;
     planStatus?: "selected" | "skipped";
     transition?: string;
+    unplannedPurchase?: {
+      displayName: string;
+      id: string;
+      quantity: number;
+      unit: string;
+    };
   }): Promise<{ message?: string; status: "error" | "ok"; trip?: HouseholdShoppingTrip }> {
     const response = await fetch(
       buildApiUrl(
@@ -194,8 +238,15 @@ export class HouseholdV2Service {
           selectedShopProductId: input.selectedShopProductId,
           householdProductId: input.householdProductId,
           resultStatus: input.resultStatus,
+          actualQuantity: input.actualQuantity,
+          actualUnit: input.actualUnit,
+          actualPaidPrice: input.actualPaidPrice,
+          actualCurrencyCode: input.actualCurrencyCode,
+          acquiredOn: input.actualAcquiredOn,
+          expiryOn: input.actualExpiryOn,
           planStatus: input.planStatus,
-          transition: input.transition
+          transition: input.transition,
+          unplannedPurchase: input.unplannedPurchase
         }),
         headers: this.headers(),
         method: "PATCH"
@@ -216,6 +267,12 @@ export class HouseholdV2Service {
       itemId: string;
       resultStatus: "bought" | "not_bought";
       actualQuantity?: number;
+      actualUnit?: string | null;
+      actualPaidPrice?: number | null;
+      actualCurrencyCode?: string | null;
+      acquiredOn?: string | null;
+      expiryOn?: string | null;
+      shopProductId?: string | null;
     }>;
   }): Promise<{ message?: string; status: "error" | "ok"; trip?: HouseholdShoppingTrip }> {
     const response = await fetch(

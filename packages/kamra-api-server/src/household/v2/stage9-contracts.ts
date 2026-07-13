@@ -71,6 +71,9 @@ export interface ShoppingTripItem {
   actualQuantity?: number | null;
   actualUnit?: TrackingUnit | null;
   actualPaidPrice?: number | null;
+  actualCurrencyCode?: string | null;
+  actualAcquiredOn?: string | null;
+  actualExpiryOn?: string | null;
   purchaseHouseholdProductId?: string | null;
   createdBatchIds?: string[];
   ingestionSubmissionId?: string | null;
@@ -147,6 +150,8 @@ export interface IngestionSubmission {
     unit: TrackingUnit;
     paidPrice?: number | null;
     currencyCode?: string | null;
+    acquiredOn?: string | null;
+    expiryOn?: string | null;
   };
   reviewNote?: string | null;
   revision: number;

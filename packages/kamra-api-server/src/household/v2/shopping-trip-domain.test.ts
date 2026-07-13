@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  addShoppingTripItem,
   createShoppingTrip,
   nextProcessingStatus,
   setShoppingTripMarket,
@@ -73,5 +74,28 @@ describe("Stage 9 Shopping Trip state", () => {
       purchaseHouseholdProductId: "household-product:household:rye-bread"
     });
     expect(trip.items[0]?.purchaseHouseholdProductId).toBe("household-product:household:rye-bread");
+  });
+
+  it("adds an idempotent unplanned purchase while shopping", () => {
+    let trip = setShoppingTripMarket(draft(), "market:hu");
+    trip = updateShoppingTripItem(trip, "one", { planStatus: "selected" });
+    trip = updateShoppingTripItem(trip, "two", { planStatus: "selected" });
+    trip = transitionShoppingTrip(trip, "matching");
+    trip = transitionShoppingTrip(trip, "ready");
+    trip = transitionShoppingTrip(trip, "in_progress");
+    trip = addShoppingTripItem(trip, {
+      displayNameSnapshot: "Banana",
+      id: "manual-banana",
+      requiredQuantity: 3,
+      requiredUnit: "count"
+    });
+    const repeated = addShoppingTripItem(trip, {
+      displayNameSnapshot: "Banana",
+      id: "manual-banana",
+      requiredQuantity: 3,
+      requiredUnit: "count"
+    });
+    expect(repeated.revision).toBe(trip.revision);
+    expect(repeated.items.filter((candidate) => candidate.id === "manual-banana")).toHaveLength(1);
   });
 });

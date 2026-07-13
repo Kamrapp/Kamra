@@ -1,6 +1,6 @@
 # Stage 10 Alpha 1.0 Hardening Plan
 
-Status: In implementation — Step 4A backend safety slice started (2026-07-13). Keep hardening tied to concrete Stage 8/9 findings; do not expand into a rewrite.
+Status: In implementation — Step 4A household Trip safety/UI slice implemented; configured and browser evidence remain open (2026-07-13). Keep hardening tied to concrete Stage 8/9 findings; do not expand into a rewrite.
 
 ## Objective And Classification
 
@@ -33,10 +33,10 @@ closure gate before Alpha closeout:
 | Area | Current truth | Stage 10 treatment |
 | --- | --- | --- |
 | Stage 8 Product Group workspace | Product Groups, Household Products, Product-owned Batches, target policies, expiry setting, and purchase finalization paths exist. | Keep the central manual acceptance matrix open until the configured/browser flows are confirmed. |
-| Concrete Shopping Trip entry | The Home panel still accepts a raw Shop Market id; there is no household-visible active-market picker. | Close in MVP-hole Step 4A with an authenticated household market read/picker. |
-| Actual purchase result | Backend accepts actual quantity/unit/price/acquisition/expiry and Product choice, but the Home panel primarily exposes bought/not-bought and Product selection. | Close in Step 4A with a compact actual-result editor and an explicit unplanned-purchase path. |
-| Match safety | Trip creation returns all compatible match candidates without a declared response-size/truncation policy. | Close in Step 4A with a bounded candidate contract and an explicit truncation indication. |
-| Completion lookup | Completion still scans all Household Products when falling back from a matched catalog Product. | Close in Step 4A with a focused indexed lookup and regression coverage. |
+| Concrete Shopping Trip entry | The Home panel now loads active Shop Markets through an authenticated household route and uses a picker instead of a raw id field. | Implemented in Step 4A; configured/browser evidence remains open. |
+| Actual purchase result | The Home panel now edits quantity/unit/paid price/currency/acquisition/expiry after marking a line bought, and supports unplanned purchases. | Implemented in Step 4A; browser finalization and retry evidence remains open. |
+| Match safety | Trip creation now returns at most 12 compatible match options and records `matchOptionsTruncated`. | Implemented in Step 4A with matcher regression coverage. |
+| Completion lookup | Completion now uses a focused indexed catalog-to-Household Product lookup rather than loading all Household Products. | Implemented in Step 4A with repository regression coverage. |
 | Legacy Shopping Need/list boundary | Legacy Stage 8 list routes/components remain alongside Trips. | Prove Trip equivalence first; remove or isolate dead writes in Step 9 only after evidence. |
 | Purchase history language | Current runtime stores purchase results in Trip Items and creates Ingestion Submissions; it has no separate `household_purchases` aggregate. | Keep Trip as the MVP history envelope and remove stale “Purchase aggregate” claims from current docs. |
 | Ingestion/admin loop | Submission persistence/review and admin Shop Product/Price routes exist; configured and browser evidence is still open. | Verify during the final Alpha scenario; do not add receipt ingestion in Stage 10. |
@@ -284,7 +284,7 @@ Recommended continuous sequence:
 2. Crawl Snapshot export and checksum verification tooling.
 3. Final-domain-language maintenance action and deterministic cutover/reset support.
 4. Read-only ingestion quality audit and correction-overlay schema.
-4A. MVP-hole closure for the concrete Trip/browser/data-integrity gaps above; return behavior bugs to Stage 9 ownership.
+4A. MVP-hole closure for the concrete Trip/browser/data-integrity gaps above; return behavior bugs to Stage 9 ownership. **Implemented (2026-07-13):** market picker, actual-result/unplanned purchase UI, bounded matches, and focused completion lookup. The legacy-list boundary and browser/configured evidence remain open.
 5. Confirmed source-specific parser/normalizer fixes, one source per commit.
 6. Crawl import/reprocessing and approved dry-run repair tools.
 7. Targeted backend change-locality cleanup from the baseline findings.
@@ -334,7 +334,7 @@ Implementation ownership map:
 ### Step 4A - MVP-hole closure gate
 
 - Close the revalidated Stage 9 gaps before calling the Alpha user loop complete: add a household-visible active Shop Market picker, expose actual purchase result fields (quantity, unit, paid price, acquisition/expiry, Product/new-product choice), support unplanned purchases, bound match options with truncation state, add focused catalog-to-Household Product lookup, and prove the legacy Shopping Need/list boundary does not bypass Trip completion. Keep matching/completion policy in focused services rather than expanding the route.
-- Acceptance: route/domain tests cover every new command and failure path; the browser panel can select a valid market, resolve/skip matches, record an actual result, finalize it into Product-owned Batches and Ingestion Submissions, retry without duplicates, and recover from stale revisions. Update the central manual checklist and return any behavior regression to Stage 9. **In progress (2026-07-13):** match options are bounded with truncation metadata and completion uses a focused indexed catalog-to-Household Product lookup.
+- Acceptance: route/domain tests cover every new command and failure path; the browser panel can select a valid market, resolve/skip matches, record an actual result, finalize it into Product-owned Batches and Ingestion Submissions, retry without duplicates, and recover from stale revisions. Update the central manual checklist and return any behavior regression to Stage 9. **In progress (2026-07-13):** the household-visible Trip safety slice is implemented; remaining acceptance is the legacy-list boundary plus configured/browser evidence.
 - Stop condition: if the active-market ownership model, unplanned-purchase identity, or legacy-list retirement would materially change the approved domain, pause for a decision rather than infer one.
 - Commit per independent concern: `fix: close <trip or completion> MVP gap`.
 

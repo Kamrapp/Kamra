@@ -69,6 +69,45 @@ export function setShoppingTripMarket(
   return { ...trip, shopMarketId, plannedDate, revision: trip.revision + 1 };
 }
 
+export function addShoppingTripItem(
+  trip: ShoppingTrip,
+  input: {
+    displayNameSnapshot: string;
+    id: string;
+    requiredQuantity: number;
+    requiredUnit: ShoppingTripItem["requiredUnit"];
+  }
+): ShoppingTrip {
+  if (!["in_progress", "partially_processed"].includes(trip.status))
+    throw new Error("shopping_trip_item_add_locked");
+  if (!input.displayNameSnapshot.trim()) throw new Error("shopping_trip_item_name_required");
+  if (!Number.isFinite(input.requiredQuantity) || input.requiredQuantity <= 0)
+    throw new Error("shopping_trip_item_quantity_invalid");
+  const existing = trip.items.find((item) => item.id === input.id);
+  if (existing) {
+    if (
+      existing.displayNameSnapshot !== input.displayNameSnapshot.trim() ||
+      existing.requiredQuantity !== input.requiredQuantity ||
+      existing.requiredUnit !== input.requiredUnit
+    )
+      throw new Error("shopping_trip_item_id_conflict");
+    return trip;
+  }
+  const item: ShoppingTripItem = {
+    displayNameSnapshot: input.displayNameSnapshot.trim(),
+    id: input.id,
+    needId: `manual:${input.id}`,
+    planStatus: "selected",
+    requiredQuantity: input.requiredQuantity,
+    requiredUnit: input.requiredUnit,
+    resultStatus: "pending",
+    matchExplanation: "manual purchase",
+    matchOptions: [],
+    priceState: "no_price"
+  };
+  return { ...trip, items: [...trip.items, item], revision: trip.revision + 1 };
+}
+
 export function updateShoppingTripItem(
   trip: ShoppingTrip,
   itemId: string,
@@ -85,6 +124,9 @@ export function updateShoppingTripItem(
     actualQuantity?: number | null;
     actualUnit?: ShoppingTripItem["actualUnit"];
     actualPaidPrice?: number | null;
+    actualCurrencyCode?: string | null;
+    actualAcquiredOn?: string | null;
+    actualExpiryOn?: string | null;
     purchaseHouseholdProductId?: string | null;
     createdBatchIds?: string[];
     ingestionSubmissionId?: string | null;
