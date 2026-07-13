@@ -80,6 +80,11 @@
 - Followed up on the scale-selection gap: V2 Build defaults now honor Start fresh, Business as
   usual, Keep it chill (including configured soon-expiry batches), and Stock 'em up semantics while
   leaving no-target rows available for manual selection only.
+- Implemented the latest access/presentation follow-ups: pending invitations now appear in the Home
+  household panel as well as the account rail, the household panel title is localized as
+  Households/Háztartások, the Activity output defaults to 10rem with a 5–20rem range, navigation
+  stays directly above it, management back-button sizing matches the shared controls, and Manual
+  now includes Shopping trip terminology with more readable term rows.
 
 ## Changed Files
 
@@ -186,6 +191,9 @@
   suites passed (11 tests in the latter three suites; 8 shopping-needs tests separately).
 - After the scale-selection follow-up, `npm run typecheck`, `npm run lint -- --no-warn-ignored`,
   and `npm test` passed (69 files, 250 tests).
+- After the access/presentation follow-up, typecheck and zero-warning lint passed; the household
+  deletion, feature-flag validator, workspace action alignment, and admin user-management work
+  remain in progress.
 
 ## Decisions
 

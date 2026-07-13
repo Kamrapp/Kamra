@@ -1,8 +1,9 @@
 import { FormsModule } from "@angular/forms";
-import { Component, inject, input, output, signal } from "@angular/core";
+import { Component, effect, inject, input, output, signal } from "@angular/core";
 import { RouterLink } from "@angular/router";
 
 import type { HouseholdListItem, HouseholdStockItemListItem } from "./household-stock.service";
+import { HouseholdInvitationService } from "./household-invitation.service";
 import { LocalizationService, type TranslationKey } from "../shared/localization.service";
 
 @Component({
@@ -52,6 +53,35 @@ import { LocalizationService, type TranslationKey } from "../shared/localization
           </button>
         </div>
       </div>
+
+      @if (invitationService.pendingInvitations().length > 0) {
+        <div class="household-invitations">
+          <strong>{{ loc.t("app.pendingInvitations") }}</strong>
+          @for (invitation of invitationService.pendingInvitations(); track invitation.id) {
+            <div class="household-invitation-row">
+              <span>
+                {{
+                  loc.t("app.invitationForHousehold", {
+                    household: invitation.householdName ?? invitation.householdId
+                  })
+                }}
+              </span>
+              <button
+                class="ui-button ui-button-primary ui-button-sm"
+                type="button"
+                [disabled]="acceptingInvitationId === invitation.id"
+                (click)="acceptInvitation(invitation.id)"
+              >
+                {{
+                  acceptingInvitationId === invitation.id
+                    ? loc.t("common.loading")
+                    : loc.t("app.acceptInvitation")
+                }}
+              </button>
+            </div>
+          }
+        </div>
+      }
 
       @if (loadState() === "loading" && !hasHouseholdPage()) {
         <section class="state-panel">
@@ -250,6 +280,32 @@ import { LocalizationService, type TranslationKey } from "../shared/localization
 
       .manage-household-button {
         flex: 0 0 auto;
+      }
+
+      .household-invitations {
+        border: 1px solid var(--line-subtle);
+        border-radius: var(--radius-ui);
+        display: grid;
+        gap: var(--space-2);
+        padding: 0.55rem 0.65rem;
+      }
+
+      .household-invitations > strong {
+        color: var(--color-text-muted);
+        font-size: 0.7rem;
+        text-transform: uppercase;
+      }
+
+      .household-invitation-row {
+        align-items: center;
+        display: grid;
+        gap: var(--space-2);
+        grid-template-columns: minmax(0, 1fr) auto;
+      }
+
+      .household-invitation-row span {
+        color: var(--color-text);
+        font-size: 0.78rem;
       }
 
       .icon-button {
@@ -497,6 +553,7 @@ import { LocalizationService, type TranslationKey } from "../shared/localization
 })
 export class HouseholdStockPanelComponent {
   readonly loc = inject(LocalizationService);
+  readonly invitationService = inject(HouseholdInvitationService);
 
   readonly errorMessage = input.required<string>();
   readonly existingShoppingLineItemIds = input.required<ReadonlySet<string>>();
@@ -518,8 +575,15 @@ export class HouseholdStockPanelComponent {
   readonly refreshRequested = output<void>();
   readonly shoppingListAddRequested = output<HouseholdStockItemListItem>();
   readonly shoppingSelectionToggled = output<string>();
+  readonly invitationAccepted = output<string>();
 
   readonly createHouseholdName = signal("");
+  acceptingInvitationId = "";
+
+  private readonly loadPendingInvitations = effect(() => {
+    this.selectedHouseholdId();
+    void this.invitationService.loadPending();
+  });
 
   formatAmount(amount: number, unit: string): string {
     return `${amount.toLocaleString(this.loc.language() === "hu" ? "hu-HU" : "en-US")} ${unit}`;
@@ -555,5 +619,12 @@ export class HouseholdStockPanelComponent {
 
     this.createHouseholdRequested.emit(name);
     this.createHouseholdName.set("");
+  }
+
+  async acceptInvitation(invitationId: string): Promise<void> {
+    this.acceptingInvitationId = invitationId;
+    const result = await this.invitationService.accept(invitationId);
+    this.acceptingInvitationId = "";
+    if (result.status === "ok") this.invitationAccepted.emit(result.invitation.householdId);
   }
 }

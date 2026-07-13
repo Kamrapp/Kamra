@@ -45,6 +45,7 @@
           (refreshRequested)="refreshHome()"
           (shoppingListAddRequested)="addStockItemToShoppingList($event, shoppingListPanel)"
           (shoppingSelectionToggled)="toggleShoppingItem($event)"
+          (invitationAccepted)="invitationAccepted($event)"
         />
         <app-household-product-editor
           [householdId]="selectedHouseholdId()"

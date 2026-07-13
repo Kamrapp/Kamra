@@ -7,6 +7,7 @@ import {
   signal,
   type OnDestroy
 } from "@angular/core";
+import { Router } from "@angular/router";
 
 import { AuthService } from "./auth.service";
 import {
@@ -100,6 +101,7 @@ export class HomeComponent implements OnDestroy {
   readonly loc = inject(LocalizationService);
   readonly pageRail = inject(PageRailService);
   private readonly toast = inject(ToastService);
+  private readonly router = inject(Router);
 
   readonly editorMode = signal<HouseholdStockEditorMode>("create");
   readonly editorRevision = signal(0);
@@ -482,6 +484,10 @@ export class HomeComponent implements OnDestroy {
     this.applyLoadedPage(page);
     this.refreshV2Workspace();
     this.statusMessage.set(this.loc.t("household.shoppingListAppliedAndStockRefreshed"));
+  }
+
+  async invitationAccepted(householdId: string): Promise<void> {
+    await this.router.navigateByUrl(`/household/${encodeURIComponent(householdId)}`);
   }
 
   setShoppingScaleIndex(value: number | string): void {

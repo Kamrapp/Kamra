@@ -222,9 +222,11 @@ import { ToastService } from "../shared/toast.service";
       }
 
       .management-actions .ui-button {
-        font-size: 0.76rem;
-        min-height: 1.8rem;
-        padding: 0.28rem 0.55rem;
+        align-items: center;
+        display: inline-flex;
+        font-size: 0.84rem;
+        min-height: 2.15rem;
+        padding: 0.35rem 0.7rem;
       }
 
       .management-panel > .ui-button {

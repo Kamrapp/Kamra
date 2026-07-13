@@ -34,7 +34,7 @@ import { LocalizationService } from "./localization.service";
     `
       :host {
         display: block;
-        margin-top: auto;
+        margin-top: 0;
         position: sticky;
         bottom: 0;
       }
@@ -63,9 +63,9 @@ import { LocalizationService } from "./localization.service";
         font-weight: 700;
       }
       .client-console-scroll {
-        height: 7rem;
-        max-height: 13rem;
-        min-height: 5.5rem;
+        height: 10rem;
+        max-height: 20rem;
+        min-height: 5rem;
         overflow: auto;
         padding: var(--space-2) var(--space-3);
         resize: vertical;

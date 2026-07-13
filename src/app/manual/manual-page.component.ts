@@ -71,6 +71,10 @@ import { LocalizationService } from "../shared/localization.service";
                 <strong>{{ loc.t("manual.shoppingListTerm") }}</strong>
                 <span>{{ loc.t("manual.shoppingListDefinition") }}</span>
               </div>
+              <div class="manual-term-row" role="listitem">
+                <strong>{{ loc.t("manual.shoppingTripTerm") }}</strong>
+                <span>{{ loc.t("manual.shoppingTripDefinition") }}</span>
+              </div>
             </div>
           } @else {
             <div class="manual-intro">
@@ -210,12 +214,12 @@ import { LocalizationService } from "../shared/localization.service";
       }
       .manual-term-row strong {
         color: var(--color-text);
-        font-size: 0.88rem;
+        font-size: 0.96rem;
       }
       .manual-term-row span {
         color: var(--color-text-muted);
-        font-size: 0.84rem;
-        line-height: 1.32;
+        font-size: 0.92rem;
+        line-height: 1.38;
       }
       .admin-note {
         margin: 0;
