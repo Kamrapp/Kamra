@@ -16,8 +16,11 @@ the plans as the approved direction; record drift instead of silently widening s
 ## Implementation workflow
 
 1. Inspect the owning slice and existing tests.
-2. Implement one focused, reversible unit.
-3. Add focused tests for changed behavior, persistence, validation, or authorization.
+2. Define expected outcomes in focused tests before using current behavior as evidence, then implement
+   one focused, reversible unit.
+3. Add focused tests for changed behavior, persistence, validation, or authorization. Prefer
+   logic/coordination specs when several UI blocks interact; use browser contracts only when browser
+   wiring itself is the risk.
 4. Run proportionate checks; for normal application changes use:
 
    ```bash
@@ -29,8 +32,10 @@ the plans as the approved direction; record drift instead of silently widening s
    npm run build:api
    ```
 
-5. Update the active session handoff and manual checklist when the change creates a new testable
-   flow.
+5. Update the active session handoff and the owning phase/stage manual acceptance script when the
+   change creates a new testable flow. Keep deterministic checks automated, and run the integrated
+   manual pass at its approved acceptance gate rather than against an interaction scheduled for
+   replacement.
 6. Create a new commit that describes the unit. Keep unrelated cleanup out of the commit.
 
 Do not amend, push, reset, checkout, force-update, or rewrite history as part of the normal agentic

@@ -6,7 +6,10 @@ Household stock is Kamra's user-owned pantry model.
 
 It is intentionally separate from catalog, crawler, source, and store stock. Store/source stock describes observed retailer availability or offers. Household stock describes what a household believes it has at home, what minimum level it wants to keep, and what should later become shopping-list demand.
 
-Stage 8 makes the complete basic user loop real: a signed-in household member can manage Product Groups, Products, and Batches, generate/edit a shopping list, mark purchases, and finalize purchased lines back into Product-owned household stock. Shop matching, price applicability, and admin-reviewed ingestion are intentionally Stage 9 additions.
+The closed MVP makes the complete basic user loop real: a signed-in household member can manage
+Product Groups, Products, and Batches, generate/edit a Shopping list, mark purchases, and finalize
+purchased lines back into Product-owned household stock. Phase 1 redesigns shop matching, price
+evidence, receipt reconciliation, and admin review around that accepted loop.
 
 ## Approved Stage 8 Model
 
@@ -22,7 +25,11 @@ Current quantities are derived from Batches. A Product contributes to its direct
 
 When both a Product/child Group and its parent Group have targets, shopping planning works bottom-up: fulfil the specific target first, then generate only the parent’s remaining shortage. This prevents the same white-bread quantity from being proposed twice for `White bread` and `Bread`.
 
-The currently deployed allocation-based v2 workspace is an interim migration state. Its `Stock Target` and `Stock Allocation` data are retained as history/migration input until the Product Group cutover reconciles each Product to one Group or reports it for explicit resolution. See [domain language](./domain-language.md) and the active Stage 8 plan for the authoritative migration rules.
+The allocation-based v2 workspace is an interim migration state. Its `Stock Target` and
+`Stock Allocation` data are retained as history/migration input until the Product Group cutover
+reconciles each Product to one Group or reports it for explicit resolution. See
+[domain language](./domain-language.md) and the archived Stage 8 plan under `.agents/plans/mvp/` for
+the migration history.
 
 ## Current User-Side State
 
@@ -41,7 +48,8 @@ Implemented runtime surfaces:
 - Generated shopping-list rows start with `Bought = 0`; ticking a zero-bought row copies the planned amount into bought automatically.
 - Shopping-list rows are grouped into unticked rows first and a collapsible purchased section at the end.
 - Users can manually add rows to a shopping list, edit generated lines, mark purchased amounts, and finalize purchased lines back into Product-owned v2 Stock Batches. A purchased Group impulse line creates a manual Household Product under its Group first.
-- Receipt upload, shop matching, catalogue prices, and admin Purchase Ingestion are intentionally deferred to Stage 9.
+- Receipt upload, list-first shop matching, catalogue prices, and admin evidence review are required
+  Phase 1 work; their integrated acceptance is deferred until the redesign stabilizes.
 - Logged-out home preview mirrors the signed-in household workspace with disabled controls and minimal fake data.
 - Admin dashboard exposes a demo household reseed action and separates read-only health checks from modifying maintenance actions.
 - Admin dashboard exposes the database-backed `allowAutoTickingAllShoppingListEntries` household feature toggle.
@@ -268,9 +276,13 @@ npm run lint
 npm run build
 ```
 
-## Deferred beyond the Stage 8 user-side loop
+## Closed MVP household boundary
 
-The following are intentionally outside the completed basic Home experience:
+The household-side MVP closed on 2026-07-14. It includes Product Group/Product/Batch management,
+target policies, expiry behavior, Shopping-list generation/editing, persisted purchased rows, row
+discard/rename behavior, both cancellation paths, and finalization into Product-owned stock.
+
+The following remain outside that closed scope:
 
 - receipt parsing or automatic receipt-to-stock import
 - route or store optimization
@@ -281,55 +293,51 @@ The following are intentionally outside the completed basic Home experience:
 - barcode scanning
 - mobile-specific shopping ergonomics
 
-Expiry dates, expiry inclusion settings, and buy-before behavior are part of the current
-Stage 8 household model. The remaining items are Stage 9 or post-MVP product layers,
-not missing prerequisites for creating and finalizing a basic Home shopping list.
+Expiry dates, expiry inclusion settings, and buy-before behavior are part of the closed MVP
+household model.
 
-## Stage 8 user-side completion boundary
+The separate Shopping Trip/pricing/ingestion and crawl acceptance checks were transferred to Phase 1
+because those workflows will change. They are not missing prerequisites for the accepted basic Home
+Shopping-list loop and are not claimed as passed MVP evidence.
 
-Stage 8 is implementation-complete for the standard household flow. On Home, a household
-member can manage Product Groups, Household Products, and Stock Batches; generate and edit
-a shopping list; mark lines as purchased; and finalize those lines into Product-owned stock
-without waiting for catalogue data. Product and Group target policies, expired-item handling,
-and the grouped-product shopping policy are part of that flow.
+## Phase 1 household usability direction
 
-The remaining Stage 8 work is manual/browser verification and narrowly scoped bug fixing.
-Stage 9 begins only when the household wants a concrete shop/trip layer: shop selection,
-Shop Products, Price Observations, resumable Shopping Trips, and admin-reviewed Purchase
-Ingestion. Stage 9 must reuse the Stage 8 Product/Batch finalization commands rather than
-rebuild the Home shopping loop.
+Phase 1 keeps the Shopping list as the household interface. Selecting a shop starts a lightweight
+session; bought marks are captured automatically; receipt reconciliation may add/correct purchases,
+amounts, identifiers, and prices; finishing applies stock and leaves unpurchased rows on the list.
+Trip persistence can remain when it provides useful transaction history, but it must not dictate a
+parallel UI.
 
-## Next Direction
+The same phase adds compact search/suggestions over global Products from household editing. Ranking
+may use identifiers, names, Product Concepts, Product Groups, tags, and prior household choices, but
+weak suggestions remain explicit and correctable. Confirmed receipt/shop evidence may create price
+observations and links; uncertain shared facts require review.
 
-Near-term follow-up after Stage 8:
+See `.agents/plans/phase-1-usability-completion-plan.md` for the sequential stages and
+`scripts/phase1-manual-test.md` for the deferred integrated acceptance.
 
-- low-stock notices beyond the current home pulse
-- controlled alpha access only after the household and shopping loop is manually verified
-- further separation of household, product, site-admin, and dev-admin modules in the shell
+## Later ideas outside Phase 1
 
-## Future And Post-MVP Ideas
+The following earlier ideas are now required Phase 1 work rather than future ideas: Product search-
+based household linking, admin-reviewed catalogue facts from shopping, and receipt-to-price
+reconciliation.
 
-Near-future after Stage 8:
+The core follow-up immediately after Phase 1 is household price intelligence. Kamra should estimate
+the cost of the current Shopping list from sufficiently fresh applicable Price Observations and let
+the household configure how strongly it values discounts, preferred shops, compatible substitutes,
+convenience, and additional shop visits. It may suggest an alternative Product or a shop with a
+current discount, but must explain compatibility, price freshness, offer conditions, and expected
+savings and must not change the list without confirmation.
 
-- catalog product picker or search-based linking for household-local products
-- shared generic catalog products promoted from useful household-local patterns after admin review
-- catalogue links and admin-reviewed ingestion facts from finalized shopping trips
+Still later:
+
 - consumption-rate estimates from stocked date, initial amount, current amount, and manual corrections
 - simple in-app low-stock notices
-- product value estimates when catalog links and price observations are trustworthy
-
-Stage 9 and beyond:
-
-- shop-aware trips and price observations
-- admin-reviewed Purchase Ingestion
 - safety stock preferences
 - explainable run-out predictions
 - notification channels beyond in-app display
 
-Post-MVP:
-
 - mobile or installable PWA flow focused on in-store list use
-- invoice or receipt reading to update stock after shopping
 - barcode scanning for faster add/update flows
-- route or shop optimization once price and store data are reliable
+- broader route or shop optimization after the price-focused household step is reliable
 - household habit baselines for commonly missing staples
