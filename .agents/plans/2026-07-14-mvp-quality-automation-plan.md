@@ -1,6 +1,6 @@
 # MVP Quality Automation Follow-up
 
-Status: Revised draft — bounded and executable; awaiting user approval before implementation.
+Status: Implementation in progress — Steps 1–5 complete; Steps 6–7 pending.
 
 ## Objective
 
@@ -200,6 +200,8 @@ path, two-user behavior, and approved historical archive/repair evidence.
 
 ### Step 5 — Prove concurrent compare-and-set and idempotency
 
+Status: Complete in `test: enforce concurrent mutation contracts`.
+
 - Add repository tests in which `updateOne` reports no match after an initially valid read. Feature
   flag and ingestion-review writes must return their stable revision-conflict errors instead of a
   success object; only a successful flag write may append its audit record.
@@ -210,9 +212,13 @@ path, two-user behavior, and approved historical archive/repair evidence.
   - no configured feature-flag concurrency case; global flags are operational data, not safe
     temporary smoke fixtures.
 - If the expected outcome requires a new global transaction policy rather than a narrow matched-count
-  or retry correction, pause and return to planning.
-- Validation: focused repository tests and `npm run smoke:shopping-trip` on an approved disposable
-  database.
+  or retry correction, pause and return to planning. The observed Mongo `TransientTransactionError`
+  required a bounded three-attempt retry in the shared transaction helper; unknown commit results and
+  non-transient errors still surface unchanged.
+- Validation: focused repository tests, typecheck/lint, and `npm run smoke:shopping-trip` on the
+  approved disposable database. The smoke now proves concurrent same-operation completion produces
+  one persisted Batch/Movement/operation/Submission set, and concurrent non-idempotent reviews have
+  one winner plus one 409 conflict.
 - Commit: `test: enforce concurrent mutation contracts`
 
 ### Step 6 — Add the browser CI gate
@@ -265,6 +271,6 @@ path, two-user behavior, and approved historical archive/repair evidence.
 
 ## Approval Checkpoint
 
-Implementation should not begin until the user approves the required Steps 1–7. Accessibility scans,
+Implementation of the required Steps 1–5 is approved and complete. Steps 6–7 remain. Accessibility scans,
 repair CLI orchestration, deployed browser tests, screenshot baselines, and additional browser engines
 are explicitly deferred and do not block this MVP quality-automation pass.

@@ -53,7 +53,7 @@ export class MongoFeatureFlagStore implements FeatureFlagStore {
       (existing?.revision ?? 0) !== input.expectedRevision
     )
       throw new Error("feature_flag_revision_conflict");
-    await this.flags.updateOne(
+    const result = await this.flags.updateOne(
       input.expectedRevision === undefined
         ? { key: input.key }
         : { key: input.key, revision: input.expectedRevision },
@@ -72,6 +72,8 @@ export class MongoFeatureFlagStore implements FeatureFlagStore {
       },
       { upsert: true }
     );
+    if (input.expectedRevision !== undefined && existing && result.matchedCount !== 1)
+      throw new Error("feature_flag_revision_conflict");
     const updated = await this.read(input.key);
     if (!updated) throw new Error("feature_flag_storage_failure");
     return updated;

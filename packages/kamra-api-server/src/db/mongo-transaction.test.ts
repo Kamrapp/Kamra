@@ -36,4 +36,39 @@ describe("runMongoTransaction", () => {
     ).rejects.toThrow("boom");
     expect(client.calls).toEqual(["start", "abort", "end"]);
   });
+
+  it("retries a transient transaction failure with a new session", async () => {
+    const calls: string[] = [];
+    let operationAttempts = 0;
+    const client: MongoTransactionClientLike = {
+      startSession: () => ({
+        abortTransaction: async () => {
+          calls.push("abort");
+        },
+        commitTransaction: async () => {
+          calls.push("commit");
+        },
+        endSession: async () => {
+          calls.push("end");
+        },
+        startTransaction: () => {
+          calls.push("start");
+        }
+      })
+    };
+
+    await expect(
+      runMongoTransaction(client, async () => {
+        operationAttempts += 1;
+        if (operationAttempts === 1) {
+          throw {
+            hasErrorLabel: (label: string) => label === "TransientTransactionError"
+          };
+        }
+        return "retried";
+      })
+    ).resolves.toBe("retried");
+    expect(operationAttempts).toBe(2);
+    expect(calls).toEqual(["start", "abort", "end", "start", "commit", "end"]);
+  });
 });

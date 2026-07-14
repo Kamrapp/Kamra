@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createFakeDb, FakeCollection } from "../../test-support/fake-mongo.js";
 import { MongoIngestionSubmissionRepository } from "./mongo-ingestion-submission-repository.js";
 
@@ -53,5 +53,40 @@ describe("MongoIngestionSubmissionRepository", () => {
         reviewedAt: "2026-07-12T02:00:00.000Z"
       })
     ).rejects.toThrow("revision_conflict");
+  });
+
+  it("rejects when the conditional review update loses its match", async () => {
+    const submissions = new FakeCollection("ingestion_submissions");
+    const repository = new MongoIngestionSubmissionRepository(
+      createFakeDb({ ingestion_submissions: submissions })
+    );
+    await repository.setupCollections();
+    await repository.create({
+      id: "submission:race",
+      householdId: "household",
+      shoppingTripId: "trip",
+      shoppingTripItemId: "item",
+      submittedByUserId: "user",
+      status: "pending",
+      facts: { displayName: "Milk", shopMarketId: "market", quantity: 1, unit: "l" },
+      revision: 0,
+      createdAt: "2026-07-12T00:00:00.000Z",
+      updatedAt: "2026-07-12T00:00:00.000Z"
+    });
+    vi.spyOn(submissions, "updateOne").mockResolvedValue({
+      acknowledged: true,
+      matchedCount: 0,
+      modifiedCount: 0
+    });
+
+    await expect(
+      repository.review({
+        expectedRevision: 0,
+        id: "submission:race",
+        reviewerId: "admin",
+        status: "accepted",
+        reviewedAt: "2026-07-12T01:00:00.000Z"
+      })
+    ).rejects.toThrow("ingestion_submission_revision_conflict");
   });
 });

@@ -78,10 +78,11 @@ export class MongoIngestionSubmissionRepository {
       status: input.status,
       updatedAt: input.reviewedAt
     };
-    await this.submissions.updateOne(
+    const result = await this.submissions.updateOne(
       { id: input.id, revision: input.expectedRevision, status: "pending" },
       { $set: updated }
     );
+    if (result.matchedCount !== 1) throw new Error("ingestion_submission_revision_conflict");
     return updated;
   }
 }

@@ -1630,16 +1630,21 @@ export const householdV2ShoppingTripCompleteRoute: AppRoute = {
             item.resultStatus === "not_bought" ||
             (item.resultStatus === "bought" && (item.createdBatchIds?.length ?? 0) > 0)
         );
-        const result = await trips.update({
-          expectedRevision: trip.revision,
-          householdId,
-          trip: {
-            ...updated,
-            status: complete ? "completed" : "partially_processed",
-            updatedAt: new Date().toISOString(),
-            updatedByUserId: user.email
-          }
-        });
+        let result: Awaited<ReturnType<MongoShoppingTripRepository["update"]>>;
+        try {
+          result = await trips.update({
+            expectedRevision: trip.revision,
+            householdId,
+            trip: {
+              ...updated,
+              status: complete ? "completed" : "partially_processed",
+              updatedAt: new Date().toISOString(),
+              updatedByUserId: user.email
+            }
+          });
+        } catch (error) {
+          return commandError(error);
+        }
         return json(200, { result, schemaVersion });
       }
     );
@@ -1780,6 +1785,7 @@ function commandError(error: unknown): ReturnType<typeof json> {
     code === "idempotency_conflict" ||
     code === "operation_in_progress" ||
     code === "stale_revision" ||
+    code === "shopping_trip_revision_conflict" ||
     code === "household_concept_already_exists" ||
     duplicate
       ? 409

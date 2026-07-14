@@ -76,4 +76,23 @@ describe("feature flag service", () => {
       reason: "alpha rollout"
     });
   });
+
+  it("does not append an audit when the flag write loses its revision", async () => {
+    const flags = store();
+    flags.write = async () => {
+      throw new Error("feature_flag_revision_conflict");
+    };
+    const service = new FeatureFlagService(flags);
+
+    await expect(
+      service.update({
+        actorUserId: "admin",
+        enabled: true,
+        key: "allowControlledAlphaAccess",
+        reason: "concurrent rollout",
+        updatedAt: "2026-07-11T00:00:00.000Z"
+      })
+    ).rejects.toThrow("feature_flag_revision_conflict");
+    expect(flags.audits).toHaveLength(0);
+  });
 });

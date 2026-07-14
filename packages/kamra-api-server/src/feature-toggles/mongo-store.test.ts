@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createFakeDb } from "../test-support/fake-mongo.js";
+import { FakeCollection } from "../test-support/fake-mongo.js";
 import { MongoFeatureFlagStore } from "./mongo-store.js";
 
 describe("MongoFeatureFlagStore", () => {
@@ -33,5 +34,31 @@ describe("MongoFeatureFlagStore", () => {
         updatedByUserId: "admin"
       })
     ).rejects.toThrow("revision_conflict");
+  });
+
+  it("rejects when a conditional write loses its match", async () => {
+    const flags = new FakeCollection("household_feature_flags");
+    const store = new MongoFeatureFlagStore(createFakeDb({ household_feature_flags: flags }));
+    const record = await store.write({
+      enabled: true,
+      key: "allowControlledAlphaAccess",
+      updatedAt: "2026-07-11T00:00:00.000Z",
+      updatedByUserId: "admin"
+    });
+    vi.spyOn(flags, "updateOne").mockResolvedValue({
+      acknowledged: true,
+      matchedCount: 0,
+      modifiedCount: 0
+    });
+
+    await expect(
+      store.write({
+        enabled: false,
+        expectedRevision: record.revision,
+        key: record.key,
+        updatedAt: "2026-07-11T00:01:00.000Z",
+        updatedByUserId: "admin"
+      })
+    ).rejects.toThrow("feature_flag_revision_conflict");
   });
 });

@@ -227,7 +227,7 @@ async function runShoppingTripSmoke(): Promise<void> {
       tripRevision = readResult(response).revision;
     }
 
-    const completion = await send(authToken, {
+    const completionRequest = {
       bodyText: JSON.stringify({
         items: [
           {
@@ -244,49 +244,47 @@ async function runShoppingTripSmoke(): Promise<void> {
         ],
         operationId: completionOperationId
       }),
-      method: "POST",
+      method: "POST" as const,
       path: `/api/households/${encodeURIComponent(householdId)}/shopping-trips/${encodeURIComponent(tripId)}/complete`
-    });
-    assert.equal(completion.status, 200, completion.body);
+    };
+    const completions = await Promise.all([
+      send(authToken, completionRequest),
+      send(authToken, completionRequest)
+    ]);
+    assert.equal(
+      completions.some((response) => response.status === 200),
+      true
+    );
+    assert.equal(
+      completions.every((response) => response.status === 200 || response.status === 409),
+      true,
+      completions.map((response) => `${response.status}: ${response.body}`).join("\n")
+    );
+    const completion = completions.find((response) => response.status === 200);
+    assert.ok(completion);
     assert.equal(readResult(completion).status, "partially_processed");
 
     const submissionId = `ingestion-submission:${tripId}:${tripItemId(createdTrip.items, milkNeedId)}`;
-    const review = await send(authToken, {
-      bodyText: JSON.stringify({ expectedRevision: 0, note: "Smoke accepted", status: "accepted" }),
-      method: "PATCH",
-      path: `/api/admin/ingestion-submissions/${encodeURIComponent(submissionId)}`
-    });
-    assert.equal(review.status, 200, review.body);
-
-    const staleReview = await send(authToken, {
-      bodyText: JSON.stringify({ expectedRevision: 0, status: "rejected" }),
-      method: "PATCH",
-      path: `/api/admin/ingestion-submissions/${encodeURIComponent(submissionId)}`
-    });
-    assert.equal(staleReview.status, 409, staleReview.body);
-
-    const retry = await send(authToken, {
-      bodyText: JSON.stringify({
-        items: [
-          {
-            acquiredOn: "2026-07-13",
-            actualCurrencyCode: "HUF",
-            actualPaidPrice: 499,
-            actualQuantity: 2,
-            actualUnit: "l",
-            expiryOn: "2026-07-20",
-            householdProductId,
-            itemId: tripItemId(createdTrip.items, milkNeedId),
-            resultStatus: "bought"
-          }
-        ],
-        operationId: completionOperationId
+    const reviews = await Promise.all([
+      send(authToken, {
+        bodyText: JSON.stringify({
+          expectedRevision: 0,
+          note: "Smoke accepted",
+          status: "accepted"
+        }),
+        method: "PATCH",
+        path: `/api/admin/ingestion-submissions/${encodeURIComponent(submissionId)}`
       }),
-      method: "POST",
-      path: `/api/households/${encodeURIComponent(householdId)}/shopping-trips/${encodeURIComponent(tripId)}/complete`
-    });
-    assert.equal(retry.status, 200, retry.body);
-    assert.equal(readResult(retry).status, "partially_processed");
+      send(authToken, {
+        bodyText: JSON.stringify({ expectedRevision: 0, status: "rejected" }),
+        method: "PATCH",
+        path: `/api/admin/ingestion-submissions/${encodeURIComponent(submissionId)}`
+      })
+    ]);
+    assert.deepEqual(
+      reviews.map((response) => response.status).sort((left, right) => left - right),
+      [200, 409]
+    );
 
     const finish = await send(authToken, {
       bodyText: JSON.stringify({

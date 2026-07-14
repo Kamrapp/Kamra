@@ -121,10 +121,10 @@ The script refuses database names other than `kamra_dev`, `kamra_test`, or `kamr
 ### `shopping-trip-smoke.ts`
 
 Exercises one real MongoDB Shopping Trip journey through the shared application handler: active
-market matching, bought and not-bought completion, persisted purchase facts, admin review, a stale
-review conflict, and an identical completion retry. It creates one uniquely prefixed temporary
-household and removes only that household and its run-scoped market, Shop Product, and Price
-Observation records in `finally`.
+market matching, bought and not-bought completion, persisted purchase facts, concurrent identical
+completion requests, concurrent non-idempotent admin reviews, and the resulting single-winner
+conflicts. It creates one uniquely prefixed temporary household and removes only that household
+and its run-scoped market, Shop Product, and Price Observation records in `finally`.
 
 Command:
 
