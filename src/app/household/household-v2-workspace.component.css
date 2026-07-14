@@ -167,20 +167,14 @@
 }
 .stock-grid-header {
   background: color-mix(in srgb, var(--pulse-row-background) 72%, transparent);
+  box-sizing: border-box;
   color: var(--color-text-muted);
   font-size: 0.66rem;
   font-weight: 900;
+  padding-right: calc(var(--space-2) + var(--stock-grid-scrollbar-gutter));
   position: relative;
   text-transform: uppercase;
-}
-.stock-grid-header::after {
-  background: color-mix(in srgb, var(--pulse-row-background) 72%, transparent);
-  bottom: 0;
-  content: "";
-  position: absolute;
-  right: calc(var(--stock-grid-scrollbar-gutter) * -1);
-  top: 0;
-  width: var(--stock-grid-scrollbar-gutter);
+  width: calc(100% + var(--stock-grid-scrollbar-gutter));
 }
 .stock-grid-body {
   min-height: 0;

@@ -174,10 +174,7 @@ test("Home household rows share grid tracks and show child counts", async ({ pag
     .evaluate((element) => element.getBoundingClientRect().width);
   expect(comparisonWidth).toBeGreaterThanOrEqual(16);
   const headerAndBodyEdges = await Promise.all([
-    header.evaluate((element) => {
-      const after = getComputedStyle(element, "::after");
-      return Math.round(element.getBoundingClientRect().right + Number.parseFloat(after.width));
-    }),
+    header.evaluate((element) => Math.round(element.getBoundingClientRect().right)),
     page
       .locator(".stock-grid-body")
       .evaluate((element) => Math.round(element.getBoundingClientRect().right))
