@@ -6,12 +6,12 @@ This folder contains manually runnable local and workflow entrypoints.
 
 Scripts should stay thin. Reusable logic belongs in `packages/`, and workflow YAML should call npm scripts instead of duplicating business logic.
 
-### Browser contract checks
+### Browser smoke check
 
-The focused Chromium suite exercises the Angular wiring for Home shopping, Shopping Trip, and Stage
-9 admin flows with a stateful synthetic API fixture. It is secret-free and does not write MongoDB;
-it complements, rather than replaces, the configured MongoDB smokes and the remaining visual/manual
-acceptance checks.
+The Chromium smoke opens the anonymous application shell and verifies the browser title plus visible
+top-left Kamra branding. It is intentionally not an implementation or interaction test: stable
+behavior belongs in focused logic/coordination specs, configured MongoDB behavior belongs in smoke
+scripts, and subjective browser evidence belongs in the active manual runbook.
 
 Install the local browser once, then run:
 
@@ -20,8 +20,9 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-The `Browser Contracts` GitHub workflow installs Chromium in CI and runs only when browser-facing
-source, harness, or configuration paths change.
+The `Browser Smoke` GitHub workflow installs Chromium in CI when browser-facing source, harness, or
+configuration paths change. It runs for non-draft pull requests and for pushes to `master` or
+`master_dev`; feature-branch pushes do not duplicate the pull-request run.
 
 Playwright starts `scripts/playwright-web-server.mjs` instead of the regular `dev:web` npm command.
 The helper generates the browser config and launches Angular directly. Its companion teardown

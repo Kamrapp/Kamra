@@ -1,9 +1,14 @@
-name: Browser Contracts
+name: Browser Smoke
 
 on:
   pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
     paths:
-      - ".github/workflows/browser-contracts.yml"
+      - ".github/workflows/browser-smoke.yml"
       - "angular.json"
       - "package.json"
       - "package-lock.json"
@@ -14,11 +19,10 @@ on:
       - "tsconfig*.json"
   push:
     branches:
-      - "main"
       - "master"
-      - "dev/**"
+      - "master_dev"
     paths:
-      - ".github/workflows/browser-contracts.yml"
+      - ".github/workflows/browser-smoke.yml"
       - "angular.json"
       - "package.json"
       - "package-lock.json"
@@ -33,8 +37,9 @@ permissions:
   contents: read
 
 jobs:
-  browser-contracts:
-    name: Chromium browser contracts
+  browser-smoke:
+    name: Chromium app smoke
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
 
     steps:
@@ -53,5 +58,5 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Run browser contracts
+      - name: Run browser smoke
         run: npm run test:browser
