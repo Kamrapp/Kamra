@@ -272,6 +272,33 @@ describe("shopping needs", () => {
     ).toEqual([]);
   });
 
+  it.each(["split_evenly", "least_amount", "latest", "oldest", "dont_split"] as const)(
+    "falls back to the Group need for an empty Group with a %s local distribution override",
+    (distributionMode) => {
+      const workspace = createWorkspace({
+        groupCurrent: 0,
+        groupMinimum: 1,
+        groupDesired: 2,
+        groupDistributionOverride: distributionMode,
+        products: []
+      });
+
+      expect(
+        generateProductGroupShoppingNeeds({
+          mode: "add_products_and_group_item",
+          needIdPrefix: `empty-${distributionMode}`,
+          workspace
+        })
+      ).toEqual([
+        expect.objectContaining({
+          ownerId: "group:milk",
+          ownerKind: "product_group",
+          plannedQuantity: 2
+        })
+      ]);
+    }
+  );
+
   it("supports no-split and explicit Product selection strategies", () => {
     const workspace = createWorkspace({
       groupCurrent: 0,

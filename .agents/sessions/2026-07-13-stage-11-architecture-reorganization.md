@@ -439,3 +439,13 @@ real-data or subjective UI evidence.
 Next action: run the household validator action for the changed household/Product Group contracts in
 the approved disposable database, then run `npm run seed:demo-household` and
 `npm run smoke:demo-household`; finish the new manual checks in `scripts/stage11-mvp-manual-test.md`.
+
+## Empty Product Group distribution regression (2026-07-14)
+
+- Verified that an empty targeted Product Group does not enter product selection for any local
+  distribution strategy. The generator falls back to one Group-owned need when the effective
+  household mode allows a Group item; `add_products_only` still produces no row.
+- Added a parameterized regression covering `split_evenly`, `least_amount`, `latest`, `oldest`, and
+  `dont_split` local overrides on an empty Group.
+- `npx vitest run packages/kamra-api-server/src/household/v2/shopping-needs.test.ts`, typecheck,
+  lint, and diff checks pass.
