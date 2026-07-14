@@ -467,6 +467,43 @@ describe("shopping needs", () => {
       })
     ).toEqual([]);
   });
+  it("splits a manually selected above-target Group instead of adding a misleading Group line", () => {
+    const workspace = createWorkspace({
+      groupCurrent: 2.2,
+      groupMinimum: 1,
+      groupDesired: 2,
+      products: [
+        { current: 1, displayName: "Fehér kenyér", id: "white-bread", nextExpiryOn: null },
+        { current: 1.2, displayName: "Rozskenyér", id: "rye-bread", nextExpiryOn: null }
+      ]
+    });
+
+    const needs = generateProductGroupShoppingNeeds({
+      distributionMode: "split_evenly",
+      mode: "add_products_and_group_item",
+      needIdPrefix: "manual-above-target",
+      selectedOwnerIds: new Set(["group:milk"]),
+      workspace
+    });
+
+    expect(needs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          ownerId: "white-bread",
+          ownerKind: "household_product",
+          plannedQuantity: 0.5,
+          reasonCode: "manual"
+        }),
+        expect.objectContaining({
+          ownerId: "rye-bread",
+          ownerKind: "household_product",
+          plannedQuantity: 0.5,
+          reasonCode: "manual"
+        })
+      ])
+    );
+    expect(needs.some((need) => need.ownerKind === "product_group")).toBe(false);
+  });
   it("does not create a Group line beside a selected Product from that Group", () => {
     const workspace = createWorkspace({
       groupCurrent: 3,

@@ -640,3 +640,15 @@ the approved disposable database, then run `npm run seed:demo-household` and
 - Validation: regeneration plus `git diff --exit-code` passes, targeted Prettier passes, API
   typecheck passes, and all 18 catalog/seed tests pass. No schema or database migration change was
   required.
+
+## Above-target Group shopping selection fix (2026-07-14)
+
+- Fixed the explicit-selection path that treated a manually selected above-target Product Group as
+  a one-unit below-minimum Group need. It now preserves the Group policy metadata (`2 kg` target in
+  the seeded bread case), marks the forced selection as manual, and applies the effective Group
+  distribution strategy before falling back to a Group-owned line.
+- A selected Group using split mode now produces Product-owned needs for its Products, so `Kenyér`
+  is represented by `Fehér kenyér` and `Rozskenyér` rather than a misleading Group-only line.
+- Added focused unit coverage for the exact above-target split case and an application integration
+  check for target/current/reason metadata on a manually selected Group line. API typecheck, lint,
+  formatting, and 34 focused tests pass.

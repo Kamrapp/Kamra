@@ -199,7 +199,8 @@ export function generateProductGroupShoppingNeeds(input: {
           expiryWarningDays: 0,
           minimumQuantity: 0,
           trackingUnit: unit
-        }
+        },
+        reasonCode: "manual"
       });
       productNeeds.set(row.product.id, need);
       needs.push(need);
@@ -217,6 +218,26 @@ export function generateProductGroupShoppingNeeds(input: {
       // second Group line beside those Product needs.
       if (groupMode !== "add_products_and_group_item" || hasProductNeedForGroup(needs, productRows))
         continue;
+      if (policy) {
+        const forcedQuantity = Math.max(
+          1,
+          policy.desiredQuantity - group.aggregate.availableQuantity
+        );
+        const representedByProduct = applyGroupShortageToProducts({
+          distributionMode: resolveGroupTargetShoppingDistributionMode(
+            group,
+            input.distributionMode ?? "split_evenly"
+          ),
+          groupPolicy: policy,
+          needIdPrefix: input.needIdPrefix,
+          needs,
+          productNeeds,
+          quantity: forcedQuantity,
+          rows: productRows,
+          reasonCode: "manual"
+        });
+        if (representedByProduct) continue;
+      }
       needs.push(
         createGroupShoppingNeed({
           displayName: group.group.displayName,
@@ -225,7 +246,8 @@ export function generateProductGroupShoppingNeeds(input: {
           plannedQuantity: policy
             ? Math.max(1, policy.desiredQuantity - group.aggregate.availableQuantity)
             : 1,
-          unit: policy?.trackingUnit ?? group.aggregate.trackingUnit ?? group.group.trackingUnit
+          unit: policy?.trackingUnit ?? group.aggregate.trackingUnit ?? group.group.trackingUnit,
+          reasonCode: "manual"
         })
       );
     }
@@ -240,6 +262,7 @@ function createTargetPolicyNeed(input: {
   needId: string;
   plannedQuantity: number;
   policy: TargetPolicy;
+  reasonCode?: ShoppingNeed["reasonCode"];
 }): ShoppingNeed {
   return {
     acceptanceCriteriaSnapshot: emptyAcceptanceCriteria(),
@@ -248,7 +271,7 @@ function createTargetPolicyNeed(input: {
     ownerId: input.id,
     ownerKind: "household_product",
     plannedQuantity: input.plannedQuantity,
-    reasonCode: "below_minimum",
+    reasonCode: input.reasonCode ?? "below_minimum",
     revision: 0,
     state: "open",
     unit: input.policy.trackingUnit
@@ -260,6 +283,7 @@ function createGroupShoppingNeed(input: {
   groupId: string;
   needId: string;
   plannedQuantity: number;
+  reasonCode?: ShoppingNeed["reasonCode"];
   unit: TrackingUnit;
 }): ShoppingNeed {
   return {
@@ -269,7 +293,7 @@ function createGroupShoppingNeed(input: {
     ownerId: input.groupId,
     ownerKind: "product_group",
     plannedQuantity: input.plannedQuantity,
-    reasonCode: "below_minimum",
+    reasonCode: input.reasonCode ?? "below_minimum",
     revision: 0,
     state: "open",
     unit: input.unit
@@ -283,6 +307,7 @@ function applyGroupShortageToProducts(input: {
   needs: ShoppingNeed[];
   productNeeds: Map<string, ShoppingNeed>;
   quantity: number;
+  reasonCode?: ShoppingNeed["reasonCode"];
   rows: readonly ProductGroupNode["products"][number][];
 }): boolean {
   if (input.rows.length === 0 || input.distributionMode === "dont_split") return false;
@@ -299,7 +324,8 @@ function applyGroupShortageToProducts(input: {
         input.needIdPrefix,
         additions[index]!,
         input.needs,
-        input.productNeeds
+        input.productNeeds,
+        input.reasonCode
       );
     }
     return true;
@@ -313,7 +339,8 @@ function applyGroupShortageToProducts(input: {
     input.needIdPrefix,
     input.quantity,
     input.needs,
-    input.productNeeds
+    input.productNeeds,
+    input.reasonCode
   );
   return true;
 }
@@ -360,7 +387,8 @@ function addProductNeed(
   needIdPrefix: string,
   quantity: number,
   needs: ShoppingNeed[],
-  productNeeds: Map<string, ShoppingNeed>
+  productNeeds: Map<string, ShoppingNeed>,
+  reasonCode: ShoppingNeed["reasonCode"] = "below_minimum"
 ): void {
   const existing = productNeeds.get(row.product.id);
   if (existing) {
@@ -381,7 +409,8 @@ function addProductNeed(
       expiryWarningDays: groupPolicy.expiryWarningDays,
       minimumQuantity: 0,
       trackingUnit: groupPolicy.trackingUnit
-    }
+    },
+    reasonCode
   });
   productNeeds.set(row.product.id, need);
   needs.push(need);

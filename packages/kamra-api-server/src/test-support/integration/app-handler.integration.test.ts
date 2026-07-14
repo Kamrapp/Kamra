@@ -318,6 +318,79 @@ describe("Stage 11 application integration harness", () => {
     expect(JSON.parse(customTrip.body).result.shopNameSnapshot).toBe("Custom");
   });
 
+  it("keeps a manually selected above-target Group line tied to its configured target", async () => {
+    const harness = createIntegrationHarness({
+      user: { email: "stage11-selected-group@kamra.test", role: "user" }
+    });
+    const householdRepository = new MongoHouseholdRepository(harness.database);
+    await householdRepository.setupCollections();
+    await householdRepository.createHousehold({
+      createdAt: "2026-07-13T10:00:00.000Z",
+      createdByUserId: harness.user.email,
+      id: harness.householdId,
+      name: "Selected group household"
+    });
+
+    const composed = await harness.send({
+      bodyText: JSON.stringify({
+        batch: {
+          acquiredOn: "2026-07-12",
+          displayName: "Bread",
+          originalQuantity: 2.2,
+          unit: "kg"
+        },
+        group: {
+          displayName: "Bread",
+          targetPolicy: {
+            consumptionPolicy: "earliest_expiry_first",
+            desiredQuantity: 2,
+            expiryWarningDays: 0,
+            minimumQuantity: 1,
+            trackingUnit: "kg"
+          },
+          trackingUnit: "kg"
+        },
+        operationId: "compose-selected-group",
+        product: { defaultTrackingUnit: "kg", displayName: "Bread" },
+        requestFingerprint: "compose-selected-group-fingerprint"
+      }),
+      method: "POST",
+      path: `/api/households/${harness.householdId}/product-composer`
+    });
+    expect(composed.status).toBe(201);
+    const groupId = JSON.parse(composed.body).result.productGroupId as string;
+    await harness.database
+      .collection("household_product_groups")
+      .updateOne(
+        { id: groupId },
+        { $set: { groupTargetShoppingDistributionModeOverride: "dont_split" } }
+      );
+
+    const shoppingList = await harness.send({
+      bodyText: JSON.stringify({
+        householdId: harness.householdId,
+        scale: "business_as_usual",
+        selectedOwnerIds: [groupId]
+      }),
+      method: "POST",
+      path: "/api/household/shopping-lists"
+    });
+
+    expect(shoppingList.status).toBe(201);
+    expect(JSON.parse(shoppingList.body).shoppingList.items).toEqual([
+      expect.objectContaining({
+        currentAmount: 2.2,
+        displayName: "Bread",
+        minLimit: 1,
+        plannedAmount: 1,
+        reasonCode: null,
+        suggestedBuyAmount: 1,
+        targetAmount: 2,
+        unit: "kg"
+      })
+    ]);
+  });
+
   it("creates a Product-owned Batch and one Ingestion Submission across an idempotent partial trip retry", async () => {
     const harness = createIntegrationHarness({
       user: { email: "stage11-trip-owner@kamra.test", role: "user" }

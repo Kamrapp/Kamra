@@ -13,6 +13,7 @@ import { MongoShoppingNeedRepository } from "../../household/v2/mongo-shopping-n
 import { MongoStockCommandRepository } from "../../household/v2/mongo-stock-command-repository.js";
 import { generateProductGroupShoppingNeeds } from "../../household/v2/shopping-needs.js";
 import type { HouseholdProduct, StockBatch } from "../../household/v2/contracts.js";
+import type { ProductGroupNode } from "../../household/v2/product-group-read-model.js";
 import type { MongoTransactionClientLike } from "../../db/mongo-like.js";
 import {
   householdResetScopes,
@@ -811,7 +812,13 @@ function createV2CompatibleShoppingLines(
   return needs.map((need, index) => {
     const product =
       need.ownerKind === "household_product" ? products.get(need.ownerId ?? "") : null;
-    const currentAmount = product?.aggregate.availableQuantity ?? 0;
+    const group =
+      need.ownerKind === "product_group"
+        ? findProductGroupNode(workspace.productGroups, need.ownerId)
+        : null;
+    const aggregate = product?.aggregate ?? group?.aggregate ?? null;
+    const policy = product?.product.targetPolicy ?? group?.group.targetPolicy ?? null;
+    const currentAmount = aggregate?.availableQuantity ?? 0;
     const productGroupId =
       need.ownerKind === "product_group" ? need.ownerId : (product?.product.productGroupId ?? null);
     return {
@@ -823,27 +830,56 @@ function createV2CompatibleShoppingLines(
       householdProductId: product?.product.id ?? null,
       householdStockItemId: null,
       id: createShoppingListLineId(shoppingListId, index, need.ownerDisplayNameSnapshot ?? need.id),
-      idealMaxLimit: null,
-      minLimit: null,
+      idealMaxLimit: policy?.desiredQuantity ?? null,
+      minLimit: policy?.minimumQuantity ?? null,
       observedPrice: null,
       plannedAmount: need.plannedQuantity,
       productGroupId,
       productSourceId: null,
       purchasedAmount: 0,
-      reasonCode: "below_minimum",
+      reasonCode: need.reasonCode === "manual" ? null : "below_minimum",
       sourceKind: "generated",
       sourceName: null,
       sourceProductUrl: null,
       status: "not_applied",
       stockGroupKey: need.ownerId ?? null,
-      stockStatus: "below_limit",
+      stockStatus: toLegacyShoppingStockStatus(aggregate?.state),
       suggestedBuyAmount: need.plannedQuantity,
-      targetAmount: currentAmount + need.plannedQuantity,
+      targetAmount: policy?.desiredQuantity ?? currentAmount + need.plannedQuantity,
       ticked: false,
       uncertaintyFlags: product ? [] : ["missing_catalog_product", "missing_product_source"],
       unit: need.unit
     };
   });
+}
+
+function findProductGroupNode(
+  groups: readonly ProductGroupNode[],
+  groupId: string | null | undefined
+): ProductGroupNode | null {
+  if (!groupId) return null;
+  for (const group of groups) {
+    if (group.group.id === groupId) return group;
+    const child = findProductGroupNode(group.childGroups, groupId);
+    if (child) return child;
+  }
+  return null;
+}
+
+function toLegacyShoppingStockStatus(
+  state: ProductGroupNode["aggregate"]["state"] | null | undefined
+): "at_limit" | "below_limit" | "low_soon" | "steady" {
+  switch (state) {
+    case "below_minimum":
+      return "below_limit";
+    case "between_minimum_and_target":
+    case "at_target":
+      return "at_limit";
+    case "above_target":
+    case "not_tracked":
+    default:
+      return "steady";
+  }
 }
 
 async function applyV2CompatibleShoppingList(input: {
