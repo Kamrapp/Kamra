@@ -16,6 +16,11 @@ test("standard users can run a custom-market Shopping Trip through completion", 
   await page.getByRole("button", { name: "Start trip" }).click();
 
   await expect(page.getByText("no usable price")).toBeVisible();
+  const detailButtons = page.getByRole("button", { name: "Show trip item details" });
+  for (let index = 0; index < (await detailButtons.count()); index += 1) {
+    await detailButtons.nth(index).click();
+    if (await page.getByText("preferred Product").isVisible()) break;
+  }
   await expect(page.getByText("preferred Product")).toBeVisible();
   await expect(page.getByRole("button", { name: "Skip line" })).toBeVisible();
   await page.getByRole("button", { name: "Skip line" }).click();
@@ -39,6 +44,34 @@ test("standard users can run a custom-market Shopping Trip through completion", 
     fixture.requests.some(
       (request) =>
         request.method === "POST" && request.path.endsWith("/shopping-trips/browser-trip/complete")
+    )
+  ).toBeTruthy();
+  expect(fixture.unexpectedRequests).toEqual([]);
+});
+
+test("Shopping Trip keeps trip actions beside the compact item table and can be cancelled", async ({
+  page
+}) => {
+  const fixture = await installBrowserApiFixture(page);
+
+  await page.goto("/");
+  await page.locator("app-household-shopping-trip-panel .trip-section-toggle").click();
+  await page.getByLabel("Shop market id").selectOption("__custom__");
+  await page.getByLabel("Custom shop name").fill("Weekend market");
+  await page.getByRole("button", { name: "Start trip" }).click();
+
+  await expect(page.locator(".trip-table-header")).toBeVisible();
+  await expect(page.locator(".trip-after")).toContainText("Weekend market");
+  await expect(page.getByRole("button", { name: "Cancel trip" })).toBeVisible();
+  await page.getByRole("button", { name: "Cancel trip" }).click();
+
+  await expect(page.getByRole("button", { name: "Start trip" })).toBeVisible();
+  expect(
+    fixture.requests.some(
+      (request) =>
+        request.method === "PATCH" &&
+        request.path.endsWith("/shopping-trips/browser-trip") &&
+        request.body?.transition === "cancelled"
     )
   ).toBeTruthy();
   expect(fixture.unexpectedRequests).toEqual([]);

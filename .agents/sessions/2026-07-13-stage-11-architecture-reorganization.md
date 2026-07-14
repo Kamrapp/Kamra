@@ -604,3 +604,14 @@ the approved disposable database, then run `npm run seed:demo-household` and
   add actions use info, edit pencils use warning, and cancel/discard actions use danger.
 - Browser coverage checks the shopping table surface/header, household detail SVG, and action tones.
   Typecheck, lint, focused Home Chromium tests (7), formatting, and diff checks pass.
+
+## Shopping Trip compact workspace (2026-07-14)
+
+- Replaced the text Refresh control with the shared icon button and turned Trip items into a compact
+  table. Secondary price, match, purchase, and actual-result data now lives behind a per-item
+  magnifier details row instead of making every item a large card.
+- Moved shop, planned date, status, Continue/Finalize, and Cancel into a fixed `After trip` side
+  block; cancelling uses the existing domain `cancelled` transition and returns to trip start.
+- Added localized labels and Chromium coverage for the compact layout, details interaction, and
+  cancellation. Typecheck, lint, Prettier, diff checks, Home auth, and Shopping Trip browser tests
+  pass.
