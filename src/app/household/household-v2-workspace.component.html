@@ -81,7 +81,21 @@
                   />
                 </span>
               }
-              <span class="workspace-expansion-slot" aria-hidden="true"></span>
+              @if (groupHasChildren(row.group)) {
+                <button
+                  class="workspace-expansion-slot expansion-slot-button"
+                  type="button"
+                  (click)="toggleGroup(row.group.group.id)"
+                  [attr.aria-expanded]="isGroupExpanded(row.group.group.id)"
+                  [attr.aria-label]="row.group.group.displayName"
+                >
+                  <span aria-hidden="true">
+                    {{ isGroupExpanded(row.group.group.id) ? "▾" : "▸" }}
+                  </span>
+                </button>
+              } @else {
+                <span class="workspace-expansion-slot" aria-hidden="true"></span>
+              }
               @if (editingGroupId() === row.group.group.id) {
                 <span class="row-name group-name">
                   <span>{{ icons.group }}</span>
@@ -91,22 +105,12 @@
                     (input)="editingGroupName.set($any($event.target).value)"
                     [attr.aria-label]="loc.t('household.productGroupName')"
                   />
+                  <small class="group-product-count">({{ groupProductCount(row.group) }})</small>
                 </span>
-              } @else if (groupHasChildren(row.group)) {
-                <button
-                  class="row-name group-name"
-                  type="button"
-                  (click)="toggleGroup(row.group.group.id)"
-                  [attr.aria-expanded]="isGroupExpanded(row.group.group.id)"
-                >
-                  <span aria-hidden="true">
-                    {{ isGroupExpanded(row.group.group.id) ? "▾" : "▸" }}
-                  </span>
-                  <strong>{{ icons.group }} {{ row.group.group.displayName }}</strong>
-                </button>
               } @else {
                 <span class="row-name group-name">
                   <strong>{{ icons.group }} {{ row.group.group.displayName }}</strong>
+                  <small class="group-product-count">({{ groupProductCount(row.group) }})</small>
                 </span>
               }
               <span>
@@ -371,18 +375,26 @@
               }
             }
           }
-          <div class="stock-unassigned-separator">
-            <button
-              class="row-name group-name"
-              type="button"
-              (click)="unassignedExpanded.set(!unassignedExpanded())"
-              [attr.aria-expanded]="unassignedExpanded()"
-            >
-              <span aria-hidden="true">{{ unassignedExpanded() ? "▾" : "▸" }}</span>
+          <div class="stock-grid stock-unassigned-separator">
+            @if (shoppingSelectionMode()) {
+              <span class="selection-cell" aria-hidden="true"></span>
+            }
+            @if (current.unassignedProducts.length > 0) {
+              <button
+                class="workspace-expansion-slot expansion-slot-button"
+                type="button"
+                (click)="unassignedExpanded.set(!unassignedExpanded())"
+                [attr.aria-expanded]="unassignedExpanded()"
+                [attr.aria-label]="loc.t('household.unassignedProducts')"
+              >
+                <span aria-hidden="true">{{ unassignedExpanded() ? "▾" : "▸" }}</span>
+              </button>
+            } @else {
+              <span class="workspace-expansion-slot" aria-hidden="true"></span>
+            }
+            <span class="row-name group-name">
               <strong>{{ icons.group }} {{ loc.t("household.unassignedProducts") }}</strong>
-            </button>
-            <span class="ui-copy-muted">
-              {{ current.unassignedProducts.length }} {{ loc.t("household.productsCount") }}
+              <small class="group-product-count">({{ current.unassignedProducts.length }})</small>
             </span>
             <span class="row-actions">
               <span class="batch-action-gap" aria-hidden="true"></span>
@@ -394,7 +406,6 @@
               >
                 {{ icons.product }}+
               </app-table-icon-button>
-              <span class="batch-action-gap" aria-hidden="true"></span>
             </span>
           </div>
           @if (unassignedExpanded()) {

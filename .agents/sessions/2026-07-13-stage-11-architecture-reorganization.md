@@ -489,3 +489,13 @@ the approved disposable database, then run `npm run seed:demo-household` and
   workspace when the refreshed stock page arrives, making the applied stock visible immediately.
 - The browser fixture covers the finish request and verifies the shopping panel is collapsed while
   the household workspace is expanded afterward.
+
+## Household grid nesting and child counts (2026-07-14)
+
+- Reduced the shared household grid's leading spacing and made the header, Group, Product, and Batch
+  rows use the same track definition. Groups and Unassigned Products now use the outer expansion
+  track; Products and Batches use one and two visual name indents respectively.
+- Group rows show a compact total Product count, and Unassigned Products shows the same `(n)` form
+  instead of a separate `n products` label. Empty Unassigned Products keeps its expansion slot blank.
+- Added a browser contract for shared tracks and child counts. Typecheck, lint, formatting, and the
+  five focused Home browser tests pass.

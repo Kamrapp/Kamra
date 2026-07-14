@@ -142,3 +142,27 @@ test("Home finishes shopping with the household workspace reopened", async ({ pa
   ).toBeTruthy();
   expect(fixture.unexpectedRequests).toEqual([]);
 });
+
+test("Home household rows share grid tracks and show child counts", async ({ page }) => {
+  const fixture = await installBrowserApiFixture(page);
+  await page.goto("/");
+
+  const header = page.locator(".stock-grid-header");
+  const groupRow = page.locator(".stock-group-row").filter({ hasText: "Milk" });
+  const productRow = page.locator(".stock-product-row").filter({ hasText: "Pilos 1.5% milk" });
+  const unassignedRow = page.locator(".stock-unassigned-separator");
+
+  await expect(groupRow.locator(".group-product-count")).toHaveText("(1)");
+  await expect(unassignedRow.locator(".group-product-count")).toHaveText("(1)");
+  await productRow.locator(".row-name").click();
+  const batchRow = page.locator(".stock-batch-row").first();
+  await expect(batchRow).toBeVisible();
+
+  const gridTracks = await Promise.all(
+    [header, groupRow, productRow, batchRow].map((row) =>
+      row.evaluate((element) => getComputedStyle(element).getPropertyValue("--stock-grid-columns"))
+    )
+  );
+  expect([...new Set(gridTracks)]).toHaveLength(1);
+  expect(fixture.unexpectedRequests).toEqual([]);
+});

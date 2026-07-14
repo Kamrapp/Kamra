@@ -173,6 +173,12 @@ export class HouseholdV2WorkspaceComponent {
   groupHasChildren(group: HouseholdV2ProductGroup): boolean {
     return group.products.length > 0 || group.childGroups.length > 0;
   }
+  groupProductCount(group: HouseholdV2ProductGroup): number {
+    return (
+      group.products.length +
+      group.childGroups.reduce((count, childGroup) => count + this.groupProductCount(childGroup), 0)
+    );
+  }
   productHasBatches(product: HouseholdV2ProductRow): boolean {
     return product.batches.length > 0;
   }
