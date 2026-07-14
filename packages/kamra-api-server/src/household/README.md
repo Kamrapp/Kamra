@@ -26,5 +26,7 @@ Durable product and operations context lives in `docs/household.md`.
 
 The current household workspace uses Product Groups, Household Products, and Stock Batches. Product
 Groups and Products may own target policies; Batches belong to Products and provide the physical
-quantity/date history. The older `v1` household collections remain migration input or compatibility
-surfaces where explicitly noted.
+quantity/date history. Unit matching in the editors is an explicit copy action: a Product can copy
+its assigned Group unit and a Batch can copy its Product unit, while the resolved unit remains a
+normal stored tracking unit. The older `v1` household collections remain migration input or
+compatibility surfaces where explicitly noted.

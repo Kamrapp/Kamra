@@ -463,6 +463,8 @@
     "trackingUnit": "Mértékegység",
     "customUnit": "Egyedi",
     "customUnitSuffix": "Egyedi mértékegység neve",
+    "matchGroupUnit": "Termékcsoport mértékegysége",
+    "matchProductUnit": "Termék mértékegysége",
     "manualSource": "Kézi bevitel",
     "targetPolicy": "Célbeállítás",
     "setTarget": "Cél beállítása",

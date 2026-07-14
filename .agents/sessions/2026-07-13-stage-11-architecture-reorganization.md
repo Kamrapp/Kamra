@@ -553,3 +553,18 @@ the approved disposable database, then run `npm run seed:demo-household` and
   marker remains inside its cell and cannot collide with Current or Target values.
 - Added a browser assertion for the minimum comparison-cell width; the focused overflow alignment
   contract remains passing.
+
+## Household unit inheritance follow-up (2026-07-14)
+
+- Added explicit unit selectors to the Product and Batch editors. Assigned Products can copy their
+  parent Product Group unit through `Match Product Group`; every Batch can copy its owner Product
+  unit through `Match Product`. The Product Group option is omitted for unassigned Products.
+- The copy actions persist the resolved tracking unit rather than introducing a special storage
+  value, keeping existing target-policy and quantity validation contracts intact. Custom units keep
+  their `custom:` storage form and existing display behavior.
+- Batch corrections now carry the edited unit through the frontend service, route validation, and
+  transaction repository; movement records use the resulting unit as well. API and repository tests
+  cover the persisted unit update, including a compatible `l` → `ml` correction.
+- Typecheck, lint, focused API tests (53 tests), formatting, and diff checks pass. A browser visual
+  check remains useful for the two new selectors and for confirming the match-group option is absent
+  on an unassigned Product.

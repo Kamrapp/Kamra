@@ -9,7 +9,8 @@ import type {
   StockAllocation,
   StockBatch,
   StockMovement,
-  StockTarget
+  StockTarget,
+  TrackingUnit
 } from "./contracts.js";
 import { areUnitsCompatible, matchAcceptanceCriteria, planConsumption } from "./domain.js";
 
@@ -297,6 +298,7 @@ export class MongoStockCommandRepository {
     requestFingerprint: string;
     resultingQuantity: number;
     expectedBatchRevision: number;
+    unit: TrackingUnit;
     actorUserId: string;
     occurredAt: string;
     reasonCode?: string;
@@ -350,6 +352,7 @@ export class MongoStockCommandRepository {
             acquiredOn,
             expiryOn,
             remainingQuantity: input.resultingQuantity,
+            unit: input.unit,
             revision: batch.revision + 1,
             status: input.resultingQuantity === 0 ? "depleted" : "available",
             updatedAt: now,
@@ -385,7 +388,7 @@ export class MongoStockCommandRepository {
           resultingQuantity: input.resultingQuantity,
           stockBatchId: batch.id,
           stockTargetId: allocation?.stockTargetId,
-          unit: batch.unit
+          unit: input.unit
         },
         { session }
       );

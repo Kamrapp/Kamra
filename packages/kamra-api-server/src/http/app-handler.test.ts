@@ -332,7 +332,8 @@ describe("handleAppRequest auth guards", () => {
           expiryOn: "2026-07-10",
           operationId: "correct-1",
           requestFingerprint: "correct-1",
-          resultingQuantity: 2
+          resultingQuantity: 2,
+          unit: "ml"
         }),
         headers: { authorization: `Bearer ${token}` },
         method: "POST",
@@ -341,6 +342,10 @@ describe("handleAppRequest auth guards", () => {
       { getMongoClient: async () => client as never }
     );
     expect(corrected.status).toBe(200);
+    expect(db.__collections["household_stock_batches"]!.docs[0]).toMatchObject({
+      remainingQuantity: 2,
+      unit: "ml"
+    });
     const discarded = await handleAppRequest(
       {
         bodyText: JSON.stringify({

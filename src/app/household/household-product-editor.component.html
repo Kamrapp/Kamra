@@ -161,7 +161,8 @@
             {{ loc.t("household.productGroup") }}
             <select
               class="ui-form-control"
-              [(ngModel)]="productDraft.productGroupId"
+              [ngModel]="productDraft.productGroupId"
+              (ngModelChange)="setProductGroup($event)"
               name="productGroup"
             >
               <option [ngValue]="null">{{ loc.t("household.unassigned") }}</option>
@@ -183,6 +184,11 @@
                   <option [ngValue]="unit">{{ unit }}</option>
                 }
                 <option [ngValue]="'custom'">{{ loc.t("household.customUnit") }}</option>
+                @if (productDraft.productGroupId) {
+                  <option [ngValue]="'match-group'">
+                    {{ loc.t("household.matchGroupUnit") }}
+                  </option>
+                }
               </select>
               <input
                 class="ui-form-control"
@@ -308,7 +314,31 @@
           </label>
           <label>
             {{ loc.t("household.unit") }}
-            <input class="ui-form-control" [(ngModel)]="batchDraft.unit" name="batchUnit" />
+            <div class="tracking-unit-editor">
+              <select
+                class="ui-form-control"
+                [ngModel]="batchTrackingUnitOption()"
+                (ngModelChange)="setBatchTrackingUnitOption($event)"
+                name="batchUnit"
+              >
+                @for (unit of trackingUnitOptions; track unit) {
+                  <option [ngValue]="unit">{{ unit }}</option>
+                }
+                <option [ngValue]="'custom'">{{ loc.t("household.customUnit") }}</option>
+                <option [ngValue]="'match-product'">
+                  {{ loc.t("household.matchProductUnit") }}
+                </option>
+              </select>
+              <input
+                class="ui-form-control"
+                [class.tracking-unit-placeholder]="batchTrackingUnitOption() !== 'custom'"
+                [ngModel]="batchCustomUnit()"
+                (ngModelChange)="setBatchCustomUnit($event)"
+                [disabled]="batchTrackingUnitOption() !== 'custom'"
+                [attr.aria-label]="loc.t('household.customUnitSuffix')"
+                [placeholder]="loc.t('household.customUnitSuffix')"
+              />
+            </div>
           </label>
           <label>
             {{ loc.t("household.stockedAt") }}

@@ -991,6 +991,7 @@ export const householdV2CorrectBatchRoute: AppRoute = {
       typeof body["operationId"] !== "string" ||
       typeof body["requestFingerprint"] !== "string" ||
       typeof body["resultingQuantity"] !== "number" ||
+      typeof body["unit"] !== "string" ||
       !Number.isFinite(body["resultingQuantity"]) ||
       !Number.isInteger(body["expectedBatchRevision"]) ||
       (body["expectedBatchRevision"] as number) < 0 ||
@@ -998,6 +999,11 @@ export const householdV2CorrectBatchRoute: AppRoute = {
       (body["expiryOn"] !== undefined && body["expiryOn"] !== null && !isIsoDate(body["expiryOn"]))
     )
       return json(400, { error: "invalid_stock_correction_request" });
+    try {
+      assertTrackingUnit(body["unit"]);
+    } catch {
+      return json(400, { error: "invalid_stock_correction_unit" });
+    }
     return await runBatchCommand(context, user.email, householdId, batchId, body, "correct");
   }
 };
@@ -1703,6 +1709,7 @@ async function runBatchCommand(
                 ? body["expiryOn"]
                 : undefined,
             resultingQuantity: body["resultingQuantity"] as number,
+            unit: body["unit"] as TrackingUnit,
             reasonCode: typeof body["reasonCode"] === "string" ? body["reasonCode"] : undefined
           })
         : await repository.discardBatch({

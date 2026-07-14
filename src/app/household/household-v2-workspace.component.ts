@@ -34,6 +34,8 @@ type GroupShoppingMode = NonNullable<
 type GroupShoppingDistributionMode = NonNullable<
   HouseholdV2ProductGroup["group"]["groupTargetShoppingDistributionModeOverride"]
 >;
+type ProductUnitSelection = HouseholdTrackingUnitOption | "match-group";
+type BatchUnitSelection = HouseholdTrackingUnitOption | "match-product";
 
 @Component({
   selector: "app-household-v2-workspace",
@@ -78,6 +80,7 @@ export class HouseholdV2WorkspaceComponent {
   readonly editingGroupShoppingDistributionMode = signal<GroupShoppingDistributionMode>("default");
   readonly editingProductName = signal("");
   readonly editingProductUnitOption = signal<HouseholdTrackingUnitOption>("count");
+  readonly editingProductUnitSelection = signal<ProductUnitSelection>("count");
   readonly editingProductCustomUnit = signal("");
   readonly editingProductGtin = signal("");
   readonly editingProductNote = signal("");
@@ -86,6 +89,10 @@ export class HouseholdV2WorkspaceComponent {
   readonly editingProductDesired = signal<number | null>(null);
   readonly editingProductHasTarget = signal(false);
   readonly editingBatchAcquiredOn = signal("");
+  readonly editingBatchUnitOption = signal<HouseholdTrackingUnitOption>("count");
+  readonly editingBatchUnitSelection = signal<BatchUnitSelection>("count");
+  readonly editingBatchCustomUnit = signal("");
+  readonly editingBatchProductUnit = signal("count");
   readonly expandedGroupIds = signal<ReadonlySet<string>>(new Set());
   readonly expandedProductIds = signal<ReadonlySet<string>>(new Set());
   readonly groupDetailsIds = signal<ReadonlySet<string>>(new Set());
@@ -312,6 +319,7 @@ export class HouseholdV2WorkspaceComponent {
     );
     this.editingProductName.set(product.displayName);
     this.editingProductUnitOption.set(trackingUnit.option);
+    this.editingProductUnitSelection.set(trackingUnit.option);
     this.editingProductCustomUnit.set(trackingUnit.customSuffix);
     this.editingProductGtin.set(
       typeof product.identitySnapshot?.["gtin"] === "string" ? product.identitySnapshot["gtin"] : ""
@@ -325,10 +333,32 @@ export class HouseholdV2WorkspaceComponent {
     this.productDetailsIds.update((ids) => new Set(ids).add(product.id));
     this.productSelected.emit(product);
   }
+  setProductUnitSelection(selection: ProductUnitSelection): void {
+    if (selection === "match-group") {
+      const group = this.workspaceGroup(this.editingProductGroupId());
+      if (!group) {
+        this.editingProductUnitSelection.set(this.editingProductUnitOption());
+        return;
+      }
+      const trackingUnit = splitTrackingUnit(group.group.trackingUnit);
+      this.editingProductUnitOption.set(trackingUnit.option);
+      this.editingProductCustomUnit.set(trackingUnit.customSuffix);
+      this.editingProductUnitSelection.set(selection);
+      return;
+    }
+    this.editingProductUnitOption.set(selection);
+    this.editingProductUnitSelection.set(selection);
+  }
+  setProductGroupId(value: string): void {
+    this.editingProductGroupId.set(value);
+    if (this.editingProductUnitSelection() === "match-group")
+      this.setProductUnitSelection("match-group");
+  }
   cancelProductEdit(): void {
     this.editingProductId.set(null);
     this.editingProductName.set("");
     this.editingProductUnitOption.set("count");
+    this.editingProductUnitSelection.set("count");
     this.editingProductCustomUnit.set("");
     this.editingProductGtin.set("");
     this.editingProductNote.set("");
@@ -344,11 +374,37 @@ export class HouseholdV2WorkspaceComponent {
   ): void {
     this.editingBatchId.set(batch.id);
     this.editingBatchAcquiredOn.set(batch.acquiredOn);
+    const productUnit =
+      product.targetPolicy?.trackingUnit ?? product.defaultTrackingUnit ?? "count";
+    const batchUnit = splitTrackingUnit(batch.unit);
+    this.editingBatchProductUnit.set(productUnit);
+    this.editingBatchUnitOption.set(batchUnit.option);
+    this.editingBatchUnitSelection.set(batchUnit.option);
+    this.editingBatchCustomUnit.set(batchUnit.customSuffix);
+    this.batchDetailsIds.update((ids) => new Set(ids).add(batch.id));
     this.batchSelected.emit({ batch, group, product });
+  }
+  setBatchUnitSelection(selection: BatchUnitSelection): void {
+    if (selection === "match-product") {
+      const productUnit = splitTrackingUnit(this.editingBatchProductUnit());
+      this.editingBatchUnitOption.set(productUnit.option);
+      this.editingBatchCustomUnit.set(productUnit.customSuffix);
+      this.editingBatchUnitSelection.set(selection);
+      return;
+    }
+    this.editingBatchUnitOption.set(selection);
+    this.editingBatchUnitSelection.set(selection);
+  }
+  editingBatchUnitValue(): string | null {
+    return composeTrackingUnit(this.editingBatchUnitOption(), this.editingBatchCustomUnit());
   }
   cancelBatchEdit(): void {
     this.editingBatchId.set(null);
     this.editingBatchAcquiredOn.set("");
+    this.editingBatchUnitOption.set("count");
+    this.editingBatchUnitSelection.set("count");
+    this.editingBatchCustomUnit.set("");
+    this.editingBatchProductUnit.set("count");
   }
   stateLabel(state: string): string {
     if (this.workspace()?.useAbbreviatedUiLabels)
@@ -625,11 +681,16 @@ export class HouseholdV2WorkspaceComponent {
     await this.refresh();
   }
   async correctBatch(
-    batch: { acquiredOn: string; expiryOn?: string | null; id: string; revision: number },
+    batch: HouseholdV2Batch,
     resultingQuantity: number,
     acquiredOn: string,
-    expiryOn: string
+    expiryOn: string,
+    unit: string
   ): Promise<void> {
+    if (!unit.trim()) {
+      this.errorMessage.set(this.loc.t("household.batchSaveInvalid"));
+      return;
+    }
     this.logger.log("info", "Correcting stock batch", { batchId: batch.id });
     const result = await this.service.correctBatch({
       acquiredOn,
@@ -637,7 +698,8 @@ export class HouseholdV2WorkspaceComponent {
       expiryOn: expiryOn || null,
       expectedBatchRevision: batch.revision,
       householdId: this.householdId(),
-      resultingQuantity
+      resultingQuantity,
+      unit
     });
     if (result.status === "error") {
       const message = result.message ?? this.loc.t("household.batchCorrectionFailure");

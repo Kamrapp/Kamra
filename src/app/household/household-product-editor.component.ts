@@ -42,6 +42,9 @@ interface BatchDraft {
   unit: string;
 }
 
+type ProductUnitSelection = HouseholdTrackingUnitOption | "match-group";
+type BatchUnitSelection = HouseholdTrackingUnitOption | "match-product";
+
 @Component({
   selector: "app-household-product-editor",
   standalone: true,
@@ -62,6 +65,8 @@ export class HouseholdProductEditorComponent {
   readonly saving = signal(false);
   readonly productGroups = signal<HouseholdV2ProductGroup["group"][]>([]);
   readonly trackingUnitOptions = householdTrackingUnitOptions;
+  readonly productUnitSelection = signal<ProductUnitSelection>("count");
+  readonly batchUnitSelection = signal<BatchUnitSelection>("count");
   readonly selectedGroupId = signal<string | null>(null);
   readonly groupOpen = signal(false);
   readonly productOpen = signal(false);
@@ -82,6 +87,8 @@ export class HouseholdProductEditorComponent {
       this.resetRevision();
       this.productDraft = createProductDraft(product);
       this.batchDraft = createBatchDraft(product?.defaultTrackingUnit ?? "count", selectedBatch);
+      this.productUnitSelection.set(splitTrackingUnit(this.productDraft.trackingUnit).option);
+      this.batchUnitSelection.set(splitTrackingUnit(this.batchDraft.unit).option);
       this.selectedGroupId.set(product?.productGroupId ?? null);
       this.groupDraft = createGroupDraft(selectedGroup?.group);
       this.errorMessage.set("");
@@ -113,20 +120,71 @@ export class HouseholdProductEditorComponent {
     this.groupDraft.trackingUnit = composeTrackingUnit("custom", value) ?? "";
   }
 
-  productTrackingUnitOption(): HouseholdTrackingUnitOption {
-    return splitTrackingUnit(this.productDraft.trackingUnit).option;
+  productTrackingUnitOption(): ProductUnitSelection {
+    return this.productUnitSelection();
   }
 
   productCustomUnit(): string {
     return splitTrackingUnit(this.productDraft.trackingUnit).customSuffix;
   }
 
-  setProductTrackingUnitOption(option: HouseholdTrackingUnitOption): void {
+  setProductTrackingUnitOption(option: ProductUnitSelection): void {
+    if (option === "match-group") {
+      const group = this.productGroups().find(
+        (candidate) => candidate.id === this.productDraft.productGroupId
+      );
+      if (group) {
+        this.productDraft.trackingUnit = group.trackingUnit;
+        this.productUnitSelection.set(option);
+      } else {
+        this.productUnitSelection.set(splitTrackingUnit(this.productDraft.trackingUnit).option);
+      }
+      return;
+    }
+    this.productUnitSelection.set(option);
     this.productDraft.trackingUnit = composeTrackingUnit(option, this.productCustomUnit()) ?? "";
   }
 
   setProductCustomUnit(value: string): void {
+    this.productUnitSelection.set("custom");
     this.productDraft.trackingUnit = composeTrackingUnit("custom", value) ?? "";
+  }
+
+  setProductGroup(value: string | null): void {
+    this.productDraft.productGroupId = value || null;
+    if (this.productUnitSelection() === "match-group")
+      this.setProductTrackingUnitOption("match-group");
+  }
+
+  batchTrackingUnitOption(): BatchUnitSelection {
+    return this.batchUnitSelection();
+  }
+
+  batchCustomUnit(): string {
+    return splitTrackingUnit(this.batchDraft.unit).customSuffix;
+  }
+
+  setBatchTrackingUnitOption(option: BatchUnitSelection): void {
+    if (option === "match-product") {
+      this.batchDraft.unit = this.productTrackingUnit();
+      this.batchUnitSelection.set(option);
+      return;
+    }
+    this.batchUnitSelection.set(option);
+    this.batchDraft.unit = composeTrackingUnit(option, this.batchCustomUnit()) ?? "";
+  }
+
+  setBatchCustomUnit(value: string): void {
+    this.batchUnitSelection.set("custom");
+    this.batchDraft.unit = composeTrackingUnit("custom", value) ?? "";
+  }
+
+  private productTrackingUnit(): string {
+    return (
+      this.product()?.targetPolicy?.trackingUnit ??
+      this.product()?.defaultTrackingUnit ??
+      this.productDraft.trackingUnit
+    );
   }
 
   async saveGroup(): Promise<void> {
@@ -275,7 +333,8 @@ export class HouseholdProductEditorComponent {
         expiryOn: this.batchDraft.expiryOn || null,
         expectedBatchRevision: this.batch()!.revision,
         householdId: this.householdId(),
-        resultingQuantity: this.batchDraft.quantity
+        resultingQuantity: this.batchDraft.quantity,
+        unit: this.batchDraft.unit.trim()
       });
       this.saving.set(false);
       if (result.status === "error")
@@ -363,10 +422,12 @@ export class HouseholdProductEditorComponent {
   }
   clearProduct(): void {
     this.productDraft = createProductDraft(null);
+    this.productUnitSelection.set("count");
     this.productOpen.set(false);
   }
   clearBatch(): void {
     this.batchDraft = createBatchDraft();
+    this.batchUnitSelection.set("count");
     this.batchOpen.set(false);
   }
   canClearGroup(): boolean {
@@ -417,6 +478,8 @@ export class HouseholdProductEditorComponent {
           trackingUnit: selected.trackingUnit
         };
         if (!this.product()) this.productDraft.productGroupId = selected.id;
+        if (this.productUnitSelection() === "match-group")
+          this.productDraft.trackingUnit = selected.trackingUnit;
       }
     }
   }

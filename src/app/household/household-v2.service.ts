@@ -642,6 +642,7 @@ export class HouseholdV2Service {
     householdId: string;
     expectedBatchRevision: number;
     resultingQuantity: number;
+    unit: string;
   }): Promise<{ status: "error" | "ok"; message?: string }> {
     return await this.write(
       "POST",
@@ -652,7 +653,8 @@ export class HouseholdV2Service {
         expectedBatchRevision: input.expectedBatchRevision,
         operationId: crypto.randomUUID(),
         requestFingerprint: crypto.randomUUID(),
-        resultingQuantity: input.resultingQuantity
+        resultingQuantity: input.resultingQuantity,
+        unit: input.unit
       }
     );
   }

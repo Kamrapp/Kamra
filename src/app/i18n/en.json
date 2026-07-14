@@ -463,6 +463,8 @@
     "trackingUnit": "Tracking unit",
     "customUnit": "Custom",
     "customUnitSuffix": "Custom unit name",
+    "matchGroupUnit": "Match Product Group",
+    "matchProductUnit": "Match Product",
     "manualSource": "Manual",
     "targetPolicy": "Target policy",
     "setTarget": "Set target",

@@ -232,12 +232,14 @@ describe("MongoStockCommandRepository", () => {
       occurredAt: batch.updatedAt,
       operationId: "op-correct",
       requestFingerprint: "correct",
-      resultingQuantity: 3
+      resultingQuantity: 3,
+      unit: "ml"
     });
     expect(db.__collections["household_stock_batches"]!.docs[0]).toMatchObject({
       acquiredOn: "2026-07-12",
       expiryOn: "2026-07-10",
       remainingQuantity: 3,
+      unit: "ml",
       revision: 1
     });
     await repository.discardBatch({

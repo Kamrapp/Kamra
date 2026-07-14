@@ -97,6 +97,10 @@ restock derivation as deferred rather than a test failure.
 - [ ] Save one seeded Group/Product/Batch change from each available editor path and refresh. Confirm
       the other editor clears, the hierarchy remains attached, and visible Activity/toast feedback
       identifies the saved object.
+- [ ] Edit a grouped Product unit and confirm `Match Product Group` copies the current Group unit;
+      reassign it to Unassigned and confirm that option disappears. Edit a Batch unit and confirm
+      `Match Product` copies its owner Product unit in both the inline details editor and the right
+      editor; save and refresh to confirm the resolved unit persists.
 - [ ] In light and dark themes, confirm the compact header, Group/Product/Batch indentation, count
       labels, fixed header, action columns, and date/status colors remain readable. Repeat at a narrow
       viewport and confirm intentional table scrolling without overlap.
