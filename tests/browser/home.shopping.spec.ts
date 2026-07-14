@@ -168,6 +168,11 @@ test("Home household rows share grid tracks and show child counts", async ({ pag
     )
   );
   expect(gridStarts.slice(1)).toEqual([gridStarts[0], gridStarts[0], gridStarts[0]]);
+  const comparisonWidth = await groupRow
+    .locator(".comparison-column")
+    .first()
+    .evaluate((element) => element.getBoundingClientRect().width);
+  expect(comparisonWidth).toBeGreaterThanOrEqual(16);
   const headerAndBodyEdges = await Promise.all([
     header.evaluate((element) => {
       const after = getComputedStyle(element, "::after");

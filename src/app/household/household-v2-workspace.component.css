@@ -48,8 +48,8 @@
 }
 .stock-grid {
   --stock-grid-action-width: calc(8rem + var(--space-2) + var(--space-2) + var(--space-2));
-  --stock-grid-columns: 1.5rem minmax(10.5rem, 1.7fr) minmax(3rem, 0.17fr) 0.4rem
-    minmax(4.5rem, 0.25fr) 0.4rem minmax(4.5rem, 0.25fr) minmax(3.6rem, 0.22fr)
+  --stock-grid-columns: 1.5rem minmax(10.5rem, 1.7fr) minmax(3rem, 0.17fr) 1.25rem
+    minmax(4.5rem, 0.25fr) 1.25rem minmax(4.5rem, 0.25fr) minmax(3.6rem, 0.22fr)
     minmax(6.4rem, 0.6fr) var(--stock-grid-action-width);
   align-items: center;
   display: grid;
@@ -59,8 +59,8 @@
   padding: 0.45rem var(--space-2);
 }
 .shopping-selection-active .stock-grid {
-  --stock-grid-columns: 2rem 1.5rem minmax(10.5rem, 1.7fr) minmax(3rem, 0.17fr) 0.4rem
-    minmax(4.5rem, 0.25fr) 0.4rem minmax(4.5rem, 0.25fr) minmax(3.6rem, 0.22fr)
+  --stock-grid-columns: 2rem 1.5rem minmax(10.5rem, 1.7fr) minmax(3rem, 0.17fr) 1.25rem
+    minmax(4.5rem, 0.25fr) 1.25rem minmax(4.5rem, 0.25fr) minmax(3.6rem, 0.22fr)
     minmax(6.4rem, 0.6fr) var(--stock-grid-action-width);
 }
 .stock-grid > * {

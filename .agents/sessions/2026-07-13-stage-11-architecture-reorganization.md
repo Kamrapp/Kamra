@@ -546,3 +546,10 @@ the approved disposable database, then run `npm run seed:demo-household` and
   right-edge gap when the table scrollbar is present.
 - The browser contract now checks both exact cell alignment and the extended header boundary in the
   overflowing state. No new manual test step is needed beyond the existing visual table check.
+
+## Household comparison track follow-up (2026-07-14)
+
+- Widened both comparison columns to `1.25rem` in normal and shopping-selection layouts so the
+  marker remains inside its cell and cannot collide with Current or Target values.
+- Added a browser assertion for the minimum comparison-cell width; the focused overflow alignment
+  contract remains passing.
