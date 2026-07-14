@@ -584,3 +584,12 @@ the approved disposable database, then run `npm run seed:demo-household` and
 - The live runbook now contains only three new Section 4 manual checks for impulse rename/discard,
   Purchased presentation, and both cancellation paths; the accepted real-data selection and
   distribution checks were moved into the covered ledger.
+
+## Household header scrollbar gutter follow-up (2026-07-14)
+
+- `64a28d7` replaces the Product Group header's width overhang with an explicit final spacer track
+  inside the bordered grid. Header and body content tracks remain aligned while the reserved
+  scrollbar space stays inside the shell in both overflow states.
+- The browser contract now ignores only that intentional header spacer when comparing content cell
+  starts and asserts that the header remains within the shell boundary. All 7 focused Home Chromium
+  tests, typecheck, lint, formatting, and diff checks pass.
