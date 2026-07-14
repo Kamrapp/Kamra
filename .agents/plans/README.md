@@ -14,18 +14,14 @@ Plans may include a short research gate before approval when current standards, 
 
 ## Active Roadmap
 
-Use `initial-mvp-roadmap.md` as the current staged direction.
+Use `phase-1-usability-completion-plan.md` as the current staged direction. Phase 1 closes the
+household-to-catalogue usability loop through canonical terminology, household Product discovery,
+high-throughput review, a Shopping-list-first shop session, receipt reconciliation and price
+observations, and bounded crawl-data lifecycle management.
 
-Current final planning sequence:
-
-- `2026-07-11-stage-8-coherent-household-mvp-plan.md` — Product Classification, Product Groups with Group/Product target policies, Product-owned Batches, Shopping Needs, base content, and adjustable home workspace
-- `2026-07-11-stage-9-concrete-shopping-catalogue-plan.md` — Shop Products/Price Observations, one-market Shopping Trips, Purchase Ingestion, and stock conversion
-- `2026-07-11-stage-10-alpha-hardening-plan.md` — final terminology migration, verified Crawl Snapshot archive/reprocessing, targeted architecture hardening, and Alpha 1.0 readiness
-- `2026-07-13-stage-11-vertical-slice-locality-plan.md` — bounded module locality, registry-driven admin patterns, and cross-layer integration contracts
-
-Use `mvp-followups.md` for valuable ideas that should stay visible but should not bloat the first household/product MVP. Promote a followup into a plan only when it directly supports the next MVP milestone, removes a current blocker, or the user explicitly accepts the scope tradeoff.
-
-Older bootstrap drafts are archived in `.agents/sessions/zero_init/`.
+The MVP closed on 2026-07-14. Its roadmap, completed plans, closure plan, and followup inventory are
+archived under `mvp/`. Completed MVP handoffs are under `.agents/sessions/mvp/`; older bootstrap
+drafts remain under `.agents/sessions/zero_init/`.
 
 Prefer the active roadmap and the specific current plan over rediscovering older plans. Read completed or superseded plans only when their decisions are directly relevant.
 

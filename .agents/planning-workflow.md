@@ -26,6 +26,7 @@ idea
   -> approved commit-sized steps
   -> implementation session
   -> validation
+  -> owning manual runbook update
   -> user review
   -> fixer pass when review or validation finds mistakes
   -> session state
@@ -117,6 +118,12 @@ For small documentation-only or low-risk cleanup work, the plan may be brief and
 
 Plans should make it easy to see which items came from the user, which were derived by the agent, and which are required now, optional followups, deliberately deferred, or excluded. This keeps implementation focused and reviewable.
 
+Every behavior-changing stage or product phase should name one manual acceptance script under
+`scripts/`. The plan should identify which expectations become automated specs, which require a
+configured database smoke, and which genuinely need final human/operator evidence. Update the
+runbook as stable behavior is implemented. If later approved work will replace the interaction,
+carry the acceptance forward and run the integrated manual pass only after that work stabilizes.
+
 ## Approval
 
 Implementation begins only after user approval.
@@ -153,6 +160,10 @@ During implementation:
 - prefer the active plan and latest handoff over rediscovering old context
 - adjust the plan when reality differs
 - validate before calling the unit done
+- define the expected outcome in a focused test before checking whether current behavior happens to
+  match it; do not turn accidental behavior into the contract
+- update the owning manual acceptance script for remaining human evidence without duplicating
+  deterministic checks already protected by specs or configured smokes
 - avoid broad refactors unless they are the approved unit
 - treat major missing requirements as a reason to return to planning
 - keep optional ideas as followups unless the user reopens scope

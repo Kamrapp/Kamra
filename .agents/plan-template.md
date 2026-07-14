@@ -92,6 +92,14 @@ For each step, use existing repository code and native/platform capabilities bef
 
 Commands, tests, manual checks, and documentation checks.
 
+Name the owning manual acceptance script for behavior-changing work. Separate:
+
+- expected-outcome logic/coordination specs written before evaluating current behavior
+- route/repository and configured `npm run smoke:*` evidence
+- genuinely manual browser, visual, localization, real-data, or operator-safety evidence
+- the point when the integrated manual pass should run, especially when later approved steps will
+  replace an outgoing interaction
+
 ## Risks
 
 Known risks and mitigation.

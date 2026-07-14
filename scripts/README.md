@@ -211,15 +211,18 @@ npm run mvp:preflight
   environment or an explicitly approved disposable MongoDB database. They provide signals that a
   fake database cannot: current validators/index setup and real transaction support.
 
-### `stage11-mvp-manual-test.md`
+### `phase1-manual-test.md`
 
-The single live manual verification runbook for the complete Stage 8–11 MVP journey. It covers
-the seeded `usera` demo household, two-user access, Product Groups/Products/Batches, shopping and
-trip completion, admin ingestion/pricing review, maintenance/archive operations, visual checks,
-and the final evidence/waiver review.
+The deferred integrated acceptance runbook for Phase 1. Stage plans should update it as stable
+expectations emerge and automate deterministic rules first. Do not execute the full runbook until
+the Phase 1 Stage 7 acceptance gate, because earlier stages replace the outgoing Shopping Trip and
+crawl-review interactions.
 
-Use it after the implementation slices are complete and update its operator notes in place while
-testing. This is the repository's only manual acceptance document.
+### `mvp/stage11-mvp-manual-test.md`
+
+The archived Stage 8–11 closure record. It records accepted household and Shopping-list evidence and
+the explicit transfer of Shopping Trip/pricing/ingestion-review and Crawl Snapshot checks to Phase 1.
+It is historical evidence, not an active release gate.
 
 ### `generate-catalog-schemas.ts`
 

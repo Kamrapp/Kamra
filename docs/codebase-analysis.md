@@ -258,14 +258,9 @@ Workflow runtime should stay pragmatic per job. JavaScript or TypeScript is the 
 - deleting legacy code before its domain ideas and parsing patterns are captured durably
 - assuming Angular must be replaced before there is evidence it blocks the MVP
 
-## Recommended Next Planning Step
+## Current planning direction
 
-Use `.agents/plans/initial-mvp-roadmap.md` as the active direction.
-
-The next concrete implementation plan after this inventory should cover the first serverless foundation slice:
-
-- Angular deployment path on Vercel
-- Node.js and TypeScript API surface
-- shared model-contract strategy
-- MongoDB connection and migration-ledger setup
-- admin-only auth path derived from the current login shell without reusing the old backend
+This inventory predates the completed serverless foundation and MVP. Use
+`.agents/plans/phase-1-usability-completion-plan.md` as the active direction. The historical MVP
+roadmap and stage plans are archived under `.agents/plans/mvp/`; retain the risks above as context,
+but verify current runtime code before relying on this older inventory.

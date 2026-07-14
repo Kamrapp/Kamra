@@ -1,6 +1,9 @@
 # Kamra domain language
 
-This is the executable vocabulary for the Stage 8–10 household and shopping MVP. Stable ids, not labels, are used in rules and references. New runtime code uses the final terms below; older names are retained only at explicitly marked migration or compatibility boundaries.
+This is the executable vocabulary for the closed household and shopping MVP. Stable ids, not labels,
+are used in rules and references. Current runtime terms remain authoritative until Phase 1 Stage 1
+approves and implements the household-first terminology migration; intended language must not be
+presented as current code prematurely.
 
 ## Classification
 
@@ -22,6 +25,19 @@ This is the executable vocabulary for the Stage 8–10 household and shopping MV
 - A **Shopping Need** is a generic demand snapshot generated from a Product Group or Household Product target-policy shortage, or entered ad hoc. Stage 8 turns these needs into the editable Home shopping-list experience.
 - A **Shopping Trip** is a concrete, one-market plan created from needs. A **Trip Item** is one planned line and later stores the actual result: bought quantity, selected Household Product, created Batch ids, and any match/price decision. A finalized Trip Item is the current purchase-history envelope; the runtime does not introduce a separate `household_purchases` aggregate for the MVP.
 - An **Ingestion Submission** is the reviewable catalogue evidence emitted when a finalized Trip contains a new or uncertain product. It does not replace household stock history.
+
+### Phase 1 terminology direction
+
+- **Shopping list** is the primary user concept. A shop-specific session is contextual evidence
+  around that list, not a second list for the member to maintain.
+- **Shopping Trip** and **Trip Item** remain current persistence/API terms until the Phase 1 state
+  contract decides whether they stay internal, are renamed, or are adapted behind compatible routes.
+- **Product** is qualified as Household Product, catalogue Product, or Shop Product only when the
+  ownership/identity distinction matters. Household copy should not alternate between Product and
+  Catalogue as though they were equivalent concepts.
+- **Crawl**, **source capture**, **processing**, **ingestion**, and **review candidate** describe
+  different technical states. Phase 1 must choose simpler operator labels without erasing those
+  provenance and lifecycle distinctions from contracts or audit data.
 
 ### Legacy and compatibility boundary
 

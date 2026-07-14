@@ -208,10 +208,42 @@ Stock Batches. Stage 9 adds the concrete shop/trip/price context and submits fin
 unknowns or changed facts for admin-reviewed Purchase Ingestion; it must not make catalogue
 data a prerequisite for household stock management.
 
+## Phase 1 household-to-catalogue direction
+
+The MVP closed with the household loop accepted. Phase 1 makes the existing shopping and evidence
+features one coherent journey:
+
+- the Shopping list remains the primary household UI;
+- choosing a shop starts a lightweight session around that list, and bought marks automatically
+  become session/purchase evidence;
+- receipt reconciliation may enrich the session with Products, identifiers, amounts, and prices;
+- confirmed household evidence creates Stock Batches and traceable Price Observations while
+  uncertain shared-catalogue facts enter review;
+- high-throughput review handles both source-level and extracted-entry decisions without discarding
+  provenance;
+- crawl retention and deduplication bound storage only through explicit evidence-lifecycle rules.
+
+Existing Shopping Trip documents may remain a transaction and evidence boundary. They must not force
+a second list-shaped user workflow. The schema should follow the approved state-transition contract,
+with validator updates and existing-data migrations registered independently.
+
+### Post-Phase 1 pricing direction
+
+Phase 1 produces the reliable household Product links, shop context, and Price Observations needed by
+the next core product goal: Shopping-list cost anticipation and configurable price optimization. The
+query/optimization boundary should calculate an explainable expected cost with explicit missing,
+stale, future, conditional, and incompatible-price states, then compare bounded alternatives.
+
+Alternative-Product or alternative-shop suggestions must retain the original household need, expose
+compatibility and offer conditions, show observation freshness and expected savings, and require the
+member to accept any list change. Household preferences such as preferred shops, acceptable
+substitutions, discount sensitivity, convenience versus savings, and maximum additional shops belong
+in household-owned configuration. Sponsored ranking remains outside the architecture.
+
 ## Vertical-slice locality and integration testing
 
-The post-Stage-10 locality direction is documented in [docs/vertical-slice-map.md](./vertical-slice-map.md)
-and implemented incrementally through the Stage 11 plan. Existing domain directories are treated
+The completed Stage 11 locality direction is documented in the archived
+[vertical-slice map](./mvp/vertical-slice-map.md). Existing domain directories are treated
 as real ownership boundaries; the work does not authorize a repository-wide folder rewrite.
 
 Each capability should make its contracts, pure policy, persistence adapter, HTTP adapter, UI
@@ -248,12 +280,16 @@ External source
   -> query model
   -> API route
   -> frontend
-  -> shopping decision or generated list
+  -> household Product discovery or generated list
+  -> shop-session and receipt evidence
+  -> reviewed price/catalogue observations
 ```
 
 ## Data Modeling Principles
 
-- raw crawled/fetched snapshots are preserved before processing
+- raw crawled/fetched snapshots are preserved before processing; Phase 1 must define explicit
+  terminal-state retention, compaction/archive, and duplicate-grouping rules rather than assuming
+  indefinite storage
 - processed products are optimized for common product queries
 - price history is stored separately from product query documents
 - store-specific products stay separate from canonical product identity
@@ -264,6 +300,8 @@ External source
 - uncertain matches should be represented explicitly, not hidden as confident canonical products
 - uncertain store-product identity should remain unlinked until verified by stronger evidence or explicit review
 - accepting crawled product candidates should make create-versus-merge behavior explicit to the operator before writing catalog data
+- receipt- or household-derived catalogue facts require confirmed identifiers or explicit review;
+  low-confidence evidence must not mutate shared Products automatically
 - household inventory concepts should stay separate from store-offer observations even if they share some fields
 - household-local products are the first-class user-owned path for pantry tracking; catalog links are optional enrichment and should not block manual household stock entry
 - household Product Groups are stable household-owned containers for Products; their optional target policies and Product-owned target policies drive later list generation without treating Product Concepts as stock hierarchy

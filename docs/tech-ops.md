@@ -341,7 +341,9 @@ Catalog contract changes use a separate `Catalog Smoke` workflow. It uses the Gi
 
 Stage 8 transaction behavior has two validation layers. The transaction runner and command tests run in secret-free App Checks. The configured `npm run smoke:transactions` check is a separate narrowly triggered Smoke-environment workflow for changes to Mongo transaction abstractions, household command/repository code, the smoke script, relevant dependency/configuration files, or the workflow itself. It is not useful for unrelated frontend/docs PRs, must target only a disposable `kamra_smoke`-class database, and verifies rollback, commit, cleanup, and effective database selection. If the Smoke environment is unavailable, the configured check is a manual/release gate rather than a fabricated green CI result.
 
-Dependency update automation and PR-branch writeback are followup items, not MVP roadmap requirements. Keep them in `.agents/plans/mvp-followups.md` until the app surface is stable enough to justify the extra workflow behavior.
+Dependency update automation and PR-branch writeback remain archived MVP followups rather than
+Phase 1 requirements. Re-evaluate `.agents/plans/mvp/mvp-followups.md` only when one directly supports
+an approved stage or resolves an operational/security blocker.
 
 Workflow files should mostly orchestrate scripts that can also be run locally. This keeps core logic easier to test, debug, and eventually move to other platforms if needed.
 
@@ -355,9 +357,10 @@ Any future workflow that writes back to a branch should be planned explicitly, w
 
 ## Roadmap And Followup Triage
 
-The active MVP roadmap should stay focused on the smallest useful household grocery-planning product.
-
-Use `.agents/plans/mvp-followups.md` for valuable but non-essential ideas, including richer navigation concepts, authentication upgrades, repository automation, crawler expansion beyond the first useful sources, advanced recommendations, and mobile/PWA extensions.
+The MVP closed on 2026-07-14. The active roadmap is
+`.agents/plans/phase-1-usability-completion-plan.md`; it stays focused on household usability,
+shopping evidence, scalable review, and bounded crawl storage. The archived
+`.agents/plans/mvp/mvp-followups.md` remains historical input, not the active backlog.
 
 Followup entries should include:
 
@@ -366,7 +369,8 @@ Followup entries should include:
 - complexity, using `Low`, `Med`, or `High`
 - priority, using `Low`, `Med`, or `High`
 
-Promote a followup into an implementation plan only when it directly supports the next MVP milestone, removes a current operational or security blocker, or the user explicitly accepts the scope tradeoff.
+Promote a followup into an implementation plan only when it directly supports the current Phase 1
+stage, removes an operational or security blocker, or the user explicitly accepts the scope tradeoff.
 
 When a roadmap stage grows too large for one implementation session, split it into one-shot units by domain concern before implementation. Keep each unit small enough to validate and review independently, and move lower-value side work to followups.
 

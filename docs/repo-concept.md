@@ -12,7 +12,10 @@ Kamra should stay independent: no advertising agenda, no seller-sponsored rankin
 
 ## Product Direction
 
-The MVP direction is a lightweight web application backed by automated data ingestion.
+The lightweight household MVP closed on 2026-07-14. The active Phase 1 direction completes usability
+across the same feature set: household-first terminology, compact Product discovery/linking,
+high-throughput evidence review, a Shopping-list-first shop session, receipt-to-price/catalogue
+reconciliation, and bounded crawl-data lifecycle management.
 
 The system should eventually support:
 
@@ -137,7 +140,11 @@ This whitelist flow is feature-flagged. Email sending and whitelist cleanup cron
 
 ## MVP Boundaries
 
-The product MVP should not be considered demonstrable until a user can create or join a household, manage products or household items there, and receive useful low-stock or buy-before notices. Earlier deployment, auth, ingestion, and admin stages are foundation and pipeline proof, not the product value loop.
+The MVP is closed around the household product/stock, target, notice, and Shopping-list value loop.
+Its final separate Shopping Trip/pricing/ingestion-review and Crawl Snapshot acceptance was moved to
+Phase 1 because those experiences are being redesigned. The archived evidence is in
+`scripts/mvp/stage11-mvp-manual-test.md`; the current closure target is defined in
+`.agents/plans/phase-1-usability-completion-plan.md`.
 
 Initial MVP should focus on:
 
@@ -156,9 +163,9 @@ Initial MVP should focus on:
 - staying within free-tier limits for hosting, database, and scheduled jobs
 - avoiding public registration or uncontrolled access
 
-## Intended Build Sequence
+## Archived MVP Build Sequence
 
-The current preferred sequence is:
+The completed MVP sequence was:
 
 1. clean up and classify legacy code while preserving useful knowledge
 2. prove MongoDB connectivity from a minimal Vercel deployment
@@ -195,6 +202,12 @@ The early MVP should not attempt:
 
 Likely future work:
 
+The core goal immediately after Phase 1 is household price intelligence: estimate the expected cost
+of an open Shopping list, then offer configurable and explainable savings suggestions such as a
+compatible alternative Product or another shop with a current discount. Suggestions must expose
+price freshness, offer conditions, expected savings, and compatibility reasoning; they must not be
+advertising-driven or silently rewrite household choices.
+
 - OCR-based price scanning
 - household pantry and fridge tracking
 - expiry-date tracking
@@ -208,7 +221,8 @@ Likely future work:
 - richer identity-resolution tooling
 - richer user-specific preferences beyond the current theme and language settings
 - mobile app or installable PWA shopping-list experience
-- route optimization with max-shop constraints, distance, travel time, price, and quality preferences
+- broader route optimization with max-shop constraints, distance, travel time, price, and quality
+  preferences after the household price-intelligence step is trustworthy
 
 ## Current Repository Reality
 

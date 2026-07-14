@@ -30,4 +30,4 @@ the report.
 - Raw ingestion evidence and household history have different retention and privacy requirements;
   never copy one into the other for convenience.
 
-For operational recovery and migration ordering, see [docs/alpha-operations.md](./docs/alpha-operations.md).
+For operational recovery and migration ordering, see [docs/mvp/alpha-operations.md](./docs/mvp/alpha-operations.md).

@@ -44,6 +44,23 @@ Deferred or not production-approved yet:
 
 Stage 4 is considered complete for the current in-scope source set and manual supervision workflow as of 2026-07-08. SPAR, Tesco, and wider production-approved crawling remain deliberately deferred.
 
+## Phase 1 direction
+
+Phase 1 replaces the current row-at-a-time supervision experience with a high-throughput review
+workbench at both Crawl Snapshot/source-capture and extracted-entry level. It must support rapid
+accept/later/decline/correct decisions, keyboard and narrow-viewport operation, resumability,
+provenance, audit, corrections, and stale-write handling.
+
+The phase also establishes a measured data-minimization lifecycle. Exact repeated captures may be
+deduplicated through stable identity/content hashes; near-matching unprocessed evidence should be
+grouped as review work rather than destructively merged until an explicit evidence policy exists.
+Processed raw records may be compacted, archived, or removed only after durable derived facts,
+provenance/checksums, retention rules, and recovery expectations are verified.
+
+Receipt extraction joins the evidence pipeline through its own minimal adapter and privacy/retention
+policy. Confirmed receipt facts may create traceable price observations or Product links; uncertain
+facts remain review candidates and must not silently rewrite the shared catalogue.
+
 ## Run Identity
 
 Crawl run ids are operator-readable:
@@ -274,4 +291,4 @@ Lidl PDF text is noisy: prices, product names, item numbers, validity labels, an
 - `docs/crawler-policy.md`
 - `.agents/learnings/crawler-source-research.md`
 - `.agents/learnings/crawler-pipeline-patterns.md`
-- `.agents/plans/2026-06-23-stage-4-synthetic-crawler-intake-plan.md`
+- `.agents/plans/mvp/2026-06-23-stage-4-synthetic-crawler-intake-plan.md`

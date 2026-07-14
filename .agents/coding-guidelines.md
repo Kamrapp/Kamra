@@ -109,11 +109,25 @@ Prefer validation appropriate to the touched layer:
 
 - build checks for project changes
 - unit tests for deterministic transformation logic
-- smoke tests for API behavior
+- focused coordination specs for core behavior spanning multiple UI blocks
+- route/repository tests for API and persistence contracts
+- configured `npm run smoke:*` checks for MongoDB validators, indexes, transactions, concurrency,
+  migration, and recovery behavior that in-memory tests cannot prove
 - sample-data tests for identity resolution
-- manual verification for UI behavior
+- manual verification for real browser wiring, visual judgment, accessibility interaction,
+  localization, approved external/database evidence, and operator-only safety
 
 Test volume should match risk.
+
+Write the expected outcome first, then run the test against current code. A passing test confirms
+the intended behavior already exists; a failing test identifies a gap. Do not derive assertions from
+undesired current behavior merely to make it reproducible.
+
+When interaction across several UI blocks is cumbersome to verify manually, prefer a larger focused
+spec file around extracted coordination/state logic or a small injectable controller seam. Keep any
+production adjustment narrow and useful; do not introduce a general UI architecture solely for the
+test. HTML-level Playwright-style coverage is appropriate only when browser wiring itself is the
+risk, not as the default representation of domain behavior.
 
 Prioritize tests for behavior, contracts, data integrity, security, transactions, integration boundaries, and likely regressions. Do not test framework behavior, trivial pass-throughs, or private implementation detail merely to increase coverage.
 
@@ -128,7 +142,8 @@ Avoid adding broad test scaffolding for simple code that will be directly review
 
 Fix work should review existing and newly added tests before changing code. Add or adjust tests when they expose the mistake, protect against recurrence, or document a fragile contract.
 
-Snapshot-style tests are preferred when the output is stable and accidental changes should be noisy, for example:
+Snapshot-style tests may be used when a serialized output is stable and accidental changes should
+be noisy, for example:
 
 - entity or document shapes
 - DTO serialization
@@ -137,6 +152,12 @@ Snapshot-style tests are preferred when the output is stable and accidental chan
 - deterministic parser or transformer output
 
 Avoid snapshots for frequently changing UI details or outputs where legitimate churn would make every change noisy.
+
+Each behavior-changing stage or phase must maintain its named manual acceptance script in `scripts/`.
+Keep deterministic checks in the automated coverage ledger rather than repeating them manually. If
+an approved later stage will replace the current interaction, defer the integrated manual run rather
+than testing the outgoing UX as a release contract; execute the full runbook at the stage/phase
+acceptance gate after the behavior stabilizes.
 
 If validation cannot be run, record why and what risk remains.
 

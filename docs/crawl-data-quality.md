@@ -17,7 +17,11 @@ The report is evidence for a human decision. It does not repair, delete, reproce
 2. an explicitly scoped idempotent repair migration;
 3. development-only discard/re-ingest;
 4. an accepted limitation; or
-5. a post-MVP deferral.
+5. an explicit Phase 1/later-stage deferral with an owner and risk.
+
+Phase 1 Stage 6 owns the measured retention, exact-deduplication, near-match grouping, and processed-
+evidence minimization policy. Until that policy is approved, the audit must not turn similarity into
+destructive merging or delete unresolved raw evidence.
 
 ## Current configured evidence
 
