@@ -394,3 +394,12 @@ Final automation closeout is ready in the documentation/handoff commit after the
 Chromium suite passed all 4 contracts; and the elevated `npm run smoke:shopping-trip` passed with
 concurrent completion/review assertions. Do not treat the synthetic browser suite as a waiver for
 real-data or subjective UI evidence.
+
+## Browser harness cleanup (2026-07-14)
+
+- Replaced the browser harness's nested `npm run dev:web` command with a direct Angular launcher and
+  cooperative Windows teardown. Playwright records a run-scoped PID, requests shutdown through a
+  stop marker, and the launcher terminates the Angular child it owns before the shell closes.
+- `npm run test:browser` passed all 4 contracts and exited in 7.7 seconds; port 4200 had no listener,
+  no temporary PID/stop files remained, and only the pre-existing long-lived environment processes
+  were present afterward. `npm run format:check`, `npm run lint`, and `npm run typecheck` passed.

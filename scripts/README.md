@@ -23,6 +23,11 @@ npm run test:browser
 The `Browser Contracts` GitHub workflow installs Chromium in CI and runs only when browser-facing
 source, harness, or configuration paths change.
 
+Playwright starts `scripts/playwright-web-server.mjs` instead of the regular `dev:web` npm command.
+The helper generates the browser config and launches Angular directly. Its companion teardown
+records and terminates that direct child before Playwright closes the shell, preventing a Windows
+dev-server orphan when the runner cannot terminate the nested npm process itself.
+
 ## Current Scripts
 
 ### `local-api.ts`

@@ -21,5 +21,13 @@ export default [
     rules: {
       "@typescript-eslint/consistent-type-imports": "error"
     }
+  },
+  {
+    files: ["**/*.mjs"],
+    languageOptions: {
+      ecmaVersion: "latest",
+      sourceType: "module",
+      globals: globals.node
+    }
   }
 ];
