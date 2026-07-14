@@ -46,19 +46,20 @@
   overflow: hidden;
 }
 .stock-grid {
+  --stock-grid-columns: 1.65rem minmax(10.5rem, 1.7fr) minmax(2.2rem, 0.12fr) 0.4rem
+    minmax(3.4rem, 0.18fr) 0.4rem minmax(2.2rem, 0.12fr) minmax(3.6rem, 0.22fr)
+    minmax(6.4rem, 0.6fr) auto;
   align-items: center;
   display: grid;
   gap: var(--space-2);
-  grid-template-columns:
-    1.8rem minmax(11rem, 1.7fr) minmax(2.5rem, 0.18fr) 0.45rem minmax(3rem, 0.22fr)
-    0.45rem minmax(2.5rem, 0.18fr) minmax(3rem, 0.25fr) minmax(6.4rem, 0.6fr) auto;
+  grid-template-columns: var(--stock-grid-columns);
   min-width: 48rem;
   padding: 0.45rem var(--space-3);
 }
 .shopping-selection-active .stock-grid {
-  grid-template-columns:
-    2rem 1.8rem minmax(11rem, 1.7fr) minmax(2.5rem, 0.18fr) 0.45rem minmax(3rem, 0.22fr)
-    0.45rem minmax(2.5rem, 0.18fr) minmax(3rem, 0.25fr) minmax(6.4rem, 0.6fr) auto;
+  --stock-grid-columns: 2rem 1.65rem minmax(10.5rem, 1.7fr) minmax(2.2rem, 0.12fr) 0.4rem
+    minmax(3.4rem, 0.18fr) 0.4rem minmax(2.2rem, 0.12fr) minmax(3.6rem, 0.22fr)
+    minmax(6.4rem, 0.6fr) auto;
 }
 .stock-grid > * {
   min-width: 0;
@@ -241,13 +242,13 @@ button.row-name {
   padding: 0.16rem 0.3rem;
 }
 .group-name {
-  padding-left: calc(var(--space-3) + (var(--row-depth, 0) * 1rem));
+  padding-left: calc(var(--space-3) + (var(--row-depth, 0) * 0.65rem));
 }
 .product-name {
-  padding-left: calc(var(--space-3) + (var(--row-depth, 1) * 1rem));
+  padding-left: calc(var(--space-3) + (var(--row-depth, 1) * 0.65rem));
 }
 .batch-name {
-  padding-left: calc(var(--space-3) + (var(--row-depth, 2) * 1rem));
+  padding-left: calc(var(--space-3) + (var(--row-depth, 2) * 0.65rem));
 }
 .batch-name strong {
   flex: 0 1 auto;

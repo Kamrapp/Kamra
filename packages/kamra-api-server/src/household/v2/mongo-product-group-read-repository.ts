@@ -28,12 +28,18 @@ export class MongoProductGroupReadRepository {
         .collection<{
           allowExpiredItems?: boolean | null;
           defaultCalculatedMaxLimitMultiplier?: number | null;
+          groupTargetShoppingDistributionMode?: string | null;
+          groupTargetShoppingMode?: string | null;
         }>("households")
         .findOne({ id: householdId })
     ]);
     return buildProductGroupWorkspace({
       allowExpiredItems: household?.allowExpiredItems ?? true,
       defaultCalculatedMaxLimitMultiplier: household?.defaultCalculatedMaxLimitMultiplier,
+      groupTargetShoppingDistributionMode: household?.groupTargetShoppingDistributionMode as
+        ProductGroupWorkspaceReadModel["groupTargetShoppingDistributionMode"] | null | undefined,
+      groupTargetShoppingMode: household?.groupTargetShoppingMode as
+        ProductGroupWorkspaceReadModel["groupTargetShoppingMode"] | null | undefined,
       batches,
       groups,
       products,

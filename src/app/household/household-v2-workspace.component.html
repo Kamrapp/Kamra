@@ -315,62 +315,48 @@
                   }
                 </span>
                 <span>
-                  <small>{{ loc.t("household.targetPolicy") }}</small>
+                  <small>{{ loc.t("household.groupTargetShoppingMode") }}</small>
                   @if (editingGroupId() === row.group.group.id) {
-                    <label class="inline-checkbox">
-                      <input
-                        type="checkbox"
-                        [ngModel]="editingGroupHasTarget()"
-                        (ngModelChange)="setGroupTargetEnabled($event)"
-                      />
-                      {{ loc.t("household.setTarget") }}
-                    </label>
+                    <select
+                      class="inline-group-select"
+                      [ngModel]="editingGroupShoppingMode()"
+                      (ngModelChange)="editingGroupShoppingMode.set($event)"
+                      [attr.aria-label]="loc.t('household.groupTargetShoppingMode')"
+                    >
+                      @for (mode of groupShoppingModeOptions; track mode) {
+                        <option [ngValue]="mode">{{ groupShoppingModeLabel(mode) }}</option>
+                      }
+                    </select>
                   } @else {
                     <strong>
-                      {{
-                        row.group.group.targetPolicy
-                          ? loc.t("household.configured")
-                          : loc.t("household.notSet")
-                      }}
+                      {{ groupShoppingModeLabel(row.group.group.groupTargetShoppingModeOverride) }}
                     </strong>
                   }
                 </span>
-                @if (
-                  editingGroupHasTarget() ||
-                  (editingGroupId() !== row.group.group.id && row.group.group.targetPolicy)
-                ) {
-                  <span>
-                    <small>{{ loc.t("household.minimum") }}</small>
-                    @if (editingGroupId() === row.group.group.id) {
-                      <input
-                        class="inline-amount-input"
-                        type="number"
-                        min="0"
-                        [ngModel]="editingGroupMinimum()"
-                        (ngModelChange)="setGroupMinimum($event)"
-                      />
-                    } @else {
-                      <strong>{{ row.group.group.targetPolicy?.minimumQuantity }}</strong>
-                    }
-                  </span>
-                  <span>
-                    <small>{{ loc.t("household.desiredRestock") }}</small>
-                    @if (editingGroupId() === row.group.group.id) {
-                      <input
-                        class="inline-amount-input"
-                        type="number"
-                        min="0"
-                        [ngModel]="editingGroupDesired()"
-                        (ngModelChange)="setGroupDesired($event)"
-                      />
-                    } @else {
-                      <strong>{{ row.group.group.targetPolicy?.desiredQuantity }}</strong>
-                    }
-                  </span>
-                }
                 <span>
-                  <small>{{ loc.t("household.derivedCurrent") }}</small>
-                  <strong>{{ loc.t("household.productsAndStockBatches") }}</strong>
+                  <small>{{ loc.t("household.groupTargetShoppingDistributionMode") }}</small>
+                  @if (editingGroupId() === row.group.group.id) {
+                    <select
+                      class="inline-group-select"
+                      [ngModel]="editingGroupShoppingDistributionMode()"
+                      (ngModelChange)="editingGroupShoppingDistributionMode.set($event)"
+                      [attr.aria-label]="loc.t('household.groupTargetShoppingDistributionMode')"
+                    >
+                      @for (mode of groupShoppingDistributionModeOptions; track mode) {
+                        <option [ngValue]="mode">
+                          {{ groupShoppingDistributionLabel(mode) }}
+                        </option>
+                      }
+                    </select>
+                  } @else {
+                    <strong>
+                      {{
+                        groupShoppingDistributionLabel(
+                          row.group.group.groupTargetShoppingDistributionModeOverride
+                        )
+                      }}
+                    </strong>
+                  }
                 </span>
               </div>
             }

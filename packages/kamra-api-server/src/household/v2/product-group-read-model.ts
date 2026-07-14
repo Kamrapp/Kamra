@@ -6,6 +6,10 @@ import type {
   TrackingUnit
 } from "./contracts.js";
 import { areUnitsCompatible, convertQuantity } from "./domain.js";
+import type {
+  GroupTargetShoppingDistributionMode,
+  GroupTargetShoppingMode
+} from "../shopping-policy.js";
 
 export type ProductGroupStockState =
   "below_minimum" | "at_target" | "above_target" | "between_minimum_and_target" | "not_tracked";
@@ -32,6 +36,8 @@ export interface ProductGroupNode {
 export interface ProductGroupWorkspaceReadModel {
   allowExpiredItems: boolean;
   defaultCalculatedMaxLimitMultiplier: number;
+  groupTargetShoppingDistributionMode?: GroupTargetShoppingDistributionMode;
+  groupTargetShoppingMode?: GroupTargetShoppingMode;
   productGroups: ProductGroupNode[];
   unassignedBatches: StockBatch[];
   unassignedProducts: Array<{
@@ -44,6 +50,8 @@ export interface ProductGroupWorkspaceReadModel {
 export function buildProductGroupWorkspace(input: {
   allowExpiredItems: boolean;
   defaultCalculatedMaxLimitMultiplier?: number | null;
+  groupTargetShoppingDistributionMode?: GroupTargetShoppingDistributionMode | null;
+  groupTargetShoppingMode?: GroupTargetShoppingMode | null;
   batches: StockBatch[];
   groups: ProductGroup[];
   products: HouseholdProduct[];
@@ -102,6 +110,8 @@ export function buildProductGroupWorkspace(input: {
   return {
     allowExpiredItems: input.allowExpiredItems,
     defaultCalculatedMaxLimitMultiplier: input.defaultCalculatedMaxLimitMultiplier ?? 2,
+    groupTargetShoppingDistributionMode: input.groupTargetShoppingDistributionMode ?? undefined,
+    groupTargetShoppingMode: input.groupTargetShoppingMode ?? undefined,
     productGroups,
     unassignedBatches,
     unassignedProducts: input.products

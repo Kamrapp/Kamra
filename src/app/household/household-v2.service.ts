@@ -53,6 +53,14 @@ export interface HouseholdV2ProductGroup {
   childGroups: HouseholdV2ProductGroup[];
   group: {
     displayName: string;
+    groupTargetShoppingDistributionModeOverride?:
+      "default" | "dont_split" | "split_evenly" | "least_amount" | "latest" | "oldest" | null;
+    groupTargetShoppingModeOverride?:
+      | "default"
+      | "add_products_and_group_item"
+      | "add_products_only"
+      | "ignore_group_targets"
+      | null;
     id: string;
     parentProductGroupId?: string | null;
     revision: number;
@@ -64,6 +72,10 @@ export interface HouseholdV2ProductGroup {
 export interface HouseholdV2Workspace {
   allowExpiredItems: boolean;
   defaultCalculatedMaxLimitMultiplier?: number;
+  groupTargetShoppingDistributionMode?:
+    "dont_split" | "split_evenly" | "least_amount" | "latest" | "oldest";
+  groupTargetShoppingMode?:
+    "add_products_and_group_item" | "add_products_only" | "ignore_group_targets";
   productGroups: HouseholdV2ProductGroup[];
   unassignedBatches: HouseholdV2Batch[];
   unassignedProducts: HouseholdV2ProductRow[];
@@ -409,6 +421,8 @@ export class HouseholdV2Service {
   }
   async createProductGroup(input: {
     displayName: string;
+    groupTargetShoppingDistributionModeOverride?: HouseholdV2ProductGroup["group"]["groupTargetShoppingDistributionModeOverride"];
+    groupTargetShoppingModeOverride?: HouseholdV2ProductGroup["group"]["groupTargetShoppingModeOverride"];
     householdId: string;
     targetPolicy?: HouseholdV2TargetPolicy | null;
     trackingUnit: string;
@@ -428,6 +442,8 @@ export class HouseholdV2Service {
   }
   async updateProductGroup(input: {
     displayName: string;
+    groupTargetShoppingDistributionModeOverride?: HouseholdV2ProductGroup["group"]["groupTargetShoppingDistributionModeOverride"];
+    groupTargetShoppingModeOverride?: HouseholdV2ProductGroup["group"]["groupTargetShoppingModeOverride"];
     expectedRevision: number;
     householdId: string;
     groupId: string;
@@ -440,6 +456,9 @@ export class HouseholdV2Service {
       {
         displayName: input.displayName,
         expectedRevision: input.expectedRevision,
+        groupTargetShoppingDistributionModeOverride:
+          input.groupTargetShoppingDistributionModeOverride,
+        groupTargetShoppingModeOverride: input.groupTargetShoppingModeOverride,
         targetPolicy: input.targetPolicy,
         trackingUnit: input.trackingUnit
       }

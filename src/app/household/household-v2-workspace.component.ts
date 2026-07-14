@@ -28,6 +28,13 @@ import {
   type HouseholdShoppingSelectionScale
 } from "./household-shopping-selection";
 
+type GroupShoppingMode = NonNullable<
+  HouseholdV2ProductGroup["group"]["groupTargetShoppingModeOverride"]
+>;
+type GroupShoppingDistributionMode = NonNullable<
+  HouseholdV2ProductGroup["group"]["groupTargetShoppingDistributionModeOverride"]
+>;
+
 @Component({
   selector: "app-household-v2-workspace",
   standalone: true,
@@ -67,6 +74,8 @@ export class HouseholdV2WorkspaceComponent {
   readonly editingGroupMinimum = signal<number | null>(null);
   readonly editingGroupDesired = signal<number | null>(null);
   readonly editingGroupHasTarget = signal(false);
+  readonly editingGroupShoppingMode = signal<GroupShoppingMode>("default");
+  readonly editingGroupShoppingDistributionMode = signal<GroupShoppingDistributionMode>("default");
   readonly editingProductName = signal("");
   readonly editingProductUnitOption = signal<HouseholdTrackingUnitOption>("count");
   readonly editingProductCustomUnit = signal("");
@@ -88,6 +97,20 @@ export class HouseholdV2WorkspaceComponent {
   private expansionCycleStarted = false;
   readonly icons = householdDomainIcons;
   readonly trackingUnitOptions = householdTrackingUnitOptions;
+  readonly groupShoppingModeOptions: readonly GroupShoppingMode[] = [
+    "default",
+    "add_products_and_group_item",
+    "add_products_only",
+    "ignore_group_targets"
+  ];
+  readonly groupShoppingDistributionModeOptions: readonly GroupShoppingDistributionMode[] = [
+    "default",
+    "dont_split",
+    "split_evenly",
+    "least_amount",
+    "latest",
+    "oldest"
+  ];
   private readonly service = inject(HouseholdV2Service);
   private readonly logger = inject(BrowserLoggerService);
   readonly loc = inject(LocalizationService);
@@ -258,6 +281,10 @@ export class HouseholdV2WorkspaceComponent {
     this.editingGroupMinimum.set(group.group.targetPolicy?.minimumQuantity ?? null);
     this.editingGroupDesired.set(group.group.targetPolicy?.desiredQuantity ?? null);
     this.editingGroupHasTarget.set(Boolean(group.group.targetPolicy));
+    this.editingGroupShoppingMode.set(group.group.groupTargetShoppingModeOverride ?? "default");
+    this.editingGroupShoppingDistributionMode.set(
+      group.group.groupTargetShoppingDistributionModeOverride ?? "default"
+    );
     this.editingGroupId.set(group.group.id);
     this.groupDetailsIds.update((ids) => new Set(ids).add(group.group.id));
     this.groupSelected.emit(group);
@@ -270,6 +297,8 @@ export class HouseholdV2WorkspaceComponent {
     this.editingGroupMinimum.set(null);
     this.editingGroupDesired.set(null);
     this.editingGroupHasTarget.set(false);
+    this.editingGroupShoppingMode.set("default");
+    this.editingGroupShoppingDistributionMode.set("default");
   }
   editProduct(product: HouseholdV2Product): void {
     const trackingUnit = splitTrackingUnit(
@@ -400,6 +429,72 @@ export class HouseholdV2WorkspaceComponent {
     }
     return "<";
   }
+  groupShoppingModeLabel(value: GroupShoppingMode | null | undefined): string {
+    if (value && value !== "default") {
+      return this.loc.t(
+        value === "add_products_and_group_item"
+          ? "household.groupTargetShoppingModeProductsAndGroupItem"
+          : value === "add_products_only"
+            ? "household.groupTargetShoppingModeProductsOnly"
+            : "household.groupTargetShoppingModeIgnore"
+      );
+    }
+    const global = this.workspace()?.groupTargetShoppingMode ?? "add_products_and_group_item";
+    return this.loc.t("household.groupTargetShoppingModeDefault", {
+      value: this.groupShoppingModeShortLabel(global)
+    });
+  }
+  groupShoppingDistributionLabel(value: GroupShoppingDistributionMode | null | undefined): string {
+    if (value && value !== "default") {
+      return this.loc.t(this.groupShoppingDistributionTranslationKey(value));
+    }
+    const global = this.workspace()?.groupTargetShoppingDistributionMode ?? "split_evenly";
+    return this.loc.t("household.groupTargetShoppingDistributionDefault", {
+      value: this.groupShoppingDistributionShortLabel(global)
+    });
+  }
+  private groupShoppingModeShortLabel(value: Exclude<GroupShoppingMode, "default">): string {
+    return this.loc.t(
+      value === "add_products_and_group_item"
+        ? "household.groupTargetShoppingModeShortProductsAndGroup"
+        : value === "add_products_only"
+          ? "household.groupTargetShoppingModeShortProducts"
+          : "household.groupTargetShoppingModeShortIgnore"
+    );
+  }
+  private groupShoppingDistributionShortLabel(
+    value: Exclude<GroupShoppingDistributionMode, "default">
+  ): string {
+    return this.loc.t(
+      value === "dont_split"
+        ? "household.groupTargetShoppingDistributionShortDontSplit"
+        : value === "split_evenly"
+          ? "household.groupTargetShoppingDistributionShortSplitEvenly"
+          : value === "least_amount"
+            ? "household.groupTargetShoppingDistributionShortLeastAmount"
+            : value === "latest"
+              ? "household.groupTargetShoppingDistributionShortLatest"
+              : "household.groupTargetShoppingDistributionShortOldest"
+    );
+  }
+  private groupShoppingDistributionTranslationKey(
+    value: Exclude<GroupShoppingDistributionMode, "default">
+  ):
+    | "household.groupTargetShoppingDistributionDontSplit"
+    | "household.groupTargetShoppingDistributionSplitEvenly"
+    | "household.groupTargetShoppingDistributionLeastAmount"
+    | "household.groupTargetShoppingDistributionLatest"
+    | "household.groupTargetShoppingDistributionOldest" {
+    return value === "dont_split"
+      ? "household.groupTargetShoppingDistributionDontSplit"
+      : value === "split_evenly"
+        ? "household.groupTargetShoppingDistributionSplitEvenly"
+        : value === "least_amount"
+          ? "household.groupTargetShoppingDistributionLeastAmount"
+          : value === "latest"
+            ? "household.groupTargetShoppingDistributionLatest"
+            : "household.groupTargetShoppingDistributionOldest";
+  }
   availableGroups(): HouseholdV2ProductGroup["group"][] {
     return this.flattenGroups(this.workspace()?.productGroups ?? []);
   }
@@ -434,6 +529,8 @@ export class HouseholdV2WorkspaceComponent {
       expectedRevision: group.revision,
       groupId: group.id,
       householdId: this.householdId(),
+      groupTargetShoppingDistributionModeOverride: this.editingGroupShoppingDistributionMode(),
+      groupTargetShoppingModeOverride: this.editingGroupShoppingMode(),
       targetPolicy,
       trackingUnit
     });
