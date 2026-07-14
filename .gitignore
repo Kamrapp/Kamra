@@ -121,6 +121,7 @@ src/.vs/config/applicationhost.config
 # Node and web build artifacts
 .angular/
 coverage/
+test-results/
 dist/
 node_modules/
 build/
