@@ -414,3 +414,28 @@ real-data or subjective UI evidence.
 - `npm run test:browser` passed all 4 contracts and exited in 7.7 seconds; port 4200 had no listener,
   no temporary PID/stop files remained, and only the pre-existing long-lived environment processes
   were present afterward. `npm run format:check`, `npm run lint`, and `npm run typecheck` passed.
+
+## Household target comparison and Group shopping refinement (2026-07-14)
+
+- Implemented and committed the approved target/comparison and Product Group shopping plan in
+  `809303a`, `7930eeb`, `51936eb`, `566a2b0`, and `3c0d098`.
+- Household stock now distinguishes below minimum, between minimum/target, exact target, and above
+  target. Above target uses a `>>` marker and stronger-good styling; untracked rows have no markers.
+- Shopping-list building preserves manual Product/Group checkbox changes until the scale changes;
+  focused Chromium coverage proves default selection, manual toggles, scale reset, and final request
+  ownership.
+- Group target fulfillment now supports no split, split evenly, least amount, latest stocked, and
+  oldest stocked strategies. Each Group persists explicit `default`/local overrides, and the Group
+  details row shows the inherited household value without duplicating target quantities.
+- The household validator accepts the new distribution values. Legacy `even`/`proportional` values
+  normalize to `split_evenly`; Product Group maintenance upgrades its validator and backfills missing
+  inherited overrides separately from the data migration.
+- The demo fixture uses global split-evenly by default, explicit inherited overrides on all Groups,
+  and `Gyümölcsök` with a local `latest` override. `scripts/demo-household-smoke.ts` asserts those
+  contracts in addition to ownership, expiry, and batch permutations.
+- Focused generator/read-model/repository tests, typecheck, lint, formatting, and the demo seed test
+  pass. The configured database maintenance actions and the final browser visual check remain open.
+
+Next action: run the household validator action for the changed household/Product Group contracts in
+the approved disposable database, then run `npm run seed:demo-household` and
+`npm run smoke:demo-household`; finish the new manual checks in `scripts/stage11-mvp-manual-test.md`.

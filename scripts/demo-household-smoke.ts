@@ -60,6 +60,11 @@ async function runDemoHouseholdSmoke(): Promise<void> {
     "add_products_and_group_item",
     "Demo household should use the default grouped shopping mode."
   );
+  assert.equal(
+    household.groupTargetShoppingDistributionMode,
+    "split_evenly",
+    "Demo household should use split-evenly grouped shopping by default."
+  );
 
   const groupByName = new Map(groups.map((group) => [group.displayName, group]));
   for (const name of ["Tej", "Kenyér", "Zöldségek", "Gyümölcsök", "Ünnepi sütés"]) {
@@ -81,6 +86,19 @@ async function runDemoHouseholdSmoke(): Promise<void> {
     groupByName.get("Ünnepi sütés")?.targetPolicy,
     null,
     "The empty demo group should remain untargeted."
+  );
+  assert.equal(
+    groupByName.get("Gyümölcsök")?.groupTargetShoppingDistributionModeOverride,
+    "latest",
+    "Fruit should demonstrate a local latest-stocked Product strategy."
+  );
+  assert.ok(
+    groups.every(
+      (group) =>
+        group.groupTargetShoppingModeOverride === "default" &&
+        group.groupTargetShoppingDistributionModeOverride !== undefined
+    ),
+    "Every demo Product Group should expose explicit inherited shopping-policy defaults."
   );
 
   const productByName = new Map(products.map((product) => [product.displayName, product]));

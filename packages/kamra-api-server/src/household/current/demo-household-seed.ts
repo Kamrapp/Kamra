@@ -388,6 +388,7 @@ export function createDemoHouseholdSeedDataset(
     createdByUserId: demoHouseholdOwnerUserId,
     defaultCalculatedMaxLimitMultiplier: 2,
     favouriteShopId: null,
+    groupTargetShoppingDistributionMode: "split_evenly",
     groupTargetShoppingMode: "add_products_and_group_item",
     id: demoHouseholdId,
     name: "Hungarian nature household",
@@ -638,11 +639,15 @@ async function seedDemoHouseholdV2Data(database: MongoDatabaseLike, now: Date): 
     id: string,
     displayName: string,
     trackingUnit: TrackingUnit,
-    targetPolicy?: TargetPolicy
+    targetPolicy?: TargetPolicy,
+    groupTargetShoppingDistributionModeOverride: ProductGroup["groupTargetShoppingDistributionModeOverride"] = "default",
+    groupTargetShoppingModeOverride: ProductGroup["groupTargetShoppingModeOverride"] = "default"
   ): ProductGroup => ({
     createdAt: timestamp,
     createdByUserId: demoHouseholdOwnerUserId,
     displayName,
+    groupTargetShoppingDistributionModeOverride,
+    groupTargetShoppingModeOverride,
     householdId: demoHouseholdId,
     id: `product-group:${demoHouseholdId}:${id}`,
     revision: 0,
@@ -656,7 +661,7 @@ async function seedDemoHouseholdV2Data(database: MongoDatabaseLike, now: Date): 
     group("milk", "Tej", "l", policy(2, 4, "l")),
     group("bread", "Kenyér", "kg", policy(1, 2, "kg")),
     group("vegetables", "Zöldségek", "kg"),
-    group("fruit", "Gyümölcsök", "kg"),
+    group("fruit", "Gyümölcsök", "kg", undefined, "latest"),
     group("nuts", "Egészséges rágcsálnivalók", "kg"),
     group("empty", "Ünnepi sütés", "kg")
   ];

@@ -430,5 +430,22 @@ Manual after implementation:
 
 ## Approval Checkpoint
 
-Implementation should not begin until the user approves this plan. The current request is a planning
-request only; no application behavior is changed by this file.
+The user approved this plan for implementation. The implementation status and commit mapping below
+are the current source of truth for what has landed.
+
+## Implementation status (2026-07-14)
+
+The plan was approved and implemented in these atomic commits:
+
+- `809303a` — above-target state, comparison markers, and state styling.
+- `7930eeb` — manual Product/Group shopping-selection synchronization and browser contracts.
+- `51936eb` — explicit Product Group shopping strategies and household settings contract.
+- `566a2b0` — validator/schema strategy values, legacy-value normalization, and Product Group
+  inherited-override migration/maintenance action.
+- `3c0d098` — Group detail override controls, inherited-label read-model fields, and shared table
+  grid tracks.
+
+The focused unit, repository, typecheck, lint, and formatting validations pass. Demo seed/smoke
+coverage now asserts the split-evenly household default, explicit Group inheritance, and the
+seeded `Gyümölcsök` local strategy. Remaining evidence is limited to the live configured
+maintenance/seed execution and the manual visual/interaction checks in the Stage 11 runbook.
