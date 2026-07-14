@@ -76,6 +76,7 @@ export class HouseholdShoppingListComponent implements OnChanges, OnDestroy {
   @Input() shoppingScale: HouseholdShoppingList["scale"] = "keep_it_chill";
   @Input() selectedOwnerIds: readonly string[] | null = null;
   @Output() stockPageUpdated = new EventEmitter<HouseholdStockPage>();
+  @Output() shoppingListCancelled = new EventEmitter<void>();
 
   readonly loc = inject(LocalizationService);
   private readonly household = inject(HouseholdStockService);
@@ -383,6 +384,7 @@ export class HouseholdShoppingListComponent implements OnChanges, OnDestroy {
     this.sectionCollapsed.set(true);
     this.stockAppliedAt.set(todayDateInputValue());
     this.statusMessage.set(this.loc.t("household.shoppingListCancelled"));
+    this.shoppingListCancelled.emit();
   }
 
   async reloadShoppingList(): Promise<void> {
@@ -404,6 +406,9 @@ export class HouseholdShoppingListComponent implements OnChanges, OnDestroy {
         return;
       case "observedPriceCurrency":
         await this.updateObservedPriceCurrency(item.id, change.value);
+        return;
+      case "displayName":
+        await this.updateLineText(item.id, "displayName", change.value);
         return;
       case "plannedAmount":
         await this.updateLineNumber(item.id, "plannedAmount", change.value);
@@ -529,15 +534,49 @@ export class HouseholdShoppingListComponent implements OnChanges, OnDestroy {
     }));
   }
 
-  async updateLineText(id: string, field: "unit", value: string): Promise<void> {
+  async updateLineText(id: string, field: "displayName" | "unit", value: string): Promise<void> {
     if (this.isReadOnly()) {
+      return;
+    }
+
+    const nextValue = field === "displayName" ? value.trim() : value;
+    if (!nextValue) {
       return;
     }
 
     await this.updateLine(id, (item) => ({
       ...item,
-      [field]: value
+      [field]: nextValue
     }));
+  }
+
+  async discardShoppingLine(id: string): Promise<void> {
+    if (this.isReadOnly()) {
+      return;
+    }
+
+    const list = this.shoppingList();
+    if (!list) {
+      return;
+    }
+
+    const item = list.items.find((candidate) => candidate.id === id);
+    if (!item) {
+      return;
+    }
+
+    await this.persistShoppingList(
+      {
+        ...list,
+        items: list.items.filter((candidate) => candidate.id !== id)
+      },
+      this.loc.t("household.shoppingListItemDiscarded", { name: item.displayName })
+    );
+    this.logger.log("info", "Shopping list item discarded", {
+      displayName: item.displayName,
+      lineId: item.id,
+      shoppingListId: list.id
+    });
   }
 
   async updateObservedPriceAmount(id: string, value: number | string): Promise<void> {

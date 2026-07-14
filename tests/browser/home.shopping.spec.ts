@@ -24,6 +24,7 @@ test("Home builds, retries, generates, and cancels a shopping list", async ({ pa
   await page.getByRole("button", { name: "Cancel shopping" }).click();
   await expect(buildButton).toBeEnabled();
   await expect(page.locator('app-household-v2-workspace input[type="checkbox"]')).toHaveCount(0);
+  await expect(householdWorkspace.locator(".stock-grid-shell")).toBeVisible();
 
   await buildButton.click();
   const generateButton = page.getByRole("button", { name: "Generate shopping list" });
@@ -36,7 +37,7 @@ test("Home builds, retries, generates, and cancels a shopping list", async ({ pa
   fixture.state.createShoppingListStatus = 200;
   await generateButton.click();
 
-  await expect(page.getByText("Alma", { exact: true })).toBeVisible();
+  await expect(page.locator('input[aria-label="Shopping item name"]').first()).toHaveValue("Alma");
   await expect(buildButton).toBeDisabled();
   await expect(page.getByRole("button", { name: "Cancel shopping" })).toBeEnabled();
   expect(
@@ -51,7 +52,8 @@ test("Home builds, retries, generates, and cancels a shopping list", async ({ pa
     (request) => request.method === "PATCH" && request.path === "/api/household/shopping-lists"
   ).length;
   await page.getByRole("button", { name: "Quick add" }).click();
-  await expect(page.getByText("Alma", { exact: true })).toHaveCount(1);
+  await expect(page.locator('input[aria-label="Shopping item name"]')).toHaveCount(1);
+  await expect(page.locator('input[aria-label="Shopping item name"]').first()).toHaveValue("Alma");
   expect(
     fixture.requests.filter(
       (request) => request.method === "PATCH" && request.path === "/api/household/shopping-lists"
@@ -61,6 +63,63 @@ test("Home builds, retries, generates, and cancels a shopping list", async ({ pa
   await page.getByRole("button", { name: "Cancel shopping" }).click();
   await expect(buildButton).toBeEnabled();
   await expect(page.getByText("Alma", { exact: true })).toHaveCount(0);
+  expect(fixture.unexpectedRequests).toEqual([]);
+});
+
+test("Home shopping rows support impulse rename, discard, and purchased labeling", async ({
+  page
+}) => {
+  const fixture = await installBrowserApiFixture(page);
+  await page.goto("/");
+
+  await page.getByRole("button", { name: "Build shopping list" }).click();
+  await page.getByRole("button", { name: "Generate shopping list" }).click();
+
+  const impulseName = page.getByLabel("Shopping item name");
+  await expect(impulseName).toHaveValue("Alma");
+  const patchCountBeforeRename = fixture.requests.filter(
+    (request) => request.method === "PATCH" && request.path === "/api/household/shopping-lists"
+  ).length;
+  await impulseName.fill("Alma duplicate");
+  await impulseName.press("Enter");
+  await expect(page.locator('input[aria-label="Shopping item name"]').first()).toHaveValue(
+    "Alma duplicate"
+  );
+  await expect
+    .poll(
+      () =>
+        fixture.requests.filter(
+          (request) =>
+            request.method === "PATCH" && request.path === "/api/household/shopping-lists"
+        ).length
+    )
+    .toBe(patchCountBeforeRename + 1);
+
+  const renameRequest = [...fixture.requests]
+    .reverse()
+    .find(
+      (request) => request.method === "PATCH" && request.path === "/api/household/shopping-lists"
+    );
+  expect(renameRequest?.body).toMatchObject({
+    items: expect.arrayContaining([expect.objectContaining({ displayName: "Alma duplicate" })])
+  });
+
+  await page
+    .locator(".shopping-line-impulse")
+    .getByRole("button", { name: "Remove this item from the shopping list" })
+    .click();
+  await expect(page.locator('input[aria-label="Shopping item name"]')).toHaveCount(0);
+  const discardRequest = [...fixture.requests]
+    .reverse()
+    .find(
+      (request) => request.method === "PATCH" && request.path === "/api/household/shopping-lists"
+    );
+  expect(discardRequest?.body).toMatchObject({
+    items: expect.not.arrayContaining([expect.objectContaining({ displayName: "Alma duplicate" })])
+  });
+
+  await page.locator(".shopping-line-product input[type='checkbox']").first().check();
+  await expect(page.getByRole("button", { name: /1 purchased item/ })).toBeVisible();
   expect(fixture.unexpectedRequests).toEqual([]);
 });
 
@@ -127,7 +186,7 @@ test("Home finishes shopping with the household workspace reopened", async ({ pa
   await page.getByRole("button", { name: "Build shopping list" }).click();
   await page.getByRole("button", { name: "Generate shopping list" }).click();
 
-  await expect(page.getByText("Alma", { exact: true })).toBeVisible();
+  await expect(page.locator('input[aria-label="Shopping item name"]').first()).toHaveValue("Alma");
   await expect(householdWorkspace.locator(".stock-grid-shell")).toHaveCount(0);
 
   await page.getByRole("button", { name: "Finalize shopping and save stocks" }).click();

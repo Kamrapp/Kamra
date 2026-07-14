@@ -71,6 +71,7 @@
       [shoppingScale]="apiShoppingScale()"
       [selectedOwnerIds]="shoppingSelectionMode() ? selectedShoppingItemIdsArray() : null"
       (stockPageUpdated)="applyShoppingListStockPage($event)"
+      (shoppingListCancelled)="onShoppingListCancelled()"
     />
     <app-household-shopping-trip-panel
       class="shopping-bottom-row"

@@ -556,10 +556,17 @@ export class HomeComponent implements OnDestroy {
     this.shoppingSelectionMode.set(true);
     this.resetShoppingSelection();
   }
-  private cancelShoppingSelection(): void {
+  private cancelShoppingSelection(reopenWorkspace = true): void {
     this.shoppingSelectionMode.set(false);
     this.shoppingSelectionDirty.set(false);
     this.selectedShoppingItemIds.set(new Set());
+    if (reopenWorkspace) {
+      this.v2Workspace?.setSectionExpanded(true);
+    }
+  }
+
+  onShoppingListCancelled(): void {
+    this.v2Workspace?.setSectionExpanded(true);
   }
   private resetShoppingSelection(): void {
     this.shoppingSelectionDirty.set(false);
@@ -573,7 +580,7 @@ export class HomeComponent implements OnDestroy {
       return;
     }
     this.v2Workspace?.setSectionExpanded(false);
-    this.cancelShoppingSelection();
+    this.cancelShoppingSelection(false);
   }
 
   startCreateItem(): void {

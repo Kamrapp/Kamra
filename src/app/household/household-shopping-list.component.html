@@ -93,6 +93,7 @@
                 <span>{{ loc.t("household.purchasedShort") }}</span>
                 <span>{{ loc.t("household.unit") }}</span>
                 <span></span>
+                <span></span>
               </div>
             }
 
@@ -111,6 +112,7 @@
                       [readOnly]="isReadOnly()"
                       [saving]="mutationState() === 'saving'"
                       (changed)="handleLineChange(item, $event)"
+                      (discardRequested)="discardShoppingLine(item.id)"
                     />
                   </article>
                 }
@@ -153,6 +155,7 @@
                             [readOnly]="isReadOnly()"
                             [saving]="mutationState() === 'saving'"
                             (changed)="handleLineChange(item, $event)"
+                            (discardRequested)="discardShoppingLine(item.id)"
                           />
                         </article>
                       }

@@ -13,6 +13,7 @@ import {
 export type ShoppingListLineChange =
   | { kind: "observedPriceAmount"; value: number | string }
   | { kind: "observedPriceCurrency"; value: string }
+  | { kind: "displayName"; value: string }
   | { kind: "plannedAmount"; value: number | string }
   | { kind: "purchasedAmount"; value: number | string }
   | { kind: "ticked"; value: boolean }
@@ -31,7 +32,20 @@ export type ShoppingListLineChange =
           (change)="changed.emit({ kind: 'ticked', value: $any($event.target).checked })"
           [disabled]="readOnly() || saving()"
         />
-        <span>{{ item().displayName }}</span>
+        @if (isImpulse()) {
+          <input
+            class="shopping-name-editor"
+            type="text"
+            [ngModel]="displayNameDraft()"
+            (ngModelChange)="updateNameDraft($event)"
+            (blur)="saveName()"
+            (keydown.enter)="saveName()"
+            [disabled]="readOnly() || saving()"
+            [attr.aria-label]="loc.t('household.shoppingListItemName')"
+          />
+        } @else {
+          <span>{{ item().displayName }}</span>
+        }
       </label>
 
       <div class="shopping-amounts">
@@ -112,6 +126,17 @@ export type ShoppingListLineChange =
           }
         </svg>
       </button>
+
+      <button
+        class="details-toggle line-discard"
+        type="button"
+        (click)="discardRequested.emit()"
+        [disabled]="readOnly() || saving()"
+        [attr.aria-label]="loc.t('household.shoppingListDiscardItem')"
+        [attr.title]="loc.t('household.shoppingListDiscardItem')"
+      >
+        <span aria-hidden="true">×</span>
+      </button>
     </div>
 
     @if (expanded()) {
@@ -171,9 +196,11 @@ export type ShoppingListLineChange =
         display: grid;
         background: var(--shopping-line-background, transparent);
         gap: 0.55rem;
-        grid-template-columns:
-          minmax(10rem, 1fr) minmax(4.8rem, 6.5rem) minmax(4.8rem, 6.5rem)
-          minmax(3.8rem, 4.5rem) 2.2rem;
+        grid-template-columns: var(
+          --shopping-list-columns,
+          minmax(5.5rem, 1fr) minmax(3rem, 4rem) minmax(3rem, 4rem) minmax(4.2rem, 5rem) 1.8rem
+            1.8rem
+        );
       }
 
       .shopping-check {
@@ -181,6 +208,12 @@ export type ShoppingListLineChange =
         display: flex;
         gap: 0.6rem;
         font-weight: 800;
+        min-width: 0;
+      }
+
+      .shopping-name-editor {
+        min-width: 0;
+        width: 100%;
       }
 
       .shopping-amounts {
@@ -207,7 +240,7 @@ export type ShoppingListLineChange =
       .shopping-unit-editor {
         display: grid;
         gap: 0.25rem;
-        grid-template-columns: minmax(4.5rem, 1fr) minmax(4.5rem, 1fr);
+        grid-template-columns: minmax(2.5rem, 1fr) minmax(2.5rem, 1fr);
       }
 
       .shopping-unit-editor select,
@@ -270,6 +303,10 @@ export type ShoppingListLineChange =
         width: 1rem;
       }
 
+      .line-discard {
+        color: var(--color-status-danger-text);
+      }
+
       @media (max-width: 900px) {
         .shopping-detail-fields {
           align-items: stretch;
@@ -310,7 +347,35 @@ export class ShoppingListLineComponent {
   readonly readOnly = input.required<boolean>();
   readonly saving = input.required<boolean>();
   readonly changed = output<ShoppingListLineChange>();
+  readonly discardRequested = output<void>();
   readonly expanded = signal(false);
+  readonly nameDraft = signal<string | null>(null);
+  private lastSubmittedName: string | null = null;
+
+  isImpulse(): boolean {
+    return this.item().sourceKind === "manual" && !this.item().householdProductId;
+  }
+
+  displayNameDraft(): string {
+    return this.nameDraft() ?? this.item().displayName;
+  }
+
+  updateNameDraft(value: string): void {
+    this.nameDraft.set(value);
+  }
+
+  saveName(): void {
+    const value = this.displayNameDraft().trim();
+    if (!value) {
+      this.nameDraft.set(this.item().displayName);
+      return;
+    }
+    this.nameDraft.set(value);
+    if (value !== this.item().displayName && value !== this.lastSubmittedName) {
+      this.lastSubmittedName = value;
+      this.changed.emit({ kind: "displayName", value });
+    }
+  }
 
   unitOption(item: HouseholdShoppingListLine): HouseholdTrackingUnitOption {
     return splitTrackingUnit(item.unit).option;
