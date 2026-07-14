@@ -273,7 +273,8 @@ async function runValidatorAction(
   }
   if (
     entryId === "household-group-shopping-policy-v1" ||
-    entryId === "household-group-shopping-distribution-v1"
+    entryId === "household-group-shopping-distribution-v1" ||
+    entryId === "household-group-shopping-distribution-v2"
   ) {
     const repository = context.dependencies.createHouseholdRepository
       ? context.dependencies.createHouseholdRepository(database)
@@ -363,6 +364,9 @@ async function runMigrationAction(
       ? context.dependencies.createHouseholdRepository(database)
       : createDefaultHouseholdRepository(database);
     return await repository.migrateGroupTargetShoppingDistribution();
+  }
+  if (entryId === "household-group-shopping-distribution-v2") {
+    return { migratedCount: 0, status: "ready" };
   }
   if (entryId === "household-invitations-v1") {
     return { status: "ready", migratedCount: 0 };

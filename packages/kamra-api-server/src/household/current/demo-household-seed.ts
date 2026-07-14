@@ -397,7 +397,7 @@ async function assertCurrentHouseholdValidator(database: MongoDatabaseLike): Pro
   }
 
   throw new Error(
-    `Demo household seed requires current household validators in database '${database.databaseName}'. ${validatorProblems.join(" | ")} Run the database-maintenance validator actions, including household-group-shopping-policy-v1 and household-group-shopping-distribution-v1 (Run all; do not only mark them complete), then retry npm run seed:demo-household.`
+    `Demo household seed requires current household validators in database '${database.databaseName}'. ${validatorProblems.join(" | ")} Run the database-maintenance validator actions, including household-group-shopping-distribution-v2 (Run all; do not only mark them complete), then retry npm run seed:demo-household.`
   );
 }
 

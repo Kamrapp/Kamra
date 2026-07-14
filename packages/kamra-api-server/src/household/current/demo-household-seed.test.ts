@@ -98,7 +98,7 @@ describe("runDemoHouseholdSeed", () => {
         repository,
         new Date("2026-07-09T10:00:00.000Z")
       )
-    ).rejects.toThrow("household-group-shopping-policy-v1");
+    ).rejects.toThrow("household-group-shopping-distribution-v2");
 
     expect(db.__collections["users"]?.docs ?? []).toHaveLength(0);
   });

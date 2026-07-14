@@ -43,6 +43,12 @@ export const databaseMaintenanceEntries: readonly DatabaseMaintenanceEntry[] = [
   },
   {
     details:
+      "Refreshes the household validator after the grouped-target distribution enum was expanded to the current five explicit strategies. This is a validator-only compatibility repair for databases where the original distribution maintenance entry was already marked complete; no stored data migration is required.",
+    id: "household-group-shopping-distribution-v2",
+    title: "Household grouped-target distribution validator refresh"
+  },
+  {
+    details:
       "Creates the pending household invitation collection and indexes used by the small no-email membership flow. The validator action changes accepted invitation documents; the migration action is acknowledgement-only because invitations have no legacy source data.",
     id: "household-invitations-v1",
     title: "Household invitations"
