@@ -51,9 +51,24 @@ the stages settle, then executed once at the Phase 1 acceptance stage.
 The stages are sequential because each establishes language or contracts used by the next. A stage
 may prepare a compatible seam for later work, but must not implement later-stage product behavior.
 
+The complete sequence is planned early at deliberately different confidence levels:
+
+| Stage | Planning confidence | Approval rule |
+| --- | --- | --- |
+| 1 | Approved detailed plan | Implement against the approved plan. |
+| 2–4 | Implementation-oriented successor drafts | Reconcile predecessor runtime contracts, then obtain user approval before implementation. |
+| 5–6 | Research- and decision-gated drafts | Approve measurement/research first; approve implementation only after the documented decision gate. |
+| 7 | Closure framework | Revise after every stage and approve the executable acceptance plan after Stage 6. |
+
+These plans may be revised at every stage boundary. A revision that changes architecture, data
+policy, stage order, closure scope, or commit split needs explicit review; stage-internal file and
+test details can follow runtime truth without pretending the early plan was exact.
+
 ### Stage 1 — journey contract and terminology
 
 Define the canonical household journey and remove ambiguous language before expanding it.
+
+Approved detailed plan: [Phase 1 Stage 1 plan](./phase-1-stage-1-journey-terminology-plan.md).
 
 - Inventory user-facing and code-facing uses of Shopping list/Shopping Trip, Crawl/Ingestion, and
   Catalogue/Product.
@@ -73,6 +88,8 @@ domain/architecture docs and can be used by every later stage.
 
 Make the existing Product universe feel native inside household editing.
 
+Detailed successor draft: [Phase 1 Stage 2 plan](./phase-1-stage-2-household-product-discovery-plan.md).
+
 - Add a compact, paginated search over Products from the household add/link flow.
 - Rank and explain suggestions using available names, identifiers, Product Concepts, Product Groups,
   tags, and other approved metadata; exact identifiers and prior household choices should outrank
@@ -88,6 +105,8 @@ compact flow, with ranking behavior protected by focused specs.
 ### Stage 3 — scalable review and simpler administration
 
 Turn crawl- and candidate-level review into a high-throughput workbench.
+
+Detailed successor draft: [Phase 1 Stage 3 plan](./phase-1-stage-3-scalable-review-admin-plan.md).
 
 - Provide queue views at both source capture/Crawl Snapshot level and individual extracted-entry
   level, with an unambiguous relationship between the two.
@@ -109,6 +128,8 @@ it safely, correct exceptions, and understand what was persisted.
 
 Remove the visible duality between Shopping list and Shopping Trip.
 
+Detailed successor draft: [Phase 1 Stage 4 plan](./phase-1-stage-4-list-first-shopping-plan.md).
+
 - Keep the open Shopping list as the main workspace. Starting shopping is one action that selects a
   Shop Market or an explicit custom shop and opens lightweight session details.
 - While the session is active, marking a list row bought automatically records it in that session.
@@ -129,7 +150,10 @@ retry/reload behavior cannot duplicate purchases, stock, or observations.
 
 Use receipt evidence to complete the session and feed useful facts toward the shared catalogue.
 
-Research gate before the stage plan:
+Research-gated successor draft:
+[Phase 1 Stage 5 plan](./phase-1-stage-5-receipt-price-bridge-plan.md).
+
+Research gate before implementation:
 
 - compare supported digital-receipt formats and realistic extraction modules before choosing the
   first adapter; prefer structured digital receipts when they provide a simpler reliable first path;
@@ -158,7 +182,10 @@ observations, and improve Product links without duplicate or unjustified shared 
 
 Keep ingestion useful without allowing raw or pending crawl data to drown the database.
 
-Research gate before the stage plan:
+Measurement-gated successor draft:
+[Phase 1 Stage 6 plan](./phase-1-stage-6-crawl-lifecycle-minimization-plan.md).
+
+Research gate before implementation:
 
 - measure volume, state distribution, duplicate patterns, and provenance requirements on approved
   non-sensitive data;
@@ -183,6 +210,9 @@ explicit verified retention policy, and no cleanup path can silently discard unr
 ### Stage 7 — integration hardening and Phase 1 acceptance
 
 Close the whole journey only after the preceding behavior has stabilized.
+
+Closure-framework draft:
+[Phase 1 Stage 7 plan](./phase-1-stage-7-integration-acceptance-plan.md).
 
 - Reconcile naming, navigation, accessibility, responsive layout, localization, activity/error
   feedback, authorization, and stale/concurrent actions across the household and admin surfaces.
@@ -247,7 +277,9 @@ Each stage plan must identify the smallest useful layers:
 
 ## Commit and planning split
 
-- Create one detailed stage plan at a time after inspecting current runtime code.
+- Keep early successor plans at the confidence supported by current runtime code. Reconcile and
+  approve the next plan at each stage boundary; pass its research/decision checkpoint separately
+  when implementation details depend on evidence not yet available.
 - Split implementation into reviewable behavior, persistence/API, UI, automated validation, and
   documentation units where those boundaries are meaningful.
 - Update the shared Phase 1 manual runbook as acceptance points become stable, but execute the full
@@ -268,5 +300,7 @@ Each stage plan must identify the smallest useful layers:
 
 ## Approval checkpoint
 
-The user approved this top-level Phase 1 planning and MVP transition in the 2026-07-14 request. Each
-stage still needs its own reviewed implementation plan before code changes begin.
+The user approved this top-level Phase 1 direction, MVP transition, and Stage 1 plan in the
+2026-07-14 requests. Stages 2–7 are early successor drafts, not implementation approval. Each must be
+reconciled at the preceding stage boundary and reviewed before code changes; Stages 5–6 also require
+their documented research/decision approval.
