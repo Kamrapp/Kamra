@@ -66,26 +66,30 @@ import { LocalizationService, type TranslationKey } from "../shared/localization
                   })
                 }}
               </span>
-              <button
-                class="ui-button ui-button-primary ui-button-sm"
-                type="button"
-                [disabled]="acceptingInvitationId === invitation.id"
-                (click)="acceptInvitation(invitation.id)"
-              >
-                {{
-                  acceptingInvitationId === invitation.id
-                    ? loc.t("common.loading")
-                    : loc.t("app.acceptInvitation")
-                }}
-              </button>
-              <button
-                class="ui-button ui-button-danger ui-button-sm"
-                type="button"
-                [disabled]="acceptingInvitationId === invitation.id"
-                (click)="rejectInvitation(invitation.id)"
-              >
-                {{ loc.t("app.rejectInvitation") }}
-              </button>
+              <span class="invitation-actions">
+                <button
+                  class="ui-button ui-button-primary ui-button-sm invitation-action-button"
+                  type="button"
+                  [disabled]="acceptingInvitationId === invitation.id"
+                  (click)="acceptInvitation(invitation.id)"
+                  [attr.aria-label]="loc.t('app.acceptInvitation')"
+                  [attr.title]="loc.t('app.acceptInvitation')"
+                >
+                  <span aria-hidden="true">
+                    {{ acceptingInvitationId === invitation.id ? "…" : "✓" }}
+                  </span>
+                </button>
+                <button
+                  class="ui-button ui-button-danger ui-button-sm invitation-action-button"
+                  type="button"
+                  [disabled]="acceptingInvitationId === invitation.id"
+                  (click)="rejectInvitation(invitation.id)"
+                  [attr.aria-label]="loc.t('app.rejectInvitation')"
+                  [attr.title]="loc.t('app.rejectInvitation')"
+                >
+                  <span aria-hidden="true">×</span>
+                </button>
+              </span>
             </div>
           }
         </div>
@@ -314,6 +318,24 @@ import { LocalizationService, type TranslationKey } from "../shared/localization
       .household-invitation-row span {
         color: var(--color-text);
         font-size: 0.78rem;
+      }
+
+      .invitation-actions {
+        align-items: center;
+        display: inline-flex;
+        gap: var(--space-1);
+        justify-content: flex-end;
+      }
+
+      .invitation-action-button {
+        align-items: center;
+        display: inline-flex;
+        font-size: 0.9rem;
+        height: 1.8rem;
+        justify-content: center;
+        min-width: 1.8rem;
+        padding: 0;
+        width: 1.8rem;
       }
 
       .icon-button {

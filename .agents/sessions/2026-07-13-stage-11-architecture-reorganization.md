@@ -520,3 +520,13 @@ the approved disposable database, then run `npm run seed:demo-household` and
   Products without Batches so all Product names start at the same position.
 - Added browser assertions for shared cell starts and expandable versus empty Product rows. The
   focused and full Chromium suites pass after this correction.
+
+## Invitation action follow-up (2026-07-14)
+
+- Replaced textual incoming-invitation actions with compact accessible ✓/× controls in both the Home
+  household panel and the secondary account rail; the rail now supports rejection as well as
+  acceptance.
+- Moved the accepted Manual/diagnostics checks out of the active runbook. Only the narrow-viewport
+  invitation action layout remains open for visual confirmation.
+- Added a two-surface browser contract. The full Chromium suite now passes with 10 tests; typecheck,
+  lint, Prettier, and diff checks pass.

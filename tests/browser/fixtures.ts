@@ -20,6 +20,7 @@ const browserHousehold = {
 export interface BrowserApiState {
   createShoppingListStatus: number;
   household: typeof browserHousehold;
+  pendingInvitations: Array<Record<string, unknown>>;
   userRole: "admin" | "user";
   shoppingList: Record<string, unknown> | null;
   shopMarkets: Array<Record<string, unknown>>;
@@ -56,6 +57,7 @@ export function createBrowserApiState(): BrowserApiState {
   return {
     createShoppingListStatus: 200,
     household: browserHousehold,
+    pendingInvitations: [],
     userRole: "user",
     shoppingList: null,
     shopMarkets: [
@@ -275,7 +277,7 @@ function findResponse(
   }
 
   if (request.method === "GET" && request.path === "/api/invitations") {
-    return jsonResponse(200, { invitations: [] });
+    return jsonResponse(200, { invitations: state.pendingInvitations });
   }
 
   if (request.method === "POST" && request.path === "/api/log") {

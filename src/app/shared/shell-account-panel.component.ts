@@ -36,18 +36,30 @@ export interface ShellLoginCredentials {
                     })
                   }}
                 </span>
-                <button
-                  class="ui-button ui-button-sm"
-                  type="button"
-                  [disabled]="acceptingInvitationId === invitation.id"
-                  (click)="acceptInvitation(invitation.id)"
-                >
-                  {{
-                    acceptingInvitationId === invitation.id
-                      ? loc.t("common.loading")
-                      : loc.t("app.acceptInvitation")
-                  }}
-                </button>
+                <span class="invitation-actions">
+                  <button
+                    class="ui-button ui-button-primary ui-button-sm invitation-action-button"
+                    type="button"
+                    [disabled]="acceptingInvitationId === invitation.id"
+                    (click)="acceptInvitation(invitation.id)"
+                    [attr.aria-label]="loc.t('app.acceptInvitation')"
+                    [attr.title]="loc.t('app.acceptInvitation')"
+                  >
+                    <span aria-hidden="true">
+                      {{ acceptingInvitationId === invitation.id ? "…" : "✓" }}
+                    </span>
+                  </button>
+                  <button
+                    class="ui-button ui-button-danger ui-button-sm invitation-action-button"
+                    type="button"
+                    [disabled]="acceptingInvitationId === invitation.id"
+                    (click)="rejectInvitation(invitation.id)"
+                    [attr.aria-label]="loc.t('app.rejectInvitation')"
+                    [attr.title]="loc.t('app.rejectInvitation')"
+                  >
+                    <span aria-hidden="true">×</span>
+                  </button>
+                </span>
               </div>
             }
           </div>
@@ -203,6 +215,24 @@ export interface ShellLoginCredentials {
         font-size: 0.78rem;
       }
 
+      .invitation-actions {
+        align-items: center;
+        display: inline-flex;
+        gap: var(--space-1);
+        justify-content: flex-end;
+      }
+
+      .invitation-action-button {
+        align-items: center;
+        display: inline-flex;
+        font-size: 0.9rem;
+        height: 1.8rem;
+        justify-content: center;
+        min-width: 1.8rem;
+        padding: 0;
+        width: 1.8rem;
+      }
+
       .user-chip {
         background: color-mix(in srgb, var(--color-surface) 82%, white 18%);
         border: 1px solid var(--line-panel);
@@ -308,6 +338,12 @@ export class ShellAccountPanelComponent {
     const result = await this.invitationService.accept(invitationId);
     this.acceptingInvitationId = "";
     if (result.status === "ok") this.invitationAccepted.emit(result.invitation.householdId);
+  }
+
+  async rejectInvitation(invitationId: string): Promise<void> {
+    this.acceptingInvitationId = invitationId;
+    await this.invitationService.reject(invitationId);
+    this.acceptingInvitationId = "";
   }
 
   setLanguage(value: string): void {
