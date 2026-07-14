@@ -58,3 +58,58 @@ test("Home builds, retries, generates, and cancels a shopping list", async ({ pa
   await expect(page.getByText("Alma", { exact: true })).toHaveCount(0);
   expect(fixture.unexpectedRequests).toEqual([]);
 });
+
+test("Home shopping selection allows manual changes and resets after a scale change", async ({
+  page
+}) => {
+  const fixture = await installBrowserApiFixture(page);
+  await page.goto("/");
+
+  await page.getByRole("button", { name: "Build shopping list" }).click();
+  const groupCheckbox = page.getByRole("checkbox", { name: "Milk", exact: true });
+  const productCheckbox = page.getByRole("checkbox", { name: "Pilos 1.5% milk" });
+  const untrackedCheckbox = page.getByRole("checkbox", { name: "Banana" });
+
+  await expect(groupCheckbox).toBeChecked();
+  await expect(productCheckbox).toBeChecked();
+  await expect(untrackedCheckbox).not.toBeChecked();
+
+  await productCheckbox.uncheck();
+  await untrackedCheckbox.check();
+  await expect(productCheckbox).not.toBeChecked();
+  await expect(untrackedCheckbox).toBeChecked();
+
+  const scale = page.getByRole("slider", { name: "Shopping scale" });
+  await scale.fill("0");
+  await expect(groupCheckbox).not.toBeChecked();
+  await expect(productCheckbox).not.toBeChecked();
+  await expect(untrackedCheckbox).not.toBeChecked();
+
+  await scale.fill("2");
+  await expect(groupCheckbox).toBeChecked();
+  await expect(productCheckbox).toBeChecked();
+  await expect(untrackedCheckbox).not.toBeChecked();
+  expect(fixture.unexpectedRequests).toEqual([]);
+});
+
+test("Home generates the shopping list from the final manual selection", async ({ page }) => {
+  const fixture = await installBrowserApiFixture(page);
+  await page.goto("/");
+
+  await page.getByRole("button", { name: "Build shopping list" }).click();
+  await page.getByRole("checkbox", { name: "Pilos 1.5% milk" }).uncheck();
+  await page.getByRole("checkbox", { name: "Banana" }).check();
+  await page.getByRole("button", { name: "Generate shopping list" }).click();
+
+  const request = fixture.requests.find(
+    (candidate) => candidate.method === "POST" && candidate.path === "/api/household/shopping-lists"
+  );
+  expect(request?.body).toMatchObject({
+    selectedOwnerIds: expect.arrayContaining(["group-milk", "product-banana"])
+  });
+  expect(request?.body).not.toMatchObject({
+    selectedOwnerIds: expect.arrayContaining(["product-milk-pilos"])
+  });
+  await expect(page.getByText("Banana", { exact: true })).toBeVisible();
+  expect(fixture.unexpectedRequests).toEqual([]);
+});

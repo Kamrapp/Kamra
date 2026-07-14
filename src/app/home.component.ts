@@ -127,6 +127,7 @@ export class HomeComponent implements OnDestroy {
   readonly selectedShoppingItemIds = signal<ReadonlySet<string>>(new Set());
   readonly shoppingSelectionCandidates = signal<readonly string[]>([]);
   readonly shoppingSelectionDefaults = signal<readonly string[]>([]);
+  readonly shoppingSelectionDirty = signal(false);
   readonly statusMessage = signal("");
   readonly shoppingScaleDisplayOptions = shoppingScaleDisplayOptions;
   readonly shoppingScaleOptions = shoppingScaleOptions;
@@ -526,6 +527,7 @@ export class HomeComponent implements OnDestroy {
   }
 
   toggleShoppingItem(id: string): void {
+    this.shoppingSelectionDirty.set(true);
     this.selectedShoppingItemIds.update((selected) => {
       const next = new Set(selected);
       if (next.has(id)) next.delete(id);
@@ -535,10 +537,17 @@ export class HomeComponent implements OnDestroy {
   }
   setShoppingSelectionCandidates(ids: readonly string[]): void {
     this.shoppingSelectionCandidates.set(ids);
+    const candidates = new Set(ids);
+    this.selectedShoppingItemIds.update((selected) => {
+      const next = new Set([...selected].filter((id) => candidates.has(id)));
+      return next.size === selected.size ? selected : next;
+    });
   }
   setShoppingSelectionDefaults(ids: readonly string[]): void {
     this.shoppingSelectionDefaults.set(ids);
-    if (this.shoppingSelectionMode()) this.selectedShoppingItemIds.set(new Set(ids));
+    if (this.shoppingSelectionMode() && !this.shoppingSelectionDirty()) {
+      this.selectedShoppingItemIds.set(new Set(ids));
+    }
   }
 
   private beginShoppingSelection(): void {
@@ -547,9 +556,11 @@ export class HomeComponent implements OnDestroy {
   }
   private cancelShoppingSelection(): void {
     this.shoppingSelectionMode.set(false);
+    this.shoppingSelectionDirty.set(false);
     this.selectedShoppingItemIds.set(new Set());
   }
   private resetShoppingSelection(): void {
+    this.shoppingSelectionDirty.set(false);
     this.selectedShoppingItemIds.set(new Set(this.shoppingSelectionDefaults()));
   }
   private async generateSelectedShoppingList(): Promise<void> {

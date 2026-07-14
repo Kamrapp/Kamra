@@ -104,8 +104,6 @@ export class HouseholdV2WorkspaceComponent {
     });
     effect(() => {
       this.workspace();
-      this.shoppingSelectionMode();
-      this.selectedShoppingOwnerIds();
       this.shoppingSelectionScale();
       this.emitShoppingSelectionState();
     });

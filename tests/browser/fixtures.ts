@@ -171,7 +171,28 @@ export function createBrowserApiState(): BrowserApiState {
         }
       ],
       unassignedBatches: [],
-      unassignedProducts: [],
+      unassignedProducts: [
+        {
+          aggregate: {
+            availableQuantity: 0,
+            batchCount: 0,
+            nextExpiryOn: null,
+            state: "not_tracked",
+            trackingUnit: "count"
+          },
+          batches: [],
+          product: {
+            defaultTrackingUnit: "count",
+            displayName: "Banana",
+            id: "product-banana",
+            identityKind: "manual",
+            note: null,
+            productGroupId: null,
+            revision: 1,
+            targetPolicy: null
+          }
+        }
+      ],
       useAbbreviatedUiLabels: false
     }
   };
@@ -417,8 +438,18 @@ function findResponse(
 function createShoppingList(selectedOwnerIds: string[]): Record<string, unknown> {
   const selectedItems = selectedOwnerIds.map((ownerId, index) => ({
     currentAmount: 0,
-    displayName: ownerId === "group-milk" ? "Milk" : "Pilos 1.5% milk",
-    householdProductId: ownerId === "group-milk" ? null : "product-milk-pilos",
+    displayName:
+      ownerId === "group-milk"
+        ? "Milk"
+        : ownerId === "product-banana"
+          ? "Banana"
+          : "Pilos 1.5% milk",
+    householdProductId:
+      ownerId === "group-milk"
+        ? null
+        : ownerId === "product-banana"
+          ? "product-banana"
+          : "product-milk-pilos",
     id: `generated_${index}_${ownerId}`,
     idealMaxLimit: null,
     minLimit: 1,
@@ -432,7 +463,7 @@ function createShoppingList(selectedOwnerIds: string[]): Record<string, unknown>
     targetAmount: 2,
     ticked: false,
     uncertaintyFlags: [],
-    unit: "l"
+    unit: ownerId === "product-banana" ? "count" : "l"
   }));
 
   return {
