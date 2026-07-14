@@ -7,7 +7,7 @@ const browserHousehold = {
   allowExpiredItems: true,
   createdAt: "2026-07-14T08:00:00.000Z",
   defaultCalculatedMaxLimitMultiplier: 2,
-  groupTargetShoppingDistributionMode: "even",
+  groupTargetShoppingDistributionMode: "split_evenly",
   groupTargetShoppingMode: "add_products_and_group_item",
   id: browserHouseholdId,
   memberCount: 1,

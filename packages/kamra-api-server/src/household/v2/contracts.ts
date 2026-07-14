@@ -1,3 +1,8 @@
+import type {
+  GroupTargetShoppingDistributionModeOverride,
+  GroupTargetShoppingModeOverride
+} from "../shopping-policy.js";
+
 export const householdV2CollectionNames = [
   "household_product_groups",
   "household_stock_targets",
@@ -109,6 +114,8 @@ export interface ProductGroup {
   displayName: string;
   householdId: string;
   id: string;
+  groupTargetShoppingDistributionModeOverride?: GroupTargetShoppingDistributionModeOverride | null;
+  groupTargetShoppingModeOverride?: GroupTargetShoppingModeOverride | null;
   parentProductGroupId?: string | null;
   revision: number;
   status: LifecycleStatus;
@@ -370,6 +377,8 @@ export interface CreateStockTargetRequest {
 
 export interface CreateProductGroupRequest {
   displayName: string;
+  groupTargetShoppingDistributionModeOverride?: GroupTargetShoppingDistributionModeOverride | null;
+  groupTargetShoppingModeOverride?: GroupTargetShoppingModeOverride | null;
   parentProductGroupId?: string | null;
   targetPolicy?: TargetPolicy | null;
   trackingUnit: TrackingUnit;

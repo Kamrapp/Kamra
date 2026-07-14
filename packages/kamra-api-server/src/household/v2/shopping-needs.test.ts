@@ -7,6 +7,7 @@ import {
   transitionShoppingNeed
 } from "./shopping-needs.js";
 import type { StockTarget } from "./contracts.js";
+import type { StockBatch } from "./contracts.js";
 import type { StockTargetAggregate } from "./domain.js";
 import type { ProductGroupWorkspaceReadModel } from "./product-group-read-model.js";
 
@@ -164,9 +165,9 @@ describe("shopping needs", () => {
     });
 
     const needs = generateProductGroupShoppingNeeds({
-      distributionMode: "even",
+      distributionMode: "split_evenly",
       mode: "add_products_only",
-      needIdPrefix: "even",
+      needIdPrefix: "split",
       workspace
     });
 
@@ -178,7 +179,7 @@ describe("shopping needs", () => {
     );
   });
 
-  it("distributes extra Group quantity proportionally to current Product amounts", () => {
+  it("splits remaining Group quantity evenly across all Products", () => {
     const workspace = createWorkspace({
       groupCurrent: 4,
       groupMinimum: 5,
@@ -202,21 +203,21 @@ describe("shopping needs", () => {
     });
 
     const needs = generateProductGroupShoppingNeeds({
-      distributionMode: "proportional",
+      distributionMode: "split_evenly",
       mode: "add_products_only",
-      needIdPrefix: "proportional",
+      needIdPrefix: "split",
       workspace
     });
 
     expect(needs).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ ownerId: "milk-a", plannedQuantity: 1.25 }),
-        expect.objectContaining({ ownerId: "milk-b", plannedQuantity: 1.75 })
+        expect.objectContaining({ ownerId: "milk-a", plannedQuantity: 1.5 }),
+        expect.objectContaining({ ownerId: "milk-b", plannedQuantity: 1.5 })
       ])
     );
   });
 
-  it("selects the earliest-expiring stocked Product when no Product target is already planned", () => {
+  it("selects the oldest stocked Product when no Product target is already planned", () => {
     const workspace = createWorkspace({
       groupCurrent: 0,
       groupMinimum: 1,
@@ -225,10 +226,12 @@ describe("shopping needs", () => {
         { current: 0, displayName: "Milk later", id: "later", nextExpiryOn: "2026-07-20" },
         { current: 0, displayName: "Milk sooner", id: "sooner", nextExpiryOn: "2026-07-13" }
       ],
-      stockedProductId: "sooner"
+      stockedProductId: "sooner",
+      stockedProductDates: { sooner: "2026-07-13", later: "2026-07-20" }
     });
 
     const needs = generateProductGroupShoppingNeeds({
+      distributionMode: "oldest",
       mode: "add_products_only",
       needIdPrefix: "list",
       workspace
@@ -267,6 +270,79 @@ describe("shopping needs", () => {
         workspace
       })
     ).toEqual([]);
+  });
+
+  it("supports no-split and explicit Product selection strategies", () => {
+    const workspace = createWorkspace({
+      groupCurrent: 0,
+      groupMinimum: 1,
+      groupDesired: 4,
+      products: [
+        { current: 0, displayName: "Milk A", id: "milk-a", nextExpiryOn: null },
+        { current: 2, displayName: "Milk B", id: "milk-b", nextExpiryOn: null }
+      ]
+    });
+
+    expect(
+      generateProductGroupShoppingNeeds({
+        distributionMode: "dont_split",
+        mode: "add_products_only",
+        needIdPrefix: "no-split",
+        workspace
+      })
+    ).toEqual([]);
+    expect(
+      generateProductGroupShoppingNeeds({
+        distributionMode: "least_amount",
+        mode: "add_products_only",
+        needIdPrefix: "least",
+        workspace
+      })
+    ).toEqual([expect.objectContaining({ ownerId: "milk-a", plannedQuantity: 4 })]);
+  });
+
+  it("uses the effective Group override for mode and stocked-at strategy", () => {
+    const workspace = createWorkspace({
+      groupCurrent: 0,
+      groupMinimum: 1,
+      groupDesired: 3,
+      groupModeOverride: "ignore_group_targets",
+      groupDistributionOverride: "latest",
+      products: [
+        { current: 0, displayName: "Milk A", id: "milk-a", nextExpiryOn: null },
+        { current: 0, displayName: "Milk B", id: "milk-b", nextExpiryOn: null }
+      ],
+      stockedProductDates: { "milk-a": "2026-07-10", "milk-b": "2026-07-12" }
+    });
+
+    expect(
+      generateProductGroupShoppingNeeds({
+        distributionMode: "split_evenly",
+        mode: "add_products_and_group_item",
+        needIdPrefix: "override",
+        workspace
+      })
+    ).toEqual([]);
+
+    const localStrategyWorkspace = createWorkspace({
+      groupCurrent: 0,
+      groupMinimum: 1,
+      groupDesired: 3,
+      groupDistributionOverride: "latest",
+      products: [
+        { current: 0, displayName: "Milk A", id: "milk-a", nextExpiryOn: null },
+        { current: 0, displayName: "Milk B", id: "milk-b", nextExpiryOn: null }
+      ],
+      stockedProductDates: { "milk-a": "2026-07-10", "milk-b": "2026-07-12" }
+    });
+    expect(
+      generateProductGroupShoppingNeeds({
+        distributionMode: "split_evenly",
+        mode: "add_products_only",
+        needIdPrefix: "latest",
+        workspace: localStrategyWorkspace
+      })
+    ).toEqual([expect.objectContaining({ ownerId: "milk-b", plannedQuantity: 3 })]);
   });
 
   it("does not generate automatic needs when Product and Group Current are above Target", () => {
@@ -338,6 +414,10 @@ function createWorkspace(input: {
   groupCurrent: number;
   groupDesired: number;
   groupMinimum: number;
+  groupDistributionOverride?:
+    "default" | "dont_split" | "split_evenly" | "least_amount" | "latest" | "oldest";
+  groupModeOverride?:
+    "default" | "add_products_and_group_item" | "add_products_only" | "ignore_group_targets";
   products: Array<{
     current: number;
     displayName: string;
@@ -346,6 +426,7 @@ function createWorkspace(input: {
     target?: { desired: number; minimum: number };
   }>;
   stockedProductId?: string;
+  stockedProductDates?: Record<string, string>;
 }): ProductGroupWorkspaceReadModel {
   const products = input.products.map((product) => ({
     aggregate: {
@@ -355,7 +436,35 @@ function createWorkspace(input: {
       state: "not_tracked" as const,
       trackingUnit: "l" as const
     },
-    batches: [],
+    batches:
+      product.id === input.stockedProductId || input.stockedProductDates?.[product.id]
+        ? [
+            {
+              acquiredOn: input.stockedProductDates?.[product.id] ?? "2026-07-13",
+              acquisitionSnapshot: { displayName: product.displayName },
+              classificationSnapshot: {
+                capturedAt: "2026-07-13T00:00:00.000Z",
+                directAttributes: [],
+                directConcepts: [],
+                effectiveConcepts: [],
+                source: "manual"
+              },
+              createdAt: "2026-07-13T00:00:00.000Z",
+              createdByUserId: "test",
+              expiryOn: product.nextExpiryOn,
+              householdId: "h",
+              householdProductId: product.id,
+              id: `batch:${product.id}`,
+              originalQuantity: product.current,
+              remainingQuantity: product.current,
+              revision: 0,
+              status: "available",
+              unit: "l",
+              updatedAt: "2026-07-13T00:00:00.000Z",
+              updatedByUserId: "test"
+            } satisfies StockBatch
+          ]
+        : [],
     product: {
       displayName: product.displayName,
       id: product.id,
@@ -392,6 +501,8 @@ function createWorkspace(input: {
             minimumQuantity: input.groupMinimum,
             trackingUnit: "l"
           },
+          groupTargetShoppingDistributionModeOverride: input.groupDistributionOverride ?? "default",
+          groupTargetShoppingModeOverride: input.groupModeOverride ?? "default",
           trackingUnit: "l"
         },
         products

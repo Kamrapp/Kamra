@@ -417,7 +417,7 @@ export class MongoHouseholdRepository {
         fieldsToSet["groupTargetShoppingMode"] = "add_products_and_group_item";
       }
       if (household.groupTargetShoppingDistributionMode === undefined) {
-        fieldsToSet["groupTargetShoppingDistributionMode"] = "even";
+        fieldsToSet["groupTargetShoppingDistributionMode"] = "split_evenly";
       }
       if (Object.keys(fieldsToSet).length === 0) {
         continue;
@@ -445,7 +445,7 @@ export class MongoHouseholdRepository {
       createdByUserId: input.createdByUserId,
       allowExpiredItems: true,
       groupTargetShoppingMode: "add_products_and_group_item",
-      groupTargetShoppingDistributionMode: "even",
+      groupTargetShoppingDistributionMode: "split_evenly",
       id: input.id,
       name: input.name,
       status: "active",
@@ -509,7 +509,12 @@ export class MongoHouseholdRepository {
       if (household.groupTargetShoppingDistributionMode !== undefined) continue;
       await this.householdsCollection.updateOne(
         { id: household.id },
-        { $set: { groupTargetShoppingDistributionMode: "even", updatedAt: household.updatedAt } }
+        {
+          $set: {
+            groupTargetShoppingDistributionMode: "split_evenly",
+            updatedAt: household.updatedAt
+          }
+        }
       );
       updatedCount += 1;
     }
@@ -573,7 +578,7 @@ export class MongoHouseholdRepository {
       groupTargetShoppingDistributionMode:
         input.groupTargetShoppingDistributionMode ??
         household.groupTargetShoppingDistributionMode ??
-        "even",
+        "split_evenly",
       name: input.name ?? household.name
     };
   }
@@ -1330,7 +1335,8 @@ export class MongoHouseholdRepository {
       allowExpiredItems: household.allowExpiredItems ?? true,
       defaultCalculatedMaxLimitMultiplier: household.defaultCalculatedMaxLimitMultiplier ?? 2,
       groupTargetShoppingMode: household.groupTargetShoppingMode ?? "add_products_and_group_item",
-      groupTargetShoppingDistributionMode: household.groupTargetShoppingDistributionMode ?? "even",
+      groupTargetShoppingDistributionMode:
+        household.groupTargetShoppingDistributionMode ?? "split_evenly",
       favouriteShopId: household.favouriteShopId ?? null,
       id: household.id,
       membershipRole,

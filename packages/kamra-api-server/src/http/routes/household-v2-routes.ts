@@ -9,6 +9,7 @@ import {
   generateProductGroupShoppingNeeds,
   type GroupTargetShoppingMode
 } from "../../household/v2/shopping-needs.js";
+import { normalizeGroupTargetShoppingDistributionMode } from "../../household/shopping-policy.js";
 import { MongoStockTargetRepository } from "../../household/v2/mongo-stock-target-repository.js";
 import { MongoHouseholdProductRepository } from "../../household/v2/mongo-household-product-repository.js";
 import { MongoProductGroupReadRepository } from "../../household/v2/mongo-product-group-read-repository.js";
@@ -54,6 +55,8 @@ import {
   assertCreateManualStockBatchRequest,
   assertCreateProductGroupRequest,
   assertCreateStockTargetRequest,
+  assertGroupShoppingDistributionOverride,
+  assertGroupShoppingOverrides,
   assertProductGroup,
   assertTargetPolicy,
   assertTrackingUnit
@@ -393,6 +396,9 @@ export const householdV2ProductGroupCollectionRoute: AppRoute = {
         createdAt: now,
         createdByUserId: user.email,
         displayName: input.displayName.trim(),
+        groupTargetShoppingDistributionModeOverride:
+          input.groupTargetShoppingDistributionModeOverride ?? "default",
+        groupTargetShoppingModeOverride: input.groupTargetShoppingModeOverride ?? "default",
         householdId,
         id: `product-group:${householdId}:${slug(input.displayName)}`,
         parentProductGroupId: input.parentProductGroupId ?? null,
@@ -447,6 +453,8 @@ export const householdV2ProductGroupMutationRoute: AppRoute = {
       assertTrackingUnit(body["trackingUnit"]);
       if (body["targetPolicy"] !== undefined && body["targetPolicy"] !== null)
         assertTargetPolicy(body["targetPolicy"]);
+      assertGroupShoppingOverrides(body["groupTargetShoppingModeOverride"]);
+      assertGroupShoppingDistributionOverride(body["groupTargetShoppingDistributionModeOverride"]);
     } catch (error) {
       return json(400, {
         error: "invalid_product_group_request",
@@ -473,6 +481,11 @@ export const householdV2ProductGroupMutationRoute: AppRoute = {
           id: groupId,
           parentProductGroupId: body["parentProductGroupId"] as string | null | undefined,
           targetPolicy: body["targetPolicy"] as TargetPolicy | null | undefined,
+          groupTargetShoppingDistributionModeOverride: body[
+            "groupTargetShoppingDistributionModeOverride"
+          ] as ProductGroup["groupTargetShoppingDistributionModeOverride"] | undefined,
+          groupTargetShoppingModeOverride: body["groupTargetShoppingModeOverride"] as
+            ProductGroup["groupTargetShoppingModeOverride"] | undefined,
           trackingUnit: body["trackingUnit"] as ProductGroup["trackingUnit"],
           updatedAt: new Date().toISOString(),
           updatedByUserId: user.email
@@ -1067,10 +1080,9 @@ export const householdV2ShoppingNeedsRoute: AppRoute = {
       storedHousehold?.groupTargetShoppingMode === "ignore_group_targets"
         ? storedHousehold.groupTargetShoppingMode
         : "add_products_and_group_item";
-    const groupTargetDistributionMode =
-      storedHousehold?.groupTargetShoppingDistributionMode === "proportional"
-        ? "proportional"
-        : "even";
+    const groupTargetDistributionMode = normalizeGroupTargetShoppingDistributionMode(
+      storedHousehold?.groupTargetShoppingDistributionMode
+    );
     try {
       const result =
         request.method === "GET"

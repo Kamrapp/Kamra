@@ -13,6 +13,29 @@ import {
   type TargetPolicy,
   type TrackingUnit
 } from "./contracts.js";
+import {
+  groupTargetShoppingDistributionModeOverrides,
+  groupTargetShoppingModeOverrides
+} from "../shopping-policy.js";
+
+export function assertGroupShoppingOverrides(value: unknown, label = "productGroup"): void {
+  if (value === undefined || value === null) return;
+  assertValue(
+    groupTargetShoppingModeOverrides.includes(value as never),
+    `${label}.groupTargetShoppingModeOverride is invalid`
+  );
+}
+
+export function assertGroupShoppingDistributionOverride(
+  value: unknown,
+  label = "productGroup"
+): void {
+  if (value === undefined || value === null) return;
+  assertValue(
+    groupTargetShoppingDistributionModeOverrides.includes(value as never),
+    `${label}.groupTargetShoppingDistributionModeOverride is invalid`
+  );
+}
 
 function isDate(value: unknown): value is string {
   return (
@@ -189,6 +212,11 @@ export function assertProductGroup(
     );
   if (group["targetPolicy"] !== undefined && group["targetPolicy"] !== null)
     assertTargetPolicy(group["targetPolicy"], `${label}.targetPolicy`);
+  assertGroupShoppingOverrides(group["groupTargetShoppingModeOverride"], label);
+  assertGroupShoppingDistributionOverride(
+    group["groupTargetShoppingDistributionModeOverride"],
+    label
+  );
   assertValue(
     Number.isInteger(group["revision"]) && (group["revision"] as number) >= 0,
     `${label}.revision is invalid`
@@ -366,6 +394,11 @@ export function assertCreateProductGroupRequest(
     );
   if (request["targetPolicy"] !== undefined && request["targetPolicy"] !== null)
     assertTargetPolicy(request["targetPolicy"], `${label}.targetPolicy`);
+  assertGroupShoppingOverrides(request["groupTargetShoppingModeOverride"], label);
+  assertGroupShoppingDistributionOverride(
+    request["groupTargetShoppingDistributionModeOverride"],
+    label
+  );
 }
 
 export function assertCreateHouseholdProductRequest(

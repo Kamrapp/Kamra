@@ -1,4 +1,19 @@
 import { featureFlagKeys, type FeatureFlagKey } from "../../feature-toggles/contracts.js";
+export {
+  groupTargetShoppingDistributionModes,
+  groupTargetShoppingDistributionModeOverrides,
+  groupTargetShoppingModeOverrides,
+  groupTargetShoppingModes,
+  type GroupTargetShoppingDistributionMode,
+  type GroupTargetShoppingDistributionModeOverride,
+  type GroupTargetShoppingMode,
+  type GroupTargetShoppingModeOverride,
+  normalizeGroupTargetShoppingDistributionMode
+} from "../shopping-policy.js";
+import type {
+  GroupTargetShoppingDistributionMode,
+  GroupTargetShoppingMode
+} from "../shopping-policy.js";
 
 export const householdV1CollectionNames = [
   "households",
@@ -94,17 +109,6 @@ export interface HouseholdRecord {
   status: HouseholdStatus;
   updatedAt: string;
 }
-
-export const groupTargetShoppingModes = [
-  "add_products_and_group_item",
-  "add_products_only",
-  "ignore_group_targets"
-] as const;
-export type GroupTargetShoppingMode = (typeof groupTargetShoppingModes)[number];
-
-export const groupTargetShoppingDistributionModes = ["even", "proportional"] as const;
-export type GroupTargetShoppingDistributionMode =
-  (typeof groupTargetShoppingDistributionModes)[number];
 
 export interface HouseholdMembershipRecord {
   createdAt: string;

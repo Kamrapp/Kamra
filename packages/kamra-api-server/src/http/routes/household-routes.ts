@@ -395,7 +395,8 @@ export const householdShoppingListsRoute: AppRoute = {
         body.selectedOwnerIds !== undefined ? new Set(body.selectedOwnerIds) : null;
       const v2Needs = hasV2Products
         ? generateProductGroupShoppingNeeds({
-            distributionMode: stockPage.household.groupTargetShoppingDistributionMode ?? "even",
+            distributionMode:
+              stockPage.household.groupTargetShoppingDistributionMode ?? "split_evenly",
             mode: stockPage.household.groupTargetShoppingMode ?? "add_products_and_group_item",
             needIdPrefix: `shopping-needs:${body.householdId}`,
             selectedOwnerIds,

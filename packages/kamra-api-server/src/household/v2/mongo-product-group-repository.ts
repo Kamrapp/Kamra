@@ -7,6 +7,10 @@ import type {
   StockTarget,
   TargetPolicy
 } from "./contracts.js";
+import type {
+  GroupTargetShoppingDistributionModeOverride,
+  GroupTargetShoppingModeOverride
+} from "../shopping-policy.js";
 
 export interface ProductGroupMigrationReport {
   anonymousBatchesLinked: number;
@@ -53,6 +57,8 @@ export class MongoProductGroupRepository {
 
   async update(input: {
     displayName: string;
+    groupTargetShoppingDistributionModeOverride?: GroupTargetShoppingDistributionModeOverride | null;
+    groupTargetShoppingModeOverride?: GroupTargetShoppingModeOverride | null;
     expectedRevision: number;
     householdId: string;
     id: string;
@@ -96,6 +102,15 @@ export class MongoProductGroupRepository {
         ? {}
         : { parentProductGroupId: input.parentProductGroupId }),
       ...(input.targetPolicy === undefined ? {} : { targetPolicy: input.targetPolicy }),
+      ...(input.groupTargetShoppingDistributionModeOverride === undefined
+        ? {}
+        : {
+            groupTargetShoppingDistributionModeOverride:
+              input.groupTargetShoppingDistributionModeOverride
+          }),
+      ...(input.groupTargetShoppingModeOverride === undefined
+        ? {}
+        : { groupTargetShoppingModeOverride: input.groupTargetShoppingModeOverride }),
       revision: current.revision + 1,
       updatedAt: input.updatedAt,
       updatedByUserId: input.updatedByUserId
@@ -250,6 +265,8 @@ function toProductGroup(target: StockTarget): ProductGroup {
     createdAt: target.createdAt,
     createdByUserId: target.createdByUserId,
     displayName: target.displayName,
+    groupTargetShoppingDistributionModeOverride: "default",
+    groupTargetShoppingModeOverride: "default",
     householdId: target.householdId,
     id: `product-group:${target.id}`,
     parentProductGroupId: null,

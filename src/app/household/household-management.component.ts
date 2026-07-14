@@ -187,11 +187,20 @@ import { ToastService } from "../shared/toast.service";
                   class="ui-form-control"
                   [(ngModel)]="groupTargetShoppingDistributionModeDraft"
                 >
-                  <option value="even">
-                    {{ loc.t("household.groupTargetShoppingDistributionEven") }}
+                  <option value="dont_split">
+                    {{ loc.t("household.groupTargetShoppingDistributionDontSplit") }}
                   </option>
-                  <option value="proportional">
-                    {{ loc.t("household.groupTargetShoppingDistributionProportional") }}
+                  <option value="split_evenly">
+                    {{ loc.t("household.groupTargetShoppingDistributionSplitEvenly") }}
+                  </option>
+                  <option value="least_amount">
+                    {{ loc.t("household.groupTargetShoppingDistributionLeastAmount") }}
+                  </option>
+                  <option value="latest">
+                    {{ loc.t("household.groupTargetShoppingDistributionLatest") }}
+                  </option>
+                  <option value="oldest">
+                    {{ loc.t("household.groupTargetShoppingDistributionOldest") }}
                   </option>
                 </select>
               </label>
@@ -485,7 +494,8 @@ export class HouseholdManagementComponent {
   groupTargetShoppingModeDraft:
     "add_products_and_group_item" | "add_products_only" | "ignore_group_targets" =
     "add_products_and_group_item";
-  groupTargetShoppingDistributionModeDraft: "even" | "proportional" = "even";
+  groupTargetShoppingDistributionModeDraft:
+    "dont_split" | "split_evenly" | "least_amount" | "latest" | "oldest" = "split_evenly";
   nameDraft = "";
   inviteEmailDraft = "";
   resetConfirmed = false;
@@ -517,11 +527,14 @@ export class HouseholdManagementComponent {
   }
 
   groupTargetShoppingDistributionModeLabel(): string {
-    return this.loc.t(
-      this.groupTargetShoppingDistributionModeDraft === "proportional"
-        ? "household.groupTargetShoppingDistributionProportional"
-        : "household.groupTargetShoppingDistributionEven"
-    );
+    const keys = {
+      dont_split: "household.groupTargetShoppingDistributionDontSplit",
+      split_evenly: "household.groupTargetShoppingDistributionSplitEvenly",
+      least_amount: "household.groupTargetShoppingDistributionLeastAmount",
+      latest: "household.groupTargetShoppingDistributionLatest",
+      oldest: "household.groupTargetShoppingDistributionOldest"
+    } as const;
+    return this.loc.t(keys[this.groupTargetShoppingDistributionModeDraft]);
   }
 
   private async loadHousehold(): Promise<void> {
@@ -544,7 +557,7 @@ export class HouseholdManagementComponent {
     this.groupTargetShoppingModeDraft =
       household?.groupTargetShoppingMode ?? "add_products_and_group_item";
     this.groupTargetShoppingDistributionModeDraft =
-      household?.groupTargetShoppingDistributionMode ?? "even";
+      household?.groupTargetShoppingDistributionMode ?? "split_evenly";
     this.nameDraft = household?.name ?? "";
     this.invitations.set(
       household ? await this.invitationService.listForHousehold(household.id) : []

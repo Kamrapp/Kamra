@@ -92,6 +92,8 @@ export class MongoProductComposerRepository {
           createdAt: now,
           createdByUserId: input.actorUserId,
           displayName: input.group.displayName.trim(),
+          groupTargetShoppingDistributionModeOverride: "default",
+          groupTargetShoppingModeOverride: "default",
           householdId: input.householdId,
           id: productGroupId,
           parentProductGroupId: null,
