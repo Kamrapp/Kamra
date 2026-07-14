@@ -50,6 +50,45 @@ Disallowed by default:
 - automatic invitation emails or cleanup cron before the whitelist feature flag is enabled
 - designs that require paid services before the MVP can be demonstrated
 
+## Docker local runtime
+
+The repository also provides a convenience container shape for local development and disposable
+demonstrations. It is intentionally separate from the serverless-first production direction:
+
+```text
+Browser :4200
+    -> Node 24 Kamra container :3000
+        -> Angular production assets
+        -> shared /api/* handler
+        -> MongoDB Compose service :27017
+```
+
+Start it from the repository root:
+
+```powershell
+Copy-Item .env.docker.example .env
+docker compose up --build
+```
+
+The Compose application maps the complete same-origin app to `http://localhost:4200`, waits for the
+Mongo healthcheck, and runs the configured local seed once when the database has no completed seed
+ledger entries. The `kamra-mongo-data` volume preserves data across `docker compose down` and normal
+restarts. `docker compose down -v` is the explicit destructive reset for this disposable environment.
+
+The local example uses Mongo without authentication and includes development-only credentials. Keep
+`.env` uncommitted, replace the example secret values when sharing a workstation, and do not expose
+the Mongo port beyond localhost. Set `KAMRA_AUTO_SEED=0` when starting the image against an existing
+database; use the normal maintenance and seed commands deliberately instead of allowing a startup
+bootstrap against shared or production data.
+
+The image is built from `node:24-bookworm-slim`, exposes port `3000`, and serves the Angular build and
+Node API from the same process. A generic container host can run it with a managed MongoDB by setting
+`MONGODB_URI`, `MONGODB_DB_NAME`, `AUTH_TOKEN_SECRET`, exact CORS origins, and `KAMRA_AUTO_SEED=0`.
+Put TLS, a public reverse proxy, backups, Mongo authentication/network policy, and secret injection
+outside the application container. The `/api/healthz` endpoint is suitable for a platform health
+check. The current `render.yaml` and `vercel.json` remain the hosted deployment definitions; Docker
+support does not replace them.
+
 ## Portability And Platform Boundaries
 
 Kamra can use convenient managed platforms without letting them own too much of the codebase.

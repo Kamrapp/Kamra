@@ -449,3 +449,17 @@ the approved disposable database, then run `npm run seed:demo-household` and
   `dont_split` local overrides on an empty Group.
 - `npx vitest run packages/kamra-api-server/src/household/v2/shopping-needs.test.ts`, typecheck,
   lint, and diff checks pass.
+
+## Docker local runtime (2026-07-14)
+
+- Added a root Node 24 multi-stage `Dockerfile`, `compose.yaml`, `.env.docker.example`, and
+  `.dockerignore`. Compose runs the complete same-origin Angular/API app with a named-volume MongoDB
+  service and healthchecks.
+- Added `scripts/container-server.ts` to serve compiled Angular assets and delegate `/api/*` to the
+  existing Node adapter. Added `scripts/container-bootstrap.ts` plus the entrypoint so configured
+  seeds run only when the local `seed_ledger` is incomplete; normal restarts preserve household data.
+- Updated README, `docs/tech-ops.md`, and `scripts/README.md` with local startup, reset behavior,
+  managed-Mongo deployment guidance, and the explicit local-only/no-auth boundary.
+- `npm run build`, `npm run typecheck`, `npm run lint -- --no-fix`, `npm run format:check`, `npm test`
+  (75 files / 296 tests), and diff checks pass. A local compiled-server probe returned the Angular
+  shell and `GET /api/healthz` 200. Docker CLI execution was unavailable in this environment.

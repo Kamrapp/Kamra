@@ -58,6 +58,19 @@ npm run start:api:render
 
 The same server entrypoint supports both local development and the Render-hosted API service. It listens on `PORT` and `HOST` when set, and defaults to `3000` on `0.0.0.0`.
 
+### Docker runtime entrypoints
+
+The root `Dockerfile` builds the Angular app and API with Node 24, then starts
+`scripts/container-server.ts` from the compiled output. That server serves the compiled Angular
+assets and delegates `/api/*` requests to the same shared Node adapter used by local and Vercel
+entrypoints.
+
+`scripts/container-bootstrap.ts` is called by the container entrypoint only when
+`KAMRA_AUTO_SEED=1`. It checks the configured `seed_ledger` records before importing the normal seed
+runner, so ordinary restarts do not reseed the demo household. Use the root Compose workflow and
+`.env.docker.example` for local setup; do not point automatic bootstrap at a shared or production
+database.
+
 ### `generate-public-config.ts`
 
 Generates the browser-safe frontend config module from environment variables.

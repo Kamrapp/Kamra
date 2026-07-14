@@ -47,6 +47,26 @@ npm run format:check
 npm run typecheck
 ```
 
+### Complete local app with Docker
+
+For a one-origin local application with MongoDB managed by Compose:
+
+```powershell
+Copy-Item .env.docker.example .env
+docker compose up --build
+```
+
+Open [http://localhost:4200](http://localhost:4200). The first app start waits for MongoDB, then
+seeds the local catalogue, admin account, and demo household. The default local credentials are
+shown in `.env`; sign in as `admin@example.test`, `usera`, or `userb` with the configured seed
+password. Mongo data is kept in the `kamra-mongo-data` named volume, so restarting Compose does not
+reseed or delete the household.
+
+Stop the services while preserving local data with `docker compose down`. To deliberately recreate
+the disposable database, use `docker compose down -v` and start Compose again. The Compose MongoDB
+service has no authentication and is local-only; never expose it or reuse its defaults in a hosted
+environment. Detailed container and deployment guidance is in [docs/tech-ops.md](./docs/tech-ops.md).
+
 Useful Alpha checks:
 
 ```bash
