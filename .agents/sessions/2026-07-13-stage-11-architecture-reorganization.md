@@ -463,3 +463,15 @@ the approved disposable database, then run `npm run seed:demo-household` and
 - `npm run build`, `npm run typecheck`, `npm run lint -- --no-fix`, `npm run format:check`, `npm test`
   (75 files / 296 tests), and diff checks pass. A local compiled-server probe returned the Angular
   shell and `GET /api/healthz` 200. Docker CLI execution was unavailable in this environment.
+
+## Product Group shopping allocation correction (2026-07-14)
+
+- Fixed explicit Group/Product selection so a Group is never appended beside Product needs that
+  represent the same Group. Product-only Group overrides also no longer produce a Group line.
+- Even Group splits now round each base share down to one decimal place beyond the Group target's
+  precision, then add the exact remainder to the first Product. This keeps values readable while
+  preserving the full Group shortage.
+- Added regression coverage for integer and fractional target precision, selected Group splits,
+  selected Product + Group combinations, and Product-only overrides.
+- Focused shopping-needs tests (22), full tests (75 files / 300 tests), typecheck, lint, formatting,
+  and diff checks pass.

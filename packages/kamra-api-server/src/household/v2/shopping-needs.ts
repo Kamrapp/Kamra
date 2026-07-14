@@ -211,6 +211,12 @@ export function generateProductGroupShoppingNeeds(input: {
       )
         continue;
       const policy = group.group.targetPolicy;
+      const productRows = uniqueProductRows(group.products);
+      const groupMode = resolveGroupTargetShoppingMode(group, input.mode);
+      // A selected Group is represented by its Product needs when available; never append a
+      // second Group line beside those Product needs.
+      if (groupMode !== "add_products_and_group_item" || hasProductNeedForGroup(needs, productRows))
+        continue;
       needs.push(
         createGroupShoppingNeed({
           displayName: group.group.displayName,
@@ -281,19 +287,20 @@ function applyGroupShortageToProducts(input: {
 }): boolean {
   if (input.rows.length === 0 || input.distributionMode === "dont_split") return false;
   if (input.distributionMode === "split_evenly") {
-    const share = input.quantity / input.rows.length;
-    let remainder = input.quantity;
+    const additions = splitQuantityEvenly(
+      input.quantity,
+      input.groupPolicy.desiredQuantity,
+      input.rows.length
+    );
     for (const [index, row] of input.rows.entries()) {
-      const addition = index === input.rows.length - 1 ? remainder : share;
       addProductNeed(
         row,
         input.groupPolicy,
         input.needIdPrefix,
-        addition,
+        additions[index]!,
         input.needs,
         input.productNeeds
       );
-      remainder -= addition;
     }
     return true;
   }
@@ -309,6 +316,42 @@ function applyGroupShortageToProducts(input: {
     input.productNeeds
   );
   return true;
+}
+
+function splitQuantityEvenly(total: number, targetQuantity: number, count: number): number[] {
+  if (count <= 0) return [];
+  if (count === 1) return [total];
+
+  const precision = decimalPlaces(targetQuantity) + 1;
+  const factor = 10 ** precision;
+  const roundedDownShare =
+    Math.floor((total / count) * factor + Number.EPSILON * Math.max(1, Math.abs(total * factor))) /
+    factor;
+  const allocations = Array.from({ length: count }, () => roundedDownShare);
+  const correction = total - roundedDownShare * count;
+  allocations[0] = normalizeQuantity(allocations[0]! + correction);
+  return allocations;
+}
+
+function decimalPlaces(value: number): number {
+  const [coefficient, exponentText] = value.toString().toLowerCase().split("e");
+  const fractionLength = coefficient?.split(".")[1]?.length ?? 0;
+  const exponent = exponentText ? Number(exponentText) : 0;
+  return Math.max(0, fractionLength - exponent);
+}
+
+function normalizeQuantity(value: number): number {
+  return Number(value.toFixed(12));
+}
+
+function hasProductNeedForGroup(
+  needs: readonly ShoppingNeed[],
+  productRows: readonly ProductGroupNode["products"][number][]
+): boolean {
+  const productIds = new Set(productRows.map((row) => row.product.id));
+  return needs.some(
+    (need) => need.ownerKind === "household_product" && need.ownerId && productIds.has(need.ownerId)
+  );
 }
 
 function addProductNeed(

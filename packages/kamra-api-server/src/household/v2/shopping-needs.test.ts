@@ -179,6 +179,52 @@ describe("shopping needs", () => {
     );
   });
 
+  it("rounds evenly distributed quantities to one decimal beyond an integer target", () => {
+    const workspace = createWorkspace({
+      groupCurrent: 0,
+      groupMinimum: 1,
+      groupDesired: 4,
+      products: [
+        { current: 0, displayName: "Milk A", id: "milk-a", nextExpiryOn: null },
+        { current: 0, displayName: "Milk B", id: "milk-b", nextExpiryOn: null },
+        { current: 0, displayName: "Milk C", id: "milk-c", nextExpiryOn: null }
+      ]
+    });
+
+    const needs = generateProductGroupShoppingNeeds({
+      distributionMode: "split_evenly",
+      mode: "add_products_only",
+      needIdPrefix: "rounded",
+      workspace
+    });
+
+    expect(needs.map((need) => need.plannedQuantity)).toEqual([1.4, 1.3, 1.3]);
+    expect(needs.reduce((total, need) => total + need.plannedQuantity, 0)).toBe(4);
+  });
+
+  it("uses one extra decimal beyond a fractional target while preserving the total", () => {
+    const workspace = createWorkspace({
+      groupCurrent: 0.1,
+      groupMinimum: 1,
+      groupDesired: 4.2,
+      products: [
+        { current: 0.1, displayName: "Milk A", id: "milk-a", nextExpiryOn: null },
+        { current: 0, displayName: "Milk B", id: "milk-b", nextExpiryOn: null },
+        { current: 0, displayName: "Milk C", id: "milk-c", nextExpiryOn: null }
+      ]
+    });
+
+    const needs = generateProductGroupShoppingNeeds({
+      distributionMode: "split_evenly",
+      mode: "add_products_only",
+      needIdPrefix: "fractional-rounded",
+      workspace
+    });
+
+    expect(needs.map((need) => need.plannedQuantity)).toEqual([1.38, 1.36, 1.36]);
+    expect(needs.reduce((total, need) => total + need.plannedQuantity, 0)).toBeCloseTo(4.1);
+  });
+
   it("splits remaining Group quantity evenly across all Products", () => {
     const workspace = createWorkspace({
       groupCurrent: 4,
@@ -396,7 +442,7 @@ describe("shopping needs", () => {
       })
     ).toEqual([]);
   });
-  it("honors manually selected Product and Group owners even when they are not below a target", () => {
+  it("does not create a Group line beside a selected Product from that Group", () => {
     const workspace = createWorkspace({
       groupCurrent: 3,
       groupMinimum: 1,
@@ -411,12 +457,50 @@ describe("shopping needs", () => {
       workspace
     });
 
-    expect(needs).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ ownerId: "milk", plannedQuantity: 1 }),
-        expect.objectContaining({ ownerId: "group:milk", ownerKind: "product_group" })
-      ])
-    );
+    expect(needs).toEqual([expect.objectContaining({ ownerId: "milk", plannedQuantity: 1 })]);
+  });
+
+  it("does not add a Group line beside Product lines produced by a selected Group split", () => {
+    const workspace = createWorkspace({
+      groupCurrent: 0,
+      groupMinimum: 1,
+      groupDesired: 4,
+      products: [
+        { current: 0, displayName: "Milk A", id: "milk-a", nextExpiryOn: null },
+        { current: 0, displayName: "Milk B", id: "milk-b", nextExpiryOn: null },
+        { current: 0, displayName: "Milk C", id: "milk-c", nextExpiryOn: null }
+      ]
+    });
+
+    const needs = generateProductGroupShoppingNeeds({
+      distributionMode: "split_evenly",
+      mode: "add_products_and_group_item",
+      needIdPrefix: "selected-group",
+      selectedOwnerIds: new Set(["group:milk"]),
+      workspace
+    });
+
+    expect(needs.every((need) => need.ownerKind === "household_product")).toBe(true);
+    expect(needs.map((need) => need.plannedQuantity)).toEqual([1.4, 1.3, 1.3]);
+  });
+
+  it("does not add a Group line when the selected Group policy is Product-only", () => {
+    const workspace = createWorkspace({
+      groupCurrent: 0,
+      groupMinimum: 1,
+      groupDesired: 2,
+      products: [{ current: 0, displayName: "Milk", id: "milk", nextExpiryOn: null }],
+      groupModeOverride: "add_products_only"
+    });
+
+    const needs = generateProductGroupShoppingNeeds({
+      mode: "add_products_and_group_item",
+      needIdPrefix: "selected-product-only",
+      selectedOwnerIds: new Set(["group:milk"]),
+      workspace
+    });
+
+    expect(needs).toEqual([expect.objectContaining({ ownerId: "milk", plannedQuantity: 2 })]);
   });
   it("returns no generated rows when the explicit selection is empty", () => {
     const workspace = createWorkspace({
