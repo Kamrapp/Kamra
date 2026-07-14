@@ -1,9 +1,10 @@
 import { Component, computed, inject, input, output } from "@angular/core";
 
+import { type IngestionSnapshotListItem } from "./ingestion-admin.service";
 import {
-  type IngestionSnapshotListItem
-} from "./ingestion-admin.service";
-import { ResizableTableComponent, type ResizableTableColumn } from "../shared/resizable-table.component";
+  ResizableTableComponent,
+  type ResizableTableColumn
+} from "../shared/resizable-table.component";
 import { LocalizationService, type TranslationKey } from "../shared/localization.service";
 
 interface VisibleSnapshotRow {
@@ -16,8 +17,17 @@ interface VisibleSnapshotRow {
   standalone: true,
   imports: [ResizableTableComponent],
   template: `
-    <app-resizable-table #snapshotTable class="snapshot-list" [ariaLabel]="loc.t('crawl.snapshotTable')" [columns]="columns()">
-      <div class="snapshot-body" [style.--snapshot-row-height]="rowHeight + 'px'" (scroll)="scrolled.emit($event)">
+    <app-resizable-table
+      #snapshotTable
+      class="snapshot-list"
+      [ariaLabel]="loc.t('crawl.snapshotTable')"
+      [columns]="columns()"
+    >
+      <div
+        class="snapshot-body"
+        [style.--snapshot-row-height]="rowHeight + 'px'"
+        (scroll)="scrolled.emit($event)"
+      >
         @if (!snapshots().length) {
           <p class="empty-list">{{ placeholder() }}</p>
         }

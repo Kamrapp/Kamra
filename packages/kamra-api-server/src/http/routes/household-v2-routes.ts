@@ -1,0 +1,1830 @@
+import type { Db, MongoClient } from "mongodb";
+import { json, unauthorized, type AppRoute } from "../app-route-context.js";
+import { pageResponse, readApiPageRequest } from "../pagination.js";
+import { MongoStockReadRepository } from "../../household/v2/mongo-stock-read-repository.js";
+import { MongoStockCommandRepository } from "../../household/v2/mongo-stock-command-repository.js";
+import { MongoShoppingNeedRepository } from "../../household/v2/mongo-shopping-need-repository.js";
+import {
+  createAdHocShoppingNeed,
+  generateProductGroupShoppingNeeds,
+  type GroupTargetShoppingMode
+} from "../../household/v2/shopping-needs.js";
+import { normalizeGroupTargetShoppingDistributionMode } from "../../household/shopping-policy.js";
+import { MongoStockTargetRepository } from "../../household/v2/mongo-stock-target-repository.js";
+import { MongoHouseholdProductRepository } from "../../household/v2/mongo-household-product-repository.js";
+import { MongoProductGroupReadRepository } from "../../household/v2/mongo-product-group-read-repository.js";
+import { MongoProductGroupRepository } from "../../household/v2/mongo-product-group-repository.js";
+import { MongoProductComposerRepository } from "../../household/v2/mongo-product-composer-repository.js";
+import { MongoIngestionSubmissionRepository } from "../../household/v2/mongo-ingestion-submission-repository.js";
+import { MongoHouseholdProductConceptRepository } from "../../household/v2/mongo-household-product-concept-repository.js";
+import { MongoShoppingTripRepository } from "../../household/v2/mongo-shopping-trip-repository.js";
+import { MongoShopMarketRepository } from "../../household/v2/mongo-shop-market-repository.js";
+import { MongoShopProductRepository } from "../../household/v2/mongo-shop-product-repository.js";
+import { MongoPriceObservationRepository } from "../../household/v2/mongo-price-observation-repository.js";
+import { matchShoppingNeed } from "../../household/v2/shopping-matcher.js";
+import { buildShoppingTripItems } from "../../household/v2/shopping-trip-planning.js";
+import {
+  addShoppingTripItem,
+  createShoppingTrip,
+  setShoppingTripCustomShop,
+  setShoppingTripMarket,
+  transitionShoppingTrip,
+  updateShoppingTripItem
+} from "../../household/v2/shopping-trip-domain.js";
+import type {
+  ShoppingTripItemPlanStatus,
+  ShoppingTripItemResultStatus,
+  ShoppingTripStatus
+} from "../../household/v2/stage9-contracts.js";
+import { FeatureFlagService } from "../../feature-toggles/service.js";
+import { MongoFeatureFlagStore } from "../../feature-toggles/mongo-store.js";
+import {
+  schemaVersion,
+  type CreateHouseholdProductRequest,
+  type CreateManualStockBatchRequest,
+  type CreateProductGroupRequest,
+  type CreateStockTargetRequest,
+  type ProductGroup,
+  type ShoppingNeedList,
+  type StockTarget,
+  type TargetPolicy,
+  type TrackingUnit
+} from "../../household/v2/contracts.js";
+import {
+  assertCreateHouseholdProductRequest,
+  assertCreateManualStockBatchRequest,
+  assertCreateProductGroupRequest,
+  assertCreateStockTargetRequest,
+  assertGroupShoppingDistributionOverride,
+  assertGroupShoppingOverrides,
+  assertProductGroup,
+  assertTargetPolicy,
+  assertTrackingUnit
+} from "../../household/v2/validation.js";
+
+export const householdV2WorkspaceRoute: AppRoute = {
+  match: (request) =>
+    request.method === "GET" && /^\/api\/households\/[^/]+\/stock-workspace$/.test(request.path),
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request);
+    if (!user) return unauthorized("apiErrors.signInRequired");
+    const householdId = pathSegment(
+      request.path.match(/^\/api\/households\/([^/]+)\/stock-workspace$/)?.[1]
+    );
+    if (!householdId) return json(400, { error: "invalid_household_path" });
+    return await withHouseholdDatabase(context, householdId, user.email, async (database) =>
+      json(200, {
+        productGroupWorkspace: {
+          ...(await new MongoProductGroupReadRepository(database).getWorkspace(
+            householdId,
+            new Date().toISOString().slice(0, 10)
+          )),
+          useAbbreviatedUiLabels: (
+            await new FeatureFlagService(new MongoFeatureFlagStore(database)).evaluate(
+              "useAbbreviatedUiLabels"
+            )
+          ).enabled
+        },
+        schemaVersion,
+        workspace: await new MongoStockReadRepository(database).getWorkspace(
+          householdId,
+          new Date().toISOString().slice(0, 10)
+        )
+      })
+    );
+  }
+};
+
+export const householdV2ShopMarketsRoute: AppRoute = {
+  match: (request) =>
+    request.method === "GET" && /^\/api\/households\/[^/]+\/shop-markets$/.test(request.path),
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request);
+    if (!user) return unauthorized("apiErrors.signInRequired");
+    const householdId = pathSegment(
+      request.path.match(/^\/api\/households\/([^/]+)\/shop-markets$/)?.[1]
+    );
+    if (!householdId) return json(400, { error: "invalid_household_path" });
+    return await withHouseholdDatabase(context, householdId, user.email, async (database) =>
+      json(200, { markets: await new MongoShopMarketRepository(database).list() })
+    );
+  }
+};
+
+export const householdV2HouseholdProductCollectionRoute: AppRoute = {
+  match: (request) =>
+    (request.method === "GET" || request.method === "POST") &&
+    /^\/api\/households\/[^/]+\/products$/.test(request.path),
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request);
+    if (!user) return unauthorized("apiErrors.signInRequired");
+    const householdId = pathSegment(
+      request.path.match(/^\/api\/households\/([^/]+)\/products$/)?.[1]
+    );
+    const body = request.method === "POST" ? parseJsonObject(request.bodyText) : null;
+    if (!householdId || (request.method === "POST" && !body))
+      return json(400, { error: "invalid_household_product_request" });
+    if (body) {
+      try {
+        assertCreateHouseholdProductRequest(body);
+      } catch (error) {
+        return json(400, {
+          error: "invalid_household_product_request",
+          message: error instanceof Error ? error.message : "Household Product request is invalid."
+        });
+      }
+    }
+    return await withHouseholdDatabase(context, householdId, user.email, async (database) => {
+      const repository = new MongoHouseholdProductRepository(database);
+      if (request.method === "GET")
+        return json(200, { products: await repository.list(householdId), schemaVersion });
+      const input = body as CreateHouseholdProductRequest;
+      const now = new Date().toISOString();
+      if (
+        input.productGroupId &&
+        !(await new MongoProductGroupRepository(database).get(householdId, input.productGroupId))
+      )
+        return json(404, { error: "product_group_not_found" });
+      const product = {
+        ...input,
+        classificationRevision: 0,
+        createdAt: now,
+        createdByUserId: user.email,
+        directAttributes: input.directAttributes ?? [],
+        directConcepts: input.directConcepts ?? [],
+        householdId,
+        id: `household-product:${householdId}:${slug(input.displayName)}`,
+        identitySnapshot: input.identitySnapshot ?? {},
+        revision: 0,
+        status: "active" as const,
+        updatedAt: now,
+        updatedByUserId: user.email
+      };
+      try {
+        return json(201, { product: await repository.create(product), schemaVersion });
+      } catch (error) {
+        return commandError(error);
+      }
+    });
+  }
+};
+
+export const householdV2HouseholdConceptsRoute: AppRoute = {
+  match: (request) =>
+    (request.method === "GET" || request.method === "POST") &&
+    /^\/api\/households\/[^/]+\/concepts$/.test(request.path),
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request);
+    if (!user) return unauthorized("apiErrors.signInRequired");
+    const householdId = pathSegment(
+      request.path.match(/^\/api\/households\/([^/]+)\/concepts$/)?.[1]
+    );
+    const body = request.method === "POST" ? parseJsonObject(request.bodyText) : null;
+    if (
+      !householdId ||
+      (request.method === "POST" &&
+        (!body || typeof body["label"] !== "string" || body["label"].trim().length === 0))
+    )
+      return json(400, { error: "invalid_household_concept_request" });
+    return await withHouseholdDatabase(context, householdId, user.email, async (database) => {
+      const repository = new MongoHouseholdProductConceptRepository(database);
+      if (request.method === "GET")
+        return json(200, { concepts: await repository.list(householdId), schemaVersion });
+      const label = (body!["label"] as string).trim();
+      const now = new Date().toISOString();
+      const key = slug(label);
+      try {
+        const concept = await repository.create({
+          createdAt: now,
+          createdByUserId: user.email,
+          householdId,
+          key,
+          label,
+          revision: 0,
+          status: "active",
+          updatedAt: now,
+          updatedByUserId: user.email
+        });
+        return json(201, { concept, schemaVersion });
+      } catch (error) {
+        return commandError(error);
+      }
+    });
+  }
+};
+
+export const householdV2HouseholdProductClassificationRoute: AppRoute = {
+  match: (request) =>
+    request.method === "PATCH" &&
+    /^\/api\/households\/[^/]+\/products\/[^/]+\/classification$/.test(request.path),
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request);
+    if (!user) return unauthorized("apiErrors.signInRequired");
+    const match = request.path.match(
+      /^\/api\/households\/([^/]+)\/products\/([^/]+)\/classification$/
+    );
+    const householdId = pathSegment(match?.[1]);
+    const productId = pathSegment(match?.[2]);
+    const body = parseJsonObject(request.bodyText);
+    if (
+      !householdId ||
+      !productId ||
+      !body ||
+      !Number.isInteger(body["expectedRevision"]) ||
+      (body["expectedRevision"] as number) < 0
+    )
+      return json(400, { error: "invalid_household_product_classification_request" });
+    try {
+      assertCreateHouseholdProductRequest({
+        displayName: "classification",
+        identityKind: "manual",
+        directConcepts: body["directConcepts"] ?? [],
+        directAttributes: body["directAttributes"] ?? []
+      });
+    } catch (error) {
+      return json(400, {
+        error: "invalid_household_product_classification_request",
+        message: error instanceof Error ? error.message : "Classification request is invalid."
+      });
+    }
+    return await withHouseholdDatabase(context, householdId, user.email, async (database) => {
+      try {
+        const product = await new MongoHouseholdProductRepository(database).updateClassification({
+          directAttributes: body["directAttributes"] as never[],
+          directConcepts: body["directConcepts"] as never[],
+          expectedRevision: body["expectedRevision"] as number,
+          householdId,
+          id: productId,
+          updatedAt: new Date().toISOString(),
+          updatedByUserId: user.email
+        });
+        return json(200, { product, schemaVersion });
+      } catch (error) {
+        return commandError(error);
+      }
+    });
+  }
+};
+
+export const householdV2HouseholdProductIdentityRoute: AppRoute = {
+  match: (request) =>
+    (request.method === "PATCH" || request.method === "DELETE") &&
+    /^\/api\/households\/[^/]+\/products\/[^/]+$/.test(request.path),
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request);
+    if (!user) return unauthorized("apiErrors.signInRequired");
+    const match = request.path.match(/^\/api\/households\/([^/]+)\/products\/([^/]+)$/);
+    const householdId = pathSegment(match?.[1]);
+    const productId = pathSegment(match?.[2]);
+    const body = parseJsonObject(request.bodyText);
+    if (
+      !householdId ||
+      !productId ||
+      !body ||
+      !Number.isInteger(body["expectedRevision"]) ||
+      (body["expectedRevision"] as number) < 0
+    )
+      return json(400, { error: "invalid_household_product_identity_request" });
+    if (request.method === "DELETE")
+      return await withHouseholdDatabase(context, householdId, user.email, async (database) => {
+        try {
+          return json(200, {
+            result: await new MongoHouseholdProductRepository(database).deleteProduct({
+              expectedRevision: body["expectedRevision"] as number,
+              householdId,
+              id: productId
+            }),
+            schemaVersion
+          });
+        } catch (error) {
+          return commandError(error);
+        }
+      });
+    if (
+      typeof body["displayName"] !== "string" ||
+      body["displayName"].trim().length === 0 ||
+      (!!body["identitySnapshot"] &&
+        (typeof body["identitySnapshot"] !== "object" || Array.isArray(body["identitySnapshot"])))
+    )
+      return json(400, { error: "invalid_household_product_identity_request" });
+    try {
+      assertCreateHouseholdProductRequest({
+        displayName: body["displayName"],
+        identityKind: "manual",
+        defaultTrackingUnit: body["defaultTrackingUnit"],
+        note: body["note"],
+        productGroupId: body["productGroupId"],
+        targetPolicy: body["targetPolicy"]
+      });
+    } catch (error) {
+      return json(400, {
+        error: "invalid_household_product_identity_request",
+        message: error instanceof Error ? error.message : "Household Product details are invalid."
+      });
+    }
+    const displayName = body["displayName"] as string;
+    return await withHouseholdDatabase(context, householdId, user.email, async (database) => {
+      if (
+        body["productGroupId"] &&
+        !(await new MongoProductGroupRepository(database).get(
+          householdId,
+          body["productGroupId"] as string
+        ))
+      )
+        return json(404, { error: "product_group_not_found" });
+      try {
+        const product = await new MongoHouseholdProductRepository(database).updateIdentity({
+          catalogProductId:
+            typeof body["catalogProductId"] === "string" ? body["catalogProductId"] : undefined,
+          defaultTrackingUnit: body["defaultTrackingUnit"] as never,
+          displayName: displayName.trim(),
+          expectedRevision: body["expectedRevision"] as number,
+          householdId,
+          id: productId,
+          identitySnapshot: body["identitySnapshot"] as never,
+          note: body["note"] as string | null | undefined,
+          productGroupId: body["productGroupId"] as string | null | undefined,
+          targetPolicy: body["targetPolicy"] as TargetPolicy | null | undefined,
+          updatedAt: new Date().toISOString(),
+          updatedByUserId: user.email
+        });
+        return json(200, { product, schemaVersion });
+      } catch (error) {
+        return commandError(error);
+      }
+    });
+  }
+};
+
+export const householdV2ProductGroupCollectionRoute: AppRoute = {
+  match: (request) =>
+    (request.method === "GET" || request.method === "POST") &&
+    /^\/api\/households\/[^/]+\/product-groups$/.test(request.path),
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request);
+    if (!user) return unauthorized("apiErrors.signInRequired");
+    const householdId = pathSegment(
+      request.path.match(/^\/api\/households\/([^/]+)\/product-groups$/)?.[1]
+    );
+    const body = request.method === "POST" ? parseJsonObject(request.bodyText) : null;
+    if (!householdId || (request.method === "POST" && !body))
+      return json(400, { error: "invalid_product_group_request" });
+    if (body) {
+      try {
+        assertCreateProductGroupRequest(body);
+      } catch (error) {
+        return json(400, {
+          error: "invalid_product_group_request",
+          message: error instanceof Error ? error.message : "Product Group request is invalid."
+        });
+      }
+    }
+    return await withHouseholdDatabase(context, householdId, user.email, async (database) => {
+      const repository = new MongoProductGroupRepository(database);
+      if (request.method === "GET")
+        return json(200, { productGroups: await repository.list(householdId), schemaVersion });
+      const input = body as CreateProductGroupRequest;
+      if (input.targetPolicy && input.targetPolicy.trackingUnit !== input.trackingUnit)
+        return json(400, { error: "product_group_target_unit_mismatch" });
+      if (
+        input.parentProductGroupId &&
+        !(await repository.get(householdId, input.parentProductGroupId))
+      )
+        return json(404, { error: "parent_product_group_not_found" });
+      const now = new Date().toISOString();
+      const group: ProductGroup = {
+        createdAt: now,
+        createdByUserId: user.email,
+        displayName: input.displayName.trim(),
+        groupTargetShoppingDistributionModeOverride:
+          input.groupTargetShoppingDistributionModeOverride ?? "default",
+        groupTargetShoppingModeOverride: input.groupTargetShoppingModeOverride ?? "default",
+        householdId,
+        id: `product-group:${householdId}:${slug(input.displayName)}`,
+        parentProductGroupId: input.parentProductGroupId ?? null,
+        revision: 0,
+        status: "active",
+        targetPolicy: input.targetPolicy ?? null,
+        trackingUnit: input.trackingUnit,
+        updatedAt: now,
+        updatedByUserId: user.email
+      };
+      try {
+        assertProductGroup(group);
+        return json(201, { productGroup: await repository.create(group), schemaVersion });
+      } catch (error) {
+        return commandError(error);
+      }
+    });
+  }
+};
+
+export const householdV2ProductGroupMutationRoute: AppRoute = {
+  match: (request) =>
+    (request.method === "PATCH" || request.method === "DELETE") &&
+    /^\/api\/households\/[^/]+\/product-groups\/[^/]+$/.test(request.path),
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request);
+    if (!user) return unauthorized("apiErrors.signInRequired");
+    const match = request.path.match(/^\/api\/households\/([^/]+)\/product-groups\/([^/]+)$/);
+    const householdId = pathSegment(match?.[1]);
+    const groupId = pathSegment(match?.[2]);
+    const body = parseJsonObject(request.bodyText);
+    if (!householdId || !groupId || !body || !Number.isInteger(body["expectedRevision"]))
+      return json(400, { error: "invalid_product_group_request" });
+    if (request.method === "DELETE")
+      return await withHouseholdDatabase(context, householdId, user.email, async (database) => {
+        try {
+          return json(200, {
+            result: await new MongoProductGroupRepository(database).deleteGroup({
+              expectedRevision: body["expectedRevision"] as number,
+              householdId,
+              id: groupId
+            }),
+            schemaVersion
+          });
+        } catch (error) {
+          return commandError(error);
+        }
+      });
+    if (typeof body["displayName"] !== "string" || typeof body["trackingUnit"] !== "string")
+      return json(400, { error: "invalid_product_group_request" });
+    try {
+      assertTrackingUnit(body["trackingUnit"]);
+      if (body["targetPolicy"] !== undefined && body["targetPolicy"] !== null)
+        assertTargetPolicy(body["targetPolicy"]);
+      assertGroupShoppingOverrides(body["groupTargetShoppingModeOverride"]);
+      assertGroupShoppingDistributionOverride(body["groupTargetShoppingDistributionModeOverride"]);
+    } catch (error) {
+      return json(400, {
+        error: "invalid_product_group_request",
+        message: error instanceof Error ? error.message : "Product Group request is invalid."
+      });
+    }
+    return await withHouseholdDatabase(context, householdId, user.email, async (database) => {
+      const repository = new MongoProductGroupRepository(database);
+      if (
+        body["targetPolicy"] &&
+        (body["targetPolicy"] as TargetPolicy).trackingUnit !== body["trackingUnit"]
+      )
+        return json(400, { error: "product_group_target_unit_mismatch" });
+      if (
+        body["parentProductGroupId"] &&
+        !(await repository.get(householdId, body["parentProductGroupId"] as string))
+      )
+        return json(404, { error: "parent_product_group_not_found" });
+      try {
+        const group = await repository.update({
+          displayName: (body["displayName"] as string).trim(),
+          expectedRevision: body["expectedRevision"] as number,
+          householdId,
+          id: groupId,
+          parentProductGroupId: body["parentProductGroupId"] as string | null | undefined,
+          targetPolicy: body["targetPolicy"] as TargetPolicy | null | undefined,
+          groupTargetShoppingDistributionModeOverride: body[
+            "groupTargetShoppingDistributionModeOverride"
+          ] as ProductGroup["groupTargetShoppingDistributionModeOverride"] | undefined,
+          groupTargetShoppingModeOverride: body["groupTargetShoppingModeOverride"] as
+            ProductGroup["groupTargetShoppingModeOverride"] | undefined,
+          trackingUnit: body["trackingUnit"] as ProductGroup["trackingUnit"],
+          updatedAt: new Date().toISOString(),
+          updatedByUserId: user.email
+        });
+        return json(200, { productGroup: group, schemaVersion });
+      } catch (error) {
+        return commandError(error);
+      }
+    });
+  }
+};
+
+export const householdV2ProductComposerRoute: AppRoute = {
+  match: (request) =>
+    request.method === "POST" && /^\/api\/households\/[^/]+\/product-composer$/.test(request.path),
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request);
+    if (!user) return unauthorized("apiErrors.signInRequired");
+    const householdId = pathSegment(
+      request.path.match(/^\/api\/households\/([^/]+)\/product-composer$/)?.[1]
+    );
+    const body = parseJsonObject(request.bodyText);
+    const product = body?.["product"] as Record<string, unknown> | undefined;
+    const batch = body?.["batch"] as Record<string, unknown> | undefined;
+    const group = body?.["group"] as Record<string, unknown> | null | undefined;
+    if (
+      !householdId ||
+      !body ||
+      typeof body["operationId"] !== "string" ||
+      typeof body["requestFingerprint"] !== "string" ||
+      !product ||
+      !batch ||
+      typeof product["displayName"] !== "string" ||
+      typeof batch["displayName"] !== "string" ||
+      typeof batch["acquiredOn"] !== "string" ||
+      typeof batch["unit"] !== "string" ||
+      typeof batch["originalQuantity"] !== "number"
+    )
+      return json(400, { error: "invalid_product_composer_request" });
+    try {
+      assertTrackingUnit(batch["unit"]);
+      if (product["defaultTrackingUnit"] !== undefined && product["defaultTrackingUnit"] !== null)
+        assertTrackingUnit(product["defaultTrackingUnit"]);
+      if (product["targetPolicy"] !== undefined && product["targetPolicy"] !== null) {
+        assertTargetPolicy(product["targetPolicy"]);
+        if (
+          product["defaultTrackingUnit"] !== undefined &&
+          (product["targetPolicy"] as TargetPolicy).trackingUnit !== product["defaultTrackingUnit"]
+        )
+          throw new Error("product target unit does not match product tracking unit");
+      }
+      if (group) {
+        if (typeof group["displayName"] !== "string" || typeof group["trackingUnit"] !== "string")
+          throw new Error("group details are invalid");
+        assertTrackingUnit(group["trackingUnit"]);
+        if (group["targetPolicy"] !== undefined && group["targetPolicy"] !== null)
+          assertTargetPolicy(group["targetPolicy"]);
+      }
+    } catch (error) {
+      return json(400, {
+        error: "invalid_product_composer_request",
+        message: error instanceof Error ? error.message : "Product composer request is invalid."
+      });
+    }
+    if (
+      !Number.isFinite(batch["originalQuantity"]) ||
+      (batch["originalQuantity"] as number) <= 0 ||
+      !isIsoDate(batch["acquiredOn"]) ||
+      (batch["expiryOn"] !== undefined &&
+        batch["expiryOn"] !== null &&
+        !isIsoDate(batch["expiryOn"]))
+    )
+      return json(400, { error: "invalid_product_composer_request" });
+    if (!context.config.mongodb.uri || !context.config.mongodb.databaseName)
+      return json(503, { error: "household_not_configured" });
+    const client = await context.getMongoClient(
+      context.config.mongodb.uri,
+      context.config.mongodb.dnsServers
+    );
+    const database = client.db(context.config.mongodb.databaseName);
+    const membership = await database
+      .collection<{ householdId: string; status: string; userId: string }>("household_memberships")
+      .findOne({ householdId, status: "active", userId: user.email });
+    if (!membership) return json(403, { error: "household_membership_required" });
+    try {
+      const result = await new MongoProductComposerRepository(
+        database,
+        client
+      ).createProductWithBatch({
+        actorUserId: user.email,
+        batch: {
+          acquiredOn: batch["acquiredOn"] as string,
+          displayName: batch["displayName"] as string,
+          expiryOn: batch["expiryOn"] as string | null | undefined,
+          originalQuantity: batch["originalQuantity"] as number,
+          unit: batch["unit"] as TrackingUnit
+        },
+        group: group
+          ? {
+              displayName: group["displayName"] as string,
+              targetPolicy: group["targetPolicy"] as TargetPolicy | null | undefined,
+              trackingUnit: group["trackingUnit"] as TrackingUnit
+            }
+          : null,
+        householdId,
+        operationId: body["operationId"],
+        product: {
+          defaultTrackingUnit: product["defaultTrackingUnit"] as TrackingUnit | null | undefined,
+          displayName: product["displayName"] as string,
+          note: typeof product["note"] === "string" ? product["note"] : null,
+          productGroupId:
+            typeof product["productGroupId"] === "string" ? product["productGroupId"] : null,
+          targetPolicy: product["targetPolicy"] as TargetPolicy | null | undefined
+        },
+        requestFingerprint: body["requestFingerprint"]
+      });
+      return json(201, { result, schemaVersion });
+    } catch (error) {
+      return commandError(error);
+    }
+  }
+};
+
+export const householdV2StockTargetRoute: AppRoute = {
+  match: (request) =>
+    request.method === "GET" &&
+    /^\/api\/households\/[^/]+\/stock-targets\/[^/]+$/.test(request.path),
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request);
+    if (!user) return unauthorized("apiErrors.signInRequired");
+    const match = request.path.match(/^\/api\/households\/([^/]+)\/stock-targets\/([^/]+)$/);
+    const householdId = match?.[1];
+    const targetId = match?.[2];
+    if (!householdId || !targetId) return json(400, { error: "invalid_stock_target_path" });
+    if (!context.config.mongodb.uri || !context.config.mongodb.databaseName)
+      return json(503, { error: "household_not_configured" });
+    const client = await context.getMongoClient(
+      context.config.mongodb.uri,
+      context.config.mongodb.dnsServers
+    );
+    const database = client.db(context.config.mongodb.databaseName);
+    const membership = await database
+      .collection<{ householdId: string; status: string; userId: string }>("household_memberships")
+      .findOne({ householdId, status: "active", userId: user.email });
+    if (!membership) return json(403, { error: "household_membership_required" });
+    const result = await new MongoStockReadRepository(database).getTarget(
+      householdId,
+      targetId,
+      new Date().toISOString().slice(0, 10)
+    );
+    return result
+      ? json(200, { schemaVersion, ...result })
+      : json(404, { error: "stock_target_not_found" });
+  }
+};
+
+export const householdV2StockTargetCollectionRoute: AppRoute = {
+  match: (request) =>
+    request.method === "POST" && /^\/api\/households\/[^/]+\/stock-targets$/.test(request.path),
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request);
+    if (!user) return unauthorized("apiErrors.signInRequired");
+    const householdId = request.path.match(/^\/api\/households\/([^/]+)\/stock-targets$/)?.[1];
+    const body = parseJsonObject(request.bodyText);
+    if (!householdId || !body) return json(400, { error: "invalid_stock_target_request" });
+    try {
+      assertCreateStockTargetRequest(body);
+    } catch (error) {
+      return json(400, {
+        error: "invalid_stock_target_request",
+        message: error instanceof Error ? error.message : "Stock Target request is invalid."
+      });
+    }
+    return await withHouseholdDatabase(context, householdId, user.email, async (database) => {
+      const input = body as CreateStockTargetRequest;
+      const now = new Date().toISOString();
+      const id = `stock-target:${householdId}:${slug(input.displayName)}`;
+      try {
+        const target = await new MongoStockTargetRepository(database).create({
+          ...input,
+          createdAt: now,
+          createdByUserId: user.email,
+          householdId,
+          id,
+          revision: 0,
+          status: "active",
+          updatedAt: now,
+          updatedByUserId: user.email
+        });
+        return json(201, { schemaVersion, target });
+      } catch (error) {
+        return commandError(error);
+      }
+    });
+  }
+};
+
+export const householdV2StockTargetMutationRoute: AppRoute = {
+  match: (request) =>
+    (request.method === "PATCH" || request.method === "POST") &&
+    /^\/api\/households\/[^/]+\/stock-targets\/[^/]+(\/archive)?$/.test(request.path),
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request);
+    if (!user) return unauthorized("apiErrors.signInRequired");
+    const match = request.path.match(
+      /^\/api\/households\/([^/]+)\/stock-targets\/([^/]+)(\/archive)?$/
+    );
+    const householdId = match?.[1];
+    const id = match?.[2];
+    const isArchive = Boolean(match?.[3]);
+    const body = parseJsonObject(request.bodyText);
+    if (
+      !householdId ||
+      !id ||
+      !body ||
+      !Number.isInteger(body["expectedRevision"]) ||
+      (body["expectedRevision"] as number) < 0 ||
+      (!isArchive &&
+        (!body["patch"] || typeof body["patch"] !== "object" || Array.isArray(body["patch"])))
+    )
+      return json(400, { error: "invalid_stock_target_update_request" });
+    return await withHouseholdDatabase(context, householdId, user.email, async (database) => {
+      try {
+        const repository = new MongoStockTargetRepository(database);
+        const now = new Date().toISOString();
+        const target = isArchive
+          ? await repository.archive({
+              expectedRevision: body["expectedRevision"] as number,
+              householdId,
+              id,
+              updatedAt: now,
+              updatedByUserId: user.email
+            })
+          : await repository.update({
+              expectedRevision: body["expectedRevision"] as number,
+              householdId,
+              id,
+              patch: body["patch"] as Partial<
+                Pick<
+                  StockTarget,
+                  | "acceptanceCriteria"
+                  | "consumptionPolicy"
+                  | "displayName"
+                  | "expiryWarningDays"
+                  | "minimumQuantity"
+                  | "preferredProductId"
+                  | "preferredProductNameSnapshot"
+                  | "status"
+                  | "targetQuantity"
+                  | "trackingUnit"
+                >
+              >,
+              updatedAt: now,
+              updatedByUserId: user.email
+            });
+        return json(200, { schemaVersion, target });
+      } catch (error) {
+        return commandError(error);
+      }
+    });
+  }
+};
+
+export const householdV2ManualBatchRoute: AppRoute = {
+  match: (request) =>
+    request.method === "POST" && /^\/api\/households\/[^/]+\/batches$/.test(request.path),
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request);
+    if (!user) return unauthorized("apiErrors.signInRequired");
+    const householdId = request.path.match(/^\/api\/households\/([^/]+)\/batches$/)?.[1];
+    if (!householdId) return json(400, { error: "invalid_household_path" });
+    const body = parseJsonObject(request.bodyText);
+    if (!body) return json(400, { error: "invalid_json_body" });
+    try {
+      assertCreateManualStockBatchRequest(body);
+    } catch (error) {
+      return json(400, {
+        error: "invalid_stock_batch_request",
+        message: error instanceof Error ? error.message : "Stock Batch request is invalid."
+      });
+    }
+    if (!context.config.mongodb.uri || !context.config.mongodb.databaseName)
+      return json(503, { error: "household_not_configured" });
+    const client = await context.getMongoClient(
+      context.config.mongodb.uri,
+      context.config.mongodb.dnsServers
+    );
+    const database = client.db(context.config.mongodb.databaseName);
+    const membership = await database
+      .collection<{ householdId: string; status: string; userId: string }>("household_memberships")
+      .findOne({ householdId, status: "active", userId: user.email });
+    if (!membership) return json(403, { error: "household_membership_required" });
+    const now = new Date().toISOString();
+    const input = body as CreateManualStockBatchRequest;
+    const batchId = `stock-batch:${input.operationId}`;
+    try {
+      const householdProduct = input.householdProductId
+        ? await new MongoHouseholdProductRepository(database).get(
+            householdId,
+            input.householdProductId
+          )
+        : null;
+      if (input.householdProductId && !householdProduct)
+        return json(404, { error: "household_product_not_found" });
+      const directAttributes = householdProduct?.directAttributes ?? input.directAttributes ?? [];
+      const directConcepts = householdProduct?.directConcepts ?? input.directConcepts ?? [];
+      const result = await new MongoStockCommandRepository(database, client).acquireBatch({
+        batch: {
+          acquiredOn: input.acquiredOn,
+          acquisitionSnapshot: { displayName: householdProduct?.displayName ?? input.displayName },
+          classificationSnapshot: {
+            capturedAt: now,
+            directAttributes,
+            directConcepts,
+            effectiveConcepts: directConcepts,
+            source: householdProduct ? "household" : "manual"
+          },
+          createdAt: now,
+          createdByUserId: user.email,
+          expiryOn: input.expiryOn ?? null,
+          householdId,
+          householdProductId: input.householdProductId ?? null,
+          id: batchId,
+          originalQuantity: input.originalQuantity,
+          remainingQuantity: input.originalQuantity,
+          revision: 0,
+          status: "available",
+          unit: input.unit,
+          updatedAt: now,
+          updatedByUserId: user.email
+        },
+        operationId: input.operationId,
+        requestFingerprint: input.requestFingerprint
+      });
+      return json(201, { result, schemaVersion });
+    } catch (error) {
+      return commandError(error);
+    }
+  }
+};
+
+export const householdV2AllocateBatchRoute: AppRoute = {
+  match: (request) =>
+    request.method === "POST" &&
+    /^\/api\/households\/[^/]+\/batches\/[^/]+\/allocate$/.test(request.path),
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request);
+    if (!user) return unauthorized("apiErrors.signInRequired");
+    const match = request.path.match(/^\/api\/households\/([^/]+)\/batches\/([^/]+)\/allocate$/);
+    const householdId = match?.[1];
+    const batchId = match?.[2];
+    const body = parseJsonObject(request.bodyText);
+    if (
+      !householdId ||
+      !batchId ||
+      !body ||
+      typeof body["operationId"] !== "string" ||
+      typeof body["requestFingerprint"] !== "string" ||
+      typeof body["stockTargetId"] !== "string"
+    )
+      return json(400, { error: "invalid_stock_allocation_request" });
+    if (!context.config.mongodb.uri || !context.config.mongodb.databaseName)
+      return json(503, { error: "household_not_configured" });
+    const client = await context.getMongoClient(
+      context.config.mongodb.uri,
+      context.config.mongodb.dnsServers
+    );
+    const database = client.db(context.config.mongodb.databaseName);
+    const membership = await database
+      .collection<{ householdId: string; status: string; userId: string }>("household_memberships")
+      .findOne({ householdId, status: "active", userId: user.email });
+    if (!membership) return json(403, { error: "household_membership_required" });
+    const batch = await database
+      .collection<{
+        id: string;
+        householdId: string;
+        remainingQuantity: number;
+        revision: number;
+        unit: string;
+        status: string;
+      }>("household_stock_batches")
+      .findOne({ householdId, id: batchId });
+    if (!batch) return json(404, { error: "stock_batch_not_found" });
+    try {
+      assertTrackingUnit(batch.unit);
+    } catch {
+      return json(500, { error: "stored_stock_batch_unit_invalid" });
+    }
+    if (
+      body["acceptanceResult"] === "overridden" &&
+      (typeof body["overrideReason"] !== "string" ||
+        body["overrideReason"].trim().length === 0 ||
+        body["overrideReason"].length > 300)
+    )
+      return json(400, { error: "invalid_stock_allocation_override_reason" });
+    try {
+      const now = new Date().toISOString();
+      const result = await new MongoStockCommandRepository(database, client).allocateBatch({
+        allocation: {
+          acceptanceResult: body["acceptanceResult"] === "overridden" ? "overridden" : "accepted",
+          allocatedQuantity: batch.remainingQuantity,
+          createdAt: now,
+          createdByUserId: user.email,
+          householdId,
+          id: `stock-allocation:${body["operationId"]}`,
+          overrideReason:
+            typeof body["overrideReason"] === "string" ? body["overrideReason"].trim() : null,
+          revision: 0,
+          status: "active",
+          stockBatchId: batchId,
+          stockTargetId: body["stockTargetId"],
+          unit: batch.unit,
+          updatedAt: now,
+          updatedByUserId: user.email
+        },
+        operationId: body["operationId"],
+        requestFingerprint: body["requestFingerprint"]
+      });
+      return json(201, { result, schemaVersion });
+    } catch (error) {
+      return commandError(error);
+    }
+  }
+};
+
+export const householdV2ConsumeRoute: AppRoute = {
+  match: (request) =>
+    request.method === "POST" &&
+    /^\/api\/households\/[^/]+\/stock-targets\/[^/]+\/consume$/.test(request.path),
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request);
+    if (!user) return unauthorized("apiErrors.signInRequired");
+    const match = request.path.match(
+      /^\/api\/households\/([^/]+)\/stock-targets\/([^/]+)\/consume$/
+    );
+    const householdId = match?.[1];
+    const stockTargetId = match?.[2];
+    const body = parseJsonObject(request.bodyText);
+    if (
+      !householdId ||
+      !stockTargetId ||
+      !body ||
+      typeof body["operationId"] !== "string" ||
+      typeof body["requestFingerprint"] !== "string" ||
+      typeof body["requestedQuantity"] !== "number" ||
+      !Number.isFinite(body["requestedQuantity"]) ||
+      body["requestedQuantity"] <= 0 ||
+      !Number.isInteger(body["expectedTargetRevision"]) ||
+      (body["expectedTargetRevision"] as number) < 0
+    )
+      return json(400, { error: "invalid_stock_consumption_request" });
+    if (
+      body["selectedBatchIds"] !== undefined &&
+      (!Array.isArray(body["selectedBatchIds"]) ||
+        !(body["selectedBatchIds"] as unknown[]).every((id) => typeof id === "string"))
+    )
+      return json(400, { error: "invalid_stock_consumption_request" });
+    if (!context.config.mongodb.uri || !context.config.mongodb.databaseName)
+      return json(503, { error: "household_not_configured" });
+    const client = await context.getMongoClient(
+      context.config.mongodb.uri,
+      context.config.mongodb.dnsServers
+    );
+    const database = client.db(context.config.mongodb.databaseName);
+    const membership = await database
+      .collection<{ householdId: string; status: string; userId: string }>("household_memberships")
+      .findOne({ householdId, status: "active", userId: user.email });
+    if (!membership) return json(403, { error: "household_membership_required" });
+    try {
+      const result = await new MongoStockCommandRepository(database, client).consume({
+        actorUserId: user.email,
+        expectedTargetRevision: body["expectedTargetRevision"] as number,
+        householdId,
+        occurredAt: new Date().toISOString(),
+        operationId: body["operationId"],
+        requestFingerprint: body["requestFingerprint"],
+        requestedQuantity: body["requestedQuantity"],
+        selectedBatchIds: body["selectedBatchIds"] as string[] | undefined,
+        stockTargetId
+      });
+      return json(200, { result, schemaVersion });
+    } catch (error) {
+      return commandError(error);
+    }
+  }
+};
+
+export const householdV2CorrectBatchRoute: AppRoute = {
+  match: (request) =>
+    request.method === "POST" &&
+    /^\/api\/households\/[^/]+\/batches\/[^/]+\/correct$/.test(request.path),
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request);
+    if (!user) return unauthorized("apiErrors.signInRequired");
+    const match = request.path.match(/^\/api\/households\/([^/]+)\/batches\/([^/]+)\/correct$/);
+    const householdId = pathSegment(match?.[1]);
+    const batchId = pathSegment(match?.[2]);
+    const body = parseJsonObject(request.bodyText);
+    if (
+      !householdId ||
+      !batchId ||
+      !body ||
+      typeof body["operationId"] !== "string" ||
+      typeof body["requestFingerprint"] !== "string" ||
+      typeof body["resultingQuantity"] !== "number" ||
+      typeof body["unit"] !== "string" ||
+      !Number.isFinite(body["resultingQuantity"]) ||
+      !Number.isInteger(body["expectedBatchRevision"]) ||
+      (body["expectedBatchRevision"] as number) < 0 ||
+      (body["acquiredOn"] !== undefined && !isIsoDate(body["acquiredOn"])) ||
+      (body["expiryOn"] !== undefined && body["expiryOn"] !== null && !isIsoDate(body["expiryOn"]))
+    )
+      return json(400, { error: "invalid_stock_correction_request" });
+    try {
+      assertTrackingUnit(body["unit"]);
+    } catch {
+      return json(400, { error: "invalid_stock_correction_unit" });
+    }
+    return await runBatchCommand(context, user.email, householdId, batchId, body, "correct");
+  }
+};
+
+export const householdV2DiscardBatchRoute: AppRoute = {
+  match: (request) =>
+    request.method === "POST" &&
+    /^\/api\/households\/[^/]+\/batches\/[^/]+\/discard$/.test(request.path),
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request);
+    if (!user) return unauthorized("apiErrors.signInRequired");
+    const match = request.path.match(/^\/api\/households\/([^/]+)\/batches\/([^/]+)\/discard$/);
+    const householdId = pathSegment(match?.[1]);
+    const batchId = pathSegment(match?.[2]);
+    const body = parseJsonObject(request.bodyText);
+    if (
+      !householdId ||
+      !batchId ||
+      !body ||
+      typeof body["operationId"] !== "string" ||
+      typeof body["requestFingerprint"] !== "string" ||
+      !Number.isInteger(body["expectedBatchRevision"]) ||
+      (body["expectedBatchRevision"] as number) < 0
+    )
+      return json(400, { error: "invalid_stock_discard_request" });
+    return await runBatchCommand(context, user.email, householdId, batchId, body, "discard");
+  }
+};
+
+export const householdV2ShoppingNeedsRoute: AppRoute = {
+  match: (request) =>
+    (request.method === "GET" || request.method === "POST") &&
+    /^\/api\/households\/[^/]+\/shopping-needs$/.test(request.path),
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request);
+    if (!user) return unauthorized("apiErrors.signInRequired");
+    const householdId = request.path.match(/^\/api\/households\/([^/]+)\/shopping-needs$/)?.[1];
+    if (!householdId) return json(400, { error: "invalid_household_path" });
+    const body = request.method === "POST" ? parseJsonObject(request.bodyText) : null;
+    const regenerate = body?.["regenerate"] === true;
+    if (
+      request.method === "POST" &&
+      (!body ||
+        (!regenerate &&
+          (typeof body["needId"] !== "string" ||
+            typeof body["plannedQuantity"] !== "number" ||
+            typeof body["unit"] !== "string")))
+    )
+      return json(400, { error: "invalid_shopping_need_request" });
+    let adHocUnit: TrackingUnit | undefined;
+    if (request.method === "POST" && !regenerate) {
+      try {
+        assertTrackingUnit(body!["unit"]);
+        adHocUnit = body!["unit"];
+      } catch {
+        return json(400, { error: "invalid_shopping_need_unit" });
+      }
+    }
+    if (!context.config.mongodb.uri || !context.config.mongodb.databaseName)
+      return json(503, { error: "household_not_configured" });
+    const client = await context.getMongoClient(
+      context.config.mongodb.uri,
+      context.config.mongodb.dnsServers
+    );
+    const database = client.db(context.config.mongodb.databaseName);
+    const membership = await database
+      .collection<{ householdId: string; status: string; userId: string }>("household_memberships")
+      .findOne({ householdId, status: "active", userId: user.email });
+    if (!membership) return json(403, { error: "household_membership_required" });
+    const repository = new MongoShoppingNeedRepository(database);
+    const now = new Date().toISOString();
+    const storedHousehold = await database
+      .collection<{
+        groupTargetShoppingDistributionMode?: string | null;
+        groupTargetShoppingMode?: string | null;
+      }>("households")
+      .findOne({ id: householdId });
+    const groupTargetMode: GroupTargetShoppingMode =
+      storedHousehold?.groupTargetShoppingMode === "add_products_only" ||
+      storedHousehold?.groupTargetShoppingMode === "ignore_group_targets"
+        ? storedHousehold.groupTargetShoppingMode
+        : "add_products_and_group_item";
+    const groupTargetDistributionMode = normalizeGroupTargetShoppingDistributionMode(
+      storedHousehold?.groupTargetShoppingDistributionMode
+    );
+    try {
+      const result =
+        request.method === "GET"
+          ? await repository.getOrCreateList(householdId, user.email, now)
+          : regenerate
+            ? await repository.replaceGeneratedNeeds({
+                actorUserId: user.email,
+                householdId,
+                needs: generateProductGroupShoppingNeeds({
+                  distributionMode: groupTargetDistributionMode,
+                  mode: groupTargetMode,
+                  needIdPrefix: `shopping-needs:${householdId}`,
+                  workspace: await new MongoProductGroupReadRepository(database).getWorkspace(
+                    householdId,
+                    now.slice(0, 10)
+                  )
+                }),
+                now
+              })
+            : await repository.upsertNeed({
+                actorUserId: user.email,
+                householdId,
+                need: createAdHocShoppingNeed({
+                  id: body!["needId"] as string,
+                  plannedQuantity: body!["plannedQuantity"] as number,
+                  unit: adHocUnit!
+                }),
+                now
+              });
+      return json(200, { result, schemaVersion });
+    } catch (error) {
+      return commandError(error);
+    }
+  }
+};
+
+export const householdV2ShoppingNeedTransitionRoute: AppRoute = {
+  match: (request) =>
+    request.method === "PATCH" &&
+    /^\/api\/households\/[^/]+\/shopping-needs\/[^/]+$/.test(request.path),
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request);
+    if (!user) return unauthorized("apiErrors.signInRequired");
+    const match = request.path.match(/^\/api\/households\/([^/]+)\/shopping-needs\/([^/]+)$/);
+    const householdId = match?.[1];
+    const needId = match?.[2];
+    const body = parseJsonObject(request.bodyText);
+    if (
+      !householdId ||
+      !needId ||
+      !body ||
+      (body["state"] !== "open" && body["state"] !== "skipped") ||
+      !Number.isInteger(body["expectedRevision"])
+    )
+      return json(400, { error: "invalid_shopping_need_transition" });
+    if (!context.config.mongodb.uri || !context.config.mongodb.databaseName)
+      return json(503, { error: "household_not_configured" });
+    const client = await context.getMongoClient(
+      context.config.mongodb.uri,
+      context.config.mongodb.dnsServers
+    );
+    const database = client.db(context.config.mongodb.databaseName);
+    const membership = await database
+      .collection<{ householdId: string; status: string; userId: string }>("household_memberships")
+      .findOne({ householdId, status: "active", userId: user.email });
+    if (!membership) return json(403, { error: "household_membership_required" });
+    try {
+      const result = await new MongoShoppingNeedRepository(database).transitionNeed({
+        actorUserId: user.email,
+        expectedRevision: body["expectedRevision"] as number,
+        householdId,
+        needId,
+        now: new Date().toISOString(),
+        state: body["state"]
+      });
+      return json(200, { result, schemaVersion });
+    } catch (error) {
+      return commandError(error);
+    }
+  }
+};
+
+export const householdV2ShoppingTripsRoute: AppRoute = {
+  match: (request) =>
+    (request.method === "GET" || request.method === "POST") &&
+    /^\/api\/households\/[^/]+\/shopping-trips$/.test(request.path),
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request);
+    if (!user) return unauthorized("apiErrors.signInRequired");
+    const householdId = pathSegment(
+      request.path.match(/^\/api\/households\/([^/]+)\/shopping-trips$/)?.[1]
+    );
+    if (!householdId) return json(400, { error: "invalid_household_path" });
+    const body = request.method === "POST" ? parseJsonObject(request.bodyText) : null;
+    if (
+      request.method === "POST" &&
+      (!body || typeof body["plannedDate"] !== "string" || !isIsoDate(body["plannedDate"]))
+    )
+      return json(400, { error: "invalid_shopping_trip_request" });
+    return await withHouseholdDatabase(context, householdId, user.email, async (database) => {
+      const repository = new MongoShoppingTripRepository(database);
+      if (request.method === "GET") {
+        const page = readApiPageRequest(request.query);
+        const result = await repository.listPage(householdId, page);
+        return json(200, { trips: result.items, pagination: pageResponse(page, result) });
+      }
+      const needListId =
+        typeof body!["shoppingNeedListId"] === "string"
+          ? (body!["shoppingNeedListId"] as string)
+          : `shopping-needs:${householdId}`;
+      const marketId = typeof body!["shopMarketId"] === "string" ? body!["shopMarketId"] : null;
+      const customShopName =
+        typeof body!["shopNameSnapshot"] === "string" && body!["shopNameSnapshot"].trim()
+          ? body!["shopNameSnapshot"].trim()
+          : "Custom";
+      const market = marketId ? await new MongoShopMarketRepository(database).get(marketId) : null;
+      if (marketId && !market) return json(400, { error: "shop_market_not_found" });
+      const needs = await database
+        .collection<ShoppingNeedList>("household_shopping_need_lists")
+        .findOne({ householdId, id: needListId });
+      if (!needs) return json(404, { error: "shopping_need_list_not_found" });
+      const now = new Date().toISOString();
+      const shopProducts = marketId
+        ? await new MongoShopProductRepository(database).list(marketId)
+        : [];
+      const prices = new MongoPriceObservationRepository(database);
+      const priceObservationsByShopProductId = new Map(
+        await Promise.all(
+          shopProducts.map(async (product) => [product.id, await prices.list(product.id)] as const)
+        )
+      );
+      const matchedItems = buildShoppingTripItems({
+        currencyCode: market?.currencyCode ?? "HUF",
+        needs,
+        plannedDate: body!["plannedDate"] as string,
+        priceObservationsByShopProductId,
+        shopProducts
+      });
+      const trip = createShoppingTrip({
+        createdAt: now,
+        createdByUserId: user.email,
+        householdId,
+        id: `shopping-trip:${householdId}:${needListId}:${body!["plannedDate"]}:${marketId ?? `custom-${slug(customShopName)}`}`,
+        items: matchedItems,
+        plannedDate: body!["plannedDate"] as string,
+        sourceShoppingNeedListId: needListId,
+        updatedAt: now,
+        updatedByUserId: user.email
+      });
+      const selected = marketId
+        ? setShoppingTripMarket(trip, marketId)
+        : setShoppingTripCustomShop(trip, customShopName);
+      return json(201, { result: await repository.create(selected), schemaVersion });
+    });
+  }
+};
+
+export const householdV2ShoppingTripRoute: AppRoute = {
+  match: (request) =>
+    request.method === "PATCH" &&
+    /^\/api\/households\/[^/]+\/shopping-trips\/[^/]+$/.test(request.path),
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request);
+    if (!user) return unauthorized("apiErrors.signInRequired");
+    const match = request.path.match(/^\/api\/households\/([^/]+)\/shopping-trips\/([^/]+)$/);
+    const householdId = pathSegment(match?.[1]);
+    const tripId = pathSegment(match?.[2]);
+    const body = parseJsonObject(request.bodyText);
+    if (!householdId || !tripId || !body || !Number.isInteger(body["expectedRevision"]))
+      return json(400, { error: "invalid_shopping_trip_update" });
+    return await withHouseholdDatabase(context, householdId, user.email, async (database) => {
+      const repository = new MongoShoppingTripRepository(database);
+      const existing = await repository.get(householdId, tripId);
+      if (!existing) return json(404, { error: "shopping_trip_not_found" });
+      try {
+        let updated = existing;
+        const unplanned = body["unplannedPurchase"];
+        if (unplanned && typeof unplanned === "object" && !Array.isArray(unplanned)) {
+          const value = unplanned as Record<string, unknown>;
+          if (
+            typeof value["id"] !== "string" ||
+            typeof value["displayName"] !== "string" ||
+            typeof value["quantity"] !== "number" ||
+            typeof value["unit"] !== "string"
+          )
+            return json(400, { error: "invalid_unplanned_purchase" });
+          try {
+            assertTrackingUnit(value["unit"]);
+          } catch {
+            return json(400, { error: "invalid_unplanned_purchase_unit" });
+          }
+          updated = addShoppingTripItem(updated, {
+            displayNameSnapshot: value["displayName"],
+            id: `shopping-trip-item:${tripId}:manual:${value["id"]}`,
+            requiredQuantity: value["quantity"],
+            requiredUnit: value["unit"]
+          });
+        }
+        if (typeof body["shopMarketId"] === "string")
+          updated = setShoppingTripMarket(updated, body["shopMarketId"] as string);
+        if (isTripStatus(body["transition"]))
+          updated = transitionShoppingTrip(updated, body["transition"]);
+        if (typeof body["itemId"] === "string") {
+          if (typeof body["selectedShopProductId"] === "string") {
+            const item = updated.items.find((candidate) => candidate.id === body["itemId"]);
+            if (!item || !updated.shopMarketId)
+              return json(400, { error: "invalid_shopping_trip_match" });
+            const needs = await database
+              .collection<ShoppingNeedList>("household_shopping_need_lists")
+              .findOne({ householdId, id: updated.sourceShoppingNeedListId });
+            const need = needs?.items.find((candidate) => candidate.id === item.needId);
+            const shopProduct = await new MongoShopProductRepository(database).get(
+              body["selectedShopProductId"]
+            );
+            if (!need || !shopProduct || shopProduct.shopMarketId !== updated.shopMarketId)
+              return json(400, { error: "invalid_shopping_trip_match" });
+            const market = await new MongoShopMarketRepository(database).get(updated.shopMarketId);
+            if (!market) return json(400, { error: "shop_market_not_found" });
+            const matches = matchShoppingNeed({
+              candidates: [
+                {
+                  shopProduct,
+                  priceObservations: await new MongoPriceObservationRepository(database).list(
+                    shopProduct.id
+                  )
+                }
+              ],
+              currencyCode: market.currencyCode,
+              preferredProductId: need.preferredProductId,
+              requiredQuantity: need.plannedQuantity,
+              requiredUnit: need.unit,
+              shoppingDate: updated.plannedDate
+            });
+            const selected = matches[0];
+            if (!selected) return json(400, { error: "incompatible_shopping_trip_match" });
+            updated = updateShoppingTripItem(updated, item.id, {
+              expectedPackageCount: selected.packageCount,
+              expectedTotal: selected.expectedTotal,
+              matchExplanation: selected.explanation,
+              planStatus: "selected",
+              priceState: selected.applicablePrice.state,
+              selectedPriceObservationId: selected.applicablePrice.observationId,
+              selectedProductId: selected.productId,
+              selectedShopProductId: selected.shopProductId
+            });
+          } else {
+            if (
+              body["actualQuantity"] !== undefined &&
+              (typeof body["actualQuantity"] !== "number" ||
+                !Number.isFinite(body["actualQuantity"]) ||
+                body["actualQuantity"] <= 0)
+            )
+              return json(400, { error: "invalid_purchase_quantity" });
+            let actualUnit: TrackingUnit | null | undefined;
+            if (body["actualUnit"] === null) actualUnit = null;
+            else if (body["actualUnit"] !== undefined) {
+              if (typeof body["actualUnit"] !== "string")
+                return json(400, { error: "invalid_purchase_unit" });
+              try {
+                assertTrackingUnit(body["actualUnit"]);
+              } catch {
+                return json(400, { error: "invalid_purchase_unit" });
+              }
+              actualUnit = body["actualUnit"] as TrackingUnit;
+            }
+            if (
+              body["actualPaidPrice"] !== undefined &&
+              body["actualPaidPrice"] !== null &&
+              (typeof body["actualPaidPrice"] !== "number" ||
+                !Number.isFinite(body["actualPaidPrice"]) ||
+                body["actualPaidPrice"] < 0)
+            )
+              return json(400, { error: "invalid_paid_price" });
+            if (
+              body["acquiredOn"] !== undefined &&
+              body["acquiredOn"] !== null &&
+              !isIsoDate(body["acquiredOn"])
+            )
+              return json(400, { error: "invalid_acquired_on" });
+            if (
+              body["expiryOn"] !== undefined &&
+              body["expiryOn"] !== null &&
+              !isIsoDate(body["expiryOn"])
+            )
+              return json(400, { error: "invalid_expiry_on" });
+            if (
+              body["actualCurrencyCode"] !== undefined &&
+              body["actualCurrencyCode"] !== null &&
+              typeof body["actualCurrencyCode"] !== "string"
+            )
+              return json(400, { error: "invalid_currency_code" });
+            updated = updateShoppingTripItem(updated, body["itemId"] as string, {
+              planStatus: isTripPlanStatus(body["planStatus"]) ? body["planStatus"] : undefined,
+              resultStatus: isTripResultStatus(body["resultStatus"])
+                ? body["resultStatus"]
+                : undefined,
+              actualQuantity:
+                typeof body["actualQuantity"] === "number" ? body["actualQuantity"] : undefined,
+              actualUnit,
+              actualPaidPrice:
+                body["actualPaidPrice"] === null || typeof body["actualPaidPrice"] === "number"
+                  ? (body["actualPaidPrice"] as number | null)
+                  : undefined,
+              actualCurrencyCode:
+                body["actualCurrencyCode"] === null ||
+                typeof body["actualCurrencyCode"] === "string"
+                  ? (body["actualCurrencyCode"] as string | null)
+                  : undefined,
+              actualAcquiredOn:
+                body["acquiredOn"] === null || typeof body["acquiredOn"] === "string"
+                  ? (body["acquiredOn"] as string | null)
+                  : undefined,
+              actualExpiryOn:
+                body["expiryOn"] === null || typeof body["expiryOn"] === "string"
+                  ? (body["expiryOn"] as string | null)
+                  : undefined,
+              purchaseHouseholdProductId:
+                body["householdProductId"] === null ||
+                typeof body["householdProductId"] === "string"
+                  ? (body["householdProductId"] as string | null)
+                  : undefined
+            });
+          }
+        }
+        const result = {
+          ...updated,
+          updatedAt: new Date().toISOString(),
+          updatedByUserId: user.email
+        };
+        if (body["transition"] === "cancelled") {
+          await repository.deleteCancelled({
+            expectedRevision: body["expectedRevision"] as number,
+            householdId,
+            id: tripId
+          });
+          return json(200, { result, schemaVersion });
+        }
+        await repository.update({
+          expectedRevision: body["expectedRevision"] as number,
+          householdId,
+          trip: result
+        });
+        return json(200, { result, schemaVersion });
+      } catch (error) {
+        return commandError(error);
+      }
+    });
+  }
+};
+
+export const householdV2ShoppingTripCompleteRoute: AppRoute = {
+  match: (request) =>
+    request.method === "POST" &&
+    /^\/api\/households\/[^/]+\/shopping-trips\/[^/]+\/complete$/.test(request.path),
+  handle: async (request, context) => {
+    const user = context.authenticateRequestUser(request);
+    if (!user) return unauthorized("apiErrors.signInRequired");
+    const match = request.path.match(
+      /^\/api\/households\/([^/]+)\/shopping-trips\/([^/]+)\/complete$/
+    );
+    const householdId = pathSegment(match?.[1]);
+    const tripId = pathSegment(match?.[2]);
+    const body = parseJsonObject(request.bodyText);
+    if (!householdId || !tripId || !body || typeof body["operationId"] !== "string")
+      return json(400, { error: "invalid_shopping_trip_completion" });
+    return await withHouseholdDatabase(
+      context,
+      householdId,
+      user.email,
+      async (database, client) => {
+        const trips = new MongoShoppingTripRepository(database);
+        const householdProducts = new MongoHouseholdProductRepository(database);
+        const trip = await trips.get(householdId, tripId);
+        if (!trip) return json(404, { error: "shopping_trip_not_found" });
+        if (!["in_progress", "partially_processed"].includes(trip.status))
+          return json(409, { error: "shopping_trip_not_in_progress" });
+        const items = Array.isArray(body["items"]) ? body["items"] : [];
+        if (items.length === 0) return json(400, { error: "shopping_trip_items_required" });
+        let updated = trip;
+        for (const raw of items) {
+          if (
+            !raw ||
+            typeof raw !== "object" ||
+            typeof (raw as Record<string, unknown>)["itemId"] !== "string"
+          )
+            return json(400, { error: "invalid_shopping_trip_item_completion" });
+          const value = raw as Record<string, unknown>;
+          const itemId = value["itemId"] as string;
+          const item = updated.items.find((candidate) => candidate.id === itemId);
+          if (!item) return json(404, { error: "shopping_trip_item_not_found" });
+          if (value["resultStatus"] !== "bought") {
+            updated = updateShoppingTripItem(updated, itemId, { resultStatus: "not_bought" });
+            continue;
+          }
+          const quantity =
+            typeof value["actualQuantity"] === "number"
+              ? value["actualQuantity"]
+              : item.requiredQuantity;
+          if (!Number.isFinite(quantity) || quantity <= 0)
+            return json(400, { error: "invalid_purchase_quantity" });
+          let unit: TrackingUnit = item.requiredUnit;
+          if (typeof value["actualUnit"] === "string") {
+            try {
+              assertTrackingUnit(value["actualUnit"]);
+              unit = value["actualUnit"];
+            } catch {
+              return json(400, { error: "invalid_purchase_unit" });
+            }
+          }
+          if (value["acquiredOn"] !== undefined && !isIsoDate(value["acquiredOn"]))
+            return json(400, { error: "invalid_acquired_on" });
+          if (
+            value["expiryOn"] !== undefined &&
+            value["expiryOn"] !== null &&
+            !isIsoDate(value["expiryOn"])
+          )
+            return json(400, { error: "invalid_expiry_on" });
+          if (
+            value["actualPaidPrice"] !== undefined &&
+            value["actualPaidPrice"] !== null &&
+            (typeof value["actualPaidPrice"] !== "number" ||
+              !Number.isFinite(value["actualPaidPrice"]) ||
+              value["actualPaidPrice"] < 0)
+          )
+            return json(400, { error: "invalid_paid_price" });
+          if (
+            value["actualCurrencyCode"] !== undefined &&
+            value["actualCurrencyCode"] !== null &&
+            typeof value["actualCurrencyCode"] !== "string"
+          )
+            return json(400, { error: "invalid_currency_code" });
+          const now = new Date().toISOString();
+          const acquiredOn = isIsoDate(value["acquiredOn"])
+            ? (value["acquiredOn"] as string)
+            : now.slice(0, 10);
+          const expiryOn =
+            value["expiryOn"] === null || isIsoDate(value["expiryOn"])
+              ? ((value["expiryOn"] as string | null | undefined) ?? null)
+              : null;
+          const operationId = `${body["operationId"]}:${itemId}`;
+          const hasExplicitPurchaseProduct =
+            typeof value["householdProductId"] === "string" || value["householdProductId"] === null;
+          let productId = hasExplicitPurchaseProduct
+            ? (value["householdProductId"] as string | null)
+            : (item.purchaseHouseholdProductId ?? null);
+          if (!productId && item.purchaseHouseholdProductId)
+            productId = item.purchaseHouseholdProductId;
+          if (
+            !productId &&
+            !hasExplicitPurchaseProduct &&
+            item.purchaseHouseholdProductId === undefined &&
+            item.selectedProductId
+          ) {
+            const matchingProduct = await householdProducts.findFirstByCatalogProductId(
+              householdId,
+              item.selectedProductId
+            );
+            productId = matchingProduct?.id ?? null;
+          }
+          let batchId: string;
+          if (productId) {
+            const product = await householdProducts.get(householdId, productId);
+            if (!product) return json(404, { error: "household_product_not_found" });
+            batchId = `stock-batch:${householdId}:${operationId}`;
+            await new MongoStockCommandRepository(database, client).acquireBatch({
+              operationId,
+              requestFingerprint: JSON.stringify(value),
+              batch: {
+                acquiredOn,
+                acquisitionSnapshot: { displayName: product.displayName },
+                classificationSnapshot: {
+                  capturedAt: now,
+                  directAttributes: product.directAttributes,
+                  directConcepts: product.directConcepts,
+                  effectiveConcepts: product.directConcepts,
+                  source: "household"
+                },
+                createdAt: now,
+                createdByUserId: user.email,
+                expiryOn,
+                householdId,
+                householdProductId: product.id,
+                id: batchId,
+                originalQuantity: quantity,
+                remainingQuantity: quantity,
+                revision: 0,
+                shopProductId:
+                  typeof value["shopProductId"] === "string"
+                    ? value["shopProductId"]
+                    : (item.selectedShopProductId ?? null),
+                shoppingNeedId: item.needId,
+                shoppingNeedListId: updated.sourceShoppingNeedListId,
+                status: "available",
+                unit,
+                updatedAt: now,
+                updatedByUserId: user.email
+              }
+            });
+          } else {
+            const result = await new MongoProductComposerRepository(
+              database,
+              client
+            ).createProductWithBatch({
+              actorUserId: user.email,
+              batch: {
+                acquiredOn,
+                displayName: item.displayNameSnapshot,
+                expiryOn,
+                originalQuantity: quantity,
+                unit
+              },
+              householdId,
+              operationId,
+              product: {
+                displayName: item.displayNameSnapshot,
+                defaultTrackingUnit: unit
+              },
+              requestFingerprint: JSON.stringify(value)
+            });
+            batchId = result.batchId;
+            productId = result.productId;
+          }
+          updated = updateShoppingTripItem(updated, itemId, {
+            resultStatus: "bought",
+            actualQuantity: quantity,
+            actualUnit: unit,
+            actualPaidPrice:
+              typeof value["actualPaidPrice"] === "number" ? value["actualPaidPrice"] : null,
+            actualCurrencyCode:
+              typeof value["actualCurrencyCode"] === "string" ? value["actualCurrencyCode"] : null,
+            actualAcquiredOn: acquiredOn,
+            actualExpiryOn: expiryOn,
+            createdBatchIds: [batchId],
+            purchaseHouseholdProductId: productId
+          });
+          await new MongoIngestionSubmissionRepository(database).create({
+            id: `ingestion-submission:${updated.id}:${itemId}`,
+            householdId,
+            shoppingTripId: updated.id,
+            shoppingTripItemId: itemId,
+            submittedByUserId: user.email,
+            status: "pending",
+            facts: {
+              displayName: item.displayNameSnapshot,
+              shopMarketId: updated.shopMarketId,
+              quantity,
+              unit,
+              acquiredOn,
+              expiryOn,
+              currencyCode:
+                typeof value["actualCurrencyCode"] === "string"
+                  ? value["actualCurrencyCode"]
+                  : null,
+              shopProductId:
+                typeof value["shopProductId"] === "string"
+                  ? value["shopProductId"]
+                  : (item.selectedShopProductId ?? null),
+              productId,
+              paidPrice:
+                typeof value["actualPaidPrice"] === "number" ? value["actualPaidPrice"] : null
+            },
+            revision: 0,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          });
+        }
+        const complete = updated.items.every(
+          (item) =>
+            item.planStatus === "skipped" ||
+            item.resultStatus === "not_bought" ||
+            (item.resultStatus === "bought" && (item.createdBatchIds?.length ?? 0) > 0)
+        );
+        let result: Awaited<ReturnType<MongoShoppingTripRepository["update"]>>;
+        try {
+          result = await trips.update({
+            expectedRevision: trip.revision,
+            householdId,
+            trip: {
+              ...updated,
+              status: complete ? "completed" : "partially_processed",
+              updatedAt: new Date().toISOString(),
+              updatedByUserId: user.email
+            }
+          });
+        } catch (error) {
+          return commandError(error);
+        }
+        return json(200, { result, schemaVersion });
+      }
+    );
+  }
+};
+
+async function runBatchCommand(
+  context: Parameters<AppRoute["handle"]>[1],
+  userId: string,
+  householdId: string,
+  batchId: string,
+  body: Record<string, unknown>,
+  command: "correct" | "discard"
+): Promise<ReturnType<typeof json>> {
+  if (!context.config.mongodb.uri || !context.config.mongodb.databaseName)
+    return json(503, { error: "household_not_configured" });
+  const client = await context.getMongoClient(
+    context.config.mongodb.uri,
+    context.config.mongodb.dnsServers
+  );
+  const database = client.db(context.config.mongodb.databaseName);
+  const membership = await database
+    .collection<{ householdId: string; status: string; userId: string }>("household_memberships")
+    .findOne({ householdId, status: "active", userId: userId });
+  if (!membership) return json(403, { error: "household_membership_required" });
+  try {
+    const common = {
+      actorUserId: userId,
+      batchId,
+      householdId,
+      expectedBatchRevision: body["expectedBatchRevision"] as number,
+      occurredAt: new Date().toISOString(),
+      operationId: body["operationId"] as string,
+      requestFingerprint: body["requestFingerprint"] as string
+    };
+    const repository = new MongoStockCommandRepository(database, client);
+    const result =
+      command === "correct"
+        ? await repository.correctBatch({
+            ...common,
+            acquiredOn: typeof body["acquiredOn"] === "string" ? body["acquiredOn"] : undefined,
+            expiryOn:
+              body["expiryOn"] === null || typeof body["expiryOn"] === "string"
+                ? body["expiryOn"]
+                : undefined,
+            resultingQuantity: body["resultingQuantity"] as number,
+            unit: body["unit"] as TrackingUnit,
+            reasonCode: typeof body["reasonCode"] === "string" ? body["reasonCode"] : undefined
+          })
+        : await repository.discardBatch({
+            ...common,
+            reasonCode: typeof body["reasonCode"] === "string" ? body["reasonCode"] : undefined
+          });
+    return json(200, { result, schemaVersion });
+  } catch (error) {
+    return commandError(error);
+  }
+}
+
+function parseJsonObject(bodyText: string | undefined): Record<string, unknown> | null {
+  if (!bodyText) return null;
+  try {
+    const value: unknown = JSON.parse(bodyText);
+    return value && typeof value === "object" && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : null;
+  } catch {
+    return null;
+  }
+}
+function pathSegment(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return undefined;
+  }
+}
+function isTripStatus(value: unknown): value is ShoppingTripStatus {
+  return [
+    "draft",
+    "matching",
+    "ready",
+    "in_progress",
+    "partially_processed",
+    "completed",
+    "cancelled"
+  ].includes(value as ShoppingTripStatus);
+}
+function isTripPlanStatus(value: unknown): value is ShoppingTripItemPlanStatus {
+  return ["unresolved", "selected", "skipped"].includes(value as ShoppingTripItemPlanStatus);
+}
+function isTripResultStatus(value: unknown): value is ShoppingTripItemResultStatus {
+  return ["pending", "bought", "not_bought"].includes(value as ShoppingTripItemResultStatus);
+}
+async function withHouseholdDatabase(
+  context: Parameters<AppRoute["handle"]>[1],
+  householdId: string,
+  userId: string,
+  action: (database: Db, client: MongoClient) => Promise<ReturnType<typeof json>>
+): Promise<ReturnType<typeof json>> {
+  if (!context.config.mongodb.uri || !context.config.mongodb.databaseName)
+    return json(503, { error: "household_not_configured" });
+  const client = await context.getMongoClient(
+    context.config.mongodb.uri,
+    context.config.mongodb.dnsServers
+  );
+  const database = client.db(context.config.mongodb.databaseName);
+  const membership = await database
+    .collection<{ householdId: string; status: string; userId: string }>("household_memberships")
+    .findOne({ householdId, status: "active", userId });
+  if (!membership) return json(403, { error: "household_membership_required" });
+  return await action(database, client);
+}
+function slug(value: string): string {
+  return (
+    value
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "") || "target"
+  );
+}
+function isIsoDate(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    /^\d{4}-\d{2}-\d{2}$/.test(value) &&
+    !Number.isNaN(Date.parse(`${value}T00:00:00Z`))
+  );
+}
+function commandError(error: unknown): ReturnType<typeof json> {
+  const code = error instanceof Error ? error.message : "stock_command_failed";
+  const duplicate =
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: unknown }).code === 11000;
+  const status =
+    code === "idempotency_conflict" ||
+    code === "operation_in_progress" ||
+    code === "stale_revision" ||
+    code === "shopping_trip_revision_conflict" ||
+    code === "household_concept_already_exists" ||
+    duplicate
+      ? 409
+      : code === "invalid_correction_quantity"
+        ? 400
+        : code.endsWith("_not_found")
+          ? 404
+          : 500;
+  return json(status, { error: duplicate ? "household_concept_already_exists" : code });
+}

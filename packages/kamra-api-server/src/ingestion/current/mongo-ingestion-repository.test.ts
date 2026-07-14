@@ -23,7 +23,9 @@ describe("MongoIngestionRepository", () => {
 
     await repository.setupCollections();
 
-    expect(createCollectionCalls.map((call) => call.name).sort()).toEqual([...ingestionV1CollectionNames].sort());
+    expect(createCollectionCalls.map((call) => call.name).sort()).toEqual(
+      [...ingestionV1CollectionNames].sort()
+    );
     for (const call of createCollectionCalls) {
       expect(call.options).toMatchObject({
         validationAction: "error",

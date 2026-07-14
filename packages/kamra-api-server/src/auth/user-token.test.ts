@@ -12,11 +12,7 @@ describe("user tokens", () => {
       secret: "test-secret"
     });
 
-    expect(verifyUserToken(
-      token,
-      "test-secret",
-      new Date("2026-06-22T10:00:30.000Z")
-    )).toEqual({
+    expect(verifyUserToken(token, "test-secret", new Date("2026-06-22T10:00:30.000Z"))).toEqual({
       payload: {
         email: "admin@kamra.test",
         exp: 1782122460,
@@ -39,11 +35,9 @@ describe("user tokens", () => {
 
     const tamperedToken = token.replace("a", "b");
 
-    expect(verifyUserToken(
-      tamperedToken,
-      "test-secret",
-      new Date("2026-06-22T10:00:30.000Z")
-    )).toEqual({ status: "invalid" });
+    expect(
+      verifyUserToken(tamperedToken, "test-secret", new Date("2026-06-22T10:00:30.000Z"))
+    ).toEqual({ status: "invalid" });
   });
 
   it("rejects an expired token", () => {
@@ -55,11 +49,9 @@ describe("user tokens", () => {
       secret: "test-secret"
     });
 
-    expect(verifyUserToken(
-      token,
-      "test-secret",
-      new Date("2026-06-22T10:01:01.000Z")
-    )).toEqual({ status: "expired" });
+    expect(verifyUserToken(token, "test-secret", new Date("2026-06-22T10:01:01.000Z"))).toEqual({
+      status: "expired"
+    });
   });
 
   it("verifies a signed non-admin user token", () => {
@@ -71,11 +63,7 @@ describe("user tokens", () => {
       secret: "test-secret"
     });
 
-    expect(verifyUserToken(
-      token,
-      "test-secret",
-      new Date("2026-06-22T10:00:30.000Z")
-    )).toEqual({
+    expect(verifyUserToken(token, "test-secret", new Date("2026-06-22T10:00:30.000Z"))).toEqual({
       payload: {
         email: "user@kamra.test",
         exp: 1782122460,

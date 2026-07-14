@@ -33,7 +33,8 @@ export interface GenerateHouseholdShoppingListPreviewInput {
 export function generateHouseholdShoppingListPreview(
   input: GenerateHouseholdShoppingListPreviewInput
 ): HouseholdShoppingListPreviewResponse {
-  const multiplier = input.household.defaultCalculatedMaxLimitMultiplier ?? defaultCalculatedMaxLimitMultiplier;
+  const multiplier =
+    input.household.defaultCalculatedMaxLimitMultiplier ?? defaultCalculatedMaxLimitMultiplier;
   const items = input.stockItems
     .filter((item) => shoppingScaleStatusAllowlist[input.scale].includes(item.stockStatus))
     .map((item) => toPreviewItem(item, multiplier))
@@ -56,7 +57,10 @@ export function calculateHouseholdShoppingTargetAmount(input: {
     return input.idealMaxLimit;
   }
 
-  return input.minLimit * (input.defaultCalculatedMaxLimitMultiplier ?? defaultCalculatedMaxLimitMultiplier);
+  return (
+    input.minLimit *
+    (input.defaultCalculatedMaxLimitMultiplier ?? defaultCalculatedMaxLimitMultiplier)
+  );
 }
 
 function toPreviewItem(
@@ -107,8 +111,12 @@ function toReasonCode(stockStatus: HouseholdStockStatus): HouseholdShoppingListR
   }
 }
 
-function comparePreviewItems(left: HouseholdShoppingListPreviewItem, right: HouseholdShoppingListPreviewItem): number {
-  const priorityDifference = stockStatusPriority[left.stockStatus] - stockStatusPriority[right.stockStatus];
+function comparePreviewItems(
+  left: HouseholdShoppingListPreviewItem,
+  right: HouseholdShoppingListPreviewItem
+): number {
+  const priorityDifference =
+    stockStatusPriority[left.stockStatus] - stockStatusPriority[right.stockStatus];
   if (priorityDifference !== 0) {
     return priorityDifference;
   }

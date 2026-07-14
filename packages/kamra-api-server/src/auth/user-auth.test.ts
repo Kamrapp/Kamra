@@ -1,16 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import { hashPassword } from "./password-hash.js";
-import {
-  authenticateUser,
-  type UserDocument,
-  type UserRepository
-} from "./user-auth.js";
+import { authenticateUser, type UserDocument, type UserRepository } from "./user-auth.js";
 
 class InMemoryUserRepository implements UserRepository {
   constructor(private readonly user: UserDocument | null) {}
 
-  async createAlphaUser(input: Parameters<UserRepository["createAlphaUser"]>[0]): Promise<UserDocument> {
+  async createAlphaUser(
+    input: Parameters<UserRepository["createAlphaUser"]>[0]
+  ): Promise<UserDocument> {
     return {
       alphaAccess: input.alphaAccess,
       authProvider: "bootstrap_credentials",
@@ -22,16 +20,17 @@ class InMemoryUserRepository implements UserRepository {
   }
 
   async findActiveUserByEmail(email: string): Promise<UserDocument | null> {
-    return this.user?.email === email && this.user.status === "active"
-      ? this.user
-      : null;
+    return this.user?.email === email && this.user.status === "active" ? this.user : null;
   }
 
   async findUserByEmail(email: string): Promise<UserDocument | null> {
     return this.user?.email === email ? this.user : null;
   }
 
-  async updateUserProfile(email: string, profile: UserDocument["profile"]): Promise<UserDocument | null> {
+  async updateUserProfile(
+    email: string,
+    profile: UserDocument["profile"]
+  ): Promise<UserDocument | null> {
     return this.user?.email === email && this.user.status === "active"
       ? {
           ...this.user,
@@ -57,15 +56,11 @@ async function createUser(
 
 describe("authenticateUser", () => {
   it("authenticates an active user with the matching password", async () => {
-    const repository = new InMemoryUserRepository(
-      await createUser("correct-password")
-    );
+    const repository = new InMemoryUserRepository(await createUser("correct-password"));
 
-    await expect(authenticateUser(
-      " Admin@Kamra.Test ",
-      "correct-password",
-      repository
-    )).resolves.toEqual({
+    await expect(
+      authenticateUser(" Admin@Kamra.Test ", "correct-password", repository)
+    ).resolves.toEqual({
       status: "authenticated",
       user: {
         email: "admin@kamra.test",
@@ -83,11 +78,9 @@ describe("authenticateUser", () => {
       })
     );
 
-    await expect(authenticateUser(
-      "user@kamra.test",
-      "correct-password",
-      repository
-    )).resolves.toEqual({
+    await expect(
+      authenticateUser("user@kamra.test", "correct-password", repository)
+    ).resolves.toEqual({
       status: "authenticated",
       user: {
         email: "user@kamra.test",
@@ -106,11 +99,9 @@ describe("authenticateUser", () => {
       })
     );
 
-    await expect(authenticateUser(
-      "admin@kamra.test",
-      "correct-password",
-      repository
-    )).resolves.toEqual({
+    await expect(
+      authenticateUser("admin@kamra.test", "correct-password", repository)
+    ).resolves.toEqual({
       status: "authenticated",
       user: {
         email: "admin@kamra.test",
@@ -123,15 +114,11 @@ describe("authenticateUser", () => {
   });
 
   it("rejects a wrong password", async () => {
-    const repository = new InMemoryUserRepository(
-      await createUser("correct-password")
-    );
+    const repository = new InMemoryUserRepository(await createUser("correct-password"));
 
-    await expect(authenticateUser(
-      "admin@kamra.test",
-      "wrong-password",
-      repository
-    )).resolves.toEqual({ status: "invalid_credentials" });
+    await expect(
+      authenticateUser("admin@kamra.test", "wrong-password", repository)
+    ).resolves.toEqual({ status: "invalid_credentials" });
   });
 
   it("rejects a disabled user", async () => {
@@ -139,11 +126,9 @@ describe("authenticateUser", () => {
       await createUser("correct-password", { status: "disabled" })
     );
 
-    await expect(authenticateUser(
-      "admin@kamra.test",
-      "correct-password",
-      repository
-    )).resolves.toEqual({ status: "invalid_credentials" });
+    await expect(
+      authenticateUser("admin@kamra.test", "correct-password", repository)
+    ).resolves.toEqual({ status: "invalid_credentials" });
   });
 
   it("rejects an alpha user when alpha access is disabled", async () => {
@@ -158,11 +143,10 @@ describe("authenticateUser", () => {
       })
     );
 
-    await expect(authenticateUser(
-      "alpha@kamra.test",
-      "correct-password",
-      repository,
-      { alphaAccessEnabled: false }
-    )).resolves.toEqual({ status: "invalid_credentials" });
+    await expect(
+      authenticateUser("alpha@kamra.test", "correct-password", repository, {
+        alphaAccessEnabled: false
+      })
+    ).resolves.toEqual({ status: "invalid_credentials" });
   });
 });

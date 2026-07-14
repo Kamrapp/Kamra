@@ -132,12 +132,15 @@ export class ResizableTableComponent {
   readonly columnWidths = signal<Record<string, number>>({});
 
   readonly columnTemplate = computed(() =>
-    this.columns().map((column) => `${this.columnWidth(column)}px`).join(" ")
+    this.columns()
+      .map((column) => `${this.columnWidth(column)}px`)
+      .join(" ")
   );
 
-  readonly tableWidth = computed(() =>
-    this.columns().reduce((total, column) => total + this.columnWidth(column), 0)
-      + (this.columns().length - 1) * 12
+  readonly tableWidth = computed(
+    () =>
+      this.columns().reduce((total, column) => total + this.columnWidth(column), 0) +
+      (this.columns().length - 1) * 12
   );
 
   syncHorizontalScroll(event: Event, target: HTMLElement): void {
@@ -163,7 +166,10 @@ export class ResizableTableComponent {
     const minWidth = column.minWidth ?? 120;
     const maxWidth = column.maxWidth ?? 720;
     const onPointerMove = (moveEvent: PointerEvent): void => {
-      const nextWidth = Math.max(minWidth, Math.min(maxWidth, startWidth + moveEvent.clientX - startX));
+      const nextWidth = Math.max(
+        minWidth,
+        Math.min(maxWidth, startWidth + moveEvent.clientX - startX)
+      );
       this.columnWidths.update((currentWidths) => ({
         ...currentWidths,
         [columnKey]: nextWidth

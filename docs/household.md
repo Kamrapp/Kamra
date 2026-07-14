@@ -6,9 +6,25 @@ Household stock is Kamra's user-owned pantry model.
 
 It is intentionally separate from catalog, crawler, source, and store stock. Store/source stock describes observed retailer availability or offers. Household stock describes what a household believes it has at home, what minimum level it wants to keep, and what should later become shopping-list demand.
 
-Stage 6 makes this loop real enough for a signed-in user to log in, see a low-stock pulse on the home page, add custom household items, generate or manually build shopping lists, and apply purchased items back into household stock.
+Stage 8 makes the complete basic user loop real: a signed-in household member can manage Product Groups, Products, and Batches, generate/edit a shopping list, mark purchases, and finalize purchased lines back into Product-owned household stock. Shop matching, price applicability, and admin-reviewed ingestion are intentionally Stage 9 additions.
 
-## Current Stage 6 State
+## Approved Stage 8 Model
+
+The Stage 6 sections below describe the legacy one-row runtime and are retained as historical implementation context. They are not the final household model.
+
+Stage 8 replaces that row with three ownership layers:
+
+- A **Product Group** is a household-owned, optionally nested group of Products. It may have an optional target policy with a tracking unit, minimum, and desired restock quantity.
+- A **Household Product** is a reusable concrete or generic manual product. It belongs to zero or one direct Product Group and may have its own optional target policy.
+- A **Stock Batch** is a physical acquisition beneath one Product. It owns quantity, stocked-at date, expiry, and history. New Batches automatically count with their Product's Group; they are never independently assigned to a separate target during normal use.
+
+Current quantities are derived from Batches. A Product contributes to its direct Group and ancestor Groups once. Target policies are optional properties of Products and Groups—not standalone stock records. Product Concepts remain separate classification/tagging vocabulary and are not the household stock hierarchy.
+
+When both a Product/child Group and its parent Group have targets, shopping planning works bottom-up: fulfil the specific target first, then generate only the parent’s remaining shortage. This prevents the same white-bread quantity from being proposed twice for `White bread` and `Bread`.
+
+The currently deployed allocation-based v2 workspace is an interim migration state. Its `Stock Target` and `Stock Allocation` data are retained as history/migration input until the Product Group cutover reconciles each Product to one Group or reports it for explicit resolution. See [domain language](./domain-language.md) and the active Stage 8 plan for the authoritative migration rules.
+
+## Current User-Side State
 
 Implemented runtime surfaces:
 
@@ -24,8 +40,8 @@ Implemented runtime surfaces:
 - Shopping lists are persisted, can be regenerated, refreshed, cancelled, or started empty through the `Start fresh` scale.
 - Generated shopping-list rows start with `Bought = 0`; ticking a zero-bought row copies the planned amount into bought automatically.
 - Shopping-list rows are grouped into unticked rows first and a collapsible purchased section at the end.
-- Users can manually add rows to a shopping list, add stock rows one-by-one from the stock table, record observed prices, pick a shop, and apply purchased items back into stock.
-- Receipt upload is intentionally visible but still a coming-soon placeholder in Stage 6.
+- Users can manually add rows to a shopping list, edit generated lines, mark purchased amounts, and finalize purchased lines back into Product-owned v2 Stock Batches. A purchased Group impulse line creates a manual Household Product under its Group first.
+- Receipt upload, shop matching, catalogue prices, and admin Purchase Ingestion are intentionally deferred to Stage 9.
 - Logged-out home preview mirrors the signed-in household workspace with disabled controls and minimal fake data.
 - Admin dashboard exposes a demo household reseed action and separates read-only health checks from modifying maintenance actions.
 - Admin dashboard exposes the database-backed `allowAutoTickingAllShoppingListEntries` household feature toggle.
@@ -193,20 +209,20 @@ Seeded household:
 
 Seeded stock examples:
 
-| Product | Current | Minimum | Unit | Scenario |
-| --- | ---: | ---: | --- | --- |
-| Kenyer | 0.2 | 0.5 | kg | below limit |
-| Tej | 1.8 | 2 | l | below limit |
-| Vegyes lekvarok | 4 | 3 | uveg | steady |
-| Pelenka | 0 | 40 | db | below limit |
-| Alma | 1.2 | 0.4 | kg | steady |
-| Repa | 0.22 | 0.2 | kg | low soon |
-| Mososzer | 0.3 | 1 | l | below limit |
-| WC papir | 9 | 8 | tekercs | low soon |
-| Tojas | 5 | 6 | db | below limit |
-| Rizs | 0 | 1 | kg | below limit |
-| Cukor | 2.5 | 1 | kg | steady |
-| Tusfurdo | 1 | 1 | flakon | at limit |
+| Product         | Current | Minimum | Unit    | Scenario    |
+| --------------- | ------: | ------: | ------- | ----------- |
+| Kenyer          |     0.2 |     0.5 | kg      | below limit |
+| Tej             |     1.8 |       2 | l       | below limit |
+| Vegyes lekvarok |       4 |       3 | uveg    | steady      |
+| Pelenka         |       0 |      40 | db      | below limit |
+| Alma            |     1.2 |     0.4 | kg      | steady      |
+| Repa            |    0.22 |     0.2 | kg      | low soon    |
+| Mososzer        |     0.3 |       1 | l       | below limit |
+| WC papir        |       9 |       8 | tekercs | low soon    |
+| Tojas           |       5 |       6 | db      | below limit |
+| Rizs            |       0 |       1 | kg      | below limit |
+| Cukor           |     2.5 |       1 | kg      | steady      |
+| Tusfurdo        |       1 |       1 | flakon  | at limit    |
 
 The UI displays natural Hungarian labels with accents where the locale and font support them.
 
@@ -252,26 +268,40 @@ npm run lint
 npm run build
 ```
 
-## Known Stage 6 Limits
+## Deferred beyond the Stage 8 user-side loop
 
-Stage 6 deliberately does not implement:
+The following are intentionally outside the completed basic Home experience:
 
 - receipt parsing or automatic receipt-to-stock import
 - route or store optimization
 - richer notice feeds beyond the current household pulse and shopping workflow
-- expiry dates
-- buy-before buffers
 - automatic consumption-rate forecasting
 - product catalog linking UI inside the household editor
 - invitations or external household onboarding
 - barcode scanning
 - mobile-specific shopping ergonomics
 
-These are not Stage 6 defects; they are later product layers.
+Expiry dates, expiry inclusion settings, and buy-before behavior are part of the current
+Stage 8 household model. The remaining items are Stage 9 or post-MVP product layers,
+not missing prerequisites for creating and finalizing a basic Home shopping list.
+
+## Stage 8 user-side completion boundary
+
+Stage 8 is implementation-complete for the standard household flow. On Home, a household
+member can manage Product Groups, Household Products, and Stock Batches; generate and edit
+a shopping list; mark lines as purchased; and finalize those lines into Product-owned stock
+without waiting for catalogue data. Product and Group target policies, expired-item handling,
+and the grouped-product shopping policy are part of that flow.
+
+The remaining Stage 8 work is manual/browser verification and narrowly scoped bug fixing.
+Stage 9 begins only when the household wants a concrete shop/trip layer: shop selection,
+Shop Products, Price Observations, resumable Shopping Trips, and admin-reviewed Purchase
+Ingestion. Stage 9 must reuse the Stage 8 Product/Batch finalization commands rather than
+rebuild the Home shopping loop.
 
 ## Next Direction
 
-Near-term follow-up after Stage 6:
+Near-term follow-up after Stage 8:
 
 - low-stock notices beyond the current home pulse
 - controlled alpha access only after the household and shopping loop is manually verified
@@ -279,19 +309,19 @@ Near-term follow-up after Stage 6:
 
 ## Future And Post-MVP Ideas
 
-Near-future after Stage 6:
+Near-future after Stage 8:
 
 - catalog product picker or search-based linking for household-local products
 - shared generic catalog products promoted from useful household-local patterns after admin review
-- group-aware limits where several concrete products satisfy one need
+- catalogue links and admin-reviewed ingestion facts from finalized shopping trips
 - consumption-rate estimates from stocked date, initial amount, current amount, and manual corrections
 - simple in-app low-stock notices
 - product value estimates when catalog links and price observations are trustworthy
 
-Stage 8 and beyond:
+Stage 9 and beyond:
 
-- expiry dates
-- buy-before buffers
+- shop-aware trips and price observations
+- admin-reviewed Purchase Ingestion
 - safety stock preferences
 - explainable run-out predictions
 - notification channels beyond in-app display

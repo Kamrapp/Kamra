@@ -1,5 +1,7 @@
 import { Component, input, output } from "@angular/core";
 
+export type TableIconButtonTone = "quiet" | "info" | "warning" | "danger";
+
 @Component({
   selector: "app-table-icon-button",
   standalone: true,
@@ -9,6 +11,9 @@ import { Component, input, output } from "@angular/core";
       type="button"
       [attr.aria-label]="ariaLabel()"
       [title]="titleText()"
+      [class.table-icon-button-info]="tone() === 'info'"
+      [class.table-icon-button-warning]="tone() === 'warning'"
+      [class.table-icon-button-danger]="tone() === 'danger'"
       (click)="press.emit()"
     >
       <ng-content />
@@ -31,11 +36,50 @@ import { Component, input, output } from "@angular/core";
         padding: 0;
         width: 2rem;
       }
+
+      .table-icon-button-info {
+        background: color-mix(
+          in srgb,
+          var(--color-accent-sky) 18%,
+          var(--control-quiet-background)
+        );
+        border-color: color-mix(in srgb, var(--color-accent-sky) 42%, var(--control-quiet-border));
+        color: var(--color-accent-sky);
+      }
+
+      .table-icon-button-warning {
+        background: color-mix(
+          in srgb,
+          var(--color-status-warning) 18%,
+          var(--control-quiet-background)
+        );
+        border-color: color-mix(
+          in srgb,
+          var(--color-status-warning) 42%,
+          var(--control-quiet-border)
+        );
+        color: var(--color-status-warning);
+      }
+
+      .table-icon-button-danger {
+        background: color-mix(
+          in srgb,
+          var(--color-status-danger) 18%,
+          var(--control-quiet-background)
+        );
+        border-color: color-mix(
+          in srgb,
+          var(--color-status-danger) 42%,
+          var(--control-quiet-border)
+        );
+        color: var(--color-status-danger-text);
+      }
     `
   ]
 })
 export class TableIconButtonComponent {
   readonly ariaLabel = input.required<string>();
   readonly titleText = input.required<string>();
+  readonly tone = input<TableIconButtonTone>("quiet");
   readonly press = output<void>();
 }

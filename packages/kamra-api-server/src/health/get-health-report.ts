@@ -85,10 +85,7 @@ function toHealthCheckError(error: unknown): HealthCheckError {
   };
 }
 
-async function withTimeout<T>(
-  promise: Promise<T>,
-  timeoutMs: number
-): Promise<T> {
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   return await Promise.race([
     promise,
     new Promise<never>((_, reject) => {
@@ -99,9 +96,7 @@ async function withTimeout<T>(
   ]);
 }
 
-function createHealthReport(
-  databaseCheck: DatabaseHealthCheck
-): HealthReport {
+function createHealthReport(databaseCheck: DatabaseHealthCheck): HealthReport {
   const apiCheck: ApiHealthCheck = {
     id: "api",
     label: "API",

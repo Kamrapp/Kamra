@@ -14,10 +14,34 @@ describe("generateHouseholdShoppingListPreview", () => {
       },
       scale: "business_as_usual",
       stockItems: [
-        createStockItem({ displayName: "Below", id: "below", minLimit: 2, currentAmount: 1, stockStatus: "below_limit" }),
-        createStockItem({ displayName: "At", id: "at", minLimit: 2, currentAmount: 2, stockStatus: "at_limit" }),
-        createStockItem({ displayName: "Soon", id: "soon", minLimit: 2, currentAmount: 2.2, stockStatus: "low_soon" }),
-        createStockItem({ displayName: "Steady", id: "steady", minLimit: 2, currentAmount: 4, stockStatus: "steady" })
+        createStockItem({
+          displayName: "Below",
+          id: "below",
+          minLimit: 2,
+          currentAmount: 1,
+          stockStatus: "below_limit"
+        }),
+        createStockItem({
+          displayName: "At",
+          id: "at",
+          minLimit: 2,
+          currentAmount: 2,
+          stockStatus: "at_limit"
+        }),
+        createStockItem({
+          displayName: "Soon",
+          id: "soon",
+          minLimit: 2,
+          currentAmount: 2.2,
+          stockStatus: "low_soon"
+        }),
+        createStockItem({
+          displayName: "Steady",
+          id: "steady",
+          minLimit: 2,
+          currentAmount: 4,
+          stockStatus: "steady"
+        })
       ]
     });
 
@@ -28,10 +52,34 @@ describe("generateHouseholdShoppingListPreview", () => {
 
   it("includes low-soon rows for keep it chill and all rows for stock em up", () => {
     const stockItems = [
-      createStockItem({ displayName: "Below", id: "below", minLimit: 2, currentAmount: 1, stockStatus: "below_limit" }),
-      createStockItem({ displayName: "At", id: "at", minLimit: 2, currentAmount: 2, stockStatus: "at_limit" }),
-      createStockItem({ displayName: "Soon", id: "soon", minLimit: 2, currentAmount: 2.3, stockStatus: "low_soon" }),
-      createStockItem({ displayName: "Steady", id: "steady", minLimit: 2, currentAmount: 4, stockStatus: "steady" })
+      createStockItem({
+        displayName: "Below",
+        id: "below",
+        minLimit: 2,
+        currentAmount: 1,
+        stockStatus: "below_limit"
+      }),
+      createStockItem({
+        displayName: "At",
+        id: "at",
+        minLimit: 2,
+        currentAmount: 2,
+        stockStatus: "at_limit"
+      }),
+      createStockItem({
+        displayName: "Soon",
+        id: "soon",
+        minLimit: 2,
+        currentAmount: 2.3,
+        stockStatus: "low_soon"
+      }),
+      createStockItem({
+        displayName: "Steady",
+        id: "steady",
+        minLimit: 2,
+        currentAmount: 4,
+        stockStatus: "steady"
+      })
     ];
 
     const keepItChill = generateHouseholdShoppingListPreview({
@@ -46,7 +94,12 @@ describe("generateHouseholdShoppingListPreview", () => {
     });
 
     expect(keepItChill.items.map((item) => item.displayName)).toEqual(["Below", "At", "Soon"]);
-    expect(stockEmUp.items.map((item) => item.displayName)).toEqual(["Below", "At", "Soon", "Steady"]);
+    expect(stockEmUp.items.map((item) => item.displayName)).toEqual([
+      "Below",
+      "At",
+      "Soon",
+      "Steady"
+    ]);
     expect(stockEmUp.items.at(-1)?.reasonCode).toBe("broad_restock");
   });
 
@@ -55,8 +108,20 @@ describe("generateHouseholdShoppingListPreview", () => {
       household: { id: "household1" },
       scale: "start_fresh",
       stockItems: [
-        createStockItem({ displayName: "Below", id: "below", minLimit: 2, currentAmount: 1, stockStatus: "below_limit" }),
-        createStockItem({ displayName: "Soon", id: "soon", minLimit: 2, currentAmount: 2.3, stockStatus: "low_soon" })
+        createStockItem({
+          displayName: "Below",
+          id: "below",
+          minLimit: 2,
+          currentAmount: 1,
+          stockStatus: "below_limit"
+        }),
+        createStockItem({
+          displayName: "Soon",
+          id: "soon",
+          minLimit: 2,
+          currentAmount: 2.3,
+          stockStatus: "low_soon"
+        })
       ]
     });
 
@@ -73,14 +138,43 @@ describe("generateHouseholdShoppingListPreview", () => {
       household: { id: "household1" },
       scale: "stock_em_up",
       stockItems: [
-        createStockItem({ displayName: "Zeta", id: "zeta", minLimit: 2, currentAmount: 1, stockStatus: "below_limit" }),
-        createStockItem({ displayName: "Alpha", id: "alpha", minLimit: 2, currentAmount: 1, stockStatus: "below_limit" }),
-        createStockItem({ displayName: "Beta", id: "beta", minLimit: 2, currentAmount: 2, stockStatus: "at_limit" }),
-        createStockItem({ displayName: "Gamma", id: "gamma", minLimit: 2, currentAmount: 2.2, stockStatus: "low_soon" })
+        createStockItem({
+          displayName: "Zeta",
+          id: "zeta",
+          minLimit: 2,
+          currentAmount: 1,
+          stockStatus: "below_limit"
+        }),
+        createStockItem({
+          displayName: "Alpha",
+          id: "alpha",
+          minLimit: 2,
+          currentAmount: 1,
+          stockStatus: "below_limit"
+        }),
+        createStockItem({
+          displayName: "Beta",
+          id: "beta",
+          minLimit: 2,
+          currentAmount: 2,
+          stockStatus: "at_limit"
+        }),
+        createStockItem({
+          displayName: "Gamma",
+          id: "gamma",
+          minLimit: 2,
+          currentAmount: 2.2,
+          stockStatus: "low_soon"
+        })
       ]
     });
 
-    expect(result.items.map((item) => item.displayName)).toEqual(["Alpha", "Zeta", "Beta", "Gamma"]);
+    expect(result.items.map((item) => item.displayName)).toEqual([
+      "Alpha",
+      "Zeta",
+      "Beta",
+      "Gamma"
+    ]);
   });
 
   it("uses ideal max limit first and otherwise falls back to the household multiplier", () => {
@@ -194,7 +288,8 @@ describe("calculateHouseholdShoppingTargetAmount", () => {
 });
 
 function createStockItem(
-  overrides: Partial<HouseholdStockItemListItem> & Pick<HouseholdStockItemListItem, "displayName" | "id">
+  overrides: Partial<HouseholdStockItemListItem> &
+    Pick<HouseholdStockItemListItem, "displayName" | "id">
 ): HouseholdStockItemListItem {
   return {
     ...overrides,

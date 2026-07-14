@@ -5,9 +5,16 @@ import {
   MongoHouseholdDemoSeedRepository,
   seedDemoHouseholdPasswordEnvName
 } from "../../household/current/demo-household-seed.js";
-import { createDefaultHouseholdRepository } from "../app-route-context.js";
 import { assertUpdateHouseholdFeatureFlagRequest } from "../../household/v1/validation.js";
 import { writeServerLog } from "../../logging/kamra-logger.js";
+import { FeatureFlagService } from "../../feature-toggles/service.js";
+import { MongoFeatureFlagStore } from "../../feature-toggles/mongo-store.js";
+import {
+  featureFlagDefinitions,
+  featureFlagKeys,
+  toFeatureFlagAdminListItem,
+  type FeatureFlagKey
+} from "../../feature-toggles/contracts.js";
 import { describeRequest, json, unauthorized, type AppRoute } from "../app-route-context.js";
 
 export const adminDashboardHealthRoute: AppRoute = {
@@ -31,10 +38,7 @@ export const adminDashboardHealthRoute: AppRoute = {
           return;
         }
 
-        const client = await context.getMongoClient(
-          config.mongodb.uri,
-          config.mongodb.dnsServers
-        );
+        const client = await context.getMongoClient(config.mongodb.uri, config.mongodb.dnsServers);
         await client.db(config.mongodb.databaseName).command({ ping: 1 });
       }
     });
@@ -52,7 +56,8 @@ export const adminDashboardHealthRoute: AppRoute = {
 };
 
 export const adminDashboardUpgradeCatalogValidatorsRoute: AppRoute = {
-  match: (request) => request.method === "POST" && request.path === "/api/admin/dashboard/upgrade-catalog-validators",
+  match: (request) =>
+    request.method === "POST" && request.path === "/api/admin/dashboard/upgrade-catalog-validators",
   handle: async (request, context) => {
     const user = context.authenticateRequestUser(request);
     if (!user || user.role !== "admin") {
@@ -64,10 +69,7 @@ export const adminDashboardUpgradeCatalogValidatorsRoute: AppRoute = {
       return json(503, { error: "catalog_not_configured" });
     }
 
-    const client = await context.getMongoClient(
-      config.mongodb.uri,
-      config.mongodb.dnsServers
-    );
+    const client = await context.getMongoClient(config.mongodb.uri, config.mongodb.dnsServers);
     const repository = context.dependencies.createCatalogRepository
       ? context.dependencies.createCatalogRepository(client.db(config.mongodb.databaseName))
       : createDefaultCatalogRepository(client.db(config.mongodb.databaseName));
@@ -110,7 +112,9 @@ export const adminDashboardUpgradeCatalogValidatorsRoute: AppRoute = {
 };
 
 export const adminDashboardMarkLegacyProductsUnvalidatedRoute: AppRoute = {
-  match: (request) => request.method === "POST" && request.path === "/api/admin/dashboard/backfill-unvalidated-products",
+  match: (request) =>
+    request.method === "POST" &&
+    request.path === "/api/admin/dashboard/backfill-unvalidated-products",
   handle: async (request, context) => {
     const user = context.authenticateRequestUser(request);
     if (!user || user.role !== "admin") {
@@ -122,10 +126,7 @@ export const adminDashboardMarkLegacyProductsUnvalidatedRoute: AppRoute = {
       return json(503, { error: "catalog_not_configured" });
     }
 
-    const client = await context.getMongoClient(
-      config.mongodb.uri,
-      config.mongodb.dnsServers
-    );
+    const client = await context.getMongoClient(config.mongodb.uri, config.mongodb.dnsServers);
     const repository = context.dependencies.createCatalogRepository
       ? context.dependencies.createCatalogRepository(client.db(config.mongodb.databaseName))
       : createDefaultCatalogRepository(client.db(config.mongodb.databaseName));
@@ -160,9 +161,10 @@ export const adminDashboardMarkLegacyProductsUnvalidatedRoute: AppRoute = {
     });
 
     return json(200, {
-      message: result.status === "validator_incompatible"
-        ? "Existing products are treated as unvalidated by the read model because the current MongoDB collection validator still rejects validation fields."
-        : "Legacy products were marked as unvalidated.",
+      message:
+        result.status === "validator_incompatible"
+          ? "Existing products are treated as unvalidated by the read model because the current MongoDB collection validator still rejects validation fields."
+          : "Legacy products were marked as unvalidated.",
       skippedCount: result.skippedCount,
       status: result.status,
       updatedCount: result.updatedCount
@@ -171,7 +173,8 @@ export const adminDashboardMarkLegacyProductsUnvalidatedRoute: AppRoute = {
 };
 
 export const adminDashboardReseedDemoHouseholdRoute: AppRoute = {
-  match: (request) => request.method === "POST" && request.path === "/api/admin/dashboard/reseed-demo-household",
+  match: (request) =>
+    request.method === "POST" && request.path === "/api/admin/dashboard/reseed-demo-household",
   handle: async (request, context) => {
     const user = context.authenticateRequestUser(request);
     if (!user || user.role !== "admin") {
@@ -191,10 +194,7 @@ export const adminDashboardReseedDemoHouseholdRoute: AppRoute = {
       });
     }
 
-    const client = await context.getMongoClient(
-      config.mongodb.uri,
-      config.mongodb.dnsServers
-    );
+    const client = await context.getMongoClient(config.mongodb.uri, config.mongodb.dnsServers);
     const repository = new MongoHouseholdDemoSeedRepository(client.db(config.mongodb.databaseName));
 
     try {
@@ -233,9 +233,10 @@ export const adminDashboardReseedDemoHouseholdRoute: AppRoute = {
 
       return json(500, {
         error: "demo_household_reseed_failed",
-        message: error instanceof Error && error.message
-          ? error.message
-          : "Demo household data could not be reseeded."
+        message:
+          error instanceof Error && error.message
+            ? error.message
+            : "Demo household data could not be reseeded."
       });
     }
   }
@@ -243,8 +244,8 @@ export const adminDashboardReseedDemoHouseholdRoute: AppRoute = {
 
 export const adminDashboardFeatureFlagsRoute: AppRoute = {
   match: (request) =>
-    (request.method === "GET" || request.method === "PATCH")
-    && request.path === "/api/admin/dashboard/feature-flags",
+    (request.method === "GET" || request.method === "PATCH") &&
+    request.path === "/api/admin/dashboard/feature-flags",
   handle: async (request, context) => {
     const user = context.authenticateRequestUser(request);
     if (!user || user.role !== "admin") {
@@ -256,21 +257,14 @@ export const adminDashboardFeatureFlagsRoute: AppRoute = {
       return json(503, { error: "household_not_configured" });
     }
 
-    const client = await context.getMongoClient(
-      config.mongodb.uri,
-      config.mongodb.dnsServers
-    );
+    const client = await context.getMongoClient(config.mongodb.uri, config.mongodb.dnsServers);
     const database = client.db(config.mongodb.databaseName);
-    const repository = context.dependencies.createHouseholdRepository
-      ? context.dependencies.createHouseholdRepository(database)
-      : createDefaultHouseholdRepository(database);
-
+    const featureFlags = new FeatureFlagService(new MongoFeatureFlagStore(database));
     if (request.method === "GET") {
       return json(200, {
-        featureFlags: [
-          await repository.readFeatureFlag("allowAutoTickingAllShoppingListEntries", true),
-          await repository.readFeatureFlag("allowControlledAlphaAccess", false)
-        ]
+        featureFlags: (
+          await Promise.all(featureFlagKeys.map((key) => featureFlags.evaluate(key)))
+        ).map(({ enabled, key }) => toFeatureFlagAdminListItem(key, enabled))
       });
     }
 
@@ -281,6 +275,8 @@ export const adminDashboardFeatureFlagsRoute: AppRoute = {
 
     try {
       assertUpdateHouseholdFeatureFlagRequest(body);
+      if ((body.key as string) in featureFlagDefinitions === false)
+        throw new Error("unknown feature flag");
     } catch (error: unknown) {
       return json(400, {
         error: "invalid_household_feature_flag_update_request",
@@ -288,11 +284,12 @@ export const adminDashboardFeatureFlagsRoute: AppRoute = {
       });
     }
 
-    const updatedFlag = await repository.updateFeatureFlag({
+    const updatedFlag = await featureFlags.update({
+      actorUserId: user.email,
       enabled: body.enabled,
-      key: body.key,
-      updatedAt: new Date().toISOString(),
-      updatedByUserId: user.email
+      key: body.key as FeatureFlagKey,
+      reason: typeof body["reason"] === "string" ? body["reason"] : "Admin dashboard update",
+      updatedAt: new Date().toISOString()
     });
 
     writeServerLog("info", "Admin dashboard feature flag updated", {
@@ -303,12 +300,7 @@ export const adminDashboardFeatureFlagsRoute: AppRoute = {
     });
 
     return json(200, {
-      featureFlags: [
-        {
-          enabled: updatedFlag.enabled,
-          key: updatedFlag.key
-        }
-      ]
+      featureFlags: [toFeatureFlagAdminListItem(updatedFlag.key, updatedFlag.enabled)]
     });
   }
 };
@@ -321,7 +313,7 @@ function parseJsonObject(bodyText: string | undefined): Record<string, unknown> 
   try {
     const parsed: unknown = JSON.parse(bodyText);
     return parsed && typeof parsed === "object" && !Array.isArray(parsed)
-      ? parsed as Record<string, unknown>
+      ? (parsed as Record<string, unknown>)
       : null;
   } catch {
     return null;

@@ -1,6 +1,15 @@
+import { readFile } from "node:fs/promises";
 import { MongoCurrentCatalogRepository } from "../packages/kamra-api-server/src/catalog/current/mongo-catalog-repository.js";
 import { readAppConfig } from "../packages/kamra-api-server/src/config/app-config.js";
-import { closeMongoClient, getMongoClient } from "../packages/kamra-api-server/src/db/mongo-client.js";
+import {
+  applyIngestionCorrectionOverlays,
+  assertIngestionCorrectionOverlay,
+  type IngestionCorrectionOverlay
+} from "../packages/kamra-api-server/src/ingestion/audit/ingestion-quality-audit.js";
+import {
+  closeMongoClient,
+  getMongoClient
+} from "../packages/kamra-api-server/src/db/mongo-client.js";
 import { MongoIngestionRepository } from "../packages/kamra-api-server/src/ingestion/current/mongo-ingestion-repository.js";
 import {
   createFailedSourceOfferProcessingDataset,
@@ -13,12 +22,15 @@ import { writeServerLog } from "../packages/kamra-api-server/src/logging/kamra-l
 
 interface ProcessIngestionOptions {
   limit: number;
+  overlayFile: string | null;
   reprocess: boolean;
   sourceName: string | null;
 }
 
 async function processIngestion(): Promise<void> {
   const options = parseOptions(process.argv.slice(2));
+  if (options.overlayFile && !options.reprocess)
+    throw new Error("--overlay-file requires --reprocess");
   const config = readAppConfig();
 
   if (!config.mongodb.uri || !config.mongodb.databaseName) {
@@ -30,15 +42,17 @@ async function processIngestion(): Promise<void> {
   const ingestionRepository = new MongoIngestionRepository(database);
   const catalogRepository = new MongoCurrentCatalogRepository(database);
 
-  await Promise.all([
-    ingestionRepository.setupCollections(),
-    catalogRepository.setupCollections()
-  ]);
+  await Promise.all([ingestionRepository.setupCollections(), catalogRepository.setupCollections()]);
 
   const snapshots = await ingestionRepository.listRawSnapshots({
     limit: options.limit,
     sourceName: options.sourceName ?? undefined
   });
+  const overlays = options.overlayFile ? await readCorrectionOverlays(options.overlayFile) : [];
+  const snapshotIds = new Set(snapshots.map((snapshot) => snapshot.id));
+  const orphanOverlay = overlays.find((overlay) => !snapshotIds.has(overlay.snapshotId));
+  if (orphanOverlay)
+    throw new Error(`correction_overlay_snapshot_not_selected:${orphanOverlay.snapshotId}`);
   const summary = {
     failed: 0,
     processed: 0,
@@ -62,7 +76,8 @@ async function processIngestion(): Promise<void> {
     }
 
     try {
-      const result = processSourceOfferSnapshot(snapshot);
+      const correctedSnapshot = applyIngestionCorrectionOverlays(snapshot, overlays);
+      const result = processSourceOfferSnapshot(correctedSnapshot);
       await catalogRepository.upsertCatalogSeedDataset(result.dataset);
       summary.processed += 1;
       summary.processedRows += result.processedRowCount;
@@ -100,12 +115,18 @@ async function processIngestion(): Promise<void> {
 
 function parseOptions(args: string[]): ProcessIngestionOptions {
   let limit = 50;
+  let overlayFile: string | null = null;
   let reprocess = false;
   let sourceName: string | null = null;
 
   for (const arg of args) {
     if (arg === "--reprocess") {
       reprocess = true;
+      continue;
+    }
+
+    if (arg.startsWith("--overlay-file=")) {
+      overlayFile = requireOptionValue(arg.slice("--overlay-file=".length), "--overlay-file");
       continue;
     }
 
@@ -124,9 +145,30 @@ function parseOptions(args: string[]): ProcessIngestionOptions {
 
   return {
     limit,
+    overlayFile,
     reprocess,
     sourceName
   };
+}
+
+async function readCorrectionOverlays(path: string): Promise<IngestionCorrectionOverlay[]> {
+  const overlays: IngestionCorrectionOverlay[] = [];
+  const seen = new Set<string>();
+  for (const [lineIndex, line] of (await readFile(path, "utf8")).split(/\r?\n/).entries()) {
+    if (!line.trim()) continue;
+    let value: unknown;
+    try {
+      value = JSON.parse(line);
+    } catch {
+      throw new Error(`correction_overlay_json_invalid:${lineIndex + 1}`);
+    }
+    assertIngestionCorrectionOverlay(value);
+    const key = `${value.snapshotId}:${value.rowIndex}`;
+    if (seen.has(key)) throw new Error(`correction_overlay_duplicate:${key}`);
+    seen.add(key);
+    overlays.push(value);
+  }
+  return overlays;
 }
 
 function parsePositiveInteger(value: string, optionName: string): number {

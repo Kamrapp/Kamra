@@ -4,93 +4,26 @@ import {
   json,
   type AppHandlerDependencies,
   type AppRequest,
-  type AppResponse,
-  type AppRoute
+  type AppResponse
 } from "./app-route-context.js";
 import { findAllowedCorsOrigin } from "../config/app-config.js";
 import { writeServerLog } from "../logging/kamra-logger.js";
-import {
-  catalogProductRoute,
-  catalogProductsRoute,
-  catalogProductValidationRoute,
-  catalogSourcesRoute
-} from "./routes/catalog-routes.js";
-import { createAlphaUserRoute, currentUserRoute, loginRoute, logoutRoute, userPreferencesRoute } from "./routes/auth-routes.js";
-import {
-  adminDashboardHealthRoute,
-  adminDashboardFeatureFlagsRoute,
-  adminDashboardMarkLegacyProductsUnvalidatedRoute,
-  adminDashboardReseedDemoHouseholdRoute,
-  adminDashboardUpgradeCatalogValidatorsRoute
-} from "./routes/admin-dashboard-route.js";
-import {
-  householdShoppingListPreviewRoute,
-  householdShoppingListsRoute,
-  householdShoppingListUpdateStocksRoute,
-  householdStockRoute,
-  householdsRoute,
-  latestHouseholdShoppingListRoute,
-  shopsRoute
-} from "./routes/household-routes.js";
-import {
-  acceptProductReviewItemRoute,
-  declineProductReviewItemRoute,
-  ingestionSnapshotsRoute,
-  prepareProductReviewItemsRoute,
-  previewProductReviewItemAcceptanceRoute,
-  processIngestionSnapshotRoute,
-  productReviewItemRoute,
-  productReviewItemsRoute
-} from "./routes/ingestion-routes.js";
-import { logRoute } from "./routes/log-route.js";
-import { healthzRoute } from "./routes/health-route.js";
-import {
-  databaseMaintenanceListRoute,
-  databaseMaintenanceCompleteRoute,
-  databaseMaintenanceMigrationRoute,
-  databaseMaintenanceRunAllRoute,
-  databaseMaintenanceValidatorRoute
-} from "./routes/database-maintenance-route.js";
+import { accessRoutes } from "./routes/access/index.js";
+import { adminRoutes } from "./routes/admin/index.js";
+import { catalogRoutes } from "./routes/catalog/index.js";
+import { householdRoutes } from "./routes/household/index.js";
+import { ingestionRoutes } from "./routes/ingestion/index.js";
+import { observabilityRoutes } from "./routes/observability/index.js";
 
 export type { AppRequest, AppResponse } from "./app-route-context.js";
 
-const appRoutes: AppRoute[] = [
-  healthzRoute,
-  logRoute,
-  loginRoute,
-  createAlphaUserRoute,
-  logoutRoute,
-  currentUserRoute,
-  userPreferencesRoute,
-  householdsRoute,
-  householdStockRoute,
-  householdShoppingListPreviewRoute,
-  householdShoppingListsRoute,
-  latestHouseholdShoppingListRoute,
-  householdShoppingListUpdateStocksRoute,
-  shopsRoute,
-  adminDashboardFeatureFlagsRoute,
-  adminDashboardHealthRoute,
-  adminDashboardUpgradeCatalogValidatorsRoute,
-  adminDashboardMarkLegacyProductsUnvalidatedRoute,
-  adminDashboardReseedDemoHouseholdRoute,
-  databaseMaintenanceListRoute,
-  databaseMaintenanceValidatorRoute,
-  databaseMaintenanceMigrationRoute,
-  databaseMaintenanceCompleteRoute,
-  databaseMaintenanceRunAllRoute,
-  catalogProductRoute,
-  catalogProductValidationRoute,
-  catalogProductsRoute,
-  catalogSourcesRoute,
-  ingestionSnapshotsRoute,
-  processIngestionSnapshotRoute,
-  prepareProductReviewItemsRoute,
-  previewProductReviewItemAcceptanceRoute,
-  productReviewItemsRoute,
-  productReviewItemRoute,
-  acceptProductReviewItemRoute,
-  declineProductReviewItemRoute
+const appRoutes = [
+  ...observabilityRoutes,
+  ...accessRoutes,
+  ...householdRoutes,
+  ...adminRoutes,
+  ...catalogRoutes,
+  ...ingestionRoutes
 ];
 
 export async function handleAppRequest(
@@ -106,9 +39,13 @@ export async function handleAppRequest(
   const route = appRoutes.find((candidate) => candidate.match(request));
 
   if (!route) {
-    return withCorsHeaders(request, context.config, json(404, {
-      error: "not_found"
-    }));
+    return withCorsHeaders(
+      request,
+      context.config,
+      json(404, {
+        error: "not_found"
+      })
+    );
   }
 
   try {
@@ -119,12 +56,14 @@ export async function handleAppRequest(
       ...describeRequest(request)
     });
 
-    return withCorsHeaders(request, context.config, json(500, {
-      error: "internal_error",
-      message: error instanceof Error && error.message
-        ? error.message
-        : "Internal server error"
-    }));
+    return withCorsHeaders(
+      request,
+      context.config,
+      json(500, {
+        error: "internal_error",
+        message: error instanceof Error && error.message ? error.message : "Internal server error"
+      })
+    );
   }
 }
 
@@ -167,9 +106,7 @@ function readAllowedCorsOrigin(
   config: ReturnType<typeof createRouteContext>["config"]
 ): string | null {
   const origin = getHeaderValue(request.headers, "origin");
-  return origin
-    ? findAllowedCorsOrigin(config, origin)
-    : null;
+  return origin ? findAllowedCorsOrigin(config, origin) : null;
 }
 
 function withCorsHeaders(
@@ -192,10 +129,7 @@ function withCorsHeaders(
   };
 }
 
-function getHeaderValue(
-  headers: AppRequest["headers"],
-  name: string
-): string | null {
+function getHeaderValue(headers: AppRequest["headers"], name: string): string | null {
   const normalizedName = name.toLowerCase();
 
   for (const [headerName, headerValue] of Object.entries(headers)) {
@@ -203,9 +137,7 @@ function getHeaderValue(
       continue;
     }
 
-    return Array.isArray(headerValue)
-      ? headerValue[0] ?? null
-      : headerValue ?? null;
+    return Array.isArray(headerValue) ? (headerValue[0] ?? null) : (headerValue ?? null);
   }
 
   return null;

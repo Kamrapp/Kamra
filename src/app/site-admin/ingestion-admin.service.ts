@@ -58,7 +58,8 @@ export const productReviewDecisionReasons = [
 export type ProductReviewDecisionReason = (typeof productReviewDecisionReasons)[number];
 
 export interface ProductReviewCandidateDraft {
-  matchConfidence: "name_only" | "none" | "source_scoped_name" | "strong_identifier" | "strong_source_key";
+  matchConfidence:
+    "name_only" | "none" | "source_scoped_name" | "strong_identifier" | "strong_source_key";
   origin: {
     capturedAt: string;
     sourceName: string;
@@ -273,8 +274,10 @@ export class IngestionAdminService {
     }
 
     if (!response.ok) {
-      const message = await readApiErrorMessage(response, this.loc.t("crawl.snapshotRouteError"), (messageKey) =>
-        this.loc.t(messageKey as TranslationKey)
+      const message = await readApiErrorMessage(
+        response,
+        this.loc.t("crawl.snapshotRouteError"),
+        (messageKey) => this.loc.t(messageKey as TranslationKey)
       );
       return {
         message: this.toastMessage(message),
@@ -338,8 +341,10 @@ export class IngestionAdminService {
     }
 
     if (!response.ok) {
-      const message = await readApiErrorMessage(response, this.loc.t("crawl.processRouteError"), (messageKey) =>
-        this.loc.t(messageKey as TranslationKey)
+      const message = await readApiErrorMessage(
+        response,
+        this.loc.t("crawl.processRouteError"),
+        (messageKey) => this.loc.t(messageKey as TranslationKey)
       );
       return {
         message: this.toastMessage(message),
@@ -357,9 +362,13 @@ export class IngestionAdminService {
   }
 
   async prepareReviewItems(snapshotId: string): Promise<ProductReviewItemsResult> {
-    return await this.writeReviewItem(buildApiUrl("/api/admin/ingestion/prepare-review-items"), {
-      snapshotId
-    }, "reviewItems") as ProductReviewItemsResult;
+    return (await this.writeReviewItem(
+      buildApiUrl("/api/admin/ingestion/prepare-review-items"),
+      {
+        snapshotId
+      },
+      "reviewItems"
+    )) as ProductReviewItemsResult;
   }
 
   async listReviewItemsForSnapshot(snapshotId: string): Promise<ProductReviewItemsResult> {
@@ -370,13 +379,18 @@ export class IngestionAdminService {
       };
     }
 
-    const response = await fetch(buildApiUrl(`/api/admin/ingestion/review-items?snapshotId=${encodeURIComponent(snapshotId)}&limit=250`), {
-      headers: {
-        accept: "application/json",
-        ...this.auth.getAuthorizationHeaders()
-      },
-      method: "GET"
-    });
+    const response = await fetch(
+      buildApiUrl(
+        `/api/admin/ingestion/review-items?snapshotId=${encodeURIComponent(snapshotId)}&limit=250`
+      ),
+      {
+        headers: {
+          accept: "application/json",
+          ...this.auth.getAuthorizationHeaders()
+        },
+        method: "GET"
+      }
+    );
     const error = await this.readReviewItemError(response);
     if (error) {
       return this.withToast(error);
@@ -393,17 +407,26 @@ export class IngestionAdminService {
     id: string,
     candidate: ProductReviewCandidateDraft
   ): Promise<ProductReviewItemResult> {
-    return await this.writeReviewItem(buildApiUrl("/api/admin/ingestion/review-item"), {
-      candidate,
-      id
-    }, "reviewItem", "PATCH") as ProductReviewItemResult;
+    return (await this.writeReviewItem(
+      buildApiUrl("/api/admin/ingestion/review-item"),
+      {
+        candidate,
+        id
+      },
+      "reviewItem",
+      "PATCH"
+    )) as ProductReviewItemResult;
   }
 
   async acceptReviewItem(id: string, note: string | null): Promise<ProductReviewDecisionResult> {
-    return await this.writeReviewItem(buildApiUrl("/api/admin/ingestion/review-item/accept"), {
-      id,
-      note
-    }, "decision") as ProductReviewDecisionResult;
+    return (await this.writeReviewItem(
+      buildApiUrl("/api/admin/ingestion/review-item/accept"),
+      {
+        id,
+        note
+      },
+      "decision"
+    )) as ProductReviewDecisionResult;
   }
 
   async previewReviewItemAcceptance(id: string): Promise<ProductReviewAcceptancePreviewResult> {
@@ -414,13 +437,18 @@ export class IngestionAdminService {
       };
     }
 
-    const response = await fetch(buildApiUrl(`/api/admin/ingestion/review-item/acceptance-preview?id=${encodeURIComponent(id)}`), {
-      headers: {
-        accept: "application/json",
-        ...this.auth.getAuthorizationHeaders()
-      },
-      method: "GET"
-    });
+    const response = await fetch(
+      buildApiUrl(
+        `/api/admin/ingestion/review-item/acceptance-preview?id=${encodeURIComponent(id)}`
+      ),
+      {
+        headers: {
+          accept: "application/json",
+          ...this.auth.getAuthorizationHeaders()
+        },
+        method: "GET"
+      }
+    );
     const error = await this.readReviewItemError(response);
     if (error) {
       return this.withToast(error);
@@ -438,11 +466,15 @@ export class IngestionAdminService {
     declineReason: ProductReviewDecisionReason,
     note: string | null
   ): Promise<ProductReviewDecisionResult> {
-    return await this.writeReviewItem(buildApiUrl("/api/admin/ingestion/review-item/decline"), {
-      declineReason,
-      id,
-      note
-    }, "decision") as ProductReviewDecisionResult;
+    return (await this.writeReviewItem(
+      buildApiUrl("/api/admin/ingestion/review-item/decline"),
+      {
+        declineReason,
+        id,
+        note
+      },
+      "decision"
+    )) as ProductReviewDecisionResult;
   }
 
   private async writeReviewItem(
@@ -528,8 +560,10 @@ export class IngestionAdminService {
     }
 
     if (!response.ok) {
-      const message = await readApiErrorMessage(response, this.loc.t("crawl.reviewRouteError"), (messageKey) =>
-        this.loc.t(messageKey as TranslationKey)
+      const message = await readApiErrorMessage(
+        response,
+        this.loc.t("crawl.reviewRouteError"),
+        (messageKey) => this.loc.t(messageKey as TranslationKey)
       );
       return {
         message,

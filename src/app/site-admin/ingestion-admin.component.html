@@ -1,50 +1,154 @@
 <section class="ingestion-page" aria-labelledby="ingestion-title">
   <label class="accepted-toggle">
-    <input type="checkbox" [checked]="showAcceptedItems()"
-      (change)="setShowAcceptedItems($any($event.target).checked)" />
+    <input
+      type="checkbox"
+      [checked]="showAcceptedItems()"
+      (change)="setShowAcceptedItems($any($event.target).checked)"
+    />
     <span>{{ loc.t("crawl.showAccepted") }}</span>
   </label>
 
-  <section class="crawl-workspace" [class.crawl-workspace-single]="!selectedSnapshot()"
+  <section
+    class="crawl-workspace"
+    [class.crawl-workspace-single]="!selectedSnapshot()"
     [style.--crawl-list-fr]="crawlListWidthPercent() + 'fr'"
-    [style.--crawl-detail-fr]="100 - crawlListWidthPercent() + 'fr'">
-    <app-ingestion-snapshot-table [auth]="!!auth.token()" [columns]="snapshotColumns()" [loadState]="loadState()"
-      [scrollTop]="snapshotListScrollTop()" [selectedId]="selectedSnapshotId()" [snapshots]="snapshots()"
-      (scrolled)="onSnapshotScroll($event)" (snapshotSelected)="selectSnapshot($event)" />
+    [style.--crawl-detail-fr]="100 - crawlListWidthPercent() + 'fr'"
+  >
+    <app-ingestion-snapshot-table
+      [auth]="!!auth.token()"
+      [columns]="snapshotColumns()"
+      [loadState]="loadState()"
+      [scrollTop]="snapshotListScrollTop()"
+      [selectedId]="selectedSnapshotId()"
+      [snapshots]="snapshots()"
+      (scrolled)="onSnapshotScroll($event)"
+      (snapshotSelected)="selectSnapshot($event)"
+    />
 
     @if (selectedSnapshot(); as snapshot) {
-    <button class="workspace-resizer" type="button" [attr.aria-label]="loc.t('common.resizePanels')"
-      [title]="loc.t('common.resizePanels')" (pointerdown)="startWorkspaceResize($event)">
-      <span aria-hidden="true"></span>
-    </button>
+      <button
+        class="workspace-resizer"
+        type="button"
+        [attr.aria-label]="loc.t('common.resizePanels')"
+        [title]="loc.t('common.resizePanels')"
+        (pointerdown)="startWorkspaceResize($event)"
+      >
+        <span aria-hidden="true"></span>
+      </button>
 
-    <aside class="detail-panel surface-panel" [attr.aria-label]="loc.t('crawl.selectedSnapshot')">
-      <app-resizable-table #rowTable class="row-table" [ariaLabel]="loc.t('crawl.rowsTable')" [columns]="rowColumns()">
-        <div class="row-body">
-          @for (row of snapshot.rows; track row.sourceRecordId || row.sourceProductKey || row.displayName) {
-          <article class="parsed-row" role="row" [style.grid-template-columns]="rowTable.columnTemplate()">
-            <span class="action-cell" role="cell">
-              <app-table-icon-button [titleText]="loc.t('common.reviewProduct')"
-                [ariaLabel]="loc.t('common.reviewProduct')" (press)="openReviewEditor(snapshot, row)">
-                ✓
-              </app-table-icon-button>
-            </span>
-            <span role="cell">
-              <strong>{{ row.displayName }}</strong>
-              <small>{{ row.packageLabel || loc.t("common.noPackage") }}</small>
-            </span>
-            <span role="cell">{{ row.sourceProductKey || loc.t("common.none") }}</span>
-            <span role="cell">{{ formatPrice(row) }}</span>
-            <span role="cell">{{ formatValidity(row) }}</span>
-          </article>
-          }
-        </div>
-      </app-resizable-table>
-    </aside>
+      <aside class="detail-panel surface-panel" [attr.aria-label]="loc.t('crawl.selectedSnapshot')">
+        <app-resizable-table
+          #rowTable
+          class="row-table"
+          [ariaLabel]="loc.t('crawl.rowsTable')"
+          [columns]="rowColumns()"
+        >
+          <div class="row-body">
+            @for (
+              row of snapshot.rows;
+              track row.sourceRecordId || row.sourceProductKey || row.displayName
+            ) {
+              <article
+                class="parsed-row"
+                role="row"
+                [style.grid-template-columns]="rowTable.columnTemplate()"
+              >
+                <span class="action-cell row-review-actions" role="cell">
+                  @if (reviewItemForRow(row); as reviewItem) {
+                    @if (decliningReviewId() === reviewItem.id) {
+                      <select
+                        [ngModel]="decliningReviewReason()"
+                        (ngModelChange)="decliningReviewReason.set($event)"
+                        [attr.aria-label]="loc.t('editor.declineReason')"
+                      >
+                        @for (reason of productReviewDecisionReasons; track reason) {
+                          <option [ngValue]="reason">{{ declineReasonLabel(reason) }}</option>
+                        }
+                      </select>
+                      <app-table-icon-button
+                        [titleText]="loc.t('common.confirm')"
+                        [ariaLabel]="loc.t('common.confirm')"
+                        (press)="confirmRowDecline(reviewItem)"
+                      >
+                        ✓
+                      </app-table-icon-button>
+                      <app-table-icon-button
+                        [titleText]="loc.t('common.close')"
+                        [ariaLabel]="loc.t('common.close')"
+                        (press)="cancelRowDecline()"
+                      >
+                        ×
+                      </app-table-icon-button>
+                    } @else {
+                      <app-table-icon-button
+                        [titleText]="loc.t('common.reviewProduct')"
+                        [ariaLabel]="loc.t('common.reviewProduct')"
+                        (press)="openReviewEditor(snapshot, row)"
+                      >
+                        ✎
+                      </app-table-icon-button>
+                      @if (reviewItem.status === "pending") {
+                        <app-table-icon-button
+                          [titleText]="loc.t('common.accept')"
+                          [ariaLabel]="loc.t('common.accept')"
+                          (press)="acceptReviewItem(reviewItem.id, null)"
+                        >
+                          ✓
+                        </app-table-icon-button>
+                        <app-table-icon-button
+                          [titleText]="loc.t('common.decline')"
+                          [ariaLabel]="loc.t('common.decline')"
+                          (press)="beginRowDecline(reviewItem)"
+                        >
+                          ×
+                        </app-table-icon-button>
+                      }
+                    }
+                  } @else {
+                    <app-table-icon-button
+                      [titleText]="loc.t('common.reviewProduct')"
+                      [ariaLabel]="loc.t('common.reviewProduct')"
+                      (press)="openReviewEditor(snapshot, row)"
+                    >
+                      ✎
+                    </app-table-icon-button>
+                  }
+                </span>
+                <span role="cell">
+                  <strong>{{ row.displayName }}</strong>
+                  <small>{{ row.packageLabel || loc.t("common.noPackage") }}</small>
+                </span>
+                <span role="cell">{{ row.sourceProductKey || loc.t("common.none") }}</span>
+                <span role="cell">{{ formatPrice(row) }}</span>
+                <span role="cell">{{ formatValidity(row) }}</span>
+                @if (reviewItemForRow(row); as reviewItem) {
+                  <span role="cell" class="review-status-cell">
+                    {{ reviewStatusLabel(reviewItem.status) }}
+                    @if (reviewItem.decision?.declineReason; as reason) {
+                      <small>{{ declineReasonLabel(reason) }}</small>
+                    }
+                  </span>
+                  <span role="cell" class="review-status-cell">
+                    {{ candidateMatchLabel(reviewItem.candidateMatch) }}
+                  </span>
+                } @else {
+                  <span role="cell">{{ loc.t("common.pending") }}</span>
+                  <span role="cell">{{ loc.t("common.unknown") }}</span>
+                }
+              </article>
+            }
+          </div>
+        </app-resizable-table>
+      </aside>
     }
   </section>
-  <app-product-editor-dialog mode="review" [open]="reviewEditorOpen()" [reviewItem]="editingReviewItem()"
-    (acceptReview)="acceptReviewItem($event.id, $event.note)" (close)="closeReviewEditor()"
+  <app-product-editor-dialog
+    mode="review"
+    [open]="reviewEditorOpen()"
+    [reviewItem]="editingReviewItem()"
+    (acceptReview)="acceptReviewItem($event.id, $event.note)"
+    (close)="closeReviewEditor()"
     (declineReview)="declineReviewItem($event.id, $event.reason, $event.note)"
-    (updateReviewCandidate)="updateReviewCandidate($event.id, $event.candidate)" />
+    (updateReviewCandidate)="updateReviewCandidate($event.id, $event.candidate)"
+  />
 </section>

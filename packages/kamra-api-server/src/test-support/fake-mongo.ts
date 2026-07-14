@@ -1,7 +1,18 @@
 /* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any */
-import type { AnyBulkWriteOperation, DeleteResult, Document, Filter as MongoFilter, OptionalUnlessRequiredId } from "mongodb";
+import type {
+  AnyBulkWriteOperation,
+  DeleteResult,
+  Document,
+  Filter as MongoFilter,
+  OptionalUnlessRequiredId
+} from "mongodb";
 
-import type { MongoCollectionLike, MongoCursorLike, MongoDatabaseLike, MongoWriteResult } from "../db/mongo-like.js";
+import type {
+  MongoCollectionLike,
+  MongoCursorLike,
+  MongoDatabaseLike,
+  MongoWriteResult
+} from "../db/mongo-like.js";
 
 type PlainDoc = Record<string, unknown>;
 
@@ -29,7 +40,9 @@ export class FakeCollection<T extends PlainDoc = PlainDoc> implements MongoColle
         continue;
       }
 
-      const index = this.docs.findIndex((doc) => matchesFilter(doc, replaceOne.filter as MongoFilter<PlainDoc>));
+      const index = this.docs.findIndex((doc) =>
+        matchesFilter(doc, replaceOne.filter as MongoFilter<PlainDoc>)
+      );
       if (index >= 0) {
         this.docs[index] = structuredClone(replaceOne.replacement) as T;
       } else if (replaceOne.upsert) {
@@ -42,15 +55,24 @@ export class FakeCollection<T extends PlainDoc = PlainDoc> implements MongoColle
     };
   }
 
-  async countDocuments(filter: MongoFilter<T> = {} as MongoFilter<T>, _options?: { limit?: number }): Promise<number> {
+  async countDocuments(
+    filter: MongoFilter<T> = {} as MongoFilter<T>,
+    _options?: { limit?: number }
+  ): Promise<number> {
     return this.docs.filter((doc) => matchesFilter(doc, filter)).length;
   }
 
-  async createIndex(_index: Record<string, 1 | -1>, _options?: Record<string, unknown>): Promise<string> {
+  async createIndex(
+    _index: Record<string, 1 | -1>,
+    _options?: Record<string, unknown>
+  ): Promise<string> {
     return `${this.name}_index`;
   }
 
-  async deleteMany(filter: MongoFilter<T> = {} as MongoFilter<T>): Promise<DeleteResult> {
+  async deleteMany(
+    filter: MongoFilter<T> = {} as MongoFilter<T>,
+    _options?: Document
+  ): Promise<DeleteResult> {
     const nextDocs = this.docs.filter((doc) => !matchesFilter(doc, filter));
     const deletedCount = this.docs.length - nextDocs.length;
     this.docs.splice(0, this.docs.length, ...nextDocs);
@@ -70,7 +92,9 @@ export class FakeCollection<T extends PlainDoc = PlainDoc> implements MongoColle
     const values = this.docs
       .filter((doc) => matchesFilter(doc, filter))
       .map((doc) => getValue(doc, key))
-      .filter((value, index, array) => array.findIndex((candidate) => candidate === value) === index);
+      .filter(
+        (value, index, array) => array.findIndex((candidate) => candidate === value) === index
+      );
 
     return Promise.resolve(values);
   }
@@ -79,7 +103,10 @@ export class FakeCollection<T extends PlainDoc = PlainDoc> implements MongoColle
     return new FakeCursor<T>(this.docs.filter((doc) => matchesFilter(doc, filter)) as T[]);
   }
 
-  async findOne(filter: MongoFilter<T> = {} as MongoFilter<T>): Promise<T | null> {
+  async findOne(
+    filter: MongoFilter<T> = {} as MongoFilter<T>,
+    _options?: Document
+  ): Promise<T | null> {
     return (this.docs.find((doc) => matchesFilter(doc, filter)) ?? null) as T | null;
   }
 
@@ -93,11 +120,19 @@ export class FakeCollection<T extends PlainDoc = PlainDoc> implements MongoColle
     };
   }
 
-  async updateMany(filter: MongoFilter<T>, update: Document, options?: Document): Promise<MongoWriteResult> {
+  async updateMany(
+    filter: MongoFilter<T>,
+    update: Document,
+    options?: Document
+  ): Promise<MongoWriteResult> {
     return this.applyUpdate(filter, update, true, options);
   }
 
-  async updateOne(filter: MongoFilter<T>, update: Document, options?: Document): Promise<MongoWriteResult> {
+  async updateOne(
+    filter: MongoFilter<T>,
+    update: Document,
+    options?: Document
+  ): Promise<MongoWriteResult> {
     return this.applyUpdate(filter, update, false, options);
   }
 
@@ -179,14 +214,21 @@ export class FakeCursor<T extends PlainDoc = PlainDoc> implements MongoCursorLik
   }
 }
 
-export function createFakeDb(collections: Record<string, FakeCollection<any>> = {}): MongoDatabaseLike & {
+export interface FakeDatabaseOptions {
+  databaseName?: string;
+}
+
+export function createFakeDb(
+  collections: Record<string, FakeCollection<any>> = {},
+  options: FakeDatabaseOptions = {}
+): MongoDatabaseLike & {
   __collections: Record<string, FakeCollection<any>>;
 } {
   const state: Record<string, FakeCollection<any>> = collections;
 
   return {
     __collections: state,
-    databaseName: "fake_db",
+    databaseName: options.databaseName ?? "fake_db",
 
     collection<T extends PlainDoc = PlainDoc>(name: string): FakeCollection<T> {
       if (!state[name]) {
@@ -234,6 +276,10 @@ function matchesFilter(doc: PlainDoc, filter: MongoFilter<any>): boolean {
     if (isPlainDoc(condition)) {
       if ("$in" in condition && Array.isArray(condition["$in"])) {
         return condition["$in"].includes(value);
+      }
+
+      if ("$ne" in condition) {
+        return value !== condition["$ne"];
       }
 
       if ("$exists" in condition) {

@@ -301,24 +301,27 @@ export class MongoCurrentCatalogRepository {
 
   constructor(private readonly database: MongoDatabaseLike) {
     this.migrationLedgerCollection = database.collection<MigrationLedgerRecord>("migration_ledger");
-    this.priceObservationsCollection = database.collection<PriceObservationRecord>("price_observations");
+    this.priceObservationsCollection =
+      database.collection<PriceObservationRecord>("price_observations");
     this.productSourceIdentifiersCollection = database.collection<ProductSourceIdentifierRecord>(
       "product_source_identifiers"
     );
     this.productSourcesCollection = database.collection<ProductSourceRecord>("product_sources");
-    this.productTagAssignmentsCollection = database.collection<ProductTagAssignmentRecord>("product_tag_assignments");
+    this.productTagAssignmentsCollection =
+      database.collection<ProductTagAssignmentRecord>("product_tag_assignments");
     this.productTagsCollection = database.collection<ProductTagRecord>("product_tags");
     this.productsCollection = database.collection<ProductRecord>("products");
-    this.sourceRecordProcessingStatesCollection = database.collection<SourceRecordProcessingStateRecord>(
-      "source_record_processing_states"
-    );
+    this.sourceRecordProcessingStatesCollection =
+      database.collection<SourceRecordProcessingStateRecord>("source_record_processing_states");
     this.stocksCollection = database.collection<StockRecord>("stocks");
   }
 
   async listCatalogProductsForReview(
     options: CatalogProductReviewPageOptions = {}
   ): Promise<CatalogProductReviewPage> {
-    const requestedSourceNames = [...new Set(options.sourceNames ?? [])].filter((sourceName) => sourceName.length > 0);
+    const requestedSourceNames = [...new Set(options.sourceNames ?? [])].filter(
+      (sourceName) => sourceName.length > 0
+    );
     const productFilter: Filter<ProductRecord> = { status: "active" };
     const normalizedNameIncludes = normalizeProductName(options.nameIncludes ?? "");
 
@@ -336,9 +339,7 @@ export class MongoCurrentCatalogRepository {
       productFilter.id = { $in: productIdsForSources };
     }
 
-    let productQuery = this.productsCollection
-      .find(productFilter)
-      .sort({ name: 1 });
+    let productQuery = this.productsCollection.find(productFilter).sort({ name: 1 });
 
     if (typeof options.offset === "number" && options.offset > 0) {
       productQuery = productQuery.skip(options.offset);
@@ -372,7 +373,9 @@ export class MongoCurrentCatalogRepository {
     return (await this.hydrateCatalogProducts([product]))[0] ?? null;
   }
 
-  async updateCatalogProduct(input: UpdateCatalogProductInput): Promise<CatalogProductListItem | null> {
+  async updateCatalogProduct(
+    input: UpdateCatalogProductInput
+  ): Promise<CatalogProductListItem | null> {
     const set: Partial<ProductRecord> = {
       updatedAt: input.updatedAt
     };
@@ -436,20 +439,23 @@ export class MongoCurrentCatalogRepository {
     }
   }
 
-  async setCatalogProductValidationStatus(input: SetCatalogProductValidationInput): Promise<CatalogProductListItem | null> {
-    const validationFields: Partial<ProductRecord> = input.status === "validated"
-      ? {
-        invalidatedAt: null,
-        invalidatedBy: null,
-        validatedAt: input.reviewedAt,
-        validatedBy: input.reviewerId
-      }
-      : {
-        invalidatedAt: input.reviewedAt,
-        invalidatedBy: input.reviewerId,
-        validatedAt: null,
-        validatedBy: null
-      };
+  async setCatalogProductValidationStatus(
+    input: SetCatalogProductValidationInput
+  ): Promise<CatalogProductListItem | null> {
+    const validationFields: Partial<ProductRecord> =
+      input.status === "validated"
+        ? {
+            invalidatedAt: null,
+            invalidatedBy: null,
+            validatedAt: input.reviewedAt,
+            validatedBy: input.reviewerId
+          }
+        : {
+            invalidatedAt: input.reviewedAt,
+            invalidatedBy: input.reviewerId,
+            validatedAt: null,
+            validatedBy: null
+          };
 
     try {
       const result = await this.productsCollection.updateOne(
@@ -497,26 +503,19 @@ export class MongoCurrentCatalogRepository {
     const productSources = await this.productSourcesCollection.find({ productId: id }).toArray();
     const productSourceIds = productSources.map((source) => source.id);
 
-    const [
-      identifiers,
-      priceObservations,
-      productSourcesResult,
-      stocks,
-      tagAssignments,
-      products
-    ] = await Promise.all([
-      this.productSourceIdentifiersCollection.deleteMany({ productSourceId: { $in: productSourceIds } }),
-      this.priceObservationsCollection.deleteMany({
-        $or: [
-          { productId: id },
-          { productSourceId: { $in: productSourceIds } }
-        ]
-      }),
-      this.productSourcesCollection.deleteMany({ productId: id }),
-      this.stocksCollection.deleteMany({ productId: id }),
-      this.productTagAssignmentsCollection.deleteMany({ productId: id }),
-      this.productsCollection.deleteMany({ id })
-    ]);
+    const [identifiers, priceObservations, productSourcesResult, stocks, tagAssignments, products] =
+      await Promise.all([
+        this.productSourceIdentifiersCollection.deleteMany({
+          productSourceId: { $in: productSourceIds }
+        }),
+        this.priceObservationsCollection.deleteMany({
+          $or: [{ productId: id }, { productSourceId: { $in: productSourceIds } }]
+        }),
+        this.productSourcesCollection.deleteMany({ productId: id }),
+        this.stocksCollection.deleteMany({ productId: id }),
+        this.productTagAssignmentsCollection.deleteMany({ productId: id }),
+        this.productsCollection.deleteMany({ id })
+      ]);
 
     const result = {
       deletedIdentifierCount: identifiers.deletedCount ?? 0,
@@ -541,7 +540,10 @@ export class MongoCurrentCatalogRepository {
   ): Promise<CreateCatalogProductFromReviewCandidateResult> {
     const candidate = input.candidate;
     const productId = createProductIdFromReviewCandidate(candidate);
-    const productSourceId = createProductSourceId(candidate.source.sourceName, candidate.source.sourceProductKey);
+    const productSourceId = createProductSourceId(
+      candidate.source.sourceName,
+      candidate.source.sourceProductKey
+    );
     const origin = {
       capturedAt: candidate.origin.capturedAt,
       kind: "manual" as const,
@@ -550,7 +552,11 @@ export class MongoCurrentCatalogRepository {
       sourceRecordId: candidate.origin.sourceRecordId,
       sourceUrl: candidate.origin.sourceUrl ?? null
     };
-    const location = createReviewLocation(candidate.source.sourceName, candidate.source.storeBrandKey, candidate.source.countryCode);
+    const location = createReviewLocation(
+      candidate.source.sourceName,
+      candidate.source.storeBrandKey,
+      candidate.source.countryCode
+    );
     const priceObservations = candidate.priceObservations.map((observation, observationIndex) => ({
       createdAt: input.createdAt,
       id: createReviewPriceObservationId(candidate, observationIndex, observation),
@@ -600,23 +606,27 @@ export class MongoCurrentCatalogRepository {
       origin,
       priceLastCheckedAt: priceObservations.at(-1)?.observedAt ?? candidate.origin.capturedAt,
       productId,
-      productPageUrl: candidate.source.productPageUrl ?? candidate.origin.sourceUrl ?? `urn:kamra:review:${candidate.source.sourceName}`,
+      productPageUrl:
+        candidate.source.productPageUrl ??
+        candidate.origin.sourceUrl ??
+        `urn:kamra:review:${candidate.source.sourceName}`,
       sourceName: candidate.source.sourceName,
       sourceProductKey: candidate.source.sourceProductKey,
       sourceProductName: candidate.source.sourceProductName,
       storeBrandKey: candidate.source.storeBrandKey,
       updatedAt: input.createdAt
     };
-    const sourceIdentifiers: ProductSourceIdentifierRecord[] = candidate.sourceProductIdentifiers.map((identifier) => ({
-      createdAt: input.createdAt,
-      id: `product_source_identifier_${stableSlug(candidate.source.sourceName)}_${stableSlug(productSourceId)}_${stableSlug(identifier.kind)}_${stableSlug(identifier.value)}`,
-      kind: identifier.kind,
-      origin,
-      productSourceId,
-      sourceName: candidate.source.sourceName,
-      updatedAt: input.createdAt,
-      value: identifier.value
-    }));
+    const sourceIdentifiers: ProductSourceIdentifierRecord[] =
+      candidate.sourceProductIdentifiers.map((identifier) => ({
+        createdAt: input.createdAt,
+        id: `product_source_identifier_${stableSlug(candidate.source.sourceName)}_${stableSlug(productSourceId)}_${stableSlug(identifier.kind)}_${stableSlug(identifier.value)}`,
+        kind: identifier.kind,
+        origin,
+        productSourceId,
+        sourceName: candidate.source.sourceName,
+        updatedAt: input.createdAt,
+        value: identifier.value
+      }));
     const stock: StockRecord = {
       createdAt: input.createdAt,
       id: createStockId(candidate.source.sourceName, candidate.source.sourceProductKey),
@@ -636,7 +646,11 @@ export class MongoCurrentCatalogRepository {
     try {
       await Promise.all([
         this.productsCollection.updateOne({ id: productId }, { $set: product }, { upsert: true }),
-        this.productSourcesCollection.updateOne({ id: productSourceId }, { $set: productSource }, { upsert: true }),
+        this.productSourcesCollection.updateOne(
+          { id: productSourceId },
+          { $set: productSource },
+          { upsert: true }
+        ),
         this.productSourceIdentifiersCollection.deleteMany({ productSourceId }),
         this.priceObservationsCollection.deleteMany({ productSourceId }),
         this.stocksCollection.updateOne({ id: stock.id }, { $set: stock }, { upsert: true })
@@ -692,29 +706,42 @@ export class MongoCurrentCatalogRepository {
     };
   }
 
-  private async hydrateCatalogProducts(products: ProductRecord[]): Promise<CatalogProductListItem[]> {
+  private async hydrateCatalogProducts(
+    products: ProductRecord[]
+  ): Promise<CatalogProductListItem[]> {
     const productIds = products.map((product) => product.id);
     const [productTagAssignments, productSources, householdStocks] = await Promise.all([
-      this.productTagAssignmentsCollection.find({
-        productId: { $in: productIds }
-      }).toArray(),
-      this.productSourcesCollection.find({
-        productId: { $in: productIds }
-      }).toArray(),
-      this.stocksCollection.find({
-        productId: { $in: productIds },
-        "location.kind": "household",
-        status: "active"
-      }).toArray()
+      this.productTagAssignmentsCollection
+        .find({
+          productId: { $in: productIds }
+        })
+        .toArray(),
+      this.productSourcesCollection
+        .find({
+          productId: { $in: productIds }
+        })
+        .toArray(),
+      this.stocksCollection
+        .find({
+          productId: { $in: productIds },
+          "location.kind": "household",
+          status: "active"
+        })
+        .toArray()
     ]);
     const productSourceIds = productSources.map((source) => source.id);
     const [productSourceIdentifiers, priceObservations] = await Promise.all([
-      this.productSourceIdentifiersCollection.find({
-        productSourceId: { $in: productSourceIds }
-      }).toArray(),
-      this.priceObservationsCollection.find({
-        productSourceId: { $in: productSourceIds }
-      }).sort({ observedAt: -1 }).toArray()
+      this.productSourceIdentifiersCollection
+        .find({
+          productSourceId: { $in: productSourceIds }
+        })
+        .toArray(),
+      this.priceObservationsCollection
+        .find({
+          productSourceId: { $in: productSourceIds }
+        })
+        .sort({ observedAt: -1 })
+        .toArray()
     ]);
 
     const tagsByProductId = new Map<string, string[]>();
@@ -727,7 +754,10 @@ export class MongoCurrentCatalogRepository {
     const sourcesByProductId = new Map<string, string[]>();
     const offerRowsByProductId = new Map<string, CatalogProductOfferListItem[]>();
     const identifiersByProductSourceId = new Map<string, ProductSourceIdentifierRecord[]>();
-    const pricesByProductSourceId = new Map<string, Partial<Record<PriceObservationKind, CatalogProductOfferPrice>>>();
+    const pricesByProductSourceId = new Map<
+      string,
+      Partial<Record<PriceObservationKind, CatalogProductOfferPrice>>
+    >();
 
     for (const identifier of productSourceIdentifiers) {
       const values = identifiersByProductSourceId.get(identifier.productSourceId) ?? [];
@@ -813,19 +843,16 @@ export class MongoCurrentCatalogRepository {
     };
 
     try {
-      const result = await this.productsCollection.updateMany(
-        legacyProductFilter,
-        {
-          $set: {
-            invalidatedAt: null,
-            invalidatedBy: null,
-            validationNote: null,
-            validationStatus: "unvalidated",
-            validatedAt: null,
-            validatedBy: null
-          }
+      const result = await this.productsCollection.updateMany(legacyProductFilter, {
+        $set: {
+          invalidatedAt: null,
+          invalidatedBy: null,
+          validationNote: null,
+          validationStatus: "unvalidated",
+          validatedAt: null,
+          validatedBy: null
         }
-      );
+      });
 
       return {
         skippedCount: 0,
@@ -848,7 +875,18 @@ export class MongoCurrentCatalogRepository {
   async runSmokeCheck(): Promise<CurrentCatalogSmokeCheckResult> {
     await this.setupCollections();
 
-    const [migrationLedgerCount, priceObservationCount, productSourceIdentifierCount, productSourceCount, productTagAssignmentCount, productTagCount, productCount, processingStateCount, stockCount, sampleProducts] = await Promise.all([
+    const [
+      migrationLedgerCount,
+      priceObservationCount,
+      productSourceIdentifierCount,
+      productSourceCount,
+      productTagAssignmentCount,
+      productTagCount,
+      productCount,
+      processingStateCount,
+      stockCount,
+      sampleProducts
+    ] = await Promise.all([
       this.migrationLedgerCollection.countDocuments(),
       this.priceObservationsCollection.countDocuments(),
       this.productSourceIdentifiersCollection.countDocuments(),
@@ -858,7 +896,11 @@ export class MongoCurrentCatalogRepository {
       this.productsCollection.countDocuments(),
       this.sourceRecordProcessingStatesCollection.countDocuments(),
       this.stocksCollection.countDocuments(),
-      this.productsCollection.find({}, { projection: { name: 1, _id: 0 } }).sort({ name: 1 }).limit(5).toArray()
+      this.productsCollection
+        .find({}, { projection: { name: 1, _id: 0 } })
+        .sort({ name: 1 })
+        .limit(5)
+        .toArray()
     ]);
 
     return {
@@ -880,7 +922,9 @@ export class MongoCurrentCatalogRepository {
 
   async setupCollections(): Promise<CurrentCatalogSetupSummary> {
     const existingCollections = new Set(
-      (await this.database.listCollections({}, { nameOnly: true }).toArray()).map((entry) => entry.name)
+      (await this.database.listCollections({}, { nameOnly: true }).toArray()).map(
+        (entry) => entry.name
+      )
     );
     const createdCollections: string[] = [];
     const existingCatalogCollections: string[] = [];
@@ -915,12 +959,14 @@ export class MongoCurrentCatalogRepository {
       }
     }
 
-    await Promise.all(collectionPlans.map(async (plan) => {
-      const collection = this.database.collection(plan.name);
-      for (const index of plan.indexes) {
-        await collection.createIndex(index.key, index.options);
-      }
-    }));
+    await Promise.all(
+      collectionPlans.map(async (plan) => {
+        const collection = this.database.collection(plan.name);
+        for (const index of plan.indexes) {
+          await collection.createIndex(index.key, index.options);
+        }
+      })
+    );
 
     return {
       createdCollections,
@@ -933,7 +979,9 @@ export class MongoCurrentCatalogRepository {
 
   async upgradeCatalogValidators(): Promise<CatalogValidatorUpgradeResult> {
     const existingCollections = new Set(
-      (await this.database.listCollections({}, { nameOnly: true }).toArray()).map((entry) => entry.name)
+      (await this.database.listCollections({}, { nameOnly: true }).toArray()).map(
+        (entry) => entry.name
+      )
     );
     const createdCollections: string[] = [];
     const upgradedCollections: string[] = [];
@@ -973,7 +1021,10 @@ export class MongoCurrentCatalogRepository {
   async upsertCatalogSeedDataset(dataset: CatalogV1SeedDataset): Promise<void> {
     await this.upsertMany(this.migrationLedgerCollection, dataset.migrationLedger);
     await this.upsertMany(this.priceObservationsCollection, dataset.priceObservations);
-    await this.upsertMany(this.productSourceIdentifiersCollection, dataset.productSourceIdentifiers);
+    await this.upsertMany(
+      this.productSourceIdentifiersCollection,
+      dataset.productSourceIdentifiers
+    );
     await this.upsertMany(this.productSourcesCollection, dataset.productSources);
     await this.upsertMany(this.productTagAssignmentsCollection, dataset.productTagAssignments);
     await this.upsertMany(this.productTagsCollection, dataset.productTags);
@@ -1026,23 +1077,33 @@ export class MongoCurrentCatalogRepository {
 function latestOfferObservedAt(
   prices: Partial<Record<PriceObservationKind, CatalogProductOfferPrice>>
 ): string | null {
-  return Object.values(prices)
-    .map((price) => price?.observedAt)
-    .filter((observedAt): observedAt is string => typeof observedAt === "string")
-    .sort()
-    .at(-1) ?? null;
+  return (
+    Object.values(prices)
+      .map((price) => price?.observedAt)
+      .filter((observedAt): observedAt is string => typeof observedAt === "string")
+      .sort()
+      .at(-1) ?? null
+  );
 }
 
 function latestOfferLocation(
   priceObservations: PriceObservationRecord[],
   productSourceId: string
 ): PriceObservationRecord["location"] | null {
-  return priceObservations.find((observation) => observation.productSourceId === productSourceId)?.location ?? null;
+  return (
+    priceObservations.find((observation) => observation.productSourceId === productSourceId)
+      ?.location ?? null
+  );
 }
 
-function compareOffers(left: CatalogProductOfferListItem, right: CatalogProductOfferListItem): number {
-  return left.sourceName.localeCompare(right.sourceName, "hu-HU")
-    || left.sourceProductName.localeCompare(right.sourceProductName, "hu-HU");
+function compareOffers(
+  left: CatalogProductOfferListItem,
+  right: CatalogProductOfferListItem
+): number {
+  return (
+    left.sourceName.localeCompare(right.sourceName, "hu-HU") ||
+    left.sourceProductName.localeCompare(right.sourceProductName, "hu-HU")
+  );
 }
 
 function isDocumentValidationError(error: unknown): boolean {
@@ -1115,19 +1176,19 @@ function describeReviewCandidateProductIdentity(candidate: {
   }>;
 }):
   | {
-    identifierKind: ProductSourceIdentifierRecord["kind"];
-    identifierValue: string;
-    kind: "identifier";
-    reason: string;
-    value: string;
-  }
+      identifierKind: ProductSourceIdentifierRecord["kind"];
+      identifierValue: string;
+      kind: "identifier";
+      reason: string;
+      value: string;
+    }
   | {
-    kind: "name_package";
-    reason: string;
-    value: string;
-  } {
-  const commonIdentifier = candidate.sourceProductIdentifiers.find((identifier) =>
-    identifier.kind === "gtin" || identifier.kind === "national_code"
+      kind: "name_package";
+      reason: string;
+      value: string;
+    } {
+  const commonIdentifier = candidate.sourceProductIdentifiers.find(
+    (identifier) => identifier.kind === "gtin" || identifier.kind === "national_code"
   );
 
   if (commonIdentifier) {
@@ -1157,7 +1218,11 @@ function describeReviewCandidateProductIdentity(candidate: {
   };
 }
 
-function createReviewLocation(sourceName: string, storeBrandKey: string, countryCode: string): StockRecord["location"] {
+function createReviewLocation(
+  sourceName: string,
+  storeBrandKey: string,
+  countryCode: string
+): StockRecord["location"] {
   return {
     countryCode,
     kind: "global_shop_availability",
@@ -1176,7 +1241,13 @@ function createReviewPriceObservationId(
     source: { sourceName: string; sourceProductKey: string };
   },
   observationIndex: number,
-  observation: { observedAt: string; price: number; priceKind?: PriceObservationKind | null; validFrom?: string | null; validTo?: string | null }
+  observation: {
+    observedAt: string;
+    price: number;
+    priceKind?: PriceObservationKind | null;
+    validFrom?: string | null;
+    validTo?: string | null;
+  }
 ): string {
   return `price_observation_${stableSlug(candidate.source.sourceName)}_${stableSlug(candidate.source.sourceProductKey)}_${stableSlug(observation.priceKind ?? "offer")}_${stableSlug(observation.observedAt)}_${stableSlug(String(observation.price))}_${stableSlug(observation.validFrom ?? "open")}_${stableSlug(observation.validTo ?? "open")}_${observationIndex}`;
 }

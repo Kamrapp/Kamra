@@ -23,11 +23,11 @@ export interface MongoCollectionLike<T extends Document = Document> {
   bulkWrite(operations: AnyBulkWriteOperation<T>[], options?: Document): Promise<unknown>;
   countDocuments(filter?: Filter<T>, options?: { limit?: number }): Promise<number>;
   createIndex(index: Record<string, 1 | -1>, options?: Document): Promise<string>;
-  deleteMany(filter?: Filter<T>): Promise<DeleteResult>;
+  deleteMany(filter?: Filter<T>, options?: Document): Promise<DeleteResult>;
   distinct(key: string, filter?: Filter<T>): Promise<unknown[]>;
   drop(): Promise<boolean>;
   find(filter?: Filter<T>, options?: Document): MongoCursorLike<T>;
-  findOne(filter?: Filter<T>): Promise<T | null>;
+  findOne(filter?: Filter<T>, options?: Document): Promise<T | null>;
   insertOne(doc: OptionalUnlessRequiredId<T>, options?: Document): Promise<unknown>;
   updateMany(filter: Filter<T>, update: Document, options?: Document): Promise<MongoWriteResult>;
   updateOne(filter: Filter<T>, update: Document, options?: Document): Promise<MongoWriteResult>;
@@ -37,8 +37,25 @@ export interface MongoDatabaseLike {
   readonly databaseName: string;
   collection<T extends Document = Document>(name: string): MongoCollectionLike<T>;
   command(command: Document): Promise<Document>;
-  createCollection<T extends Document = Document>(name: string, options?: Document): Promise<MongoCollectionLike<T>>;
-  listCollections(filter?: Document, options?: Document): {
+  createCollection<T extends Document = Document>(
+    name: string,
+    options?: Document
+  ): Promise<MongoCollectionLike<T>>;
+  listCollections(
+    filter?: Document,
+    options?: Document
+  ): {
     toArray(): Promise<Array<{ name: string }>>;
   };
+}
+
+export interface MongoSessionLike {
+  abortTransaction(): Promise<void>;
+  commitTransaction(): Promise<void>;
+  endSession(): Promise<void>;
+  startTransaction(): void;
+}
+
+export interface MongoTransactionClientLike {
+  startSession(): MongoSessionLike;
 }

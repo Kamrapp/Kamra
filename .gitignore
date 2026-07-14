@@ -121,11 +121,14 @@ src/.vs/config/applicationhost.config
 # Node and web build artifacts
 .angular/
 coverage/
+test-results/
 dist/
 node_modules/
 build/
+.artifacts/
 
 # Local environment files
 .env
 .env.*
 !.env.example
+!.env.docker.example

@@ -16,9 +16,7 @@ type TranslationParams = Record<string, number | string>;
 type LeafPath<T> = T extends string
   ? never
   : {
-      [K in Extract<keyof T, string>]: T[K] extends string
-        ? K
-        : `${K}.${LeafPath<T[K]>}`;
+      [K in Extract<keyof T, string>]: T[K] extends string ? K : `${K}.${LeafPath<T[K]>}`;
     }[Extract<keyof T, string>];
 
 export type TranslationKey = LeafPath<TranslationTree>;
@@ -70,9 +68,10 @@ export class LocalizationService {
   }
 
   t(key: TranslationKey, params: TranslationParams = {}): string {
-    const translated = readTranslation(translations[this.language()], key)
-      ?? readTranslation(translations.en, key)
-      ?? key;
+    const translated =
+      readTranslation(translations[this.language()], key) ??
+      readTranslation(translations.en, key) ??
+      key;
 
     return Object.entries(params).reduce(
       (message, [name, value]) => message.replaceAll(`{${name}}`, String(value)),
@@ -82,21 +81,15 @@ export class LocalizationService {
 
   private readCookieLanguage(): LanguagePreference {
     const language = this.readCookieValue(languageCookieName);
-    return isLanguagePreference(language)
-      ? language
-      : defaultLanguagePreference;
+    return isLanguagePreference(language) ? language : defaultLanguagePreference;
   }
 
   private readCookieValue(name: string): string | null {
-    const cookies = this.document.cookie
-      .split(";")
-      .map((cookie) => cookie.trim());
+    const cookies = this.document.cookie.split(";").map((cookie) => cookie.trim());
     const prefix = `${name}=`;
     const match = cookies.find((cookie) => cookie.startsWith(prefix));
 
-    return match
-      ? decodeURIComponent(match.slice(prefix.length))
-      : null;
+    return match ? decodeURIComponent(match.slice(prefix.length)) : null;
   }
 
   private writeLanguageCookie(language: LanguagePreference): void {
@@ -119,7 +112,5 @@ function readTranslation(tree: TranslationTree, key: TranslationKey): string | n
     current = (current as Record<string, unknown>)[segment];
   }
 
-  return typeof current === "string"
-    ? current
-    : null;
+  return typeof current === "string" ? current : null;
 }

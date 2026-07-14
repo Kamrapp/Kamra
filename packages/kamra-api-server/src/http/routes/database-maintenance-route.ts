@@ -1,11 +1,32 @@
-import { createDefaultCatalogRepository, createDefaultHouseholdRepository } from "../app-route-context.js";
-import { findDatabaseMaintenanceEntry, databaseMaintenanceEntries } from "../../database-maintenance/registry.js";
+import {
+  createDefaultCatalogRepository,
+  createDefaultHouseholdRepository
+} from "../app-route-context.js";
+import {
+  findDatabaseMaintenanceEntry,
+  databaseMaintenanceEntries
+} from "../../database-maintenance/registry.js";
 import { MongoMaintenanceRunRepository } from "../../database-maintenance/mongo-maintenance-run-repository.js";
 import { writeServerLog } from "../../logging/kamra-logger.js";
+import { MongoFeatureFlagStore } from "../../feature-toggles/mongo-store.js";
+import { MongoClassificationRepository } from "../../catalog/v2/mongo-classification-repository.js";
+import type { ProductTagAssignmentRecord, ProductTagRecord } from "../../catalog/v1/contracts.js";
+import { MongoStockMigrationRepository } from "../../household/v2/mongo-stock-migration.js";
+import { MongoHouseholdProductRepository } from "../../household/v2/mongo-household-product-repository.js";
+import { MongoProductGroupRepository } from "../../household/v2/mongo-product-group-repository.js";
+import { MongoHouseholdProductConceptRepository } from "../../household/v2/mongo-household-product-concept-repository.js";
+import { MongoShopMarketRepository } from "../../household/v2/mongo-shop-market-repository.js";
+import { MongoShopProductRepository } from "../../household/v2/mongo-shop-product-repository.js";
+import { MongoPriceObservationRepository } from "../../household/v2/mongo-price-observation-repository.js";
+import { MongoIngestionSubmissionRepository } from "../../household/v2/mongo-ingestion-submission-repository.js";
+import { MongoShoppingNeedRepository } from "../../household/v2/mongo-shopping-need-repository.js";
+import { MongoShoppingTripRepository } from "../../household/v2/mongo-shopping-trip-repository.js";
 import { describeRequest, json, unauthorized, type AppRoute } from "../app-route-context.js";
+import { MongoAlphaDomainLanguageMaintenance } from "../../database-maintenance/alpha-domain-language-maintenance.js";
 
 export const databaseMaintenanceListRoute: AppRoute = {
-  match: (request) => request.method === "GET" && request.path === "/api/admin/database-maintenance",
+  match: (request) =>
+    request.method === "GET" && request.path === "/api/admin/database-maintenance",
   handle: async (request, context) => {
     const user = context.authenticateRequestUser(request);
     if (!user || user.role !== "admin") {
@@ -36,17 +57,22 @@ export const databaseMaintenanceListRoute: AppRoute = {
 };
 
 export const databaseMaintenanceValidatorRoute: AppRoute = {
-  match: (request) => request.method === "POST" && request.path === "/api/admin/database-maintenance/validators",
-  handle: async (request, context) => await runDatabaseMaintenanceAction(request, context, "validator")
+  match: (request) =>
+    request.method === "POST" && request.path === "/api/admin/database-maintenance/validators",
+  handle: async (request, context) =>
+    await runDatabaseMaintenanceAction(request, context, "validator")
 };
 
 export const databaseMaintenanceMigrationRoute: AppRoute = {
-  match: (request) => request.method === "POST" && request.path === "/api/admin/database-maintenance/migrations",
-  handle: async (request, context) => await runDatabaseMaintenanceAction(request, context, "migration")
+  match: (request) =>
+    request.method === "POST" && request.path === "/api/admin/database-maintenance/migrations",
+  handle: async (request, context) =>
+    await runDatabaseMaintenanceAction(request, context, "migration")
 };
 
 export const databaseMaintenanceCompleteRoute: AppRoute = {
-  match: (request) => request.method === "POST" && request.path === "/api/admin/database-maintenance/complete",
+  match: (request) =>
+    request.method === "POST" && request.path === "/api/admin/database-maintenance/complete",
   handle: async (request, context) => {
     const user = context.authenticateRequestUser(request);
     if (!user || user.role !== "admin") {
@@ -78,7 +104,8 @@ export const databaseMaintenanceCompleteRoute: AppRoute = {
 };
 
 export const databaseMaintenanceRunAllRoute: AppRoute = {
-  match: (request) => request.method === "POST" && request.path === "/api/admin/database-maintenance/run-all",
+  match: (request) =>
+    request.method === "POST" && request.path === "/api/admin/database-maintenance/run-all",
   handle: async (request, context) => {
     const user = context.authenticateRequestUser(request);
     if (!user || user.role !== "admin") {
@@ -119,9 +146,10 @@ export const databaseMaintenanceRunAllRoute: AppRoute = {
       return json(500, {
         completedActions,
         error: "database_maintenance_run_all_failed",
-        message: error instanceof Error && error.message
-          ? error.message
-          : "The database maintenance run-all action failed."
+        message:
+          error instanceof Error && error.message
+            ? error.message
+            : "The database maintenance run-all action failed."
       });
     }
 
@@ -158,12 +186,14 @@ async function runDatabaseMaintenanceAction(
   const now = new Date();
 
   try {
-    const result = action === "validator"
-      ? await runValidatorAction(entry.id, database, context)
-      : await runMigrationAction(entry.id, database, context);
-    const state = action === "validator"
-      ? await tracking.markValidatorUpdated(entry.id, user.email, now)
-      : await tracking.markMigrationCompleted(entry.id, user.email, now);
+    const result =
+      action === "validator"
+        ? await runValidatorAction(entry.id, database, context)
+        : await runMigrationAction(entry.id, database, context);
+    const state =
+      action === "validator"
+        ? await tracking.markValidatorUpdated(entry.id, user.email, now)
+        : await tracking.markMigrationCompleted(entry.id, user.email, now);
 
     writeServerLog("info", "Database maintenance action completed", {
       action,
@@ -188,9 +218,10 @@ async function runDatabaseMaintenanceAction(
     return json(500, {
       entryId: entry.id,
       error: "database_maintenance_action_failed",
-      message: error instanceof Error && error.message
-        ? error.message
-        : "The database maintenance action failed."
+      message:
+        error instanceof Error && error.message
+          ? error.message
+          : "The database maintenance action failed."
     });
   }
 }
@@ -200,6 +231,62 @@ async function runValidatorAction(
   database: Db,
   context: Parameters<AppRoute["handle"]>[1]
 ): Promise<unknown> {
+  if (entryId === "alpha-domain-language-v1") {
+    return await new MongoAlphaDomainLanguageMaintenance(database).setupCollections();
+  }
+  if (entryId === "catalog-classification-v1") {
+    return await new MongoClassificationRepository(database).setupCollections();
+  }
+  if (entryId === "feature-flag-audit-v1") {
+    return await new MongoFeatureFlagStore(database).setupCollections();
+  }
+  if (entryId === "household-stock-targets-v1") {
+    return await new MongoStockMigrationRepository(database).setupCollections();
+  }
+  if (entryId === "household-products-v1") {
+    return await new MongoHouseholdProductRepository(database).setupCollections();
+  }
+  if (entryId === "household-product-groups-v1") {
+    await new MongoProductGroupRepository(database).setupCollections();
+    return await new MongoProductGroupRepository(database).upgradeValidator();
+  }
+  if (entryId === "household-local-classification-v1") {
+    return await new MongoHouseholdProductConceptRepository(database).setupCollections();
+  }
+  if (entryId === "shopping-trip-foundation-v1") {
+    await new MongoShopMarketRepository(database).setupCollections();
+    await new MongoShoppingNeedRepository(database).setupCollections();
+    await new MongoShoppingTripRepository(database).setupCollections();
+    return await new MongoIngestionSubmissionRepository(database).setupCollections();
+  }
+  if (entryId === "shop-product-price-foundation-v1") {
+    return await new MongoShopProductRepository(database).setupCollections();
+  }
+  if (entryId === "shop-price-observations-v1") {
+    return await new MongoPriceObservationRepository(database).upgradeValidator();
+  }
+  if (entryId === "feature-flag-revision-v1" || entryId === "household-expired-item-policy-v1") {
+    const repository = context.dependencies.createHouseholdRepository
+      ? context.dependencies.createHouseholdRepository(database)
+      : createDefaultHouseholdRepository(database);
+    return await repository.upgradeHouseholdValidators();
+  }
+  if (
+    entryId === "household-group-shopping-policy-v1" ||
+    entryId === "household-group-shopping-distribution-v1" ||
+    entryId === "household-group-shopping-distribution-v2"
+  ) {
+    const repository = context.dependencies.createHouseholdRepository
+      ? context.dependencies.createHouseholdRepository(database)
+      : createDefaultHouseholdRepository(database);
+    return await repository.upgradeHouseholdValidators();
+  }
+  if (entryId === "household-invitations-v1") {
+    const repository = context.dependencies.createHouseholdRepository
+      ? context.dependencies.createHouseholdRepository(database)
+      : createDefaultHouseholdRepository(database);
+    return await repository.upgradeHouseholdValidators();
+  }
   if (entryId === "catalog-product-validation") {
     const repository = context.dependencies.createCatalogRepository
       ? context.dependencies.createCatalogRepository(database)
@@ -221,6 +308,69 @@ async function runMigrationAction(
   database: Db,
   context: Parameters<AppRoute["handle"]>[1]
 ): Promise<unknown> {
+  if (entryId === "alpha-domain-language-v1") {
+    return await new MongoAlphaDomainLanguageMaintenance(database).migrateLegacy();
+  }
+  if (entryId === "catalog-classification-v1") {
+    const repository = new MongoClassificationRepository(database);
+    const tags = await database.collection<ProductTagRecord>("product_tags").find({}).toArray();
+    const assignments = await database
+      .collection<ProductTagAssignmentRecord>("product_tag_assignments")
+      .find({})
+      .toArray();
+    return await repository.migrateLegacy(tags, assignments);
+  }
+  if (entryId === "feature-flag-audit-v1") {
+    return { status: "ready", migratedCount: 0 };
+  }
+  if (entryId === "household-stock-targets-v1") {
+    return await new MongoStockMigrationRepository(database).migrateLegacy();
+  }
+  if (entryId === "household-products-v1") {
+    return await new MongoHouseholdProductRepository(database).migrateLegacy();
+  }
+  if (entryId === "household-product-groups-v1") {
+    return await new MongoProductGroupRepository(database).migrateLegacy();
+  }
+  if (entryId === "household-local-classification-v1") {
+    return { status: "ready", migratedCount: 0 };
+  }
+  if (entryId === "shopping-trip-foundation-v1") {
+    return { status: "ready", migratedCount: 0 };
+  }
+  if (entryId === "shop-product-price-foundation-v1") {
+    return { status: "ready", migratedCount: 0, preservedHistory: true };
+  }
+  if (entryId === "shop-price-observations-v1") {
+    return await new MongoPriceObservationRepository(database).migrateLegacy();
+  }
+  if (entryId === "feature-flag-revision-v1") {
+    return { status: "ready", migratedCount: 0 };
+  }
+  if (entryId === "household-expired-item-policy-v1") {
+    const repository = context.dependencies.createHouseholdRepository
+      ? context.dependencies.createHouseholdRepository(database)
+      : createDefaultHouseholdRepository(database);
+    return await repository.migrateExpiredItemPolicy();
+  }
+  if (entryId === "household-group-shopping-policy-v1") {
+    const repository = context.dependencies.createHouseholdRepository
+      ? context.dependencies.createHouseholdRepository(database)
+      : createDefaultHouseholdRepository(database);
+    return await repository.migrateGroupTargetShoppingMode();
+  }
+  if (entryId === "household-group-shopping-distribution-v1") {
+    const repository = context.dependencies.createHouseholdRepository
+      ? context.dependencies.createHouseholdRepository(database)
+      : createDefaultHouseholdRepository(database);
+    return await repository.migrateGroupTargetShoppingDistribution();
+  }
+  if (entryId === "household-group-shopping-distribution-v2") {
+    return { migratedCount: 0, status: "ready" };
+  }
+  if (entryId === "household-invitations-v1") {
+    return { status: "ready", migratedCount: 0 };
+  }
   if (entryId === "catalog-product-validation") {
     const repository = context.dependencies.createCatalogRepository
       ? context.dependencies.createCatalogRepository(database)
@@ -237,9 +387,7 @@ async function runMigrationAction(
   return await repository.migrateHouseholdDefaultFields();
 }
 
-async function getDatabase(
-  context: Parameters<AppRoute["handle"]>[1]
-): Promise<Db | null> {
+async function getDatabase(context: Parameters<AppRoute["handle"]>[1]): Promise<Db | null> {
   const config = context.config;
   if (!config.mongodb.uri || !config.mongodb.databaseName) {
     return null;
@@ -257,7 +405,7 @@ function parseJsonObject(bodyText: string | undefined): Record<string, unknown> 
   try {
     const parsed: unknown = JSON.parse(bodyText);
     return parsed && typeof parsed === "object" && !Array.isArray(parsed)
-      ? parsed as Record<string, unknown>
+      ? (parsed as Record<string, unknown>)
       : null;
   } catch {
     return null;

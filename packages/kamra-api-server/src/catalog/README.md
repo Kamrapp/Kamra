@@ -10,6 +10,8 @@ The catalog model is versioned because crawler and processor jobs need a stable 
 
 Changing the active version should be an intentional path change in `current/` and in the catalog scripts, paired with a migration plan.
 
+Stage 8 classification migration code lives in `v2/classification.ts`. It translates legacy category tags into inclusive Product Concept edges and legacy attribute tags into independent Product Attributes; keyword tags remain search hints and are not stock-eligibility rules.
+
 ## Model Notes
 
 - `ProductRecord` is the canonical query object for grocery products.

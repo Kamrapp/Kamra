@@ -1,70 +1,70 @@
-      :host {
-        display: block;
-        min-height: 100%;
-      }
+:host {
+  display: block;
+  min-height: 100%;
+}
 
-      .status-panel {
-        gap: var(--space-4);
-      }
+.status-panel {
+  gap: var(--space-4);
+}
 
-      .unauthorized-panel {
-        align-content: center;
-      }
+.unauthorized-panel {
+  align-content: center;
+}
 
-      .utility-card {
-        align-content: start;
-        min-height: 16rem;
-      }
+.utility-card {
+  align-content: start;
+  min-height: 16rem;
+}
 
-      .status-heading {
-        display: grid;
-        gap: 0.35rem;
-      }
+.status-heading {
+  display: grid;
+  gap: 0.35rem;
+}
 
-      .status-summary,
-      .status-message {
-        color: var(--color-text);
-        margin: 0;
-      }
+.status-summary,
+.status-message {
+  color: var(--color-text);
+  margin: 0;
+}
 
-      .status-summary {
-        font-size: 1.05rem;
-        font-weight: 700;
-      }
+.status-summary {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
 
-      .run-button {
-        justify-self: start;
-        min-width: 11rem;
-      }
+.run-button {
+  justify-self: start;
+  min-width: 11rem;
+}
 
-      .button-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: var(--space-3);
-      }
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
 
-      .maintenance-button {
-        min-width: 13rem;
-      }
+.maintenance-button {
+  min-width: 13rem;
+}
 
-      .maintenance-message {
-        color: var(--color-text-muted);
-        font-size: 0.95rem;
-        line-height: 1.5;
-        margin: 0;
-      }
+.maintenance-message {
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin: 0;
+}
 
-      .check-list {
-        display: grid;
-        gap: var(--space-3);
-      }
+.check-list {
+  display: grid;
+  gap: var(--space-3);
+}
 
-      @media (min-width: 900px) {
-        .admin-dashboard-page {
-          grid-template-columns: minmax(0, 1fr);
-        }
+@media (min-width: 900px) {
+  .admin-dashboard-page {
+    grid-template-columns: minmax(0, 1fr);
+  }
 
-        .admin-grid {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-      }
+  .admin-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

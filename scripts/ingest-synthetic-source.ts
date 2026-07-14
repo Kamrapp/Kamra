@@ -1,5 +1,8 @@
 import { readAppConfig } from "../packages/kamra-api-server/src/config/app-config.js";
-import { closeMongoClient, getMongoClient } from "../packages/kamra-api-server/src/db/mongo-client.js";
+import {
+  closeMongoClient,
+  getMongoClient
+} from "../packages/kamra-api-server/src/db/mongo-client.js";
 import { MongoIngestionRepository } from "../packages/kamra-api-server/src/ingestion/current/mongo-ingestion-repository.js";
 import {
   hashSourceContent,

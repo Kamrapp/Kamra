@@ -13,7 +13,9 @@ describe("Catalog v1 contracts", () => {
   });
 
   it("define one schema per catalog v1 collection", () => {
-    expect(Object.keys(catalogV1CollectionSchemas).sort()).toEqual([...catalogV1CollectionNames].sort());
+    expect(Object.keys(catalogV1CollectionSchemas).sort()).toEqual(
+      [...catalogV1CollectionNames].sort()
+    );
   });
 
   it("keep product schemas focused on lightweight processed data", () => {

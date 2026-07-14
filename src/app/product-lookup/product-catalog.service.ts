@@ -32,7 +32,9 @@ export interface CatalogProductOfferListItem {
   latestObservedAt?: string | null;
   locationKey?: string | null;
   locationLabel?: string | null;
-  prices: Partial<Record<"base" | "coupon" | "loyalty_card" | "offer" | "old", CatalogProductOfferPrice>>;
+  prices: Partial<
+    Record<"base" | "coupon" | "loyalty_card" | "offer" | "old", CatalogProductOfferPrice>
+  >;
   productSourceId: string;
   sourceName: string;
   sourceProductKey: string;
@@ -151,8 +153,10 @@ export class ProductCatalogService {
     }
 
     if (!response.ok) {
-      const message = await readApiErrorMessage(response, this.loc.t("product.catalogSourcesRouteError"), (messageKey) =>
-        this.loc.t(messageKey as TranslationKey)
+      const message = await readApiErrorMessage(
+        response,
+        this.loc.t("product.catalogSourcesRouteError"),
+        (messageKey) => this.loc.t(messageKey as TranslationKey)
       );
       return {
         message: this.toastMessage(message),
@@ -214,8 +218,10 @@ export class ProductCatalogService {
     }
 
     if (!response.ok) {
-      const message = await readApiErrorMessage(response, this.loc.t("product.catalogRouteError"), (messageKey) =>
-        this.loc.t(messageKey as TranslationKey)
+      const message = await readApiErrorMessage(
+        response,
+        this.loc.t("product.catalogRouteError"),
+        (messageKey) => this.loc.t(messageKey as TranslationKey)
       );
       return {
         message: this.toastMessage(message),
@@ -243,11 +249,17 @@ export class ProductCatalogService {
   }
 
   async validateProduct(id: string, note: string | null): Promise<ProductCatalogWriteResult> {
-    return await this.writeProduct(buildApiUrl("/api/catalog/product/validate"), "POST", { id, note });
+    return await this.writeProduct(buildApiUrl("/api/catalog/product/validate"), "POST", {
+      id,
+      note
+    });
   }
 
   async invalidateProduct(id: string, note: string | null): Promise<ProductCatalogWriteResult> {
-    return await this.writeProduct(buildApiUrl("/api/catalog/product/invalidate"), "POST", { id, note });
+    return await this.writeProduct(buildApiUrl("/api/catalog/product/invalidate"), "POST", {
+      id,
+      note
+    });
   }
 
   async deleteProduct(id: string): Promise<ProductCatalogDeleteResult> {
@@ -319,7 +331,9 @@ export class ProductCatalogService {
     return error;
   }
 
-  private async readCatalogWriteError(response: Response): Promise<ProductCatalogWriteError | null> {
+  private async readCatalogWriteError(
+    response: Response
+  ): Promise<ProductCatalogWriteError | null> {
     if (response.status === 401) {
       return {
         message: this.loc.t("product.catalogEditAccess"),
@@ -335,8 +349,10 @@ export class ProductCatalogService {
     }
 
     if (!response.ok) {
-      const message = await readApiErrorMessage(response, this.loc.t("product.catalogEditRouteError"), (messageKey) =>
-        this.loc.t(messageKey as TranslationKey)
+      const message = await readApiErrorMessage(
+        response,
+        this.loc.t("product.catalogEditRouteError"),
+        (messageKey) => this.loc.t(messageKey as TranslationKey)
       );
       return {
         message,

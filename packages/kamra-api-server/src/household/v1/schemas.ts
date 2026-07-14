@@ -1,4 +1,5 @@
 import type { HouseholdV1CollectionName } from "./contracts.js";
+import { featureFlagKeys } from "../../feature-toggles/contracts.js";
 
 type JsonSchema = Record<string, unknown>;
 
@@ -57,6 +58,10 @@ const householdMembershipStatusSchema = {
   enum: ["active", "removed"]
 };
 
+const householdInvitationStatusSchema = {
+  enum: ["pending", "accepted", "revoked"]
+};
+
 const householdLocalProductStatusSchema = {
   enum: ["active", "archived"]
 };
@@ -66,7 +71,7 @@ const householdStockItemStatusSchema = {
 };
 
 const householdFeatureFlagKeySchema = {
-  enum: ["allowAutoTickingAllShoppingListEntries", "allowControlledAlphaAccess"]
+  enum: featureFlagKeys
 };
 
 const householdShoppingListStatusSchema = {
@@ -135,6 +140,7 @@ const shoppingListLineSchema: JsonSchema = requiredObjectSchema(
       properties: observedPriceSchema["properties"]
     },
     plannedAmount: nonNegativeNumberSchema,
+    productGroupId: optionalStringSchema,
     productSourceId: optionalStringSchema,
     purchasedAmount: nonNegativeNumberSchema,
     reasonCode: {
@@ -166,7 +172,16 @@ export const householdV1CollectionSchemas: Record<HouseholdV1CollectionName, Jso
     {
       createdAt: isoDateStringSchema,
       createdByUserId: nonEmptyStringSchema,
+      allowExpiredItems: {
+        bsonType: "bool"
+      },
       defaultCalculatedMaxLimitMultiplier: optionalNonNegativeNumberSchema,
+      groupTargetShoppingDistributionMode: {
+        enum: ["dont_split", "split_evenly", "least_amount", "latest", "oldest"]
+      },
+      groupTargetShoppingMode: {
+        enum: ["add_products_and_group_item", "add_products_only", "ignore_group_targets"]
+      },
       favouriteShopId: optionalStringSchema,
       id: nonEmptyStringSchema,
       name: nonEmptyStringSchema,
@@ -186,6 +201,20 @@ export const householdV1CollectionSchemas: Record<HouseholdV1CollectionName, Jso
       userId: nonEmptyStringSchema
     }
   ),
+  household_invitations: requiredObjectSchema(
+    ["createdAt", "email", "householdId", "id", "invitedByUserId", "status", "updatedAt"],
+    {
+      acceptedAt: optionalStringSchema,
+      acceptedByUserId: optionalStringSchema,
+      createdAt: isoDateStringSchema,
+      email: nonEmptyStringSchema,
+      householdId: nonEmptyStringSchema,
+      id: nonEmptyStringSchema,
+      invitedByUserId: nonEmptyStringSchema,
+      status: householdInvitationStatusSchema,
+      updatedAt: isoDateStringSchema
+    }
+  ),
   household_feature_flags: requiredObjectSchema(
     ["createdAt", "enabled", "id", "key", "updatedAt", "updatedByUserId"],
     {
@@ -195,6 +224,7 @@ export const householdV1CollectionSchemas: Record<HouseholdV1CollectionName, Jso
       },
       id: nonEmptyStringSchema,
       key: householdFeatureFlagKeySchema,
+      revision: nonNegativeNumberSchema,
       updatedAt: isoDateStringSchema,
       updatedByUserId: nonEmptyStringSchema
     }
@@ -330,7 +360,16 @@ export const householdV1CollectionSchemas: Record<HouseholdV1CollectionName, Jso
     }
   ),
   household_shops: requiredObjectSchema(
-    ["countryCode", "createdAt", "id", "label", "sourceNames", "status", "storeBrandKeys", "updatedAt"],
+    [
+      "countryCode",
+      "createdAt",
+      "id",
+      "label",
+      "sourceNames",
+      "status",
+      "storeBrandKeys",
+      "updatedAt"
+    ],
     {
       countryCode: nonEmptyStringSchema,
       createdAt: isoDateStringSchema,
