@@ -303,7 +303,9 @@ export class HouseholdV2WorkspaceComponent {
     this.groupSelected.emit(group);
   }
   cancelGroupEdit(): void {
+    const groupId = this.editingGroupId();
     this.editingGroupId.set(null);
+    if (groupId) this.groupDetailsIds.update((ids) => withoutId(ids, groupId));
     this.editingGroupName.set("");
     this.editingGroupUnitOption.set("count");
     this.editingGroupCustomUnit.set("");
@@ -355,7 +357,9 @@ export class HouseholdV2WorkspaceComponent {
       this.setProductUnitSelection("match-group");
   }
   cancelProductEdit(): void {
+    const productId = this.editingProductId();
     this.editingProductId.set(null);
+    if (productId) this.productDetailsIds.update((ids) => withoutId(ids, productId));
     this.editingProductName.set("");
     this.editingProductUnitOption.set("count");
     this.editingProductUnitSelection.set("count");
@@ -399,7 +403,9 @@ export class HouseholdV2WorkspaceComponent {
     return composeTrackingUnit(this.editingBatchUnitOption(), this.editingBatchCustomUnit());
   }
   cancelBatchEdit(): void {
+    const batchId = this.editingBatchId();
     this.editingBatchId.set(null);
+    if (batchId) this.batchDetailsIds.update((ids) => withoutId(ids, batchId));
     this.editingBatchAcquiredOn.set("");
     this.editingBatchUnitOption.set("count");
     this.editingBatchUnitSelection.set("count");
@@ -920,4 +926,11 @@ function readOptionalAmount(value: number | string): number | null {
   if (value === "" || value === null) return null;
   const amount = typeof value === "number" ? value : Number(value);
   return Number.isFinite(amount) ? amount : null;
+}
+
+function withoutId(ids: ReadonlySet<string>, id: string): ReadonlySet<string> {
+  if (!ids.has(id)) return ids;
+  const next = new Set(ids);
+  next.delete(id);
+  return next;
 }

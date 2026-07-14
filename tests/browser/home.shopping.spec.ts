@@ -214,3 +214,34 @@ test("Home household rows share grid tracks and show child counts", async ({ pag
   expect([...new Set(gridTracks)]).toHaveLength(1);
   expect(fixture.unexpectedRequests).toEqual([]);
 });
+
+test("Home row edit cancellation closes the details it opened", async ({ page }) => {
+  const fixture = await installBrowserApiFixture(page);
+  await page.goto("/");
+
+  const groupRow = page
+    .locator(".stock-group-row")
+    .filter({ has: page.locator('button[aria-label="Milk"]') })
+    .first();
+  await groupRow.getByRole("button", { name: "Edit Product Group" }).click();
+  await expect(page.locator(".group-details")).toHaveCount(1);
+  await groupRow.getByRole("button", { name: "Discard Product Group changes" }).click();
+  await expect(page.locator(".group-details")).toHaveCount(0);
+
+  const productRow = page
+    .locator(".stock-product-row")
+    .filter({ has: page.locator('button[aria-label="Pilos 1.5% milk"]') })
+    .first();
+  await productRow.getByRole("button", { name: "Edit Product" }).click();
+  await expect(page.locator(".product-details")).toHaveCount(1);
+  await productRow.getByRole("button", { name: "Discard Household Product changes" }).click();
+  await expect(page.locator(".product-details")).toHaveCount(0);
+
+  await productRow.locator(".row-name").click();
+  const batchRow = page.locator(".stock-batch-row").first();
+  await batchRow.getByRole("button", { name: "Edit Stock Batch" }).click();
+  await expect(page.locator(".batch-details")).toHaveCount(1);
+  await batchRow.getByRole("button", { name: "Cancel Stock Batch edit" }).click();
+  await expect(page.locator(".batch-details")).toHaveCount(0);
+  expect(fixture.unexpectedRequests).toEqual([]);
+});
