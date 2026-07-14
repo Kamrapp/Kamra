@@ -593,3 +593,14 @@ the approved disposable database, then run `npm run seed:demo-household` and
 - The browser contract now ignores only that intentional header spacer when comparing content cell
   starts and asserts that the header remains within the shell boundary. All 7 focused Home Chromium
   tests, typecheck, lint, formatting, and diff checks pass.
+
+## Shopping table and action icon consistency (2026-07-14)
+
+- Flattened Shopping List rows into one bordered table surface with a visible header band and
+  compact, non-rounded row separators. Amount, impulse-name, and unit editors now reuse the same
+  form-field treatment as household inline editors.
+- Added theme-aware `info`, `warning`, and `danger` tones to the shared table icon button. Product
+  Group/Product/Batch detail controls now use the household magnifier-plus/minus icon; save and
+  add actions use info, edit pencils use warning, and cancel/discard actions use danger.
+- Browser coverage checks the shopping table surface/header, household detail SVG, and action tones.
+  Typecheck, lint, focused Home Chromium tests (7), formatting, and diff checks pass.

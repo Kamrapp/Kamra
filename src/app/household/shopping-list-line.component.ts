@@ -194,7 +194,7 @@ export type ShoppingListLineChange =
       .shopping-line-row {
         align-items: center;
         display: grid;
-        background: var(--shopping-line-background, transparent);
+        background: transparent;
         gap: 0.55rem;
         grid-template-columns: var(
           --shopping-list-columns,
@@ -212,7 +212,14 @@ export type ShoppingListLineChange =
       }
 
       .shopping-name-editor {
+        background: var(--form-field-background);
+        border: 1px solid var(--line-subtle);
+        border-radius: var(--radius-ui);
+        color: var(--color-text);
+        font: inherit;
+        min-height: 1.8rem;
         min-width: 0;
+        padding: 0.25rem 0.4rem;
         width: 100%;
       }
 
@@ -233,7 +240,14 @@ export type ShoppingListLineChange =
       }
 
       .shopping-amounts input {
+        background: var(--form-field-background);
+        border: 1px solid var(--line-subtle);
+        border-radius: var(--radius-ui);
+        color: var(--color-text);
+        font: inherit;
+        min-height: 1.8rem;
         min-width: 0;
+        padding: 0.25rem 0.4rem;
         width: 100%;
       }
 
@@ -245,7 +259,14 @@ export type ShoppingListLineChange =
 
       .shopping-unit-editor select,
       .shopping-unit-editor input {
+        background: var(--form-field-background);
+        border: 1px solid var(--line-subtle);
+        border-radius: var(--radius-ui);
+        color: var(--color-text);
+        font: inherit;
+        min-height: 1.8rem;
         min-width: 0;
+        padding: 0.25rem 0.4rem;
         width: 100%;
       }
 
@@ -304,6 +325,16 @@ export type ShoppingListLineChange =
       }
 
       .line-discard {
+        background: color-mix(
+          in srgb,
+          var(--color-status-danger) 18%,
+          var(--control-quiet-background)
+        );
+        border-color: color-mix(
+          in srgb,
+          var(--color-status-danger) 42%,
+          var(--control-quiet-border)
+        );
         color: var(--color-status-danger-text);
       }
 

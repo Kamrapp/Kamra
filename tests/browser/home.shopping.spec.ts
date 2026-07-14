@@ -76,6 +76,15 @@ test("Home shopping rows support impulse rename, discard, and purchased labeling
   await page.getByRole("button", { name: "Build shopping list" }).click();
   await page.getByRole("button", { name: "Generate shopping list" }).click();
 
+  await expect(page.locator(".shopping-list-header")).toBeVisible();
+  await expect(page.locator(".shopping-line").first()).toHaveCSS("border-radius", "0px");
+  expect(
+    await page.locator(".shopping-list-header").evaluate((element) => {
+      const background = getComputedStyle(element).backgroundColor;
+      return background !== "transparent" && background !== "rgba(0, 0, 0, 0)";
+    })
+  ).toBe(true);
+
   const impulseName = page.getByLabel("Shopping item name");
   await expect(impulseName).toHaveValue("Alma");
   const patchCountBeforeRename = fixture.requests.filter(
@@ -216,6 +225,15 @@ test("Home household rows share grid tracks and show child counts", async ({ pag
   await expect(groupRow.locator(".group-product-count")).toHaveText("(1)");
   await expect(unassignedRow.locator(".group-product-count")).toHaveText("(1)");
   await groupRow.getByRole("button", { name: "Show Product Group details" }).click();
+  await expect(
+    groupRow.getByRole("button", { name: "Show Product Group details" }).locator("svg.details-icon")
+  ).toHaveCount(1);
+  await expect(groupRow.getByRole("button", { name: "Edit Product Group" })).toHaveClass(
+    /table-icon-button-warning/
+  );
+  await expect(groupRow.getByRole("button", { name: "Add Product to Product Group" })).toHaveClass(
+    /table-icon-button-info/
+  );
   const groupDetails = page.locator(".group-details").first();
   await expect(groupDetails).toContainText("Tracking unit");
   await expect(groupDetails).toContainText("When a Product Group is below target");
@@ -276,6 +294,9 @@ test("Home household rows share grid tracks and show child counts", async ({ pag
   await productRow.locator(".row-name").click();
   const batchRow = page.locator(".stock-batch-row").first();
   await expect(batchRow).toBeVisible();
+  await expect(
+    batchRow.getByRole("button", { name: "Show Stock Batch details" }).locator("svg.details-icon")
+  ).toHaveCount(1);
 
   const gridTracks = await Promise.all(
     [header, groupRow, productRow, batchRow].map((row) =>

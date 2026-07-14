@@ -236,6 +236,7 @@
                   <app-table-icon-button
                     [ariaLabel]="loc.t('household.saveProductGroup')"
                     [titleText]="loc.t('household.saveProductGroup')"
+                    [tone]="'info'"
                     (press)="saveGroup(row.group.group)"
                   >
                     ▣
@@ -243,6 +244,7 @@
                   <app-table-icon-button
                     [ariaLabel]="loc.t('household.discardProductGroupChanges')"
                     [titleText]="loc.t('household.discardProductGroupChanges')"
+                    [tone]="'danger'"
                     (press)="cancelGroupEdit()"
                   >
                     ×
@@ -253,11 +255,21 @@
                     [titleText]="loc.t('household.showProductGroupDetails')"
                     (press)="toggleGroupDetails(row.group.group.id)"
                   >
-                    {{ isGroupDetailsOpen(row.group.group.id) ? "▾" : "▸" }}
+                    <svg class="details-icon" aria-hidden="true" viewBox="0 0 24 24">
+                      <path
+                        d="M10.5 4a6.5 6.5 0 0 1 5.18 10.43l3.45 3.44-1.42 1.42-3.44-3.45A6.5 6.5 0 1 1 10.5 4Zm0 2A4.5 4.5 0 1 0 10.5 15 4.5 4.5 0 0 0 10.5 6Z"
+                      ></path>
+                      @if (isGroupDetailsOpen(row.group.group.id)) {
+                        <path d="M7.5 10h6v1.6h-6V10Z"></path>
+                      } @else {
+                        <path d="M9.7 7.8h1.6V10h2.2v1.6h-2.2v2.2H9.7v-2.2H7.5V10h2.2V7.8Z"></path>
+                      }
+                    </svg>
                   </app-table-icon-button>
                   <app-table-icon-button
                     [ariaLabel]="loc.t('household.editProductGroup')"
                     [titleText]="loc.t('household.editProductGroup')"
+                    [tone]="'warning'"
                     (press)="editGroup(row.group)"
                   >
                     ✎
@@ -266,6 +278,7 @@
                 <app-table-icon-button
                   [ariaLabel]="loc.t('household.addProductToProductGroup')"
                   [titleText]="loc.t('household.addProductToProductGroup')"
+                  [tone]="'info'"
                   (press)="newProductRequested.emit(row.group)"
                 >
                   {{ icons.product }}+
@@ -273,6 +286,7 @@
                 <app-table-icon-button
                   [ariaLabel]="loc.t('household.deleteProductGroup')"
                   [titleText]="loc.t('household.deleteProductGroup')"
+                  [tone]="'danger'"
                   (press)="deleteGroup(row.group.group)"
                 >
                   ⌫
@@ -403,6 +417,7 @@
               <app-table-icon-button
                 [ariaLabel]="loc.t('household.addUnassignedProduct')"
                 [titleText]="loc.t('household.addUnassignedProduct')"
+                [tone]="'info'"
                 (press)="newProductRequested.emit(null)"
               >
                 {{ icons.product }}+
@@ -597,6 +612,7 @@
         <app-table-icon-button
           [ariaLabel]="loc.t('household.saveHouseholdProduct')"
           [titleText]="loc.t('household.saveHouseholdProduct')"
+          [tone]="'info'"
           (press)="
             saveProductRow(
               row.product,
@@ -614,6 +630,7 @@
         <app-table-icon-button
           [ariaLabel]="loc.t('household.discardHouseholdProductChanges')"
           [titleText]="loc.t('household.discardHouseholdProductChanges')"
+          [tone]="'danger'"
           (press)="cancelProductEdit()"
         >
           ×
@@ -624,11 +641,21 @@
           [titleText]="loc.t('household.showProductDetails')"
           (press)="toggleProductDetails(row.product.id)"
         >
-          {{ isProductDetailsOpen(row.product.id) ? "▾" : "▸" }}
+          <svg class="details-icon" aria-hidden="true" viewBox="0 0 24 24">
+            <path
+              d="M10.5 4a6.5 6.5 0 0 1 5.18 10.43l3.45 3.44-1.42 1.42-3.44-3.45A6.5 6.5 0 1 1 10.5 4Zm0 2A4.5 4.5 0 1 0 10.5 15 4.5 4.5 0 0 0 10.5 6Z"
+            ></path>
+            @if (isProductDetailsOpen(row.product.id)) {
+              <path d="M7.5 10h6v1.6h-6V10Z"></path>
+            } @else {
+              <path d="M9.7 7.8h1.6V10h2.2v1.6h-2.2v2.2H9.7v-2.2H7.5V10h2.2V7.8Z"></path>
+            }
+          </svg>
         </app-table-icon-button>
         <app-table-icon-button
           [ariaLabel]="loc.t('household.editProduct')"
           [titleText]="loc.t('household.editProduct')"
+          [tone]="'warning'"
           (press)="editProduct(row.product)"
         >
           ✎
@@ -637,6 +664,7 @@
       <app-table-icon-button
         [ariaLabel]="loc.t('household.addStockToProduct')"
         [titleText]="loc.t('household.addStockToProduct')"
+        [tone]="'info'"
         (press)="newBatchRequested.emit(row.product)"
       >
         {{ icons.batch }}+
@@ -644,6 +672,7 @@
       <app-table-icon-button
         [ariaLabel]="loc.t('household.deleteHouseholdProduct')"
         [titleText]="loc.t('household.deleteHouseholdProduct')"
+        [tone]="'danger'"
         (press)="deleteProduct(row.product)"
       >
         ⌫
@@ -828,6 +857,7 @@
             <app-table-icon-button
               [ariaLabel]="loc.t('household.saveStockBatch')"
               [titleText]="loc.t('household.saveStockBatch')"
+              [tone]="'info'"
               (press)="
                 correctBatch(
                   batch,
@@ -843,6 +873,7 @@
             <app-table-icon-button
               [ariaLabel]="loc.t('household.cancelStockBatchEdit')"
               [titleText]="loc.t('household.cancelStockBatchEdit')"
+              [tone]="'danger'"
               (press)="cancelBatchEdit()"
             >
               ×
@@ -851,6 +882,7 @@
             <app-table-icon-button
               [ariaLabel]="loc.t('household.discardStockBatch')"
               [titleText]="loc.t('household.discardStockBatch')"
+              [tone]="'danger'"
               (press)="discardBatch(batch)"
             >
               ⌫
@@ -870,11 +902,21 @@
               [titleText]="loc.t('household.showStockBatchDetails')"
               (press)="toggleBatchDetails(batch.id)"
             >
-              {{ isBatchDetailsOpen(batch.id) ? "▾" : "▸" }}
+              <svg class="details-icon" aria-hidden="true" viewBox="0 0 24 24">
+                <path
+                  d="M10.5 4a6.5 6.5 0 0 1 5.18 10.43l3.45 3.44-1.42 1.42-3.44-3.45A6.5 6.5 0 1 1 10.5 4Zm0 2A4.5 4.5 0 1 0 10.5 15 4.5 4.5 0 0 0 10.5 6Z"
+                ></path>
+                @if (isBatchDetailsOpen(batch.id)) {
+                  <path d="M7.5 10h6v1.6h-6V10Z"></path>
+                } @else {
+                  <path d="M9.7 7.8h1.6V10h2.2v1.6h-2.2v2.2H9.7v-2.2H7.5V10h2.2V7.8Z"></path>
+                }
+              </svg>
             </app-table-icon-button>
             <app-table-icon-button
               [ariaLabel]="loc.t('household.editStockBatch')"
               [titleText]="loc.t('household.editStockBatch')"
+              [tone]="'warning'"
               (press)="editBatch(batch, workspaceGroup(row.product.productGroupId), row.product)"
             >
               ✎
@@ -883,6 +925,7 @@
             <app-table-icon-button
               [ariaLabel]="loc.t('household.discardStockBatch')"
               [titleText]="loc.t('household.discardStockBatch')"
+              [tone]="'danger'"
               (press)="discardBatch(batch)"
             >
               ⌫
