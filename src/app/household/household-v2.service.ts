@@ -3,6 +3,7 @@ import { buildApiUrl } from "../api-url";
 import { AuthService } from "../auth.service";
 import { readApiErrorMessage } from "../shared/api-errors";
 import { LocalizationService, type TranslationKey } from "../shared/localization.service";
+import { isRecord, isRecordArray } from "../shared/api-response-guards";
 
 export interface HouseholdV2TargetPolicy {
   consumptionPolicy: "earliest_expiry_first" | "oldest_acquired_first";
@@ -144,12 +145,10 @@ export class HouseholdV2Service {
           message: await this.readError(response, "household.workspaceLoadFailure"),
           status: "error"
         };
-      const payload = (await response.json()) as {
-        productGroupWorkspace?: HouseholdV2Workspace;
-        workspace?: HouseholdV2Workspace;
-      };
-      const workspace = payload.productGroupWorkspace ?? payload.workspace;
-      return workspace
+      const payload = (await response.json().catch(() => null)) as unknown;
+      const workspace =
+        isRecord(payload) && (payload["productGroupWorkspace"] ?? payload["workspace"]);
+      return isHouseholdV2Workspace(workspace)
         ? { status: "ok", workspace }
         : { message: this.loc.t("household.workspaceLoadFailure"), status: "error" };
     } catch {
@@ -173,8 +172,14 @@ export class HouseholdV2Service {
         status: "error",
         trips: []
       };
-    const payload = (await response.json()) as { trips: HouseholdShoppingTrip[] };
-    return { status: "ok", trips: payload.trips };
+    const payload = (await response.json().catch(() => null)) as unknown;
+    return isRecord(payload) && isShoppingTripArray(payload["trips"])
+      ? { status: "ok", trips: payload["trips"] }
+      : {
+          message: this.loc.t("household.shoppingTripLoadFailure"),
+          status: "error",
+          trips: []
+        };
   }
 
   async createShoppingTrip(input: {
@@ -196,8 +201,10 @@ export class HouseholdV2Service {
         message: await this.readError(response, "household.shoppingTripCreateFailure"),
         status: "error"
       };
-    const payload = (await response.json()) as { result: HouseholdShoppingTrip };
-    return { status: "ok", trip: payload.result };
+    const payload = (await response.json().catch(() => null)) as unknown;
+    return isRecord(payload) && isShoppingTrip(payload["result"])
+      ? { status: "ok", trip: payload["result"] }
+      : { message: this.loc.t("household.shoppingTripCreateFailure"), status: "error" };
   }
 
   async listShopMarkets(
@@ -216,8 +223,17 @@ export class HouseholdV2Service {
         message: await this.readError(response, "household.shoppingTripLoadFailure"),
         status: "error"
       };
-    const payload = (await response.json()) as { markets: HouseholdV2ShopMarket[] };
-    return { markets: payload.markets, status: "ok" };
+    const payload = (await response.json().catch(() => null)) as unknown;
+    return isRecord(payload) && isRecordArray(payload["markets"])
+      ? {
+          markets: payload["markets"] as unknown as HouseholdV2ShopMarket[],
+          status: "ok"
+        }
+      : {
+          markets: [],
+          message: this.loc.t("household.shoppingTripLoadFailure"),
+          status: "error"
+        };
   }
 
   async updateShoppingTrip(input: {
@@ -273,8 +289,10 @@ export class HouseholdV2Service {
         message: await this.readError(response, "household.shoppingTripUpdateFailure"),
         status: "error"
       };
-    const payload = (await response.json()) as { result: HouseholdShoppingTrip };
-    return { status: "ok", trip: payload.result };
+    const payload = (await response.json().catch(() => null)) as unknown;
+    return isRecord(payload) && isShoppingTrip(payload["result"])
+      ? { status: "ok", trip: payload["result"] }
+      : { message: this.loc.t("household.shoppingTripUpdateFailure"), status: "error" };
   }
 
   async completeShoppingTrip(input: {
@@ -309,8 +327,10 @@ export class HouseholdV2Service {
         message: await this.readError(response, "household.shoppingTripCompleteFailure"),
         status: "error"
       };
-    const payload = (await response.json()) as { result: HouseholdShoppingTrip };
-    return { status: "ok", trip: payload.result };
+    const payload = (await response.json().catch(() => null)) as unknown;
+    return isRecord(payload) && isShoppingTrip(payload["result"])
+      ? { status: "ok", trip: payload["result"] }
+      : { message: this.loc.t("household.shoppingTripCompleteFailure"), status: "error" };
   }
 
   async updateProductIdentity(input: {
@@ -378,10 +398,13 @@ export class HouseholdV2Service {
         message: `Product Groups could not be loaded (${response.status}).`,
         status: "error"
       };
-    const payload = (await response.json()) as {
-      productGroups: HouseholdV2ProductGroup["group"][];
-    };
-    return { productGroups: payload.productGroups, status: "ok" };
+    const payload = (await response.json().catch(() => null)) as unknown;
+    return isRecord(payload) && isRecordArray(payload["productGroups"])
+      ? {
+          productGroups: payload["productGroups"] as HouseholdV2ProductGroup["group"][],
+          status: "ok"
+        }
+      : { message: `Product Groups could not be loaded (${response.status}).`, status: "error" };
   }
   async createProductGroup(input: {
     displayName: string;
@@ -675,4 +698,29 @@ export class HouseholdV2Service {
       this.loc.t(key as TranslationKey)
     );
   }
+}
+
+function isHouseholdV2Workspace(value: unknown): value is HouseholdV2Workspace {
+  return (
+    isRecord(value) &&
+    typeof value["allowExpiredItems"] === "boolean" &&
+    isRecordArray(value["productGroups"]) &&
+    isRecordArray(value["unassignedBatches"]) &&
+    isRecordArray(value["unassignedProducts"])
+  );
+}
+
+function isShoppingTrip(value: unknown): value is HouseholdShoppingTrip {
+  return (
+    isRecord(value) &&
+    typeof value["id"] === "string" &&
+    typeof value["plannedDate"] === "string" &&
+    typeof value["revision"] === "number" &&
+    typeof value["status"] === "string" &&
+    isRecordArray(value["items"])
+  );
+}
+
+function isShoppingTripArray(value: unknown): value is HouseholdShoppingTrip[] {
+  return Array.isArray(value) && value.every(isShoppingTrip);
 }

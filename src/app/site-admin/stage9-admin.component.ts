@@ -4,6 +4,7 @@ import { buildApiUrl } from "../api-url";
 import { AuthService } from "../auth.service";
 import { BrowserLoggerService } from "../browser-logger.service";
 import { LocalizationService, type TranslationKey } from "../shared/localization.service";
+import { isRecord, isRecordArray } from "../shared/api-response-guards";
 
 interface Market {
   id: string;
@@ -312,7 +313,13 @@ export class Stage9AdminComponent {
       ]);
       let failed = false;
       if (markets.ok) {
-        this.markets.set(((await markets.json()) as { markets: Market[] }).markets);
+        const payload = (await markets.json().catch(() => null)) as unknown;
+        if (isRecord(payload) && isRecordArray(payload["markets"])) {
+          this.markets.set(payload["markets"] as unknown as Market[]);
+        } else {
+          failed = true;
+          this.failAction("household.stage9Admin.loadFailure", "Stage 9 admin markets load failed");
+        }
       } else {
         failed = true;
         this.failAction("household.stage9Admin.loadFailure", "Stage 9 admin markets load failed", {
@@ -320,9 +327,16 @@ export class Stage9AdminComponent {
         });
       }
       if (submissions.ok) {
-        this.submissions.set(
-          ((await submissions.json()) as { submissions: Submission[] }).submissions
-        );
+        const payload = (await submissions.json().catch(() => null)) as unknown;
+        if (isRecord(payload) && isRecordArray(payload["submissions"])) {
+          this.submissions.set(payload["submissions"] as unknown as Submission[]);
+        } else {
+          failed = true;
+          this.failAction(
+            "household.stage9Admin.loadFailure",
+            "Stage 9 admin submissions load failed"
+          );
+        }
       } else {
         failed = true;
         this.failAction(
@@ -367,7 +381,14 @@ export class Stage9AdminComponent {
         });
         return false;
       }
-      this.products.set(((await response.json()) as { products: ShopProduct[] }).products);
+      const payload = (await response.json().catch(() => null)) as unknown;
+      if (!isRecord(payload) || !isRecordArray(payload["products"])) {
+        this.failAction("household.stage9Admin.loadFailure", "Shop Product load failed", {
+          shopMarketId: this.selectedMarketId
+        });
+        return false;
+      }
+      this.products.set(payload["products"] as unknown as ShopProduct[]);
       return true;
     } catch (error: unknown) {
       this.failAction("household.stage9Admin.requestFailure", "Shop Product load failed", {
@@ -397,9 +418,14 @@ export class Stage9AdminComponent {
         });
         return false;
       }
-      this.prices.set(
-        ((await response.json()) as { observations: PriceObservation[] }).observations
-      );
+      const payload = (await response.json().catch(() => null)) as unknown;
+      if (!isRecord(payload) || !isRecordArray(payload["observations"])) {
+        this.failAction("household.stage9Admin.loadFailure", "Price history load failed", {
+          shopProductId: product.id
+        });
+        return false;
+      }
+      this.prices.set(payload["observations"] as unknown as PriceObservation[]);
       return true;
     } catch (error: unknown) {
       this.failAction("household.stage9Admin.requestFailure", "Price history load failed", {

@@ -3,6 +3,7 @@ import { Injectable, inject } from "@angular/core";
 import { buildApiUrl } from "../api-url";
 import { AuthService } from "../auth.service";
 import { readApiErrorMessage } from "../shared/api-errors";
+import { isRecord, isRecordArray } from "../shared/api-response-guards";
 import { LocalizationService, type TranslationKey } from "../shared/localization.service";
 import { ToastService } from "../shared/toast.service";
 
@@ -216,23 +217,11 @@ export interface UpdateHouseholdShoppingListStocksInput {
   stockAppliedAt: string;
 }
 
-interface HouseholdListResponse {
-  households: HouseholdListItem[];
-}
-
 interface HouseholdCreateResponse {
   household: HouseholdListItem;
 }
 
-interface HouseholdShoppingListResponse {
-  shoppingList: HouseholdShoppingList;
-}
-
 type HouseholdShoppingListPreviewResponse = HouseholdShoppingListPreview;
-
-interface HouseholdShopListResponse {
-  shops: HouseholdShop[];
-}
 
 interface HouseholdShoppingListStockUpdateResponse {
   allowedConfirmationModes?: Array<"tick_all_and_update" | "update_ticked_only">;
@@ -331,9 +320,12 @@ export class HouseholdStockService {
       return this.withToast(error);
     }
 
-    const payload = (await response.json()) as HouseholdListResponse;
+    const payload = (await response.json().catch(() => null)) as unknown;
+    if (!isRecord(payload) || !isRecordArray(payload["households"])) {
+      return this.malformedResponse(this.loc.t("household.routeError"));
+    }
     return {
-      households: payload.households,
+      households: payload["households"] as unknown as HouseholdListItem[],
       status: "ok"
     };
   }
@@ -390,10 +382,16 @@ export class HouseholdStockService {
       return this.withToast(error);
     }
 
-    return {
-      page: (await response.json()) as HouseholdStockPage,
-      status: "ok"
-    };
+    const payload = (await response.json().catch(() => null)) as unknown;
+    if (
+      !isRecord(payload) ||
+      !isRecord(payload["household"]) ||
+      !isRecordArray(payload["localProducts"]) ||
+      !isRecordArray(payload["stockItems"])
+    ) {
+      return this.malformedResponse(this.loc.t("household.routeError"));
+    }
+    return { page: payload as unknown as HouseholdStockPage, status: "ok" };
   }
 
   async createStockItem(input: CreateHouseholdStockInput): Promise<HouseholdPageResult> {
@@ -462,10 +460,11 @@ export class HouseholdStockService {
       return this.withToast(error);
     }
 
-    return {
-      preview: (await response.json()) as HouseholdShoppingListPreviewResponse,
-      status: "ok"
-    };
+    const payload = (await response.json().catch(() => null)) as unknown;
+    if (!isRecord(payload) || !isRecordArray(payload["items"])) {
+      return this.malformedResponse(this.loc.t("household.shoppingListLoadFailure"));
+    }
+    return { preview: payload as unknown as HouseholdShoppingListPreviewResponse, status: "ok" };
   }
 
   async createShoppingList(
@@ -506,8 +505,12 @@ export class HouseholdStockService {
       return error.status === "not_found" ? error : this.withToast(error);
     }
 
+    const payload = (await response.json().catch(() => null)) as unknown;
+    if (!isRecord(payload) || !isRecord(payload["shoppingList"])) {
+      return this.malformedResponse(this.loc.t("household.shoppingListLoadFailure"));
+    }
     return {
-      shoppingList: ((await response.json()) as HouseholdShoppingListResponse).shoppingList,
+      shoppingList: payload["shoppingList"] as unknown as HouseholdShoppingList,
       status: "ok"
     };
   }
@@ -558,11 +561,19 @@ export class HouseholdStockService {
       return this.withToast(error);
     }
 
-    const payload = (await response.json()) as HouseholdShoppingListStockUpdateResponse;
+    const payload = (await response.json().catch(() => null)) as unknown;
+    if (
+      !isRecord(payload) ||
+      !isRecord(payload["shoppingList"]) ||
+      !isRecord(payload["householdStockPage"])
+    ) {
+      return this.malformedResponse(this.loc.t("household.shoppingListApplyFailure"));
+    }
     return {
-      appliedLineCount: payload.appliedLineCount,
-      householdStockPage: payload.householdStockPage as HouseholdStockPage,
-      shoppingList: payload.shoppingList,
+      appliedLineCount:
+        typeof payload["appliedLineCount"] === "number" ? payload["appliedLineCount"] : 0,
+      householdStockPage: payload["householdStockPage"] as unknown as HouseholdStockPage,
+      shoppingList: payload["shoppingList"] as unknown as HouseholdShoppingList,
       status: "ok"
     };
   }
@@ -590,10 +601,11 @@ export class HouseholdStockService {
       return this.withToast(error);
     }
 
-    return {
-      shops: ((await response.json()) as HouseholdShopListResponse).shops,
-      status: "ok"
-    };
+    const payload = (await response.json().catch(() => null)) as unknown;
+    if (!isRecord(payload) || !isRecordArray(payload["shops"])) {
+      return this.malformedResponse(this.loc.t("household.shoppingListLoadFailure"));
+    }
+    return { shops: payload["shops"] as unknown as HouseholdShop[], status: "ok" };
   }
 
   private async writeHouseholdStock(
@@ -622,10 +634,16 @@ export class HouseholdStockService {
       return this.withToast(error);
     }
 
-    return {
-      page: (await response.json()) as HouseholdStockPage,
-      status: "ok"
-    };
+    const payload = (await response.json().catch(() => null)) as unknown;
+    if (
+      !isRecord(payload) ||
+      !isRecord(payload["household"]) ||
+      !isRecordArray(payload["localProducts"]) ||
+      !isRecordArray(payload["stockItems"])
+    ) {
+      return this.malformedResponse(this.loc.t("household.saveFailure"));
+    }
+    return { page: payload as unknown as HouseholdStockPage, status: "ok" };
   }
 
   private async writeShoppingList(
@@ -657,8 +675,12 @@ export class HouseholdStockService {
       return this.withToast(error);
     }
 
+    const payload = (await response.json().catch(() => null)) as unknown;
+    if (!isRecord(payload) || !isRecord(payload["shoppingList"])) {
+      return this.malformedResponse(this.loc.t("household.shoppingListSaveFailure"));
+    }
     return {
-      shoppingList: ((await response.json()) as HouseholdShoppingListResponse).shoppingList,
+      shoppingList: payload["shoppingList"] as unknown as HouseholdShoppingList,
       status: "ok"
     };
   }
@@ -703,5 +725,9 @@ export class HouseholdStockService {
   private withToast<T extends HouseholdError>(error: T): T {
     this.toast.push(error.message, "error");
     return error;
+  }
+
+  private malformedResponse(message: string): HouseholdError {
+    return this.withToast({ message, status: "unavailable" });
   }
 }
