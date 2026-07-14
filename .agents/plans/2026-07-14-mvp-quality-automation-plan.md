@@ -1,6 +1,7 @@
 # MVP Quality Automation Follow-up
 
-Status: Implementation in progress — Steps 1–5 complete; Steps 6–7 pending.
+Status: Implementation complete — automated/browser-contract work is complete; real-data and
+subjective release evidence remain in the Stage 8–11 runbook.
 
 ## Objective
 
@@ -223,6 +224,8 @@ Status: Complete in `test: enforce concurrent mutation contracts`.
 
 ### Step 6 — Add the browser CI gate
 
+Status: Complete in `ci: run browser contract checks`.
+
 - Add a secret-free, frontend-path-filtered `Browser Contracts` workflow rather than putting browser
   installation into every App Checks run.
 - Use `npm ci`, `npx playwright install --with-deps chromium`, and `npm run test:browser`; keep one CI
@@ -233,6 +236,8 @@ Status: Complete in `test: enforce concurrent mutation contracts`.
 - Commit: `ci: run browser contract checks`
 
 ### Step 7 — Reconcile the remaining manual boundary
+
+Status: Complete in the final documentation/handoff commit.
 
 - Remove browser matrix clauses proven by the new specs instead of duplicating them as mandatory
   manual steps.
@@ -255,6 +260,11 @@ Status: Complete in `test: enforce concurrent mutation contracts`.
 - `npm run build:web` for browser/client work and `npm run build:api` for repository/smoke work.
 - Final `npm run mvp:preflight`, browser suite, relevant configured smokes, and `git diff --check`.
 
+Current evidence: `npm run mvp:preflight` passed with 9 deterministic integration tests and 286 full
+tests; the Chromium suite passed all 4 contracts; and the elevated `npm run smoke:shopping-trip`
+passed with concurrent completion/review assertions. The live runbook remains the source of truth
+for the remaining real-data, visual, locale/theme, deployment, archive/repair, and waiver evidence.
+
 ## Risks
 
 - Mock-backed browser tests can accidentally duplicate backend policy. Keep fixtures declarative and
@@ -271,6 +281,6 @@ Status: Complete in `test: enforce concurrent mutation contracts`.
 
 ## Approval Checkpoint
 
-Implementation of the required Steps 1–5 is approved and complete. Steps 6–7 remain. Accessibility scans,
+All required Steps 1–7 are implemented and documented. Accessibility scans,
 repair CLI orchestration, deployed browser tests, screenshot baselines, and additional browser engines
 are explicitly deferred and do not block this MVP quality-automation pass.

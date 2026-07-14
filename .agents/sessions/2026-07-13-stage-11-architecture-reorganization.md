@@ -367,3 +367,30 @@ Execute `scripts/stage11-mvp-manual-test.md` as one continuous Stage 8–11 pass
 automated preflight and then the remaining browser/configured checks. Add observed behavior and
 environment details to the runbook without credentials or private exports. Treat operator edits as
 the only source for Step 11.10 fixes; do not restart separate Stage 8–10 acceptance sessions.
+
+## MVP quality automation follow-up (2026-07-14)
+
+- Approved and implemented the bounded `.agents/plans/2026-07-14-mvp-quality-automation-plan.md`
+  through Step 6 in separate commits: `13221e5`, `a81197b`, `f6838c4`, `e88705f`, `31b003a`, and
+  `248899a`.
+- Added four secret-free Chromium browser contracts for authenticated Home loading, Home shopping
+  selection/retry/cancel/duplicate handling, one Shopping Trip completion path, and Stage 9 pricing
+  and review feedback. The fixture fails on unexpected API requests; it does not write MongoDB.
+- Added fail-closed response guards for the browser-exercised client consumers. Feature-flag and
+  ingestion-review writes now reject lost compare-and-set matches before reporting success; audits
+  are appended only after a successful flag write.
+- The shared Mongo transaction helper retries only errors carrying `TransientTransactionError`, up
+  to three attempts. Non-transient failures and unknown commit results remain visible. The elevated
+  `npm run smoke:shopping-trip` passed and proved concurrent completion/review single-winner
+  behavior with no duplicate Batch, Movement, operation, or Ingestion Submission records.
+- The `Browser Contracts` workflow is Chromium-only and path-filtered to browser-facing source,
+  harness, and configuration. `mvp:preflight` remains browser-free.
+- The live runbook was reconciled so directly proven synthetic browser outcomes are recorded under
+  `Covered and accepted`; remaining manual work is real-data persistence, visual/locale/theme and
+  responsive review, configured archive/repair evidence, and final two-user/deployment checks.
+
+Final automation closeout is ready in the documentation/handoff commit after the runbook review.
+`npm run mvp:preflight` passed with 9 deterministic integration tests and 286 full tests; the
+Chromium suite passed all 4 contracts; and the elevated `npm run smoke:shopping-trip` passed with
+concurrent completion/review assertions. Do not treat the synthetic browser suite as a waiver for
+real-data or subjective UI evidence.
