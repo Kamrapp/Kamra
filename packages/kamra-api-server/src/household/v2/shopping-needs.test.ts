@@ -287,6 +287,31 @@ describe("shopping needs", () => {
     expect(needs[0]).toMatchObject({ ownerId: "sooner", plannedQuantity: 2 });
   });
 
+  it("uses the latest available batch of each Product for the oldest strategy", () => {
+    const workspace = createWorkspace({
+      groupCurrent: 0,
+      groupMinimum: 1,
+      groupDesired: 2,
+      products: [
+        { current: 0, displayName: "Alma", id: "alma", nextExpiryOn: "2026-07-30" },
+        { current: 0, displayName: "Kiwi", id: "kiwi", nextExpiryOn: "2026-07-30" }
+      ],
+      stockedProductDates: {
+        alma: ["2026-06-01", "2026-07-20"],
+        kiwi: "2026-07-10"
+      }
+    });
+
+    const needs = generateProductGroupShoppingNeeds({
+      distributionMode: "oldest",
+      mode: "add_products_only",
+      needIdPrefix: "latest-batch",
+      workspace
+    });
+
+    expect(needs).toEqual([expect.objectContaining({ ownerId: "kiwi", plannedQuantity: 2 })]);
+  });
+
   it("uses a Group impulse need only in the default mode when the Group has no Products", () => {
     const workspace = createWorkspace({
       groupCurrent: 0,
@@ -537,59 +562,68 @@ function createWorkspace(input: {
     target?: { desired: number; minimum: number };
   }>;
   stockedProductId?: string;
-  stockedProductDates?: Record<string, string>;
+  stockedProductDates?: Record<string, string | readonly string[]>;
 }): ProductGroupWorkspaceReadModel {
-  const products = input.products.map((product) => ({
-    aggregate: {
-      availableQuantity: product.current,
-      batchCount: product.id === input.stockedProductId ? 1 : 0,
-      nextExpiryOn: product.nextExpiryOn,
-      state: "not_tracked" as const,
-      trackingUnit: "l" as const
-    },
-    batches:
-      product.id === input.stockedProductId || input.stockedProductDates?.[product.id]
-        ? [
-            {
-              acquiredOn: input.stockedProductDates?.[product.id] ?? "2026-07-13",
-              acquisitionSnapshot: { displayName: product.displayName },
-              classificationSnapshot: {
-                capturedAt: "2026-07-13T00:00:00.000Z",
-                directAttributes: [],
-                directConcepts: [],
-                effectiveConcepts: [],
-                source: "manual"
-              },
-              createdAt: "2026-07-13T00:00:00.000Z",
-              createdByUserId: "test",
-              expiryOn: product.nextExpiryOn,
-              householdId: "h",
-              householdProductId: product.id,
-              id: `batch:${product.id}`,
-              originalQuantity: product.current,
-              remainingQuantity: product.current,
-              revision: 0,
-              status: "available",
-              unit: "l",
-              updatedAt: "2026-07-13T00:00:00.000Z",
-              updatedByUserId: "test"
-            } satisfies StockBatch
-          ]
-        : [],
-    product: {
-      displayName: product.displayName,
-      id: product.id,
-      targetPolicy: product.target
-        ? {
-            consumptionPolicy: "earliest_expiry_first",
-            desiredQuantity: product.target.desired,
-            expiryWarningDays: 0,
-            minimumQuantity: product.target.minimum,
-            trackingUnit: "l"
-          }
-        : null
-    }
-  }));
+  const products = input.products.map((product) => {
+    const configuredDates = input.stockedProductDates?.[product.id];
+    const acquiredDates = configuredDates
+      ? typeof configuredDates === "string"
+        ? [configuredDates]
+        : [...configuredDates]
+      : product.id === input.stockedProductId
+        ? ["2026-07-13"]
+        : [];
+    const batches = acquiredDates.map(
+      (acquiredOn, index) =>
+        ({
+          acquiredOn,
+          acquisitionSnapshot: { displayName: product.displayName },
+          classificationSnapshot: {
+            capturedAt: "2026-07-13T00:00:00.000Z",
+            directAttributes: [],
+            directConcepts: [],
+            effectiveConcepts: [],
+            source: "manual"
+          },
+          createdAt: "2026-07-13T00:00:00.000Z",
+          createdByUserId: "test",
+          expiryOn: product.nextExpiryOn,
+          householdId: "h",
+          householdProductId: product.id,
+          id: `batch:${product.id}:${index}`,
+          originalQuantity: product.current,
+          remainingQuantity: product.current,
+          revision: 0,
+          status: "available",
+          unit: "l",
+          updatedAt: "2026-07-13T00:00:00.000Z",
+          updatedByUserId: "test"
+        }) satisfies StockBatch
+    );
+    return {
+      aggregate: {
+        availableQuantity: product.current,
+        batchCount: batches.length,
+        nextExpiryOn: product.nextExpiryOn,
+        state: "not_tracked" as const,
+        trackingUnit: "l" as const
+      },
+      batches,
+      product: {
+        displayName: product.displayName,
+        id: product.id,
+        targetPolicy: product.target
+          ? {
+              consumptionPolicy: "earliest_expiry_first",
+              desiredQuantity: product.target.desired,
+              expiryWarningDays: 0,
+              minimumQuantity: product.target.minimum,
+              trackingUnit: "l"
+            }
+          : null
+      }
+    };
+  });
   return {
     allowExpiredItems: true,
     productGroups: [

@@ -411,7 +411,10 @@ function selectGroupProduct(
       .filter((batch) => batch.status === "available")
       .map((batch) => batch.acquiredOn)
       .sort();
-    return distributionMode === "latest" ? (dates.at(-1) ?? null) : (dates[0] ?? null);
+    // Both date strategies compare Products, not individual Batches. The
+    // oldest strategy therefore uses each Product's latest available batch;
+    // an older exhausted/expired batch must not outweigh a newer replacement.
+    return dates.at(-1) ?? null;
   };
   const stockedRows = [...rows].filter((row) => stockDate(row) !== null);
   if (stockedRows.length > 0) {
