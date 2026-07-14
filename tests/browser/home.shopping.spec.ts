@@ -119,7 +119,7 @@ test("Home shopping rows support impulse rename, discard, and purchased labeling
     items: expect.not.arrayContaining([expect.objectContaining({ displayName: "Alma duplicate" })])
   });
 
-  await page.locator(".shopping-line-product input[type='checkbox']").first().check();
+  await page.locator(".shopping-line-product input[type='checkbox']").first().click();
   await expect(page.getByRole("button", { name: /1 purchased item/ })).toBeVisible();
   expect(fixture.unexpectedRequests).toEqual([]);
 });
@@ -227,7 +227,8 @@ test("Home household rows share grid tracks and show child counts", async ({ pag
         .evaluateAll((cells) => cells.map((cell) => Math.round(cell.getBoundingClientRect().left)))
     )
   );
-  expect(gridStarts.slice(1)).toEqual([gridStarts[0], gridStarts[0], gridStarts[0]]);
+  const contentGridStarts = gridStarts[0].slice(0, -1);
+  expect(gridStarts.slice(1)).toEqual([contentGridStarts, contentGridStarts, contentGridStarts]);
   const comparisonWidth = await groupRow
     .locator(".comparison-column")
     .first()
@@ -240,6 +241,15 @@ test("Home household rows share grid tracks and show child counts", async ({ pag
       .evaluate((element) => Math.round(element.getBoundingClientRect().right))
   ]);
   expect(headerAndBodyEdges[0]).toBeGreaterThanOrEqual(headerAndBodyEdges[1]);
+  const headerAndShellEdges = await header.evaluate((element) => {
+    const shell = element.parentElement;
+    return {
+      headerRight: Math.round(element.getBoundingClientRect().right),
+      shellRight: shell ? Math.round(shell.getBoundingClientRect().right) : 0
+    };
+  });
+  expect(headerAndShellEdges.headerRight).toBeLessThanOrEqual(headerAndShellEdges.shellRight);
+  await expect(header.locator(".stock-grid-scrollbar-space")).toHaveCount(1);
   await expect(productRow.locator(".workspace-expansion-slot")).toHaveText("▸");
   await expect(emptyProductRow.locator(".workspace-expansion-slot")).toHaveText("");
 
@@ -257,10 +267,11 @@ test("Home household rows share grid tracks and show child counts", async ({ pag
         .evaluateAll((cells) => cells.map((cell) => Math.round(cell.getBoundingClientRect().left)))
     )
   );
+  const scrollbarContentGridStarts = scrollbarGridStarts[0].slice(0, -1);
   expect(scrollbarGridStarts.slice(1)).toEqual([
-    scrollbarGridStarts[0],
-    scrollbarGridStarts[0],
-    scrollbarGridStarts[0]
+    scrollbarContentGridStarts,
+    scrollbarContentGridStarts,
+    scrollbarContentGridStarts
   ]);
   await productRow.locator(".row-name").click();
   const batchRow = page.locator(".stock-batch-row").first();

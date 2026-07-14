@@ -71,8 +71,11 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.stock-grid-header > span:not(:first-child):not(:last-child) {
+.stock-grid-header > span:not(:first-child):not(.stock-grid-scrollbar-space) {
   text-align: center;
+}
+.stock-grid-scrollbar-space {
+  min-width: var(--stock-grid-scrollbar-gutter);
 }
 .name-header {
   align-items: center;
@@ -171,10 +174,9 @@
   color: var(--color-text-muted);
   font-size: 0.66rem;
   font-weight: 900;
-  padding-right: calc(var(--space-2) + var(--stock-grid-scrollbar-gutter));
-  position: relative;
+  grid-template-columns: var(--stock-grid-columns) var(--stock-grid-scrollbar-gutter);
+  padding-right: var(--space-2);
   text-transform: uppercase;
-  width: calc(100% + var(--stock-grid-scrollbar-gutter));
 }
 .stock-grid-body {
   min-height: 0;
