@@ -32,245 +32,263 @@ interface TripResultDraft {
   standalone: true,
   imports: [FormsModule],
   template: `
-    <section class="ui-panel-card trip-panel" aria-labelledby="shopping-trip-title">
+    <section
+      class="ui-panel-card trip-panel"
+      [class.trip-collapsed]="sectionCollapsed()"
+      aria-labelledby="shopping-trip-title"
+    >
       <div class="trip-heading">
-        <div>
-          <p class="ui-kicker">{{ loc.t("household.shoppingTripKicker") }}</p>
-          <h2 class="ui-card-title" id="shopping-trip-title">
-            {{ loc.t("household.shoppingTripTitle") }}
-          </h2>
-        </div>
+        <button
+          class="trip-section-toggle"
+          type="button"
+          (click)="sectionCollapsed.set(!sectionCollapsed())"
+          [attr.aria-expanded]="!sectionCollapsed()"
+        >
+          <span aria-hidden="true">{{ sectionCollapsed() ? "▸" : "▾" }}</span>
+          <span>
+            <p class="ui-kicker">{{ loc.t("household.shoppingTripKicker") }}</p>
+            <h2 class="ui-card-title" id="shopping-trip-title">
+              {{ loc.t("household.shoppingTripTitle") }}
+            </h2>
+          </span>
+        </button>
         <button class="ui-button ui-button-quiet ui-button-sm" type="button" (click)="load()">
           {{ loc.t("common.refresh") }}
         </button>
       </div>
-      @if (!trip()) {
-        <div class="trip-start-form">
-          <label>
-            <span>{{ loc.t("household.shoppingTripMarket") }}</span>
-            <select [ngModel]="marketId" (ngModelChange)="selectMarket($event)">
-              <option value="">{{ loc.t("household.shoppingTripChooseMarket") }}</option>
-              <option value="__custom__">{{ loc.t("household.shoppingTripCustomMarket") }}</option>
-              @for (market of markets(); track market.id) {
-                <option [value]="market.id">
-                  {{ market.displayName }} · {{ market.countryCode }}
-                </option>
-              }
-            </select>
-          </label>
-          @if (marketId === "__custom__") {
-            <label>
-              <span>{{ loc.t("household.shoppingTripCustomMarketName") }}</span>
-              <input [(ngModel)]="customShopName" />
-            </label>
-          }
-          <label>
-            <span>{{ loc.t("household.shoppingTripDate") }}</span>
-            <input type="date" [(ngModel)]="plannedDate" />
-          </label>
-          <button class="ui-button ui-button-primary" type="button" (click)="start()">
-            {{ loc.t("household.shoppingTripStart") }}
-          </button>
-        </div>
-      } @else {
-        <p class="trip-status">{{ trip()!.status }} · {{ trip()!.plannedDate }}</p>
-        @for (item of trip()!.items; track item.id) {
-          <div class="trip-item">
-            <span>
-              <strong>{{ item.displayNameSnapshot }}</strong>
-              · {{ item.requiredQuantity }} {{ item.requiredUnit }}
-              @if (item.expectedPackageCount) {
-                ·
-                {{
-                  loc.t("household.shoppingTripPackageCount", {
-                    count: item.expectedPackageCount
-                  })
-                }}
-              }
-              @if (item.expectedTotal !== null && item.expectedTotal !== undefined) {
-                ·
-                {{
-                  loc.t("household.shoppingTripExpectedTotal", {
-                    amount: item.expectedTotal,
-                    currency: "HUF"
-                  })
-                }}
-              }
-              <small>
-                {{ priceStateLabel(item.priceState) }} ·
-                {{ matchExplanationLabel(item.matchExplanation) }}
-              </small>
-              @if (item.matchOptions?.length) {
-                <label class="trip-match-picker">
-                  <span>{{ loc.t("household.shoppingTripChooseMatch") }}</span>
-                  <select
-                    [ngModel]="item.selectedShopProductId"
-                    (ngModelChange)="selectMatch(item.id, $event)"
-                  >
-                    @for (option of item.matchOptions; track option.shopProductId) {
-                      <option [value]="option.shopProductId">{{ option.displayName }}</option>
-                    }
-                  </select>
-                </label>
-              }
-              @if (item.matchOptionsTruncated) {
-                <small>{{ loc.t("household.shoppingTripMatchOptionsTruncated") }}</small>
-              }
-              @if (
-                ["in_progress", "partially_processed"].includes(trip()!.status) &&
-                item.resultStatus !== "not_bought"
-              ) {
-                <label class="trip-match-picker">
-                  <span>{{ loc.t("household.shoppingTripPurchaseProduct") }}</span>
-                  <select
-                    [ngModel]="purchaseProductId(item)"
-                    (ngModelChange)="choosePurchaseProduct(item.id, $event)"
-                  >
-                    <option value="">{{ loc.t("household.shoppingTripCreateProduct") }}</option>
-                    @for (product of productOptions(); track product.id) {
-                      <option [value]="product.id">{{ product.displayName }}</option>
-                    }
-                  </select>
-                </label>
-                @if (item.resultStatus === "bought") {
-                  @if (resultDraft(item); as draft) {
-                    <div class="trip-result-editor">
-                      <p>{{ loc.t("household.shoppingTripActualResult") }}</p>
-                      <label>
-                        <span>{{ loc.t("household.shoppingTripActualQuantity") }}</span>
-                        <input
-                          type="number"
-                          min="0.001"
-                          [ngModel]="draft.quantity"
-                          (ngModelChange)="draft.quantity = $event"
-                        />
-                      </label>
-                      <label>
-                        <span>{{ loc.t("household.shoppingTripActualUnit") }}</span>
-                        <input [ngModel]="draft.unit" (ngModelChange)="draft.unit = $event" />
-                      </label>
-                      <label>
-                        <span>{{ loc.t("household.shoppingTripPaidPrice") }}</span>
-                        <input
-                          type="number"
-                          min="0"
-                          [ngModel]="draft.paidPrice"
-                          (ngModelChange)="draft.paidPrice = $event === '' ? null : $event"
-                        />
-                      </label>
-                      <label>
-                        <span>{{ loc.t("household.shoppingTripCurrency") }}</span>
-                        <input
-                          [ngModel]="draft.currencyCode"
-                          (ngModelChange)="draft.currencyCode = $event"
-                        />
-                      </label>
-                      <label>
-                        <span>{{ loc.t("household.shoppingTripAcquiredOn") }}</span>
-                        <input
-                          type="date"
-                          [ngModel]="draft.acquiredOn"
-                          (ngModelChange)="draft.acquiredOn = $event"
-                        />
-                      </label>
-                      <label>
-                        <span>{{ loc.t("household.shoppingTripExpiryOn") }}</span>
-                        <input
-                          type="date"
-                          [ngModel]="draft.expiryOn"
-                          (ngModelChange)="draft.expiryOn = $event"
-                        />
-                      </label>
-                      <button
-                        class="ui-button ui-button-quiet ui-button-sm"
-                        type="button"
-                        (click)="saveResult(item.id)"
-                      >
-                        {{ loc.t("household.shoppingTripSaveResult") }}
-                      </button>
-                    </div>
+      @if (!sectionCollapsed()) {
+        <div class="trip-content">
+          @if (!trip()) {
+            <div class="trip-start-form">
+              <label>
+                <span>{{ loc.t("household.shoppingTripMarket") }}</span>
+                <select [ngModel]="marketId" (ngModelChange)="selectMarket($event)">
+                  <option value="">{{ loc.t("household.shoppingTripChooseMarket") }}</option>
+                  <option value="__custom__">
+                    {{ loc.t("household.shoppingTripCustomMarket") }}
+                  </option>
+                  @for (market of markets(); track market.id) {
+                    <option [value]="market.id">
+                      {{ market.displayName }} · {{ market.countryCode }}
+                    </option>
                   }
-                }
+                </select>
+              </label>
+              @if (marketId === "__custom__") {
+                <label>
+                  <span>{{ loc.t("household.shoppingTripCustomMarketName") }}</span>
+                  <input [(ngModel)]="customShopName" />
+                </label>
               }
-            </span>
-            @if (item.planStatus === "unresolved") {
-              <button
-                class="ui-button ui-button-quiet ui-button-sm"
-                type="button"
-                (click)="skip(item.id)"
-              >
-                {{ loc.t("household.shoppingTripSkip") }}
+              <label>
+                <span>{{ loc.t("household.shoppingTripDate") }}</span>
+                <input type="date" [(ngModel)]="plannedDate" />
+              </label>
+              <button class="ui-button ui-button-primary" type="button" (click)="start()">
+                {{ loc.t("household.shoppingTripStart") }}
               </button>
+            </div>
+          } @else {
+            <p class="trip-status">{{ trip()!.status }} · {{ trip()!.plannedDate }}</p>
+            @for (item of trip()!.items; track item.id) {
+              <div class="trip-item">
+                <span>
+                  <strong>{{ item.displayNameSnapshot }}</strong>
+                  · {{ item.requiredQuantity }} {{ item.requiredUnit }}
+                  @if (item.expectedPackageCount) {
+                    ·
+                    {{
+                      loc.t("household.shoppingTripPackageCount", {
+                        count: item.expectedPackageCount
+                      })
+                    }}
+                  }
+                  @if (item.expectedTotal !== null && item.expectedTotal !== undefined) {
+                    ·
+                    {{
+                      loc.t("household.shoppingTripExpectedTotal", {
+                        amount: item.expectedTotal,
+                        currency: "HUF"
+                      })
+                    }}
+                  }
+                  <small>
+                    {{ priceStateLabel(item.priceState) }} ·
+                    {{ matchExplanationLabel(item.matchExplanation) }}
+                  </small>
+                  @if (item.matchOptions?.length) {
+                    <label class="trip-match-picker">
+                      <span>{{ loc.t("household.shoppingTripChooseMatch") }}</span>
+                      <select
+                        [ngModel]="item.selectedShopProductId"
+                        (ngModelChange)="selectMatch(item.id, $event)"
+                      >
+                        @for (option of item.matchOptions; track option.shopProductId) {
+                          <option [value]="option.shopProductId">{{ option.displayName }}</option>
+                        }
+                      </select>
+                    </label>
+                  }
+                  @if (item.matchOptionsTruncated) {
+                    <small>{{ loc.t("household.shoppingTripMatchOptionsTruncated") }}</small>
+                  }
+                  @if (
+                    ["in_progress", "partially_processed"].includes(trip()!.status) &&
+                    item.resultStatus !== "not_bought"
+                  ) {
+                    <label class="trip-match-picker">
+                      <span>{{ loc.t("household.shoppingTripPurchaseProduct") }}</span>
+                      <select
+                        [ngModel]="purchaseProductId(item)"
+                        (ngModelChange)="choosePurchaseProduct(item.id, $event)"
+                      >
+                        <option value="">{{ loc.t("household.shoppingTripCreateProduct") }}</option>
+                        @for (product of productOptions(); track product.id) {
+                          <option [value]="product.id">{{ product.displayName }}</option>
+                        }
+                      </select>
+                    </label>
+                    @if (item.resultStatus === "bought") {
+                      @if (resultDraft(item); as draft) {
+                        <div class="trip-result-editor">
+                          <p>{{ loc.t("household.shoppingTripActualResult") }}</p>
+                          <label>
+                            <span>{{ loc.t("household.shoppingTripActualQuantity") }}</span>
+                            <input
+                              type="number"
+                              min="0.001"
+                              [ngModel]="draft.quantity"
+                              (ngModelChange)="draft.quantity = $event"
+                            />
+                          </label>
+                          <label>
+                            <span>{{ loc.t("household.shoppingTripActualUnit") }}</span>
+                            <input [ngModel]="draft.unit" (ngModelChange)="draft.unit = $event" />
+                          </label>
+                          <label>
+                            <span>{{ loc.t("household.shoppingTripPaidPrice") }}</span>
+                            <input
+                              type="number"
+                              min="0"
+                              [ngModel]="draft.paidPrice"
+                              (ngModelChange)="draft.paidPrice = $event === '' ? null : $event"
+                            />
+                          </label>
+                          <label>
+                            <span>{{ loc.t("household.shoppingTripCurrency") }}</span>
+                            <input
+                              [ngModel]="draft.currencyCode"
+                              (ngModelChange)="draft.currencyCode = $event"
+                            />
+                          </label>
+                          <label>
+                            <span>{{ loc.t("household.shoppingTripAcquiredOn") }}</span>
+                            <input
+                              type="date"
+                              [ngModel]="draft.acquiredOn"
+                              (ngModelChange)="draft.acquiredOn = $event"
+                            />
+                          </label>
+                          <label>
+                            <span>{{ loc.t("household.shoppingTripExpiryOn") }}</span>
+                            <input
+                              type="date"
+                              [ngModel]="draft.expiryOn"
+                              (ngModelChange)="draft.expiryOn = $event"
+                            />
+                          </label>
+                          <button
+                            class="ui-button ui-button-quiet ui-button-sm"
+                            type="button"
+                            (click)="saveResult(item.id)"
+                          >
+                            {{ loc.t("household.shoppingTripSaveResult") }}
+                          </button>
+                        </div>
+                      }
+                    }
+                  }
+                </span>
+                @if (item.planStatus === "unresolved") {
+                  <button
+                    class="ui-button ui-button-quiet ui-button-sm"
+                    type="button"
+                    (click)="skip(item.id)"
+                  >
+                    {{ loc.t("household.shoppingTripSkip") }}
+                  </button>
+                }
+                @if (
+                  item.resultStatus === "pending" &&
+                  ["in_progress", "partially_processed"].includes(trip()!.status)
+                ) {
+                  <button
+                    class="ui-button ui-button-quiet ui-button-sm"
+                    type="button"
+                    (click)="mark(item.id, 'bought')"
+                  >
+                    {{ loc.t("household.shoppingTripBought") }}
+                  </button>
+                  <button
+                    class="ui-button ui-button-quiet ui-button-sm"
+                    type="button"
+                    (click)="mark(item.id, 'not_bought')"
+                  >
+                    {{ loc.t("household.shoppingTripNotBought") }}
+                  </button>
+                } @else {
+                  <span class="trip-result">{{ item.resultStatus }}</span>
+                }
+              </div>
             }
-            @if (
-              item.resultStatus === "pending" &&
-              ["in_progress", "partially_processed"].includes(trip()!.status)
-            ) {
+            @if (["in_progress", "partially_processed"].includes(trip()!.status)) {
+              <div class="trip-unplanned">
+                <p>{{ loc.t("household.shoppingTripUnplannedTitle") }}</p>
+                <label>
+                  <span>{{ loc.t("household.shoppingTripUnplannedName") }}</span>
+                  <input [(ngModel)]="unplannedName" />
+                </label>
+                <label>
+                  <span>{{ loc.t("household.shoppingTripActualQuantity") }}</span>
+                  <input type="number" min="0.001" [(ngModel)]="unplannedQuantity" />
+                </label>
+                <label>
+                  <span>{{ loc.t("household.shoppingTripActualUnit") }}</span>
+                  <input [(ngModel)]="unplannedUnit" />
+                </label>
+                <button
+                  class="ui-button ui-button-quiet ui-button-sm"
+                  type="button"
+                  (click)="addUnplannedPurchase()"
+                >
+                  {{ loc.t("household.shoppingTripAddUnplanned") }}
+                </button>
+              </div>
+            }
+            @if (trip()!.status === "matching") {
               <button
-                class="ui-button ui-button-quiet ui-button-sm"
+                class="ui-button ui-button-primary"
                 type="button"
-                (click)="mark(item.id, 'bought')"
+                (click)="advance(trip()!)"
+                [disabled]="trip()!.items.some((item) => item.planStatus === 'unresolved')"
               >
-                {{ loc.t("household.shoppingTripBought") }}
-              </button>
-              <button
-                class="ui-button ui-button-quiet ui-button-sm"
-                type="button"
-                (click)="mark(item.id, 'not_bought')"
-              >
-                {{ loc.t("household.shoppingTripNotBought") }}
+                {{ loc.t("household.shoppingTripContinue") }}
               </button>
             } @else {
-              <span class="trip-result">{{ item.resultStatus }}</span>
+              <button
+                class="ui-button ui-button-primary"
+                type="button"
+                (click)="complete()"
+                [disabled]="trip()!.status === 'completed'"
+              >
+                {{ loc.t("household.shoppingTripFinalize") }}
+              </button>
             }
-          </div>
-        }
-        @if (["in_progress", "partially_processed"].includes(trip()!.status)) {
-          <div class="trip-unplanned">
-            <p>{{ loc.t("household.shoppingTripUnplannedTitle") }}</p>
-            <label>
-              <span>{{ loc.t("household.shoppingTripUnplannedName") }}</span>
-              <input [(ngModel)]="unplannedName" />
-            </label>
-            <label>
-              <span>{{ loc.t("household.shoppingTripActualQuantity") }}</span>
-              <input type="number" min="0.001" [(ngModel)]="unplannedQuantity" />
-            </label>
-            <label>
-              <span>{{ loc.t("household.shoppingTripActualUnit") }}</span>
-              <input [(ngModel)]="unplannedUnit" />
-            </label>
-            <button
-              class="ui-button ui-button-quiet ui-button-sm"
-              type="button"
-              (click)="addUnplannedPurchase()"
-            >
-              {{ loc.t("household.shoppingTripAddUnplanned") }}
-            </button>
-          </div>
-        }
-        @if (trip()!.status === "matching") {
-          <button
-            class="ui-button ui-button-primary"
-            type="button"
-            (click)="advance(trip()!)"
-            [disabled]="trip()!.items.some((item) => item.planStatus === 'unresolved')"
-          >
-            {{ loc.t("household.shoppingTripContinue") }}
-          </button>
-        } @else {
-          <button
-            class="ui-button ui-button-primary"
-            type="button"
-            (click)="complete()"
-            [disabled]="trip()!.status === 'completed'"
-          >
-            {{ loc.t("household.shoppingTripFinalize") }}
-          </button>
-        }
-      }
-      @if (message()) {
-        <p class="trip-message">{{ message() }}</p>
+          }
+          @if (message()) {
+            <p class="trip-message">{{ message() }}</p>
+          }
+        </div>
       }
     </section>
   `,
@@ -279,6 +297,42 @@ interface TripResultDraft {
       .trip-panel {
         display: grid;
         gap: var(--space-3);
+        grid-template-rows: auto minmax(0, 1fr);
+        height: 100%;
+        min-height: 0;
+      }
+      .trip-panel.trip-collapsed {
+        height: auto;
+        min-height: 0;
+        padding-block: var(--space-3);
+        grid-template-rows: auto;
+      }
+      .trip-section-toggle {
+        align-items: center;
+        background: transparent;
+        border: 0;
+        color: inherit;
+        cursor: pointer;
+        display: flex;
+        font: inherit;
+        gap: var(--space-2);
+        padding: 0;
+        text-align: left;
+      }
+      .trip-section-toggle > span:last-child {
+        display: grid;
+        gap: var(--space-1);
+      }
+      .trip-section-toggle .ui-kicker,
+      .trip-section-toggle .ui-card-title {
+        margin: 0;
+      }
+      .trip-content {
+        align-content: start;
+        display: grid;
+        gap: var(--space-3);
+        min-height: 0;
+        overflow: auto;
       }
       .trip-heading,
       .trip-item {
@@ -341,10 +395,20 @@ interface TripResultDraft {
         margin: 0;
       }
       @media (max-width: 50rem) {
+        .trip-panel {
+          height: auto;
+        }
+        .trip-content {
+          overflow: visible;
+        }
         .trip-start-form,
         .trip-result-editor,
         .trip-unplanned {
           grid-template-columns: 1fr;
+        }
+        .trip-item {
+          align-items: stretch;
+          flex-direction: column;
         }
       }
     `
@@ -355,6 +419,7 @@ export class HouseholdShoppingTripPanelComponent implements OnChanges {
   readonly loc = inject(LocalizationService);
   private readonly api = inject(HouseholdV2Service);
   private readonly toast = inject(ToastService);
+  readonly sectionCollapsed = signal(true);
   readonly trip = signal<HouseholdShoppingTrip | null>(null);
   readonly productOptions = signal<HouseholdV2Product[]>([]);
   readonly markets = signal<HouseholdV2ShopMarket[]>([]);

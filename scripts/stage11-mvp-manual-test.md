@@ -50,19 +50,19 @@ Operator notes and discoveries:
 
 ### Automated coverage ledger
 
-| Area                | Existing automated evidence                                                                                                                                                                                                      | Manual remainder                                                                                         |
-| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| Feature flags       | Registry, schema key parity, admin PATCH, persistence, and workspace response                                                                                                                                                    | Toggle and visible Home effect                                                                           |
-| Household stock     | Product Group → Product → Batch seam, writes, reads, and membership boundary                                                                                                                                                     | CRUD affordances, synchronization, layout, and feedback                                                  |
-| Shopping completion | Partial Trip completion, Product-owned Batch, pending Ingestion Submission, retry                                                                                                                                                | One visible purchase flow and resulting stock                                                            |
-| Shopping scale      | Pure scale eligibility rules cover no-policy rows, all four scales, and expiry warning boundaries                                                                                                                                | Checkbox reset behavior and visible scale feedback                                                       |
-| Shopping targets    | Generator covers Product/Group shortage boundaries, group modes, empty groups, and distribution                                                                                                                                  | Selected-owner presentation and final generated list                                                     |
-| Quick add           | Name normalization covers accents, punctuation, case, known Product matching, and no-match cases                                                                                                                                 | Debounced input, unit presentation, and duplicate UI                                                     |
-| Ingestion review    | Raw snapshot → review candidate/list response                                                                                                                                                                                    | One visible review decision and status feedback                                                          |
-| Demo fixture        | Seed smoke checks targets, expiry permutations, batch counts, unassigned products, and no orphan Batch                                                                                                                           | Visual grouping/order/theme/layout                                                                       |
-| Expiry/read model   | Expired Batches remain visible and counted physically while expiry policy controls derived Current                                                                                                                               | Household toggle and rendered count/state                                                                |
-| MongoDB             | Configured catalogue/transaction workflows                                                                                                                                                                                       | Run only with approved environment                                                                       |
-| Browser contracts   | Chromium specs cover authenticated Home loading, Home build/retry/generate/cancel wiring, duplicate impulse preservation, one custom-market Trip completion path, and Stage 9 price/review feedback with delayed stale handling. | Synthetic API state is not real-data, visual, locale, or deployment evidence; those checks remain below. |
+| Area                | Existing automated evidence                                                                                                                                                                                                                                            | Manual remainder                                                                                         |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Feature flags       | Registry, schema key parity, admin PATCH, persistence, and workspace response                                                                                                                                                                                          | Toggle and visible Home effect                                                                           |
+| Household stock     | Product Group → Product → Batch seam, writes, reads, and membership boundary                                                                                                                                                                                           | CRUD affordances, synchronization, layout, and feedback                                                  |
+| Shopping completion | Partial Trip completion, Product-owned Batch, pending Ingestion Submission, retry                                                                                                                                                                                      | One visible purchase flow and resulting stock                                                            |
+| Shopping scale      | Pure scale eligibility rules cover no-policy rows, all four scales, and expiry warning boundaries                                                                                                                                                                      | Checkbox reset behavior and visible scale feedback                                                       |
+| Shopping targets    | Generator covers Product/Group shortage boundaries, group modes, empty groups, and distribution                                                                                                                                                                        | Selected-owner presentation and final generated list                                                     |
+| Quick add           | Name normalization covers accents, punctuation, case, known Product matching, and no-match cases                                                                                                                                                                       | Debounced input, unit presentation, and duplicate UI                                                     |
+| Ingestion review    | Raw snapshot → review candidate/list response                                                                                                                                                                                                                          | One visible review decision and status feedback                                                          |
+| Demo fixture        | Seed smoke checks targets, expiry permutations, batch counts, unassigned products, and no orphan Batch                                                                                                                                                                 | Visual grouping/order/theme/layout                                                                       |
+| Expiry/read model   | Expired Batches remain visible and counted physically while expiry policy controls derived Current                                                                                                                                                                     | Household toggle and rendered count/state                                                                |
+| MongoDB             | Configured catalogue/transaction workflows                                                                                                                                                                                                                             | Run only with approved environment                                                                       |
+| Browser contracts   | Chromium specs cover authenticated Home loading, Home build/retry/generate/cancel wiring, duplicate impulse preservation, Shopping Trip collapsed/toggle state, one custom-market Trip completion path, and Stage 9 price/review feedback with delayed stale handling. | Synthetic API state is not real-data, visual, locale, or deployment evidence; those checks remain below. |
 
 ## 1. Access, identity, Manual, and diagnostics
 
@@ -90,10 +90,10 @@ restock derivation as deferred rather than a test failure.
 
 ## 3. Home Product Group → Product → Stock Batch workspace
 
-The Product Group → Product → Batch hierarchy, structure, CRUD, derived data, responsive layout,
-accessibility, custom units, batch titles, stale revisions, action positions, and theme treatment
-were accepted before `257f07e`. No later frontend change touches those surfaces, so no retest is
-open here.
+The Product Group → Product → Batch hierarchy, structure, CRUD, derived data, accessibility,
+custom units, batch titles, stale revisions, action positions, and theme treatment were accepted
+before `257f07e`. The latest panel layout change leaves the workspace behavior intact; its shared
+desktop/mobile sizing is covered by the shopping-panel checks below.
 
 ## 4. Shopping list and household purchase application
 
@@ -106,6 +106,9 @@ open here.
 - [ ] Mark a Product line purchased, adjust quantity, and finalize. Confirm a Product-owned Batch
       appears with the expected date/quantity, the workspace refreshes, the completed list clears, and
       visible success feedback explains what was saved.
+- [ ] With a generated list on desktop, expand the Shopping list panel and confirm its title,
+      quick-add row, finalize controls, and status remain compact while only the item table grows
+      into the available space and scrolls for additional items.
 
 Operator notes and discoveries:
 
@@ -118,6 +121,9 @@ do not treat their existence alone as a separate user workflow.
 - [ ] From an open Shopping Need, start a Trip with one active Shop Market and a date. Repeat with
       Custom shop and a saved custom shop name; confirm both remain usable and no 400/404 appears.
       The synthetic Chromium contract already covers the Custom-shop completion path.
+- [ ] Confirm Shopping Trip is collapsed by default, expands from its disclosure control, exposes
+      its start/active-trip content without changing the data, and collapses again without losing
+      the current draft or active Trip.
 - [ ] Confirm matching shows package count, expected total, applicable Price Observation, and an
       explanation. Check no-price, stale, future, conditional, expired, and incompatible states.
 - [ ] Select an alternate bounded match and confirm package math, price, and explanation recalculate.
@@ -146,6 +152,9 @@ do not treat their existence alone as a separate user workflow.
       covered by the Stage 11 route contract tests.
 - [ ] Verify base, offer, coupon, loyalty, manual, substitution, and no-price states in both locales
       and at a narrow viewport.
+- [ ] At a narrow viewport, confirm the household workspace, Shopping list, and Shopping Trip
+      panels stack with clear vertical separation in both expanded and collapsed states; no panel
+      content overlaps, and expanding one does not cover the next panel.
 
 Operator notes and discoveries:
 
@@ -238,6 +247,6 @@ outstanding manual work and retests.
 | Admin and maintenance        | Dynamic feature-flag metadata, alpha auto-save, user management, maintenance registry separation, and diagnostics were accepted before `257f07e`.                                                                                                                                   | Archive/repair and ingestion review remain active above.                                                                              |
 | Stage 11 route contracts     | Matcher/planning state matrix, Trip completion persistence/idempotency, configured Shopping Trip Mongo smoke, Shop Market/Product/Price Observation request validation and duplicate handling, and ingestion review status/conflict/history contracts are covered by focused tests. | Browser presentation, locale, Activity, and configured maintenance-action evidence remain manual.                                     |
 | Quick-add duplicate seam     | Normalized quick-add matching and duplicate-key behavior are covered by pure tests; the component keeps the draft and does not add a second line.                                                                                                                                   | Browser toast, Activity wording, and purchase-application presentation remain manual.                                                 |
-| Browser Home contract        | Authenticated Home load, Build → Generate → Cancel state transitions, failed-generation retry, active-list disabling, and duplicate impulse preservation pass in Chromium with an unexpected-API-request guard.                                                                     | Real seeded selection, visual/layout, locale, and persisted Mongo evidence remain manual/configured.                                  |
+| Browser Home contract        | Authenticated Home load, Build → Generate → Cancel state transitions, failed-generation retry, active-list disabling, duplicate impulse preservation, and Shopping Trip default-collapsed/toggle behavior pass in Chromium with an unexpected-API-request guard.                    | Real seeded selection, visual/layout, locale, and persisted Mongo evidence remain manual/configured.                                  |
 | Browser Trip/admin contracts | Custom-shop Trip continuation through finalize, unresolved/skip/bought controls, unplanned line, price validation/success, delayed review disabling, stale feedback, Activity output, and successful review retry pass in Chromium.                                                 | Real market/product persistence, full price-state matrix, locale/theme/layout, and alternate review actions remain manual/configured. |
 | Intentional deferrals        | Automatic desired-restock derivation, classification/tagging UX, and deeper ingestion/catalogue policy expansion remain outside the current MVP closure.                                                                                                                            | Revisit only through a post-MVP plan.                                                                                                 |

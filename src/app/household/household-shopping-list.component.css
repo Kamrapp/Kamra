@@ -7,6 +7,7 @@
   gap: var(--space-4);
   height: 100%;
   min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr) auto;
 }
 
 .shopping-section-toggle {
@@ -25,8 +26,10 @@
 }
 
 .shopping-collapsed {
+  height: auto;
   min-height: 0;
   padding-block: var(--space-3);
+  grid-template-rows: auto;
 }
 
 .shopping-card-topline,
@@ -62,18 +65,26 @@
   display: grid;
   gap: var(--space-4);
   grid-template-columns: minmax(0, 1.35fr) minmax(18rem, 0.65fr);
+  height: 100%;
+  min-height: 0;
 }
 
 .shopping-overview,
 .shopping-finalize {
+  align-content: start;
   display: grid;
   gap: var(--space-4);
+  min-height: 0;
+}
+
+.shopping-overview-active {
+  grid-template-rows: auto auto minmax(0, 1fr);
 }
 
 .shopping-finalize {
-  align-content: start;
   background: var(--surface-soft-background);
   border: 1px solid var(--line-subtle);
+  overflow: auto;
   border-radius: var(--radius-ui);
   padding: 1rem;
 }
@@ -128,13 +139,14 @@
 .shopping-list-table {
   display: grid;
   gap: 0.45rem;
+  grid-template-rows: auto minmax(0, 1fr);
   min-height: 0;
 }
 
 .shopping-list-shell {
   display: grid;
   gap: 0.45rem;
-  max-height: 28rem;
+  min-height: 0;
   overflow: auto;
 }
 
@@ -302,6 +314,11 @@
   .shopping-layout {
     display: grid;
     grid-template-columns: 1fr;
+    height: auto;
+  }
+
+  .shopping-card {
+    height: auto;
   }
 
   .shopping-amounts {

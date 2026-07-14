@@ -14,7 +14,7 @@
   </button>
   @if (!sectionCollapsed()) {
     <div class="shopping-layout">
-      <section class="shopping-overview">
+      <section class="shopping-overview" [class.shopping-overview-active]="!!shoppingList()">
         <div class="shopping-card-topline">
           <div>
             <p class="ui-kicker">{{ loc.t("household.shoppingListKicker") }}</p>

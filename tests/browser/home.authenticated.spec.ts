@@ -16,5 +16,11 @@ test("authenticated Home loads the Product Group workspace through the browser A
   );
   await expect(page.locator("app-household-shopping-list")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Shopping trip" })).toBeVisible();
+  const shoppingTripPanel = page.locator("app-household-shopping-trip-panel");
+  await expect(shoppingTripPanel.locator(".trip-panel")).toHaveClass(/trip-collapsed/);
+  await shoppingTripPanel.locator(".trip-section-toggle").click();
+  await expect(shoppingTripPanel.getByLabel("Shop market id")).toBeVisible();
+  await shoppingTripPanel.locator(".trip-section-toggle").click();
+  await expect(shoppingTripPanel.locator(".trip-start-form")).toBeHidden();
   expect(fixture.unexpectedRequests).toEqual([]);
 });

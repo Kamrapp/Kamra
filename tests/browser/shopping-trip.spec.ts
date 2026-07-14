@@ -8,6 +8,7 @@ test("standard users can run a custom-market Shopping Trip through completion", 
   const fixture = await installBrowserApiFixture(page);
 
   await page.goto("/");
+  await page.locator("app-household-shopping-trip-panel .trip-section-toggle").click();
 
   const marketSelect = page.getByLabel("Shop market id");
   await marketSelect.selectOption("__custom__");

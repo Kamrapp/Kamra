@@ -395,6 +395,17 @@ Chromium suite passed all 4 contracts; and the elevated `npm run smoke:shopping-
 concurrent completion/review assertions. Do not treat the synthetic browser suite as a waiver for
 real-data or subjective UI evidence.
 
+## Home shopping panel layout refinement (2026-07-14)
+
+- Updated the Home grid so the household workspace and Shopping list share desktop space predictably,
+  collapsed panels remain compact, and mobile panels use natural stacked flow with minimum separation.
+- The expanded Shopping list now keeps its heading, quick-add, finalize controls, and status compact;
+  only the item table's shell consumes flexible height and scrolls. Shopping Trip is collapsed by
+  default with an accessible disclosure control and responsive content flow.
+- Updated the browser contract to expand Trip explicitly, and added the default-collapsed/toggle
+  assertion. Added the remaining visual and narrow-layout checks to the live runbook.
+- Validation passed: full Chromium suite (4 tests), formatting, lint, typecheck, and web build.
+
 ## Browser harness cleanup (2026-07-14)
 
 - Replaced the browser harness's nested `npm run dev:web` command with a direct Angular launcher and
