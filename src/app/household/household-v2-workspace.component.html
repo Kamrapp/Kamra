@@ -2,6 +2,8 @@
   class="v2-workspace ui-panel-card"
   [class.workspace-collapsed]="!sectionExpanded()"
   [class.shopping-selection-active]="shoppingSelectionMode()"
+  [class.preview-mode]="preview()"
+  [attr.inert]="preview() ? '' : null"
   aria-labelledby="v2-workspace-title"
 >
   <div class="workspace-heading">

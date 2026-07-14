@@ -46,6 +46,8 @@ type BatchUnitSelection = HouseholdTrackingUnitOption | "match-product";
 })
 export class HouseholdV2WorkspaceComponent {
   readonly householdId = input("");
+  readonly preview = input(false);
+  readonly previewWorkspace = input<HouseholdV2Workspace | null>(null);
   readonly refreshRevision = input(0);
   readonly productSelected = output<HouseholdV2Product>();
   readonly batchSelected = output<{
@@ -124,11 +126,22 @@ export class HouseholdV2WorkspaceComponent {
   constructor() {
     let lastRefreshRevision = this.refreshRevision();
     effect(() => {
+      const preview = this.preview();
+      const previewWorkspace = this.previewWorkspace();
       const householdId = this.householdId();
       const refreshRevision = this.refreshRevision();
       if (refreshRevision !== lastRefreshRevision) {
         lastRefreshRevision = refreshRevision;
         this.resetEditingState();
+      }
+      if (preview) {
+        if (this.workspace() !== previewWorkspace) {
+          if (previewWorkspace) this.setExpansionLevel(1, previewWorkspace);
+          this.workspace.set(previewWorkspace);
+        }
+        this.loadState.set(previewWorkspace ? "ready" : "idle");
+        this.errorMessage.set("");
+        return;
       }
       if (householdId) void this.load(householdId);
     });
@@ -139,6 +152,7 @@ export class HouseholdV2WorkspaceComponent {
     });
   }
   async refresh(): Promise<void> {
+    if (this.preview()) return;
     const householdId = this.householdId();
     if (householdId) await this.load(householdId);
   }

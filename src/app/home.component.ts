@@ -13,14 +13,10 @@ import { AuthService } from "./auth.service";
 import {
   HouseholdStockService,
   type HouseholdListItem,
-  type HouseholdShoppingList,
   type HouseholdStockItemListItem,
   type HouseholdStockPage
 } from "./household/household-stock.service";
-import {
-  HouseholdPreviewWorkspaceComponent,
-  type HouseholdPreviewStockItem
-} from "./household/household-preview-workspace.component";
+import { HouseholdPreviewWorkspaceComponent } from "./household/household-preview-workspace.component";
 import {
   type HouseholdStockDraft,
   type HouseholdStockEditorMode
@@ -158,86 +154,6 @@ export class HomeComponent implements OnDestroy {
         )
     )
   );
-  readonly previewStockItems = computed<HouseholdPreviewStockItem[]>(() => [
-    {
-      currentAmount: 0.6,
-      displayName: this.loc.t("home.milk"),
-      id: "preview_milk",
-      minLimit: 1,
-      stockStatus: "low_soon",
-      unit: "l"
-    },
-    {
-      currentAmount: 2,
-      displayName: this.loc.t("home.rice"),
-      id: "preview_rice",
-      minLimit: 1,
-      stockStatus: "steady",
-      unit: "kg"
-    },
-    {
-      currentAmount: 0,
-      displayName: this.loc.t("home.coffee"),
-      id: "preview_coffee",
-      minLimit: 1,
-      stockStatus: "below_limit",
-      unit: "bag"
-    }
-  ]);
-  readonly previewShoppingItems = computed(() =>
-    this.previewStockItems().filter((item) =>
-      shouldBuyForScale(item.stockStatus, this.shoppingScale())
-    )
-  );
-  readonly demoShoppingList = computed<HouseholdShoppingList>(() => ({
-    createdAt: "2026-07-10T12:00:00.000Z",
-    createdByUserId: "preview_user",
-    householdId: "preview_household",
-    id: "preview_shopping_list",
-    items: this.previewShoppingItems().map((item) => {
-      const planning = createShoppingLinePlanning(previewStockItemToHouseholdStockItem(item));
-      return {
-        currentAmount: item.currentAmount,
-        displayName: item.displayName,
-        householdProductId: `preview_product_${item.id}`,
-        householdStockItemId: item.id,
-        id: `preview_line_${item.id}`,
-        idealMaxLimit: null,
-        minLimit: item.minLimit,
-        observedPrice: null,
-        plannedAmount: planning.plannedAmount,
-        purchasedAmount: 0,
-        reasonCode: planning.reasonCode,
-        sourceKind: "generated",
-        status: "not_applied",
-        stockGroupKey: item.id,
-        stockStatus: item.stockStatus,
-        suggestedBuyAmount: planning.plannedAmount,
-        targetAmount: planning.targetAmount,
-        ticked: false,
-        uncertaintyFlags: ["missing_catalog_product", "missing_product_source"],
-        unit: item.unit
-      };
-    }),
-    scale: this.apiShoppingScale(),
-    schemaVersion: "demo",
-    shopId: null,
-    status: "active",
-    stockAppliedAt: todayDateInputValue(),
-    updatedAt: "2026-07-10T12:00:00.000Z",
-    updatedByUserId: "preview_user"
-  }));
-  readonly previewEditorItem = computed<HouseholdPreviewStockItem>(
-    () =>
-      this.previewStockItems()[0] ?? {
-        currentAmount: 0,
-        displayName: this.loc.t("home.milk"),
-        id: "preview_fallback",
-        minLimit: 1,
-        stockStatus: "low_soon",
-        unit: "l"
-      }
-  );
   readonly shoppingItems = computed(() =>
     this.stockItemsByPriority().filter((item) =>
       shouldBuyForScale(item.stockStatus, this.shoppingScale())
@@ -270,7 +186,7 @@ export class HomeComponent implements OnDestroy {
   });
   readonly shoppingItemCount = computed(() => this.shoppingSelectionCandidates().length);
   readonly railShoppingItemCount = computed(() =>
-    this.auth.isAuthenticated() ? this.shoppingItemCount() : this.previewShoppingItems().length
+    this.auth.isAuthenticated() ? this.shoppingItemCount() : 2
   );
   readonly pageRailSections = computed<PageRailSection[]>(() => [
     {
@@ -821,27 +737,6 @@ function createShoppingLinePlanning(item: HouseholdStockItemListItem): {
             ? "low_soon"
             : "broad_restock",
     targetAmount
-  };
-}
-
-function previewStockItemToHouseholdStockItem(
-  item: HouseholdPreviewStockItem
-): HouseholdStockItemListItem {
-  return {
-    createdAt: "2026-07-10T12:00:00.000Z",
-    currentAmount: item.currentAmount,
-    displayName: item.displayName,
-    householdId: "preview_household",
-    householdProductId: `preview_product_${item.id}`,
-    id: item.id,
-    initialAmount: item.currentAmount,
-    minLimit: item.minLimit,
-    status: "active",
-    stockedAt: "2026-07-10T12:00:00.000Z",
-    stockGroupKey: item.id,
-    stockStatus: item.stockStatus,
-    unit: item.unit,
-    updatedAt: "2026-07-10T12:00:00.000Z"
   };
 }
 

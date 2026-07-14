@@ -668,3 +668,18 @@ the approved disposable database, then run `npm run seed:demo-household` and
 - Validation: API integration/domain/repository tests (17), app/API typecheck, lint, Prettier,
   and both Shopping Trip Chromium tests pass. A known orphaned test server on port 4200 was stopped
   before the fresh-server browser run; the harness itself was unchanged.
+
+## Anonymous Home preview alignment (2026-07-14)
+
+- Replaced the legacy anonymous stock table/editor preview with the canonical
+  `HouseholdV2WorkspaceComponent`. The public route now renders the same Product Group → Product →
+  Stock Batch template and component CSS as authenticated Home, using deterministic in-memory
+  groups, products, batches, target states, and unassigned content.
+- Added an explicit preview input to the canonical workspace. Preview data is loaded without a
+  household id or API call, and the rendered workspace is `inert`, so refresh, disclosure, edit,
+  add, delete, and selection controls cannot mutate or request data while the surrounding login
+  surface remains available.
+- Removed the anonymous-only duplicate Home preview data generation. Added a browser contract for
+  the anonymous preview and retained the authenticated Home browser contract as a regression check.
+- Validation: app/API typecheck, lint, formatting, and anonymous plus authenticated Home Chromium
+  tests pass.
