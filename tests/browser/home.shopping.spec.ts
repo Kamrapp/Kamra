@@ -154,6 +154,11 @@ test("Home household rows share grid tracks and show child counts", async ({ pag
 
   await expect(groupRow.locator(".group-product-count")).toHaveText("(1)");
   await expect(unassignedRow.locator(".group-product-count")).toHaveText("(1)");
+  await groupRow.getByRole("button", { name: "Show Product Group details" }).click();
+  const groupDetails = page.locator(".group-details").first();
+  await expect(groupDetails).toContainText("Tracking unit");
+  await expect(groupDetails).toContainText("When a Product Group is below target");
+  await expect(page.getByText("Calculated from Products and batches")).toHaveCount(0);
   await productRow.locator(".row-name").click();
   const batchRow = page.locator(".stock-batch-row").first();
   await expect(batchRow).toBeVisible();

@@ -499,3 +499,15 @@ the approved disposable database, then run `npm run seed:demo-household` and
   instead of a separate `n products` label. Empty Unassigned Products keeps its expansion slot blank.
 - Added a browser contract for shared tracks and child counts. Typecheck, lint, formatting, and the
   five focused Home browser tests pass.
+
+## Runbook automation reconciliation (2026-07-14)
+
+- Added a stateful Chromium contract for Household management settings: expiry policy and max-limit
+  multiplier save with visible feedback, request ownership, and persistence after reload.
+- Extended the Home browser contract to verify Group detail terminology and the removal of the
+  obsolete calculated-source text.
+- Reconciled `scripts/stage11-mvp-manual-test.md` so active sections contain only real seeded,
+  visual, configured-environment, or multi-user evidence. Synthetic settings, grid/details/count,
+  selection, completion, Trip, and admin checks now live only in the covered ledger.
+- The full Chromium browser suite passes with 9 tests; typecheck, lint, Prettier, and diff checks
+  also pass for this slice.

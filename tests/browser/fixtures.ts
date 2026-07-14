@@ -286,6 +286,56 @@ function findResponse(
     return jsonResponse(200, { households: [state.household] });
   }
 
+  if (
+    request.method === "GET" &&
+    request.path === `/api/households/${browserHouseholdId}/invitations`
+  ) {
+    return jsonResponse(200, { invitations: [] });
+  }
+
+  if (
+    request.method === "GET" &&
+    request.path === `/api/households/${browserHouseholdId}/members`
+  ) {
+    return jsonResponse(200, {
+      members: [
+        {
+          role: "owner",
+          status: "active",
+          updatedAt: "2026-07-14T08:00:00.000Z",
+          userId: "browser@example.test"
+        }
+      ]
+    });
+  }
+
+  if (
+    request.method === "PATCH" &&
+    request.path === `/api/households/${browserHouseholdId}/settings`
+  ) {
+    const body = isRecord(request.body) ? request.body : {};
+    Object.assign(state.household, {
+      allowExpiredItems:
+        typeof body["allowExpiredItems"] === "boolean"
+          ? body["allowExpiredItems"]
+          : state.household.allowExpiredItems,
+      defaultCalculatedMaxLimitMultiplier:
+        typeof body["defaultCalculatedMaxLimitMultiplier"] === "number"
+          ? body["defaultCalculatedMaxLimitMultiplier"]
+          : state.household.defaultCalculatedMaxLimitMultiplier,
+      groupTargetShoppingDistributionMode:
+        typeof body["groupTargetShoppingDistributionMode"] === "string"
+          ? body["groupTargetShoppingDistributionMode"]
+          : state.household.groupTargetShoppingDistributionMode,
+      groupTargetShoppingMode:
+        typeof body["groupTargetShoppingMode"] === "string"
+          ? body["groupTargetShoppingMode"]
+          : state.household.groupTargetShoppingMode,
+      name: typeof body["name"] === "string" ? body["name"] : state.household.name
+    });
+    return jsonResponse(200, {});
+  }
+
   if (request.method === "GET" && request.path === "/api/household/items") {
     return jsonResponse(200, {
       household: state.household,
