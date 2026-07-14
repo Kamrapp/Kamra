@@ -538,3 +538,11 @@ the approved disposable database, then run `npm run seed:demo-household` and
 - Simplified above-target comparison output from `>>` to `>` while keeping its stronger good-state
   color; the active runbook wording is updated accordingly.
 - Browser coverage now checks shared cell starts both before and after forcing table overflow.
+
+## Household header gutter follow-up (2026-07-14)
+
+- Kept the stable body gutter and extended only the header surface across that gutter with a
+  non-layout pseudo-element. This avoids changing the shared grid tracks while removing the visible
+  right-edge gap when the table scrollbar is present.
+- The browser contract now checks both exact cell alignment and the extended header boundary in the
+  overflowing state. No new manual test step is needed beyond the existing visual table check.

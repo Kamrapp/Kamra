@@ -168,6 +168,16 @@ test("Home household rows share grid tracks and show child counts", async ({ pag
     )
   );
   expect(gridStarts.slice(1)).toEqual([gridStarts[0], gridStarts[0], gridStarts[0]]);
+  const headerAndBodyEdges = await Promise.all([
+    header.evaluate((element) => {
+      const after = getComputedStyle(element, "::after");
+      return Math.round(element.getBoundingClientRect().right + Number.parseFloat(after.width));
+    }),
+    page
+      .locator(".stock-grid-body")
+      .evaluate((element) => Math.round(element.getBoundingClientRect().right))
+  ]);
+  expect(headerAndBodyEdges[0]).toBeGreaterThanOrEqual(headerAndBodyEdges[1]);
   await expect(productRow.locator(".workspace-expansion-slot")).toHaveText("▸");
   await expect(emptyProductRow.locator(".workspace-expansion-slot")).toHaveText("");
 

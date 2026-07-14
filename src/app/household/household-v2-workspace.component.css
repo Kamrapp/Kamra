@@ -44,6 +44,7 @@
   grid-template-rows: auto minmax(0, 1fr);
   min-height: 0;
   overflow: hidden;
+  --stock-grid-scrollbar-gutter: 0.5rem;
 }
 .stock-grid {
   --stock-grid-action-width: calc(8rem + var(--space-2) + var(--space-2) + var(--space-2));
@@ -169,7 +170,17 @@
   color: var(--color-text-muted);
   font-size: 0.66rem;
   font-weight: 900;
+  position: relative;
   text-transform: uppercase;
+}
+.stock-grid-header::after {
+  background: color-mix(in srgb, var(--pulse-row-background) 72%, transparent);
+  bottom: 0;
+  content: "";
+  position: absolute;
+  right: calc(var(--stock-grid-scrollbar-gutter) * -1);
+  top: 0;
+  width: var(--stock-grid-scrollbar-gutter);
 }
 .stock-grid-body {
   min-height: 0;
