@@ -568,3 +568,19 @@ the approved disposable database, then run `npm run seed:demo-household` and
 - Typecheck, lint, focused API tests (53 tests), formatting, and diff checks pass. A browser visual
   check remains useful for the two new selectors and for confirming the match-group option is absent
   on an unassigned Product.
+
+## Shopping list row actions and oldest-product selection (2026-07-14)
+
+- `db280b0` fixes the Group Oldest strategy so it compares each Product's latest available Batch;
+  an older expired/replaced Batch no longer makes that Product win. A multi-Batch regression fixture
+  covers the Alma/Kiwi case.
+- `ff31f84` adds editable impulse names, discard actions for every shopping-list row, localized
+  Purchased wording, a compact inherited list grid, and an explicit cancellation event that
+  reopens the household workspace. Selection cancellation preserves the intentional workspace
+  collapse after Generate.
+- `c76238f` protects both selection-cancel and active-list-cancel reopening in the Chromium contract.
+- Validation after these commits: 23 focused shopping-needs tests, 7 Home Chromium tests, app/API
+  typecheck, lint, targeted Prettier, and `git diff --check` passed. Full preflight was not rerun.
+- The live runbook now contains only three new Section 4 manual checks for impulse rename/discard,
+  Purchased presentation, and both cancellation paths; the accepted real-data selection and
+  distribution checks were moved into the covered ledger.
