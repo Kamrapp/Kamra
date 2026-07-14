@@ -170,6 +170,26 @@ test("Home household rows share grid tracks and show child counts", async ({ pag
   expect(gridStarts.slice(1)).toEqual([gridStarts[0], gridStarts[0], gridStarts[0]]);
   await expect(productRow.locator(".workspace-expansion-slot")).toHaveText("▸");
   await expect(emptyProductRow.locator(".workspace-expansion-slot")).toHaveText("");
+
+  const stockGridBody = page.locator(".stock-grid-body");
+  await stockGridBody.evaluate((element) => {
+    element.style.maxHeight = "1px";
+  });
+  await expect
+    .poll(() => stockGridBody.evaluate((element) => element.scrollHeight > element.clientHeight))
+    .toBe(true);
+  const scrollbarGridStarts = await Promise.all(
+    [header, groupRow, productRow, emptyProductRow].map((row) =>
+      row
+        .locator(":scope > *")
+        .evaluateAll((cells) => cells.map((cell) => Math.round(cell.getBoundingClientRect().left)))
+    )
+  );
+  expect(scrollbarGridStarts.slice(1)).toEqual([
+    scrollbarGridStarts[0],
+    scrollbarGridStarts[0],
+    scrollbarGridStarts[0]
+  ]);
   await productRow.locator(".row-name").click();
   const batchRow = page.locator(".stock-batch-row").first();
   await expect(batchRow).toBeVisible();

@@ -92,7 +92,7 @@ restock derivation as deferred rather than a test failure.
       setting, refresh Home, and confirm only inherited Group labels update; the local fruit override
       remains local.
 - [ ] Inspect below-minimum, between-minimum/target, exact-target, above-target, and untracked rows
-      in the seeded data: above target uses a green `>>` marker, between uses the blue/info treatment,
+      in the seeded data: above target uses a green `>` marker, between uses the blue/info treatment,
       state badges are readable, and untracked rows show no comparison symbols.
 - [ ] Save one seeded Group/Product/Batch change from each available editor path and refresh. Confirm
       the other editor clears, the hierarchy remains attached, and visible Activity/toast feedback

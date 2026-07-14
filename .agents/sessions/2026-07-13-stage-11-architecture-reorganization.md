@@ -530,3 +530,11 @@ the approved disposable database, then run `npm run seed:demo-household` and
   invitation action layout remains open for visual confirmation.
 - Added a two-surface browser contract. The full Chromium suite now passes with 10 tests; typecheck,
   lint, Prettier, and diff checks pass.
+
+## Household scrollbar/comparison follow-up (2026-07-14)
+
+- Added a stable vertical scrollbar gutter to the Product Group table body so header and data rows
+  keep the same grid tracks whether the body overflows or not.
+- Simplified above-target comparison output from `>>` to `>` while keeping its stronger good-state
+  color; the active runbook wording is updated accordingly.
+- Browser coverage now checks shared cell starts both before and after forcing table overflow.

@@ -431,7 +431,7 @@ export class HouseholdV2WorkspaceComponent {
   ): string {
     if (reference === undefined) return "";
     if (kind === "target") {
-      return current > reference ? ">>" : current === reference ? "=" : "<";
+      return current > reference ? ">" : current === reference ? "=" : "<";
     }
     return "<";
   }
