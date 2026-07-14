@@ -41,7 +41,10 @@
   align-content: start;
   display: grid;
   gap: var(--space-3);
+  max-height: 100%;
   min-width: 0;
+  min-height: 0;
+  overflow: auto;
 }
 
 .household-stock-layout app-household-v2-workspace {

@@ -20,9 +20,15 @@ const browserHousehold = {
 export interface BrowserApiState {
   createShoppingListStatus: number;
   household: typeof browserHousehold;
+  userRole: "admin" | "user";
   shoppingList: Record<string, unknown> | null;
   shopMarkets: Array<Record<string, unknown>>;
   shoppingTrips: Array<Record<string, unknown>>;
+  stage9AdminPrices: Array<Record<string, unknown>>;
+  stage9AdminProducts: Array<Record<string, unknown>>;
+  stage9AdminSubmissions: Array<Record<string, unknown>>;
+  stage9ReviewDelayMs: number;
+  stage9ReviewStatus: number;
   workspace: {
     allowExpiredItems: boolean;
     defaultCalculatedMaxLimitMultiplier: number;
@@ -50,9 +56,49 @@ export function createBrowserApiState(): BrowserApiState {
   return {
     createShoppingListStatus: 200,
     household: browserHousehold,
+    userRole: "user",
     shoppingList: null,
-    shopMarkets: [],
+    shopMarkets: [
+      {
+        countryCode: "HU",
+        currencyCode: "HUF",
+        displayName: "Lidl Hungary",
+        id: "market-lidl-hu",
+        status: "active"
+      }
+    ],
     shoppingTrips: [],
+    stage9AdminPrices: [
+      {
+        currencyCode: "HUF",
+        id: "price:milk:initial",
+        kind: "base",
+        observedAt: "2026-07-14T07:00:00.000Z",
+        price: 499,
+        validFrom: null,
+        validTo: null
+      }
+    ],
+    stage9AdminProducts: [
+      {
+        displayName: "Milk 1 l",
+        id: "shop-product:milk",
+        packageQuantity: 1,
+        packageUnit: "l",
+        productId: "catalog-product:milk",
+        shopMarketId: "market-lidl-hu"
+      }
+    ],
+    stage9AdminSubmissions: [
+      {
+        facts: { displayName: "Milk 1 l", quantity: 1, unit: "l" },
+        id: "submission:milk-1",
+        revision: 1,
+        status: "pending"
+      }
+    ],
+    stage9ReviewDelayMs: 0,
+    stage9ReviewStatus: 200,
     workspace: {
       allowExpiredItems: true,
       defaultCalculatedMaxLimitMultiplier: 2,
@@ -174,6 +220,13 @@ async function respondToBrowserApiRequest(route: Route, fixture: BrowserApiFixtu
     return;
   }
 
+  if (
+    record.path.startsWith("/api/admin/ingestion-submissions/") &&
+    fixture.state.stage9ReviewDelayMs
+  ) {
+    await new Promise((resolve) => setTimeout(resolve, fixture.state.stage9ReviewDelayMs));
+  }
+
   await route.fulfill(response);
 }
 
@@ -195,13 +248,17 @@ function findResponse(
       user: {
         email: "browser@example.test",
         profile: { language: "en", theme: "dark" },
-        role: "user"
+        role: state.userRole
       }
     });
   }
 
   if (request.method === "GET" && request.path === "/api/invitations") {
     return jsonResponse(200, { invitations: [] });
+  }
+
+  if (request.method === "POST" && request.path === "/api/log") {
+    return jsonResponse(200, { accepted: true });
   }
 
   if (request.method === "GET" && request.path === "/api/households") {
@@ -224,6 +281,47 @@ function findResponse(
 
   if (request.method === "GET" && request.path === "/api/shops") {
     return jsonResponse(200, { shops: [] });
+  }
+
+  if (request.method === "GET" && request.path === "/api/admin/shop-markets") {
+    return jsonResponse(200, { markets: state.shopMarkets });
+  }
+
+  if (request.method === "GET" && request.path === "/api/admin/ingestion-submissions") {
+    return jsonResponse(200, { submissions: state.stage9AdminSubmissions });
+  }
+
+  if (request.method === "GET" && request.path === "/api/admin/shop-products") {
+    return jsonResponse(200, { products: state.stage9AdminProducts });
+  }
+
+  if (request.method === "GET" && request.path === "/api/admin/price-observations") {
+    return jsonResponse(200, { observations: state.stage9AdminPrices });
+  }
+
+  if (request.method === "POST" && request.path === "/api/admin/price-observations") {
+    const body = isRecord(request.body) ? request.body : {};
+    state.stage9AdminPrices.push({
+      currencyCode: typeof body["currencyCode"] === "string" ? body["currencyCode"] : "HUF",
+      id: typeof body["id"] === "string" ? body["id"] : "price:browser:new",
+      kind: typeof body["kind"] === "string" ? body["kind"] : "base",
+      observedAt: typeof body["observedAt"] === "string" ? body["observedAt"] : "2026-07-14",
+      price: typeof body["price"] === "number" ? body["price"] : 0,
+      validFrom: body["validFrom"] ?? null,
+      validTo: body["validTo"] ?? null
+    });
+    return jsonResponse(201, { priceObservation: state.stage9AdminPrices.at(-1) });
+  }
+
+  if (request.method === "PATCH" && request.path.startsWith("/api/admin/ingestion-submissions/")) {
+    if (state.stage9ReviewStatus !== 200) {
+      return jsonResponse(state.stage9ReviewStatus, { error: "review_conflict" });
+    }
+    const submissionId = decodeURIComponent(request.path.split("/").at(-1) ?? "");
+    state.stage9AdminSubmissions = state.stage9AdminSubmissions.filter(
+      (submission) => submission.id !== submissionId
+    );
+    return jsonResponse(200, { status: "accepted" });
   }
 
   if (request.method === "POST" && request.path === "/api/household/shopping-lists") {
@@ -272,6 +370,38 @@ function findResponse(
     request.path === `/api/households/${browserHouseholdId}/shopping-trips`
   ) {
     return jsonResponse(200, { trips: state.shoppingTrips });
+  }
+
+  if (
+    request.method === "POST" &&
+    request.path === `/api/households/${browserHouseholdId}/shopping-trips`
+  ) {
+    const trip = createShoppingTrip();
+    state.shoppingTrips = [trip];
+    return jsonResponse(201, { result: trip });
+  }
+
+  if (
+    request.method === "PATCH" &&
+    request.path.startsWith(`/api/households/${browserHouseholdId}/shopping-trips/`)
+  ) {
+    const current = state.shoppingTrips[0];
+    if (!current) return jsonResponse(404, { error: "trip_not_found" });
+    const next = updateShoppingTrip(current, request.body);
+    state.shoppingTrips = [next];
+    return jsonResponse(200, { result: next });
+  }
+
+  if (
+    request.method === "POST" &&
+    request.path.endsWith("/complete") &&
+    request.path.includes(`/api/households/${browserHouseholdId}/shopping-trips/`)
+  ) {
+    const current = state.shoppingTrips[0];
+    if (!current) return jsonResponse(404, { error: "trip_not_found" });
+    const next = { ...current, revision: Number(current.revision ?? 0) + 1, status: "completed" };
+    state.shoppingTrips = [next];
+    return jsonResponse(200, { result: next });
   }
 
   if (
@@ -341,6 +471,110 @@ function createArchivedShoppingList(): Record<string, unknown> {
   return {
     ...createShoppingList([]),
     status: "archived"
+  };
+}
+
+function createShoppingTrip(): Record<string, unknown> {
+  return {
+    id: "browser-trip",
+    items: [
+      {
+        displayNameSnapshot: "Pilos 1.5% milk",
+        expectedPackageCount: 1,
+        expectedTotal: 499,
+        id: "trip-item-unresolved",
+        matchExplanation: "compatible package candidate",
+        matchOptions: [
+          {
+            displayName: "Milk 1 l",
+            expectedPackageCount: 1,
+            expectedTotal: 499,
+            priceState: "conditional_only",
+            selectedPriceObservationId: "price:milk:initial",
+            shopProductId: "shop-product:milk"
+          }
+        ],
+        planStatus: "unresolved",
+        requiredQuantity: 1,
+        requiredUnit: "l",
+        resultStatus: "pending",
+        selectedShopProductId: null
+      },
+      {
+        displayNameSnapshot: "Mizo lactose-free milk",
+        expectedPackageCount: 1,
+        expectedTotal: 499,
+        id: "trip-item-selected",
+        matchExplanation: "preferred household Product",
+        matchOptions: [],
+        planStatus: "selected",
+        requiredQuantity: 1,
+        requiredUnit: "l",
+        resultStatus: "pending",
+        selectedProductId: "product-milk-pilos",
+        selectedShopProductId: "shop-product:milk",
+        priceState: "applicable"
+      }
+    ],
+    plannedDate: "2026-07-14",
+    revision: 1,
+    shopMarketId: null,
+    shopNameSnapshot: "Weekend market",
+    status: "draft"
+  };
+}
+
+function updateShoppingTrip(
+  current: Record<string, unknown>,
+  body: unknown
+): Record<string, unknown> {
+  const input = isRecord(body) ? body : {};
+  let status = typeof current.status === "string" ? current.status : "draft";
+  if (typeof input["transition"] === "string") status = input["transition"];
+
+  const items = Array.isArray(current["items"])
+    ? current["items"].map((value) => (isRecord(value) ? { ...value } : value))
+    : [];
+  const itemId = typeof input["itemId"] === "string" ? input["itemId"] : null;
+  const item = items.find((value) => isRecord(value) && value["id"] === itemId);
+  if (isRecord(item)) {
+    for (const key of [
+      "actualAcquiredOn",
+      "actualCurrencyCode",
+      "actualExpiryOn",
+      "actualPaidPrice",
+      "actualQuantity",
+      "actualUnit"
+    ]) {
+      if (key in input) item[key] = input[key];
+    }
+    if (typeof input["householdProductId"] === "string" || input["householdProductId"] === null) {
+      item["purchaseHouseholdProductId"] = input["householdProductId"];
+    }
+    if (typeof input["planStatus"] === "string") item["planStatus"] = input["planStatus"];
+    if (typeof input["resultStatus"] === "string") item["resultStatus"] = input["resultStatus"];
+    if (typeof input["selectedShopProductId"] === "string") {
+      item["selectedShopProductId"] = input["selectedShopProductId"];
+    }
+  }
+
+  const unplanned = input["unplannedPurchase"];
+  if (isRecord(unplanned)) {
+    items.push({
+      displayNameSnapshot: unplanned["displayName"],
+      id: unplanned["id"],
+      planStatus: "selected",
+      requiredQuantity: unplanned["quantity"],
+      requiredUnit: unplanned["unit"],
+      resultStatus: "bought"
+    });
+  }
+
+  return {
+    ...current,
+    items,
+    revision: Number(current.revision ?? 0) + 1,
+    status
   };
 }
 
