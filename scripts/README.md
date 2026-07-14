@@ -6,6 +6,23 @@ This folder contains manually runnable local and workflow entrypoints.
 
 Scripts should stay thin. Reusable logic belongs in `packages/`, and workflow YAML should call npm scripts instead of duplicating business logic.
 
+### Browser contract checks
+
+The focused Chromium suite exercises the Angular wiring for Home shopping, Shopping Trip, and Stage
+9 admin flows with a stateful synthetic API fixture. It is secret-free and does not write MongoDB;
+it complements, rather than replaces, the configured MongoDB smokes and the remaining visual/manual
+acceptance checks.
+
+Install the local browser once, then run:
+
+```powershell
+npx playwright install chromium
+npm run test:browser
+```
+
+The `Browser Contracts` GitHub workflow installs Chromium in CI and runs only when browser-facing
+source, harness, or configuration paths change.
+
 ## Current Scripts
 
 ### `local-api.ts`
