@@ -18,6 +18,7 @@ const browserHousehold = {
 } as const;
 
 export interface BrowserApiState {
+  createShoppingListStatus: number;
   household: typeof browserHousehold;
   shoppingList: Record<string, unknown> | null;
   shopMarkets: Array<Record<string, unknown>>;
@@ -47,6 +48,7 @@ export interface BrowserApiFixture {
 
 export function createBrowserApiState(): BrowserApiState {
   return {
+    createShoppingListStatus: 200,
     household: browserHousehold,
     shoppingList: null,
     shopMarkets: [],
@@ -54,7 +56,74 @@ export function createBrowserApiState(): BrowserApiState {
     workspace: {
       allowExpiredItems: true,
       defaultCalculatedMaxLimitMultiplier: 2,
-      productGroups: [],
+      productGroups: [
+        {
+          aggregate: {
+            availableQuantity: 0,
+            batchCount: 1,
+            nextExpiryOn: "2026-07-15",
+            state: "below_minimum",
+            trackingUnit: "l"
+          },
+          childGroups: [],
+          group: {
+            displayName: "Milk",
+            id: "group-milk",
+            parentProductGroupId: null,
+            revision: 1,
+            targetPolicy: {
+              consumptionPolicy: "earliest_expiry_first",
+              desiredQuantity: 2,
+              expiryWarningDays: 3,
+              minimumQuantity: 1,
+              trackingUnit: "l"
+            },
+            trackingUnit: "l"
+          },
+          products: [
+            {
+              aggregate: {
+                availableQuantity: 0,
+                batchCount: 1,
+                nextExpiryOn: "2026-07-15",
+                state: "below_minimum",
+                trackingUnit: "l"
+              },
+              batches: [
+                {
+                  acquiredOn: "2026-07-10",
+                  acquisitionSnapshot: {
+                    displayName: "Pilos 1.5% milk",
+                    sourceName: "Manual"
+                  },
+                  expiryOn: "2026-07-15",
+                  householdProductId: "product-milk-pilos",
+                  id: "batch-milk-pilos-1",
+                  remainingQuantity: 0,
+                  revision: 1,
+                  unit: "l"
+                }
+              ],
+              product: {
+                defaultTrackingUnit: "l",
+                displayName: "Pilos 1.5% milk",
+                id: "product-milk-pilos",
+                identityKind: "manual",
+                note: null,
+                productGroupId: "group-milk",
+                revision: 1,
+                targetPolicy: {
+                  consumptionPolicy: "earliest_expiry_first",
+                  desiredQuantity: 2,
+                  expiryWarningDays: 3,
+                  minimumQuantity: 1,
+                  trackingUnit: "l"
+                }
+              }
+            }
+          ]
+        }
+      ],
       unassignedBatches: [],
       unassignedProducts: [],
       useAbbreviatedUiLabels: false
@@ -157,6 +226,33 @@ function findResponse(
     return jsonResponse(200, { shops: [] });
   }
 
+  if (request.method === "POST" && request.path === "/api/household/shopping-lists") {
+    if (state.createShoppingListStatus !== 200) {
+      return jsonResponse(state.createShoppingListStatus, {
+        messageKey: "household.shoppingListSaveFailure"
+      });
+    }
+
+    const body = isRecord(request.body) ? request.body : {};
+    const selectedOwnerIds = Array.isArray(body["selectedOwnerIds"])
+      ? body["selectedOwnerIds"].filter((id): id is string => typeof id === "string")
+      : [];
+    state.shoppingList = createShoppingList(selectedOwnerIds);
+    return jsonResponse(200, { shoppingList: state.shoppingList });
+  }
+
+  if (request.method === "PATCH" && request.path === "/api/household/shopping-lists") {
+    const body = isRecord(request.body) ? request.body : {};
+    if (body["status"] === "archived") {
+      state.shoppingList = null;
+      return jsonResponse(200, { shoppingList: createArchivedShoppingList() });
+    }
+    if (state.shoppingList && Array.isArray(body["items"])) {
+      state.shoppingList = { ...state.shoppingList, items: body["items"] };
+    }
+    return jsonResponse(200, { shoppingList: state.shoppingList });
+  }
+
   if (
     request.method === "GET" &&
     request.path === `/api/households/${browserHouseholdId}/stock-workspace`
@@ -186,6 +282,70 @@ function findResponse(
   }
 
   return null;
+}
+
+function createShoppingList(selectedOwnerIds: string[]): Record<string, unknown> {
+  const selectedItems = selectedOwnerIds.map((ownerId, index) => ({
+    currentAmount: 0,
+    displayName: ownerId === "group-milk" ? "Milk" : "Pilos 1.5% milk",
+    householdProductId: ownerId === "group-milk" ? null : "product-milk-pilos",
+    id: `generated_${index}_${ownerId}`,
+    idealMaxLimit: null,
+    minLimit: 1,
+    plannedAmount: 1,
+    purchasedAmount: 0,
+    productGroupId: ownerId === "group-milk" ? "group-milk" : null,
+    reasonCode: "below_minimum",
+    sourceKind: "generated",
+    status: "not_applied",
+    suggestedBuyAmount: 1,
+    targetAmount: 2,
+    ticked: false,
+    uncertaintyFlags: [],
+    unit: "l"
+  }));
+
+  return {
+    createdAt: "2026-07-14T08:10:00.000Z",
+    createdByUserId: "browser@example.test",
+    householdId: browserHouseholdId,
+    id: "browser-shopping-list",
+    items: [
+      ...selectedItems,
+      {
+        displayName: "Alma",
+        id: "manual_alma",
+        plannedAmount: 1,
+        purchasedAmount: 0,
+        reasonCode: null,
+        sourceKind: "manual",
+        status: "not_applied",
+        suggestedBuyAmount: 1,
+        targetAmount: 1,
+        ticked: false,
+        uncertaintyFlags: ["missing_catalog_product", "missing_product_source"],
+        unit: "db"
+      }
+    ],
+    scale: "keep_it_chill",
+    schemaVersion: "browser-test",
+    shopId: null,
+    status: "active",
+    stockAppliedAt: null,
+    updatedAt: "2026-07-14T08:10:00.000Z",
+    updatedByUserId: "browser@example.test"
+  };
+}
+
+function createArchivedShoppingList(): Record<string, unknown> {
+  return {
+    ...createShoppingList([]),
+    status: "archived"
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function jsonResponse(

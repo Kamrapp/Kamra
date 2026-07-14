@@ -553,7 +553,12 @@ export class HomeComponent implements OnDestroy {
     this.selectedShoppingItemIds.set(new Set(this.shoppingSelectionDefaults()));
   }
   private async generateSelectedShoppingList(): Promise<void> {
-    await this.shoppingListPanel()?.generateShoppingList();
+    const shoppingListPanel = this.shoppingListPanel();
+    await shoppingListPanel?.generateShoppingList();
+    if (!shoppingListPanel?.shoppingList()) {
+      shoppingListPanel?.expandPanel();
+      return;
+    }
     this.v2Workspace?.setSectionExpanded(false);
     this.cancelShoppingSelection();
   }
