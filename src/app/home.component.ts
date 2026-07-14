@@ -551,6 +551,7 @@ export class HomeComponent implements OnDestroy {
   }
 
   private beginShoppingSelection(): void {
+    this.v2Workspace?.setSectionExpanded(true);
     this.shoppingSelectionMode.set(true);
     this.resetShoppingSelection();
   }

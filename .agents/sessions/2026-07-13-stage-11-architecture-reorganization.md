@@ -475,3 +475,10 @@ the approved disposable database, then run `npm run seed:demo-household` and
   selected Product + Group combinations, and Product-only overrides.
 - Focused shopping-needs tests (22), full tests (75 files / 300 tests), typecheck, lint, formatting,
   and diff checks pass.
+
+## Shopping-list build visibility (2026-07-14)
+
+- Starting Build Shopping List now expands the Product Group workspace before selection mode is
+  enabled, so the newly shown checkboxes are immediately visible.
+- The Chromium Home contract now collapses the workspace first, starts building, and verifies that
+  the household table reopens with selection controls.

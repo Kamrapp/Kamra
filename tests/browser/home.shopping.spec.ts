@@ -8,10 +8,15 @@ test("Home builds, retries, generates, and cancels a shopping list", async ({ pa
 
   await page.goto("/");
 
+  const householdWorkspace = page.locator("app-household-v2-workspace");
+  await householdWorkspace.locator(".section-toggle").click();
+  await expect(householdWorkspace.locator(".stock-grid-shell")).toHaveCount(0);
+
   const buildButton = page.getByRole("button", { name: "Build shopping list" });
   await expect(buildButton).toBeEnabled();
   await buildButton.click();
   await expect(page.getByRole("button", { name: "Generate shopping list" })).toBeVisible();
+  await expect(householdWorkspace.locator(".stock-grid-shell")).toBeVisible();
   await expect(page.locator('app-household-v2-workspace input[type="checkbox"]')).not.toHaveCount(
     0
   );
