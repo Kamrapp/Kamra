@@ -444,6 +444,7 @@ The plan was approved and implemented in these atomic commits:
   inherited-override migration/maintenance action.
 - `3c0d098` — Group detail override controls, inherited-label read-model fields, and shared table
   grid tracks.
+- `af5d394` — demo fixture/smoke coverage and the focused Stage 11 manual retest checklist.
 
 The focused unit, repository, typecheck, lint, and formatting validations pass. Demo seed/smoke
 coverage now asserts the split-evenly household default, explicit Group inheritance, and the

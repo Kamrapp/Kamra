@@ -418,7 +418,7 @@ real-data or subjective UI evidence.
 ## Household target comparison and Group shopping refinement (2026-07-14)
 
 - Implemented and committed the approved target/comparison and Product Group shopping plan in
-  `809303a`, `7930eeb`, `51936eb`, `566a2b0`, and `3c0d098`.
+  `809303a`, `7930eeb`, `51936eb`, `566a2b0`, `3c0d098`, and `af5d394`.
 - Household stock now distinguishes below minimum, between minimum/target, exact target, and above
   target. Above target uses a `>>` marker and stronger-good styling; untracked rows have no markers.
 - Shopping-list building preserves manual Product/Group checkbox changes until the scale changes;
