@@ -111,8 +111,11 @@
 .comparison-good {
   color: var(--color-accent-leaf-strong);
 }
-.comparison-warning {
-  color: var(--color-status-warning);
+.comparison-strong-good {
+  color: color-mix(in srgb, var(--color-accent-leaf-strong) 72%, var(--color-text));
+}
+.comparison-info {
+  color: var(--color-accent-sky);
 }
 .comparison-error,
 .expired-date {
@@ -131,6 +134,20 @@
   background: color-mix(in srgb, var(--color-accent-leaf) 18%, var(--surface-soft-background));
   border-color: color-mix(in srgb, var(--color-accent-leaf-strong) 34%, transparent);
   color: var(--color-accent-leaf-strong);
+}
+.stock-state-info {
+  background: color-mix(in srgb, var(--color-accent-sky) 18%, var(--surface-soft-background));
+  border-color: color-mix(in srgb, var(--color-accent-sky) 34%, transparent);
+  color: var(--color-accent-sky);
+}
+.stock-state-strong-good {
+  background: color-mix(
+    in srgb,
+    var(--color-accent-leaf-strong) 24%,
+    var(--surface-soft-background)
+  );
+  border-color: color-mix(in srgb, var(--color-accent-leaf-strong) 48%, transparent);
+  color: color-mix(in srgb, var(--color-accent-leaf-strong) 72%, var(--color-text));
 }
 .stock-state-danger {
   background: color-mix(in srgb, var(--color-status-danger) 18%, var(--surface-soft-background));

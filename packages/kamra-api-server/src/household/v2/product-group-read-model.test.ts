@@ -150,4 +150,27 @@ describe("buildProductGroupWorkspace", () => {
       state: "below_minimum"
     });
   });
+
+  it("distinguishes a quantity above the target from an exact target", () => {
+    const result = buildProductGroupWorkspace({
+      allowExpiredItems: true,
+      batches: [batch("above", "p1", 3)],
+      groups: [],
+      products: [
+        {
+          ...product("p1", "Milk", null),
+          targetPolicy: {
+            consumptionPolicy: "earliest_expiry_first",
+            desiredQuantity: 2,
+            expiryWarningDays: 0,
+            minimumQuantity: 1,
+            trackingUnit: "count"
+          }
+        }
+      ],
+      today: "2026-07-12"
+    });
+
+    expect(result.unassignedProducts[0]?.aggregate.state).toBe("above_target");
+  });
 });

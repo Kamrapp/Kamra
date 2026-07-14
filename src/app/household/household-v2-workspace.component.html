@@ -142,7 +142,13 @@
                   )
                 "
               >
-                &lt;
+                {{
+                  comparisonMarker(
+                    row.group.aggregate.availableQuantity,
+                    row.group.group.targetPolicy?.minimumQuantity,
+                    "minimum"
+                  )
+                }}
               </span>
               <span class="current-value">
                 {{ row.group.aggregate.availableQuantity }}
@@ -157,16 +163,30 @@
                     'good'
                   )
                 "
-                [class.comparison-warning]="
+                [class.comparison-info]="
                   comparisonIs(
                     row.group.aggregate.availableQuantity,
                     row.group.group.targetPolicy?.desiredQuantity,
                     'target',
-                    'warning'
+                    'info'
+                  )
+                "
+                [class.comparison-strong-good]="
+                  comparisonIs(
+                    row.group.aggregate.availableQuantity,
+                    row.group.group.targetPolicy?.desiredQuantity,
+                    'target',
+                    'strong-good'
                   )
                 "
               >
-                &lt;
+                {{
+                  comparisonMarker(
+                    row.group.aggregate.availableQuantity,
+                    row.group.group.targetPolicy?.desiredQuantity,
+                    "target"
+                  )
+                }}
               </span>
               <span>
                 @if (editingGroupId() === row.group.group.id) {
@@ -198,6 +218,10 @@
               <span
                 class="ui-token ui-token-muted stock-state"
                 [class.stock-state-good]="stateClass(row.group.aggregate.state) === 'good'"
+                [class.stock-state-info]="stateClass(row.group.aggregate.state) === 'info'"
+                [class.stock-state-strong-good]="
+                  stateClass(row.group.aggregate.state) === 'strong-good'
+                "
                 [class.stock-state-danger]="stateClass(row.group.aggregate.state) === 'danger'"
               >
                 {{ stateLabel(row.group.aggregate.state) }}
@@ -481,7 +505,13 @@
         )
       "
     >
-      &lt;
+      {{
+        comparisonMarker(
+          row.aggregate.availableQuantity,
+          row.product.targetPolicy?.minimumQuantity,
+          "minimum"
+        )
+      }}
     </span>
     <span class="current-value">
       {{ row.aggregate.availableQuantity }}
@@ -496,16 +526,30 @@
           'good'
         )
       "
-      [class.comparison-warning]="
+      [class.comparison-info]="
         comparisonIs(
           row.aggregate.availableQuantity,
           row.product.targetPolicy?.desiredQuantity,
           'target',
-          'warning'
+          'info'
+        )
+      "
+      [class.comparison-strong-good]="
+        comparisonIs(
+          row.aggregate.availableQuantity,
+          row.product.targetPolicy?.desiredQuantity,
+          'target',
+          'strong-good'
         )
       "
     >
-      &lt;
+      {{
+        comparisonMarker(
+          row.aggregate.availableQuantity,
+          row.product.targetPolicy?.desiredQuantity,
+          "target"
+        )
+      }}
     </span>
     <span>
       @if (editingProductId() === row.product.id) {
@@ -533,6 +577,8 @@
     <span
       class="ui-token ui-token-muted stock-state"
       [class.stock-state-good]="stateClass(row.aggregate.state) === 'good'"
+      [class.stock-state-info]="stateClass(row.aggregate.state) === 'info'"
+      [class.stock-state-strong-good]="stateClass(row.aggregate.state) === 'strong-good'"
       [class.stock-state-danger]="stateClass(row.aggregate.state) === 'danger'"
     >
       {{ stateLabel(row.aggregate.state) }}

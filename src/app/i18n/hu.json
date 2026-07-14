@@ -515,6 +515,8 @@
     "stateBetweenMinimumAndTarget": "minimum és cél között",
     "stateBetweenMinimumAndTargetShort": "min./cél között",
     "stateAtTarget": "célon",
+    "stateAboveTarget": "cél felett",
+    "stateAboveTargetShort": "cél felett",
     "stateNotTracked": "nincs nyomon követve",
     "identityManual": "kézi",
     "identityCatalogue": "katalógus",

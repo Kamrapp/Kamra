@@ -9,10 +9,10 @@ describe("household amount comparison", () => {
     expect(householdAmountComparisonClass(2, 1, "minimum")).toBe("comparison-good");
   });
 
-  it("keeps below, at, and above target satisfied in the comparison indicator", () => {
-    expect(householdAmountComparisonClass(0.5, 1, "target")).toBe("comparison-good");
+  it("distinguishes below, at, and above target in the comparison indicator", () => {
+    expect(householdAmountComparisonClass(0.5, 1, "target")).toBe("comparison-info");
     expect(householdAmountComparisonClass(1, 1, "target")).toBe("comparison-good");
-    expect(householdAmountComparisonClass(2, 1, "target")).toBe("comparison-good");
+    expect(householdAmountComparisonClass(2, 1, "target")).toBe("comparison-strong-good");
   });
 
   it("uses a neutral class when no target policy is configured", () => {

@@ -323,23 +323,31 @@ export class HouseholdV2WorkspaceComponent {
         ? this.loc.t("household.stateBelowMinimumShort")
         : state === "between_minimum_and_target"
           ? this.loc.t("household.stateBetweenMinimumAndTargetShort")
-          : state === "at_target"
-            ? this.loc.t("household.stateAtTarget")
-            : this.loc.t("household.stateNotTracked");
+          : state === "above_target"
+            ? this.loc.t("household.stateAboveTargetShort")
+            : state === "at_target"
+              ? this.loc.t("household.stateAtTarget")
+              : this.loc.t("household.stateNotTracked");
     return state === "below_minimum"
       ? this.loc.t("household.stateBelowMinimum")
       : state === "between_minimum_and_target"
         ? this.loc.t("household.stateBetweenMinimumAndTarget")
-        : state === "at_target"
-          ? this.loc.t("household.stateAtTarget")
-          : this.loc.t("household.stateNotTracked");
+        : state === "above_target"
+          ? this.loc.t("household.stateAboveTarget")
+          : state === "at_target"
+            ? this.loc.t("household.stateAtTarget")
+            : this.loc.t("household.stateNotTracked");
   }
-  stateClass(state: string): "danger" | "good" | "muted" {
+  stateClass(state: string): "danger" | "good" | "info" | "strong-good" | "muted" {
     return state === "below_minimum"
       ? "danger"
-      : state === "between_minimum_and_target" || state === "at_target"
-        ? "good"
-        : "muted";
+      : state === "between_minimum_and_target"
+        ? "info"
+        : state === "at_target"
+          ? "good"
+          : state === "above_target"
+            ? "strong-good"
+            : "muted";
   }
   identityLabel(identityKind: string): string {
     return identityKind === "catalogue"
@@ -379,9 +387,20 @@ export class HouseholdV2WorkspaceComponent {
     current: number,
     reference: number | undefined,
     kind: "minimum" | "target",
-    state: "good" | "warning" | "error"
+    state: "good" | "strong-good" | "info" | "error"
   ): boolean {
     return this.comparisonClass(current, reference, kind) === `comparison-${state}`;
+  }
+  comparisonMarker(
+    current: number,
+    reference: number | undefined,
+    kind: "minimum" | "target"
+  ): string {
+    if (reference === undefined) return "";
+    if (kind === "target") {
+      return current > reference ? ">>" : current === reference ? "=" : "<";
+    }
+    return "<";
   }
   availableGroups(): HouseholdV2ProductGroup["group"][] {
     return this.flattenGroups(this.workspace()?.productGroups ?? []);

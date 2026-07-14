@@ -515,6 +515,8 @@
     "stateBetweenMinimumAndTarget": "between minimum and target",
     "stateBetweenMinimumAndTargetShort": "within min./target",
     "stateAtTarget": "at target",
+    "stateAboveTarget": "above target",
+    "stateAboveTargetShort": "above target",
     "stateNotTracked": "not tracked",
     "identityManual": "manual",
     "identityCatalogue": "catalogue",

@@ -8,7 +8,7 @@ import type {
 import { areUnitsCompatible, convertQuantity } from "./domain.js";
 
 export type ProductGroupStockState =
-  "below_minimum" | "at_target" | "between_minimum_and_target" | "not_tracked";
+  "below_minimum" | "at_target" | "above_target" | "between_minimum_and_target" | "not_tracked";
 
 export interface ProductStockAggregate {
   availableQuantity: number;
@@ -208,9 +208,11 @@ function summarizeQuantity(
   const state: ProductGroupStockState =
     quantity < policy.minimumQuantity
       ? "below_minimum"
-      : quantity >= policy.desiredQuantity
-        ? "at_target"
-        : "between_minimum_and_target";
+      : quantity > policy.desiredQuantity
+        ? "above_target"
+        : quantity === policy.desiredQuantity
+          ? "at_target"
+          : "between_minimum_and_target";
   return {
     availableQuantity: quantity,
     batchCount,

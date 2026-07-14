@@ -39,7 +39,8 @@ export interface HouseholdV2Aggregate {
   availableQuantity: number;
   batchCount: number;
   nextExpiryOn: string | null;
-  state: "below_minimum" | "at_target" | "between_minimum_and_target" | "not_tracked";
+  state:
+    "below_minimum" | "at_target" | "above_target" | "between_minimum_and_target" | "not_tracked";
   trackingUnit: string | null;
 }
 export interface HouseholdV2ProductRow {

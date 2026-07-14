@@ -3,7 +3,8 @@ export type HouseholdShoppingSelectionScale =
 
 interface SelectionAggregate {
   nextExpiryOn: string | null;
-  state: "below_minimum" | "at_target" | "between_minimum_and_target" | "not_tracked";
+  state:
+    "below_minimum" | "at_target" | "above_target" | "between_minimum_and_target" | "not_tracked";
 }
 
 interface SelectionPolicy {
