@@ -25,7 +25,9 @@ export class MongoMaintenanceRunRepository {
   private readonly collection: MongoCollectionLike<DatabaseMaintenanceRunDocument>;
 
   constructor(database: MongoDatabaseLike) {
-    this.collection = database.collection<DatabaseMaintenanceRunDocument>("database_maintenance_runs");
+    this.collection = database.collection<DatabaseMaintenanceRunDocument>(
+      "database_maintenance_runs"
+    );
   }
 
   async listStates(): Promise<DatabaseMaintenanceRunState[]> {
@@ -33,7 +35,11 @@ export class MongoMaintenanceRunRepository {
     return documents.map(toState);
   }
 
-  async markMigrationCompleted(id: string, userId: string, completedAt: Date): Promise<DatabaseMaintenanceRunState> {
+  async markMigrationCompleted(
+    id: string,
+    userId: string,
+    completedAt: Date
+  ): Promise<DatabaseMaintenanceRunState> {
     return await this.markActionCompleted({
       id,
       completedAt,
@@ -43,7 +49,11 @@ export class MongoMaintenanceRunRepository {
     });
   }
 
-  async markEntryComplete(id: string, userId: string, completedAt: Date): Promise<DatabaseMaintenanceRunState> {
+  async markEntryComplete(
+    id: string,
+    userId: string,
+    completedAt: Date
+  ): Promise<DatabaseMaintenanceRunState> {
     await this.collection.updateOne(
       { id },
       {
@@ -61,10 +71,14 @@ export class MongoMaintenanceRunRepository {
       { upsert: true }
     );
 
-    return toState(await this.collection.findOne({ id }) as DatabaseMaintenanceRunDocument);
+    return toState((await this.collection.findOne({ id })) as DatabaseMaintenanceRunDocument);
   }
 
-  async markValidatorUpdated(id: string, userId: string, updatedAt: Date): Promise<DatabaseMaintenanceRunState> {
+  async markValidatorUpdated(
+    id: string,
+    userId: string,
+    updatedAt: Date
+  ): Promise<DatabaseMaintenanceRunState> {
     return await this.markActionCompleted({
       id,
       completedAt: updatedAt,
@@ -96,7 +110,9 @@ export class MongoMaintenanceRunRepository {
       { upsert: true }
     );
 
-    return toState(await this.collection.findOne({ id: input.id }) as DatabaseMaintenanceRunDocument);
+    return toState(
+      (await this.collection.findOne({ id: input.id })) as DatabaseMaintenanceRunDocument
+    );
   }
 }
 

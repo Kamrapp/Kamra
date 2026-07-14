@@ -4,14 +4,14 @@
 
 This file defines how Kamra work moves from idea to plan to implementation to review.
 
-The workflow is intentionally heavier than ad hoc coding because the project is meant to build a stable agent-assisted practice, not just ship isolated changes.
+The workflow is deliberate rather than heavy: it should make consequential decisions and changes reviewable without turning routine work into ceremony.
 
 Planning and implementation have different temperaments:
 
 - planning is exploratory, interactive, and open to steering
 - implementation is narrow, commit-sized, and easy to supervise
 
-The planner should help the user think through the work, not merely wait for a perfect prompt. Major misses are expensive to fix after commits are arranged, so early planning should deliberately look for absent product, architecture, data, and workflow concerns.
+The planner should help the user think through the work, not merely wait for a perfect prompt. Major misses are expensive to fix after commits are arranged, so early planning should look for absent product, architecture, data, and workflow concerns that affect the approved scope, not invent future requirements to make a plan look complete.
 
 Use RPIR when needed: Research, Plan, Implement, Review. Research is not a default ceremony; it is a short gate the planner should suggest when planning without it would risk avoidable drift.
 
@@ -26,6 +26,7 @@ idea
   -> approved commit-sized steps
   -> implementation session
   -> validation
+  -> owning manual runbook update
   -> user review
   -> fixer pass when review or validation finds mistakes
   -> session state
@@ -49,7 +50,10 @@ Before writing or finalizing a plan, the planner should:
 - suggest side paths when they materially affect the outcome
 - call out hidden risk
 - separate must-haves from nice-to-haves
+- classify work as required now, optional, deliberately deferred, or excluded
 - revise the plan as the user steers, corrects, or expands the idea
+
+Planning should use the smallest viable design. Check existing repository code and conventions first, then native language/framework/platform features, then existing dependencies. A new abstraction, dependency, configuration surface, or extension point needs a current requirement, an otherwise clear dead end, or a negligible and justified local seam.
 
 Good planning questions are specific. Prefer:
 
@@ -94,7 +98,7 @@ For new repositories, major features, or architecture plans, consider whether th
 - validation and observability
 - privacy, security, and abuse risks
 - source independence, ads, sponsorship, and recommendation bias
-- likely future extensions
+- foreseeable extensions only when they change the current design or expose a near-term dead end
 
 The checklist is not a form to fill mechanically. It is a way to notice missing basics early.
 
@@ -112,7 +116,13 @@ Use `.agents/plan-template.md` unless a narrower format is clearly better.
 
 For small documentation-only or low-risk cleanup work, the plan may be brief and the user's current request can serve as approval when scope is clear. Use a full plan when the work changes behavior, architecture, roadmap ordering, validation strategy, data shape, or security posture.
 
-Plans should make it easy to see which items came from the user, which were derived by the agent, and which are optional followups. This keeps implementation focused and reviewable.
+Plans should make it easy to see which items came from the user, which were derived by the agent, and which are required now, optional followups, deliberately deferred, or excluded. This keeps implementation focused and reviewable.
+
+Every behavior-changing stage or product phase should name one manual acceptance script under
+`scripts/`. The plan should identify which expectations become automated specs, which require a
+configured database smoke, and which genuinely need final human/operator evidence. Update the
+runbook as stable behavior is implemented. If later approved work will replace the interaction,
+carry the acceptance forward and run the integrated manual pass only after that work stabilizes.
 
 ## Approval
 
@@ -150,10 +160,17 @@ During implementation:
 - prefer the active plan and latest handoff over rediscovering old context
 - adjust the plan when reality differs
 - validate before calling the unit done
+- define the expected outcome in a focused test before checking whether current behavior happens to
+  match it; do not turn accidental behavior into the contract
+- update the owning manual acceptance script for remaining human evidence without duplicating
+  deterministic checks already protected by specs or configured smokes
 - avoid broad refactors unless they are the approved unit
 - treat major missing requirements as a reason to return to planning
 - keep optional ideas as followups unless the user reopens scope
 - keep hosting, deployment, and workflow glue thin when practical so core logic remains locally runnable and easier to validate outside platform-specific wrappers
+- implement the central happy path and realistic consequential failures before rare edge cases, polish, configurability, or optimization
+- prefer direct control flow, guard clauses, existing utilities, native features, and local code over a new abstraction or dependency
+- stop micro-iteration on low-impact visual or numeric choices after applying the nearest repository convention or a reasonable default; reserve exactness for explicit acceptance criteria and high-risk behavior
 
 Assume mistakes can happen. When review or validation finds a problem, handle it as a Fixer pass:
 

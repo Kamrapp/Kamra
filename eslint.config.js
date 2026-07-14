@@ -4,12 +4,7 @@ import tseslint from "typescript-eslint";
 
 export default [
   {
-    ignores: [
-      ".angular/**",
-      "dist/**",
-      "coverage/**",
-      "node_modules/**"
-    ]
+    ignores: [".angular/**", "dist/**", "coverage/**", "node_modules/**"]
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
@@ -25,6 +20,14 @@ export default [
     },
     rules: {
       "@typescript-eslint/consistent-type-imports": "error"
+    }
+  },
+  {
+    files: ["**/*.mjs"],
+    languageOptions: {
+      ecmaVersion: "latest",
+      sourceType: "module",
+      globals: globals.node
     }
   }
 ];

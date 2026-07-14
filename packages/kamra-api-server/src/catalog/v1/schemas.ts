@@ -30,60 +30,51 @@ const optionalStringSchema = {
   bsonType: ["null", "string"]
 };
 
-const recordOriginSchema = requiredObjectSchema(
-  ["capturedAt", "kind", "producer", "sourceName"],
-  {
-    capturedAt: isoDateStringSchema,
-    kind: {
-      enum: ["crawler", "manual", "processor", "seed"]
-    },
-    producer: {
-      bsonType: "string"
-    },
-    sourceName: {
-      bsonType: "string"
-    },
-    sourceRecordId: optionalStringSchema,
-    sourceUrl: optionalStringSchema
-  }
-);
+const recordOriginSchema = requiredObjectSchema(["capturedAt", "kind", "producer", "sourceName"], {
+  capturedAt: isoDateStringSchema,
+  kind: {
+    enum: ["crawler", "manual", "processor", "seed"]
+  },
+  producer: {
+    bsonType: "string"
+  },
+  sourceName: {
+    bsonType: "string"
+  },
+  sourceRecordId: optionalStringSchema,
+  sourceUrl: optionalStringSchema
+});
 
-const productMeasurementSchema = requiredObjectSchema(
-  ["unit", "value"],
-  {
-    normalizedUnit: optionalStringSchema,
-    normalizedValue: {
-      bsonType: ["double", "int", "long", "decimal", "null"]
-    },
-    unit: {
-      bsonType: "string"
-    },
-    value: {
-      bsonType: ["double", "int", "long", "decimal"]
-    }
+const productMeasurementSchema = requiredObjectSchema(["unit", "value"], {
+  normalizedUnit: optionalStringSchema,
+  normalizedValue: {
+    bsonType: ["double", "int", "long", "decimal", "null"]
+  },
+  unit: {
+    bsonType: "string"
+  },
+  value: {
+    bsonType: ["double", "int", "long", "decimal"]
   }
-);
+});
 
-const productMeasurementProperties = productMeasurementSchema["properties"] as Record<string, unknown>;
+const productMeasurementProperties = productMeasurementSchema["properties"] as Record<
+  string,
+  unknown
+>;
 
-const moneyAmountSchema = requiredObjectSchema(
-  ["amount", "currencyCode"],
-  {
-    amount: { bsonType: ["double", "int", "long", "decimal"] },
-    currencyCode: { bsonType: "string" }
-  }
-);
+const moneyAmountSchema = requiredObjectSchema(["amount", "currencyCode"], {
+  amount: { bsonType: ["double", "int", "long", "decimal"] },
+  currencyCode: { bsonType: "string" }
+});
 
-const stockLocationReferenceSchema = requiredObjectSchema(
-  ["kind", "label", "locationKey"],
-  {
-    countryCode: optionalStringSchema,
-    kind: { enum: ["global_shop_availability", "household", "shop_site"] },
-    label: { bsonType: "string" },
-    locationKey: { bsonType: "string" },
-    storeBrandKey: optionalStringSchema
-  }
-);
+const stockLocationReferenceSchema = requiredObjectSchema(["kind", "label", "locationKey"], {
+  countryCode: optionalStringSchema,
+  kind: { enum: ["global_shop_availability", "household", "shop_site"] },
+  label: { bsonType: "string" },
+  locationKey: { bsonType: "string" },
+  storeBrandKey: optionalStringSchema
+});
 
 const sourceProductIdentifierSchema = requiredObjectSchema(
   ["createdAt", "id", "kind", "origin", "productSourceId", "sourceName", "updatedAt", "value"],
@@ -299,13 +290,10 @@ export const catalogV1CollectionSchemas: Record<CatalogV1CollectionName, JsonSch
         additionalProperties: false,
         properties: {
           observedAt: isoDateStringSchema,
-          price: requiredObjectSchema(
-            ["amount", "currencyCode"],
-            {
-              amount: { bsonType: ["double", "int", "long", "decimal"] },
-              currencyCode: { bsonType: "string" }
-            }
-          ),
+          price: requiredObjectSchema(["amount", "currencyCode"], {
+            amount: { bsonType: ["double", "int", "long", "decimal"] },
+            currencyCode: { bsonType: "string" }
+          }),
           unitPrice: {
             bsonType: ["null", "object"],
             additionalProperties: false,
@@ -316,16 +304,13 @@ export const catalogV1CollectionSchemas: Record<CatalogV1CollectionName, JsonSch
         required: ["observedAt", "price"]
       },
       productId: { bsonType: "string" },
-      quantity: requiredObjectSchema(
-        ["amount", "unit"],
-        {
-          amount: { bsonType: ["double", "int", "long", "decimal"] },
-          packageCount: {
-            bsonType: ["double", "int", "long", "decimal", "null"]
-          },
-          unit: { bsonType: "string" }
-        }
-      ),
+      quantity: requiredObjectSchema(["amount", "unit"], {
+        amount: { bsonType: ["double", "int", "long", "decimal"] },
+        packageCount: {
+          bsonType: ["double", "int", "long", "decimal", "null"]
+        },
+        unit: { bsonType: "string" }
+      }),
       status: { enum: ["active", "inactive"] },
       updatedAt: isoDateStringSchema
     }

@@ -1,14 +1,19 @@
 import { FormsModule } from "@angular/forms";
 import { Component, inject, input, output, signal } from "@angular/core";
 
-import {
-  type HouseholdShoppingListLine
-} from "./household-stock.service";
+import { type HouseholdShoppingListLine } from "./household-stock.service";
 import { LocalizationService, type TranslationKey } from "../shared/localization.service";
+import {
+  composeTrackingUnit,
+  householdTrackingUnitOptions,
+  splitTrackingUnit,
+  type HouseholdTrackingUnitOption
+} from "./household-tracking-units";
 
 export type ShoppingListLineChange =
   | { kind: "observedPriceAmount"; value: number | string }
   | { kind: "observedPriceCurrency"; value: string }
+  | { kind: "displayName"; value: string }
   | { kind: "plannedAmount"; value: number | string }
   | { kind: "purchasedAmount"; value: number | string }
   | { kind: "ticked"; value: boolean }
@@ -27,7 +32,20 @@ export type ShoppingListLineChange =
           (change)="changed.emit({ kind: 'ticked', value: $any($event.target).checked })"
           [disabled]="readOnly() || saving()"
         />
-        <span>{{ item().displayName }}</span>
+        @if (isImpulse()) {
+          <input
+            class="shopping-name-editor"
+            type="text"
+            [ngModel]="displayNameDraft()"
+            (ngModelChange)="updateNameDraft($event)"
+            (blur)="saveName()"
+            (keydown.enter)="saveName()"
+            [disabled]="readOnly() || saving()"
+            [attr.aria-label]="loc.t('household.shoppingListItemName')"
+          />
+        } @else {
+          <span>{{ item().displayName }}</span>
+        }
       </label>
 
       <div class="shopping-amounts">
@@ -53,12 +71,31 @@ export type ShoppingListLineChange =
         </label>
         <label class="shopping-unit">
           <span>{{ loc.t("household.unit") }}</span>
-          <input
-            type="text"
-            [ngModel]="item().unit"
-            (ngModelChange)="changed.emit({ kind: 'unit', value: $event })"
-            [disabled]="readOnly()"
-          />
+          <span class="shopping-unit-editor">
+            <select
+              [ngModel]="unitOption(item())"
+              (ngModelChange)="setUnitOption(item(), $event)"
+              [disabled]="readOnly() || saving() || !!item().householdProductId"
+            >
+              @for (unit of trackingUnitOptions; track unit) {
+                <option [ngValue]="unit">{{ unit }}</option>
+              }
+              <option [ngValue]="'custom'">{{ loc.t("household.customUnit") }}</option>
+            </select>
+            <input
+              [class.custom-unit-placeholder]="unitOption(item()) !== 'custom'"
+              [ngModel]="customUnit(item())"
+              (ngModelChange)="setCustomUnit(item(), $event)"
+              [disabled]="
+                readOnly() ||
+                saving() ||
+                unitOption(item()) !== 'custom' ||
+                !!item().householdProductId
+              "
+              [attr.aria-label]="loc.t('household.customUnitSuffix')"
+              [placeholder]="loc.t('household.customUnitSuffix')"
+            />
+          </span>
         </label>
       </div>
 
@@ -67,11 +104,21 @@ export type ShoppingListLineChange =
         type="button"
         (click)="toggleExpanded()"
         [disabled]="readOnly()"
-        [attr.aria-label]="expanded() ? loc.t('household.hideAdditionalDetails') : loc.t('household.showAdditionalDetails')"
-        [attr.title]="expanded() ? loc.t('household.hideAdditionalDetails') : loc.t('household.showAdditionalDetails')"
+        [attr.aria-label]="
+          expanded()
+            ? loc.t('household.hideAdditionalDetails')
+            : loc.t('household.showAdditionalDetails')
+        "
+        [attr.title]="
+          expanded()
+            ? loc.t('household.hideAdditionalDetails')
+            : loc.t('household.showAdditionalDetails')
+        "
       >
         <svg aria-hidden="true" viewBox="0 0 24 24">
-          <path d="M10.5 4a6.5 6.5 0 0 1 5.18 10.43l3.45 3.44-1.42 1.42-3.44-3.45A6.5 6.5 0 1 1 10.5 4Zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Z"></path>
+          <path
+            d="M10.5 4a6.5 6.5 0 0 1 5.18 10.43l3.45 3.44-1.42 1.42-3.44-3.45A6.5 6.5 0 1 1 10.5 4Zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Z"
+          ></path>
           @if (expanded()) {
             <path d="M7.5 10h6v1.6h-6V10Z"></path>
           } @else {
@@ -79,13 +126,28 @@ export type ShoppingListLineChange =
           }
         </svg>
       </button>
+
+      <button
+        class="details-toggle line-discard"
+        type="button"
+        (click)="discardRequested.emit()"
+        [disabled]="readOnly() || saving()"
+        [attr.aria-label]="loc.t('household.shoppingListDiscardItem')"
+        [attr.title]="loc.t('household.shoppingListDiscardItem')"
+      >
+        <span aria-hidden="true">×</span>
+      </button>
     </div>
 
     @if (expanded()) {
       <div class="shopping-line-details">
         <div class="shopping-meta">
           <p>{{ loc.t("household.shoppingListTargetAmount", { amount: item().targetAmount }) }}</p>
-          <p>{{ loc.t("household.shoppingListSuggestedAmount", { amount: item().suggestedBuyAmount }) }}</p>
+          <p>
+            {{
+              loc.t("household.shoppingListSuggestedAmount", { amount: item().suggestedBuyAmount })
+            }}
+          </p>
           @if (item().reasonCode) {
             <p>{{ loc.t(reasonKey(item().reasonCode!)) }}</p>
           }
@@ -132,8 +194,13 @@ export type ShoppingListLineChange =
       .shopping-line-row {
         align-items: center;
         display: grid;
+        background: transparent;
         gap: 0.55rem;
-        grid-template-columns: minmax(10rem, 1fr) minmax(4.8rem, 6.5rem) minmax(4.8rem, 6.5rem) minmax(3.8rem, 4.5rem) 2.2rem;
+        grid-template-columns: var(
+          --shopping-list-columns,
+          minmax(5.5rem, 1fr) minmax(3rem, 4rem) minmax(3rem, 4rem) minmax(4.2rem, 5rem) 1.8rem
+            1.8rem
+        );
       }
 
       .shopping-check {
@@ -141,6 +208,19 @@ export type ShoppingListLineChange =
         display: flex;
         gap: 0.6rem;
         font-weight: 800;
+        min-width: 0;
+      }
+
+      .shopping-name-editor {
+        background: var(--form-field-background);
+        border: 1px solid var(--line-subtle);
+        border-radius: var(--radius-ui);
+        color: var(--color-text);
+        font: inherit;
+        min-height: 1.8rem;
+        min-width: 0;
+        padding: 0.25rem 0.4rem;
+        width: 100%;
       }
 
       .shopping-amounts {
@@ -160,8 +240,38 @@ export type ShoppingListLineChange =
       }
 
       .shopping-amounts input {
+        background: var(--form-field-background);
+        border: 1px solid var(--line-subtle);
+        border-radius: var(--radius-ui);
+        color: var(--color-text);
+        font: inherit;
+        min-height: 1.8rem;
         min-width: 0;
+        padding: 0.25rem 0.4rem;
         width: 100%;
+      }
+
+      .shopping-unit-editor {
+        display: grid;
+        gap: 0.25rem;
+        grid-template-columns: minmax(2.5rem, 1fr) minmax(2.5rem, 1fr);
+      }
+
+      .shopping-unit-editor select,
+      .shopping-unit-editor input {
+        background: var(--form-field-background);
+        border: 1px solid var(--line-subtle);
+        border-radius: var(--radius-ui);
+        color: var(--color-text);
+        font: inherit;
+        min-height: 1.8rem;
+        min-width: 0;
+        padding: 0.25rem 0.4rem;
+        width: 100%;
+      }
+
+      .custom-unit-placeholder {
+        visibility: hidden;
       }
 
       .shopping-line-details {
@@ -214,6 +324,20 @@ export type ShoppingListLineChange =
         width: 1rem;
       }
 
+      .line-discard {
+        background: color-mix(
+          in srgb,
+          var(--color-status-danger) 18%,
+          var(--control-quiet-background)
+        );
+        border-color: color-mix(
+          in srgb,
+          var(--color-status-danger) 42%,
+          var(--control-quiet-border)
+        );
+        color: var(--color-status-danger-text);
+      }
+
       @media (max-width: 900px) {
         .shopping-detail-fields {
           align-items: stretch;
@@ -247,13 +371,61 @@ export type ShoppingListLineChange =
 })
 export class ShoppingListLineComponent {
   readonly loc = inject(LocalizationService);
+  readonly trackingUnitOptions = householdTrackingUnitOptions;
 
   readonly defaultCurrencyCode = input.required<string>();
   readonly item = input.required<HouseholdShoppingListLine>();
   readonly readOnly = input.required<boolean>();
   readonly saving = input.required<boolean>();
   readonly changed = output<ShoppingListLineChange>();
+  readonly discardRequested = output<void>();
   readonly expanded = signal(false);
+  readonly nameDraft = signal<string | null>(null);
+  private lastSubmittedName: string | null = null;
+
+  isImpulse(): boolean {
+    return this.item().sourceKind === "manual" && !this.item().householdProductId;
+  }
+
+  displayNameDraft(): string {
+    return this.nameDraft() ?? this.item().displayName;
+  }
+
+  updateNameDraft(value: string): void {
+    this.nameDraft.set(value);
+  }
+
+  saveName(): void {
+    const value = this.displayNameDraft().trim();
+    if (!value) {
+      this.nameDraft.set(this.item().displayName);
+      return;
+    }
+    this.nameDraft.set(value);
+    if (value !== this.item().displayName && value !== this.lastSubmittedName) {
+      this.lastSubmittedName = value;
+      this.changed.emit({ kind: "displayName", value });
+    }
+  }
+
+  unitOption(item: HouseholdShoppingListLine): HouseholdTrackingUnitOption {
+    return splitTrackingUnit(item.unit).option;
+  }
+
+  customUnit(item: HouseholdShoppingListLine): string {
+    return splitTrackingUnit(item.unit).customSuffix;
+  }
+
+  setUnitOption(item: HouseholdShoppingListLine, option: HouseholdTrackingUnitOption): void {
+    this.changed.emit({
+      kind: "unit",
+      value: composeTrackingUnit(option, this.customUnit(item)) ?? ""
+    });
+  }
+
+  setCustomUnit(_item: HouseholdShoppingListLine, value: string): void {
+    this.changed.emit({ kind: "unit", value: composeTrackingUnit("custom", value) ?? "" });
+  }
 
   toggleExpanded(): void {
     if (!this.readOnly()) {
@@ -263,9 +435,13 @@ export class ShoppingListLineComponent {
 
   describeUncertainty(item: HouseholdShoppingListLine): string {
     return item.uncertaintyFlags
-      .map((flag) => this.loc.t(flag === "missing_catalog_product"
-        ? "household.uncertaintyMissingCatalogProduct"
-        : "household.uncertaintyMissingProductSource"))
+      .map((flag) =>
+        this.loc.t(
+          flag === "missing_catalog_product"
+            ? "household.uncertaintyMissingCatalogProduct"
+            : "household.uncertaintyMissingProductSource"
+        )
+      )
       .join(", ");
   }
 

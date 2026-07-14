@@ -1,8 +1,9 @@
 import { FormsModule } from "@angular/forms";
-import { Component, inject, input, output, signal } from "@angular/core";
+import { Component, effect, inject, input, output, signal } from "@angular/core";
 import { RouterLink } from "@angular/router";
 
 import type { HouseholdListItem, HouseholdStockItemListItem } from "./household-stock.service";
+import { HouseholdInvitationService } from "./household-invitation.service";
 import { LocalizationService, type TranslationKey } from "../shared/localization.service";
 
 @Component({
@@ -13,6 +14,16 @@ import { LocalizationService, type TranslationKey } from "../shared/localization
     <section class="stock-panel" [attr.aria-label]="loc.t('household.stockPanelLabel')">
       <div class="panel-topline">
         <p class="panel-title" id="home-title">{{ loc.t("household.stockPanelTitle") }}</p>
+        <button
+          class="ui-button ui-button-quiet ui-button-sm icon-button"
+          type="button"
+          (click)="refreshRequested.emit()"
+          [disabled]="loadState() === 'loading'"
+          [attr.aria-label]="loc.t('common.refresh')"
+          [attr.title]="loc.t('common.refresh')"
+        >
+          <span aria-hidden="true">↻</span>
+        </button>
       </div>
 
       <div class="household-bar">
@@ -31,26 +42,58 @@ import { LocalizationService, type TranslationKey } from "../shared/localization
           </label>
 
           <button
-            class="ui-button ui-button-quiet ui-button-sm manage-household-button"
+            class="ui-button ui-button-quiet ui-button-sm icon-button manage-household-button"
             type="button"
             [routerLink]="selectedHouseholdId() ? ['/household', selectedHouseholdId()] : ['/']"
             [disabled]="!selectedHouseholdId()"
+            [attr.aria-label]="loc.t('household.manageHousehold')"
+            [attr.title]="loc.t('household.manageHousehold')"
           >
-            {{ loc.t("household.manageHousehold") }}
+            <span aria-hidden="true">⚙</span>
           </button>
         </div>
-
-        <button
-          class="ui-button ui-button-quiet ui-button-sm icon-button"
-          type="button"
-          (click)="refreshRequested.emit()"
-          [disabled]="loadState() === 'loading'"
-          [attr.aria-label]="loc.t('common.refresh')"
-          [attr.title]="loc.t('common.refresh')"
-        >
-          <span aria-hidden="true">↻</span>
-        </button>
       </div>
+
+      @if (invitationService.pendingInvitations().length > 0) {
+        <div class="household-invitations">
+          <strong>{{ loc.t("app.pendingInvitations") }}</strong>
+          @for (invitation of invitationService.pendingInvitations(); track invitation.id) {
+            <div class="household-invitation-row">
+              <span>
+                {{
+                  loc.t("app.invitationForHousehold", {
+                    household: invitation.householdName ?? invitation.householdId
+                  })
+                }}
+              </span>
+              <span class="invitation-actions">
+                <button
+                  class="ui-button ui-button-primary ui-button-sm invitation-action-button"
+                  type="button"
+                  [disabled]="acceptingInvitationId === invitation.id"
+                  (click)="acceptInvitation(invitation.id)"
+                  [attr.aria-label]="loc.t('app.acceptInvitation')"
+                  [attr.title]="loc.t('app.acceptInvitation')"
+                >
+                  <span aria-hidden="true">
+                    {{ acceptingInvitationId === invitation.id ? "…" : "✓" }}
+                  </span>
+                </button>
+                <button
+                  class="ui-button ui-button-danger ui-button-sm invitation-action-button"
+                  type="button"
+                  [disabled]="acceptingInvitationId === invitation.id"
+                  (click)="rejectInvitation(invitation.id)"
+                  [attr.aria-label]="loc.t('app.rejectInvitation')"
+                  [attr.title]="loc.t('app.rejectInvitation')"
+                >
+                  <span aria-hidden="true">×</span>
+                </button>
+              </span>
+            </div>
+          }
+        </div>
+      }
 
       @if (loadState() === "loading" && !hasHouseholdPage()) {
         <section class="state-panel">
@@ -76,15 +119,22 @@ import { LocalizationService, type TranslationKey } from "../shared/localization
                 [placeholder]="loc.t('household.householdNamePlaceholder')"
               />
             </label>
-            <button class="ui-button ui-button-primary" type="submit" [disabled]="loadState() === 'loading'">
+            <button
+              class="ui-button ui-button-primary"
+              type="submit"
+              [disabled]="loadState() === 'loading'"
+            >
               {{ loc.t("household.createHousehold") }}
             </button>
           </form>
         </section>
-      } @else {
+      } @else if (showStockTable()) {
         <div class="stock-table-shell">
           <div class="stock-table-header" aria-hidden="true">
-            <div class="stock-header-main">
+            <div class="stock-header-main" [class.selection-active]="shoppingSelectionMode()">
+              @if (shoppingSelectionMode()) {
+                <span></span>
+              }
               <span>{{ loc.t("common.product") }}</span>
               <span>{{ loc.t("household.currentShort") }}</span>
               <span aria-hidden="true"></span>
@@ -98,38 +148,56 @@ import { LocalizationService, type TranslationKey } from "../shared/localization
               <div
                 class="stock-table-row stock-table-grid"
                 [class.selected-row]="selectedItemId() === item.id"
-                [class.shopping-candidate-row]="highlightedItemIds().has(item.id)"
               >
-                <button class="stock-row-main" type="button" (click)="itemSelected.emit(item)">
-                  <span class="stock-name">{{ item.displayName }}</span>
-                  <span>{{ formatAmount(item.currentAmount, item.unit) }}</span>
-                  <span
-                    class="relation-symbol"
-                    [class.relation-below]="item.stockStatus === 'below_limit' || item.stockStatus === 'at_limit'"
-                    [class.relation-watch]="item.stockStatus === 'low_soon'"
-                    [class.relation-steady]="item.stockStatus === 'steady'"
-                  >
-                    {{ relationSymbol(item.stockStatus) }}
-                  </span>
-                  <span>{{ formatAmount(item.minLimit, item.unit) }}</span>
-                  <span
-                    class="status-badge"
-                    [class.status-danger]="item.stockStatus === 'below_limit' || item.stockStatus === 'at_limit'"
-                    [class.status-watch]="item.stockStatus === 'low_soon'"
-                  >
-                    {{ loc.t(stockStatusTranslationKey(item.stockStatus)) }}
-                  </span>
-                </button>
+                <div class="stock-row-main" [class.selection-active]="shoppingSelectionMode()">
+                  @if (shoppingSelectionMode()) {
+                    <input
+                      class="stock-select"
+                      type="checkbox"
+                      [checked]="selectedShoppingItemIds().has(item.id)"
+                      (change)="shoppingSelectionToggled.emit(item.id)"
+                      [attr.aria-label]="'Select ' + item.displayName"
+                    />
+                  }
+                  <button class="stock-row-content" type="button" (click)="itemSelected.emit(item)">
+                    <span class="stock-name">{{ item.displayName }}</span>
+                    <span>{{ formatAmount(item.currentAmount, item.unit) }}</span>
+                    <span
+                      class="relation-symbol"
+                      [class.relation-below]="
+                        item.stockStatus === 'below_limit' || item.stockStatus === 'at_limit'
+                      "
+                      [class.relation-watch]="item.stockStatus === 'low_soon'"
+                      [class.relation-steady]="item.stockStatus === 'steady'"
+                    >
+                      {{ relationSymbol(item.stockStatus) }}
+                    </span>
+                    <span>{{ formatAmount(item.minLimit, item.unit) }}</span>
+                    <span
+                      class="status-badge"
+                      [class.status-danger]="
+                        item.stockStatus === 'below_limit' || item.stockStatus === 'at_limit'
+                      "
+                      [class.status-watch]="item.stockStatus === 'low_soon'"
+                    >
+                      {{ loc.t(stockStatusTranslationKey(item.stockStatus)) }}
+                    </span>
+                  </button>
+                </div>
 
                 <button
                   class="stock-list-add"
                   type="button"
-                  [disabled]="!hasExistingShoppingList() || existingShoppingLineItemIds().has(item.id)"
-                  [attr.title]="hasExistingShoppingList()
-                    ? (existingShoppingLineItemIds().has(item.id)
-                      ? loc.t('household.shoppingListAlreadyAdded')
-                      : loc.t('household.shoppingListAddItemAction'))
-                    : loc.t('household.shoppingListAddRequiresExisting')"
+                  [disabled]="
+                    !hasExistingShoppingList() || existingShoppingLineItemIds().has(item.id)
+                  "
+                  [attr.title]="
+                    hasExistingShoppingList()
+                      ? existingShoppingLineItemIds().has(item.id)
+                        ? loc.t('household.shoppingListAlreadyAdded')
+                        : loc.t('household.shoppingListAddItemAction')
+                      : loc.t('household.shoppingListAddRequiresExisting')
+                  "
                   (click)="shoppingListAddRequested.emit(item)"
                 >
                   <span aria-hidden="true">🛒+</span>
@@ -176,6 +244,10 @@ import { LocalizationService, type TranslationKey } from "../shared/localization
         gap: var(--space-3);
       }
 
+      .panel-topline {
+        align-items: center;
+      }
+
       .panel-topline,
       .household-bar {
         justify-content: space-between;
@@ -219,9 +291,51 @@ import { LocalizationService, type TranslationKey } from "../shared/localization
       }
 
       .manage-household-button {
-        flex: 0 1 auto;
-        min-width: max-content;
-        white-space: nowrap;
+        flex: 0 0 auto;
+      }
+
+      .household-invitations {
+        border: 1px solid var(--line-subtle);
+        border-radius: var(--radius-ui);
+        display: grid;
+        gap: var(--space-2);
+        padding: 0.55rem 0.65rem;
+      }
+
+      .household-invitations > strong {
+        color: var(--color-text-muted);
+        font-size: 0.7rem;
+        text-transform: uppercase;
+      }
+
+      .household-invitation-row {
+        align-items: center;
+        display: grid;
+        gap: var(--space-2);
+        grid-template-columns: minmax(0, 1fr) auto;
+      }
+
+      .household-invitation-row span {
+        color: var(--color-text);
+        font-size: 0.78rem;
+      }
+
+      .invitation-actions {
+        align-items: center;
+        display: inline-flex;
+        gap: var(--space-1);
+        justify-content: flex-end;
+      }
+
+      .invitation-action-button {
+        align-items: center;
+        display: inline-flex;
+        font-size: 0.9rem;
+        height: 1.8rem;
+        justify-content: center;
+        min-width: 1.8rem;
+        padding: 0;
+        width: 1.8rem;
       }
 
       .icon-button {
@@ -297,8 +411,15 @@ import { LocalizationService, type TranslationKey } from "../shared/localization
         align-items: center;
         display: grid;
         gap: 0.55rem;
-        grid-template-columns: minmax(8rem, 1.5fr) minmax(4.25rem, 0.72fr) 1.8rem minmax(4.25rem, 0.72fr) minmax(5.5rem, 0.9fr);
+        grid-template-columns:
+          minmax(8rem, 1.5fr) minmax(4.25rem, 0.72fr) 1.8rem minmax(4.25rem, 0.72fr)
+          minmax(5.5rem, 0.9fr);
         min-width: 0;
+      }
+
+      .stock-header-main.selection-active,
+      .stock-row-main.selection-active {
+        grid-template-columns: 1.35rem minmax(0, 1fr);
       }
 
       .stock-header-main span {
@@ -325,11 +446,11 @@ import { LocalizationService, type TranslationKey } from "../shared/localization
         background: var(--row-hover-background);
       }
 
-      .shopping-candidate-row {
-        background: color-mix(in srgb, var(--color-accent-leaf) 16%, var(--pulse-row-background));
+      .stock-row-main {
+        min-width: 0;
       }
 
-      .stock-row-main {
+      .stock-row-content {
         background: transparent;
         border: 0;
         color: inherit;
@@ -340,6 +461,13 @@ import { LocalizationService, type TranslationKey } from "../shared/localization
         padding: 0;
         text-align: left;
         width: 100%;
+      }
+
+      .stock-select {
+        accent-color: var(--color-accent-leaf-strong);
+        height: 1rem;
+        margin: 0;
+        width: 1rem;
       }
 
       .stock-list-add {
@@ -396,7 +524,11 @@ import { LocalizationService, type TranslationKey } from "../shared/localization
 
       .status-badge {
         align-self: center;
-        background: color-mix(in srgb, var(--color-accent-leaf) 12%, var(--surface-soft-background));
+        background: color-mix(
+          in srgb,
+          var(--color-accent-leaf) 12%,
+          var(--surface-soft-background)
+        );
         border-radius: var(--radius-ui);
         color: var(--color-text);
         display: inline-flex;
@@ -413,11 +545,19 @@ import { LocalizationService, type TranslationKey } from "../shared/localization
       }
 
       .status-danger {
-        background: color-mix(in srgb, var(--color-status-danger) 14%, var(--surface-soft-background));
+        background: color-mix(
+          in srgb,
+          var(--color-status-danger) 14%,
+          var(--surface-soft-background)
+        );
       }
 
       .status-watch {
-        background: color-mix(in srgb, var(--color-status-warning) 22%, var(--surface-soft-background));
+        background: color-mix(
+          in srgb,
+          var(--color-status-warning) 22%,
+          var(--surface-soft-background)
+        );
       }
 
       @media (max-width: 740px) {
@@ -433,7 +573,7 @@ import { LocalizationService, type TranslationKey } from "../shared/localization
         }
 
         .stock-table-grid,
-        .stock-row-main,
+        .stock-row-content,
         .stock-header-main {
           min-width: 40rem;
         }
@@ -443,16 +583,19 @@ import { LocalizationService, type TranslationKey } from "../shared/localization
 })
 export class HouseholdStockPanelComponent {
   readonly loc = inject(LocalizationService);
+  readonly invitationService = inject(HouseholdInvitationService);
 
   readonly errorMessage = input.required<string>();
   readonly existingShoppingLineItemIds = input.required<ReadonlySet<string>>();
   readonly hasExistingShoppingList = input.required<boolean>();
   readonly hasHouseholdPage = input.required<boolean>();
-  readonly highlightedItemIds = input.required<ReadonlySet<string>>();
   readonly households = input.required<readonly HouseholdListItem[]>();
   readonly loadState = input.required<"idle" | "loading" | "ready" | "error">();
   readonly selectedHouseholdId = input.required<string>();
   readonly selectedItemId = input.required<string | null>();
+  readonly selectedShoppingItemIds = input.required<ReadonlySet<string>>();
+  readonly showStockTable = input(false);
+  readonly shoppingSelectionMode = input.required<boolean>();
   readonly statusMessage = input.required<string>();
   readonly stockItems = input.required<readonly HouseholdStockItemListItem[]>();
 
@@ -461,8 +604,16 @@ export class HouseholdStockPanelComponent {
   readonly itemSelected = output<HouseholdStockItemListItem>();
   readonly refreshRequested = output<void>();
   readonly shoppingListAddRequested = output<HouseholdStockItemListItem>();
+  readonly shoppingSelectionToggled = output<string>();
+  readonly invitationAccepted = output<string>();
 
   readonly createHouseholdName = signal("");
+  acceptingInvitationId = "";
+
+  private readonly loadPendingInvitations = effect(() => {
+    this.selectedHouseholdId();
+    void this.invitationService.loadPending();
+  });
 
   formatAmount(amount: number, unit: string): string {
     return `${amount.toLocaleString(this.loc.language() === "hu" ? "hu-HU" : "en-US")} ${unit}`;
@@ -498,5 +649,19 @@ export class HouseholdStockPanelComponent {
 
     this.createHouseholdRequested.emit(name);
     this.createHouseholdName.set("");
+  }
+
+  async acceptInvitation(invitationId: string): Promise<void> {
+    this.acceptingInvitationId = invitationId;
+    const result = await this.invitationService.accept(invitationId);
+    this.acceptingInvitationId = "";
+    if (result.status === "ok") this.invitationAccepted.emit(result.invitation.householdId);
+  }
+
+  async rejectInvitation(invitationId: string): Promise<void> {
+    this.acceptingInvitationId = invitationId;
+    const result = await this.invitationService.reject(invitationId);
+    this.acceptingInvitationId = "";
+    if (result.status === "error") return;
   }
 }

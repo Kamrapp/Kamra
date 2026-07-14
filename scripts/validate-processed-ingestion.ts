@@ -1,5 +1,8 @@
 import { readAppConfig } from "../packages/kamra-api-server/src/config/app-config.js";
-import { closeMongoClient, getMongoClient } from "../packages/kamra-api-server/src/db/mongo-client.js";
+import {
+  closeMongoClient,
+  getMongoClient
+} from "../packages/kamra-api-server/src/db/mongo-client.js";
 import {
   createSourceOfferRecordFingerprint,
   sourceOfferProcessorName,
@@ -31,6 +34,14 @@ interface ProcessingStateSummary {
   state: string;
 }
 
+interface MissingProcessedSnapshot {
+  capturedAt: string;
+  crawlDate: string;
+  id: string;
+  parserVersion: string;
+  sourceName: string;
+}
+
 async function validateProcessedIngestion(): Promise<void> {
   const config = readAppConfig();
 
@@ -43,12 +54,10 @@ async function validateProcessedIngestion(): Promise<void> {
   const snapshots = await database
     .collection<IngestionRawSnapshotRecord>("ingestion_raw_snapshots")
     .find({})
-    .sort({ sourceName: 1, capturedAt: -1 })
+    .sort({ _id: 1 })
     .toArray();
-  const expectedFingerprints = new Set(
-    snapshots.map((snapshot) => `${snapshot.sourceName}:${createSourceOfferRecordFingerprint(snapshot)}`)
-  );
-  const currentStates = await database.collection("source_record_processing_states")
+  const currentStates = await database
+    .collection("source_record_processing_states")
     .find({
       processorName: sourceOfferProcessorName,
       processorVersion: sourceOfferProcessorVersion
@@ -59,9 +68,21 @@ async function validateProcessedIngestion(): Promise<void> {
       .filter((state) => state["state"] === "processed")
       .map((state) => `${state["sourceName"]}:${state["recordFingerprint"]}`)
   );
-  const missingProcessedStates = [...expectedFingerprints]
-    .filter((fingerprint) => !processedFingerprints.has(fingerprint))
-    .sort();
+  const missingProcessedSnapshots = snapshots
+    .filter(
+      (snapshot) =>
+        !processedFingerprints.has(
+          `${snapshot.sourceName}:${createSourceOfferRecordFingerprint(snapshot)}`
+        )
+    )
+    .map((snapshot): MissingProcessedSnapshot => ({
+      capturedAt: snapshot.capturedAt,
+      crawlDate: snapshot.crawlDate,
+      id: snapshot.id,
+      parserVersion: snapshot.parserVersion,
+      sourceName: snapshot.sourceName
+    }))
+    .sort((left, right) => left.id.localeCompare(right.id));
   const failedStates = currentStates
     .filter((state) => state["state"] === "failed")
     .map((state) => ({
@@ -71,7 +92,8 @@ async function validateProcessedIngestion(): Promise<void> {
       sourceName: state["sourceName"]
     }));
   const [rawSources, processingStates, productSources, priceKinds] = await Promise.all([
-    database.collection("ingestion_raw_snapshots")
+    database
+      .collection("ingestion_raw_snapshots")
       .aggregate<RawSourceCount>([
         {
           $group: {
@@ -91,7 +113,8 @@ async function validateProcessedIngestion(): Promise<void> {
         }
       ])
       .toArray(),
-    database.collection("source_record_processing_states")
+    database
+      .collection("source_record_processing_states")
       .aggregate<ProcessingStateSummary>([
         {
           $match: {
@@ -119,7 +142,8 @@ async function validateProcessedIngestion(): Promise<void> {
         }
       ])
       .toArray(),
-    database.collection("product_sources")
+    database
+      .collection("product_sources")
       .aggregate<CountBySource>([
         {
           $group: {
@@ -137,7 +161,8 @@ async function validateProcessedIngestion(): Promise<void> {
         }
       ])
       .toArray(),
-    database.collection("price_observations")
+    database
+      .collection("price_observations")
       .aggregate<PriceKindCount>([
         {
           $group: {
@@ -164,7 +189,9 @@ async function validateProcessedIngestion(): Promise<void> {
   writeServerLog("info", "Processed ingestion validation completed", {
     databaseName: config.mongodb.databaseName,
     failedStates,
-    missingProcessedStateCount: missingProcessedStates.length,
+    missingProcessedStateCount: missingProcessedSnapshots.length,
+    missingProcessedStates: missingProcessedSnapshots.slice(0, 25),
+    missingProcessedStatesTruncated: missingProcessedSnapshots.length > 25,
     priceKinds,
     processingStates,
     processorName: sourceOfferProcessorName,
@@ -174,8 +201,10 @@ async function validateProcessedIngestion(): Promise<void> {
     snapshotCount: snapshots.length
   });
 
-  if (missingProcessedStates.length > 0) {
-    throw new Error(`Missing processed states for ${missingProcessedStates.length} snapshot(s).`);
+  if (missingProcessedSnapshots.length > 0) {
+    throw new Error(
+      `Missing processed states for ${missingProcessedSnapshots.length} snapshot(s).`
+    );
   }
 
   if (failedStates.length > 0) {

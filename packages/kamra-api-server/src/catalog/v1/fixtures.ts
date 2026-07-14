@@ -7,7 +7,8 @@ export function createCatalogV1SeedDataset(): CatalogV1SeedDataset {
     migrationLedger: [
       {
         appliedAt: catalogV1SeedCapturedAt,
-        description: "Create Stage 3 model-foundation collections, validators, and starter indexes.",
+        description:
+          "Create Stage 3 model-foundation collections, validators, and starter indexes.",
         id: "migration_catalog_v1_foundation_001",
         migrationId: "catalog_v1_foundation_001",
         runnerName: "CatalogV1ModelSetup",
@@ -586,4 +587,3 @@ export function createCatalogV1SeedDataset(): CatalogV1SeedDataset {
     ]
   };
 }
-

@@ -19,3 +19,6 @@ Create one when:
 
 Keep notes short enough to scan before coding. Prefer decisions, changed files, validation, open issues, and next action over exploratory detail.
 
+Completed MVP handoffs are archived under `mvp/`. Keep new Phase 1 handoffs at this folder root until
+Phase 1 closes so the active context remains easy to find.
+

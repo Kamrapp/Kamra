@@ -32,7 +32,12 @@ export interface HealthCheckItem {
       }
 
       <div class="button-row">
-        <button class="run-button ui-button" type="button" (click)="runRequested.emit()" [disabled]="loading()">
+        <button
+          class="run-button ui-button"
+          type="button"
+          (click)="runRequested.emit()"
+          [disabled]="loading()"
+        >
           {{ loading() ? loc.t("health.checking") : loc.t("health.run") }}
         </button>
       </div>

@@ -36,7 +36,7 @@ export function parsePennyHuOffers(html: string, observedAt: string): ParsedShop
   const nuxtData = extractNuxtData(html);
   const productGroup = findProductGroup(nuxtData);
   const products = Array.isArray(productGroup["products"])
-    ? productGroup["products"] as PennyProduct[]
+    ? (productGroup["products"] as PennyProduct[])
     : [];
 
   return products
@@ -77,9 +77,7 @@ function extractNuxtData(html: string): NuxtValue[] {
     }
 
     if (value && typeof value === "object") {
-      return Object.fromEntries(
-        Object.entries(value).map(([key, entry]) => [key, resolve(entry)])
-      );
+      return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, resolve(entry)]));
     }
 
     return value;
@@ -95,7 +93,12 @@ function findProductGroup(nuxtData: NuxtValue[]): Record<string, NuxtValue> {
     }
 
     for (const [key, value] of Object.entries(entry)) {
-      if (key.startsWith("product-group-ajanlatok-") && value && typeof value === "object" && !Array.isArray(value)) {
+      if (
+        key.startsWith("product-group-ajanlatok-") &&
+        value &&
+        typeof value === "object" &&
+        !Array.isArray(value)
+      ) {
         return value;
       }
     }
@@ -154,11 +157,13 @@ function createPennyProductIdentifiers(product: PennyProduct): ParsedShopProduct
           issuer: "penny.hu",
           kind: "retailer_product_id",
           value: product.productId
-      }
+        }
       : null
   ];
 
-  return identifiers.filter((identifier): identifier is ParsedShopProductIdentifier => identifier !== null);
+  return identifiers.filter(
+    (identifier): identifier is ParsedShopProductIdentifier => identifier !== null
+  );
 }
 
 function formatUnitPrice(price: PennyProduct["price"]): string | null {

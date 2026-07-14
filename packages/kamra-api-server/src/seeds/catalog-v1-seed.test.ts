@@ -44,10 +44,7 @@ class InMemoryCatalogV1SeedRepository implements CatalogV1SeedRepository {
 describe("runCatalogV1Seed", () => {
   it("records the catalog v1 seed ledger entry", async () => {
     const repository = new InMemoryCatalogV1SeedRepository();
-    const result = await runCatalogV1Seed(
-      repository,
-      new Date("2026-06-23T12:10:00.000Z")
-    );
+    const result = await runCatalogV1Seed(repository, new Date("2026-06-23T12:10:00.000Z"));
 
     expect(result.databaseName).toBe("kamra_test");
     expect(result.seedName).toBe("catalog_v1_foundation");

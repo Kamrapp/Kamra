@@ -1,0 +1,17 @@
+{
+  "food": "Élelmiszer",
+  "food.milk": "Tej",
+  "food.pasta": "Tészta",
+  "food.pasta.penne": "Penne",
+  "food.pasta.spaghetti": "Spagetti",
+  "food.pasta.tagliatelle": "Tagliatelle",
+  "food.bread": "Kenyér",
+  "food.eggs": "Tojás",
+  "household.cleaning": "Tisztítás",
+  "diet.gluten_free": "Gluténmentes",
+  "fat.1_5_percent": "1,5% zsírtartalom",
+  "package.recyclable": "Újrahasznosítható csomagolás",
+  "template.milk": "Tej",
+  "template.gluten-free-pasta": "Gluténmentes tészta",
+  "template.bread": "Kenyér"
+}

@@ -1,5 +1,8 @@
 import { readAppConfig } from "../packages/kamra-api-server/src/config/app-config.js";
-import { closeMongoClient, getMongoClient } from "../packages/kamra-api-server/src/db/mongo-client.js";
+import {
+  closeMongoClient,
+  getMongoClient
+} from "../packages/kamra-api-server/src/db/mongo-client.js";
 import { writeServerLog } from "../packages/kamra-api-server/src/logging/kamra-logger.js";
 import { MongoCurrentCatalogRepository } from "../packages/kamra-api-server/src/catalog/current/mongo-catalog-repository.js";
 

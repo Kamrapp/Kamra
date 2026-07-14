@@ -3,9 +3,12 @@ import type { Routes } from "@angular/router";
 import { AboutPageComponent } from "./about/about-page.component";
 import { ProductCatalogComponent } from "./product-lookup/product-catalog.component";
 import { AdminDashboardComponent } from "./dev-admin/admin-dashboard.component";
+import { AdminUserManagementComponent } from "./dev-admin/admin-user-management.component";
 import { HouseholdManagementComponent } from "./household/household-management.component";
 import { HomeComponent } from "./home.component";
 import { IngestionAdminComponent } from "./site-admin/ingestion-admin.component";
+import { Stage9AdminComponent } from "./site-admin/stage9-pricing/index";
+import { ManualPageComponent } from "./manual/manual-page.component";
 
 export const routes: Routes = [
   {
@@ -17,8 +20,16 @@ export const routes: Routes = [
     component: AboutPageComponent
   },
   {
+    path: "manual",
+    component: ManualPageComponent
+  },
+  {
     path: "dev-admin",
     component: AdminDashboardComponent
+  },
+  {
+    path: "dev-admin/users",
+    component: AdminUserManagementComponent
   },
   {
     path: "health",
@@ -35,6 +46,10 @@ export const routes: Routes = [
   {
     path: "site-admin/ingestion",
     component: IngestionAdminComponent
+  },
+  {
+    path: "site-admin/shopping",
+    component: Stage9AdminComponent
   },
   {
     path: "**",

@@ -17,10 +17,7 @@ export class MongoAdminIdentitySeedRepository implements AdminIdentitySeedReposi
 
   async setup(): Promise<void> {
     await Promise.all([
-      this.usersCollection.createIndex(
-        { email: 1 },
-        { name: "users_email_unique", unique: true }
-      ),
+      this.usersCollection.createIndex({ email: 1 }, { name: "users_email_unique", unique: true }),
       this.seedLedgerCollection.createIndex(
         { seedName: 1, completedAt: -1 },
         { name: "seed_ledger_seed_completed_at" }

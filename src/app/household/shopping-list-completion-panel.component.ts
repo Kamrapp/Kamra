@@ -33,7 +33,11 @@ export type ShoppingListCompletionMode = "tick_all_and_update" | "update_ticked_
             {{ loc.t("household.applyTickedOnly") }}
           </button>
         }
-        <button class="ui-button ui-button-danger ui-button-sm" type="button" (click)="cancelRequested.emit()">
+        <button
+          class="ui-button ui-button-danger ui-button-sm"
+          type="button"
+          (click)="cancelRequested.emit()"
+        >
           {{ loc.t("common.close") }}
         </button>
       </div>

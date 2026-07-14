@@ -2,7 +2,12 @@ import { computed, inject, Injectable, signal } from "@angular/core";
 
 import { buildApiUrl } from "./api-url";
 import { readApiErrorMessage } from "./shared/api-errors";
-import { isLanguagePreference, LocalizationService, type LanguagePreference, type TranslationKey } from "./shared/localization.service";
+import {
+  isLanguagePreference,
+  LocalizationService,
+  type LanguagePreference,
+  type TranslationKey
+} from "./shared/localization.service";
 import { isThemePreference, type ThemePreference } from "./shared/theme-preference.service";
 
 export type UserRole = "admin" | "user";
@@ -39,6 +44,8 @@ export type LoginResult =
       status: "error";
     };
 
+export type RegisterResult = LoginResult;
+
 const userTokenStorageKey = "kamra_user_token";
 
 @Injectable({
@@ -52,9 +59,7 @@ export class AuthService {
 
   getAuthorizationHeaders(): Record<string, string> {
     const token = this.token();
-    return token
-      ? { authorization: `Bearer ${token}` }
-      : {};
+    return token ? { authorization: `Bearer ${token}` } : {};
   }
 
   async loadCurrentUser(): Promise<void> {
@@ -82,7 +87,11 @@ export class AuthService {
       return;
     }
 
-    const payload = (await response.json()) as CurrentUserResponse;
+    const payload = (await response.json().catch(() => null)) as unknown;
+    if (!isCurrentUserResponse(payload)) {
+      this.clearToken();
+      return;
+    }
     this.user.set(this.normalizeUser(payload.user));
   }
 
@@ -106,18 +115,69 @@ export class AuthService {
 
     if (!response.ok) {
       return {
-        message: response.status === 401
-          ? this.loc.t("app.loginInvalid")
-          : response.status === 503
-            ? this.loc.t("app.loginNotConfigured")
-          : await readApiErrorMessage(response, this.loc.t("app.loginFailure"), (messageKey) =>
-              this.loc.t(messageKey as TranslationKey)
-            ),
+        message:
+          response.status === 401
+            ? this.loc.t("app.loginInvalid")
+            : response.status === 503
+              ? this.loc.t("app.loginNotConfigured")
+              : await readApiErrorMessage(response, this.loc.t("app.loginFailure"), (messageKey) =>
+                  this.loc.t(messageKey as TranslationKey)
+                ),
         status: "error"
       };
     }
 
-    const payload = (await response.json()) as LoginResponse;
+    const payload = (await response.json().catch(() => null)) as unknown;
+    if (!isLoginResponse(payload)) {
+      return {
+        message: this.loc.t("app.loginFailure"),
+        status: "error"
+      };
+    }
+    this.storeToken(payload.token);
+    this.user.set(this.normalizeUser(payload.user));
+
+    return { status: "ok" };
+  }
+
+  async register(email: string, password: string): Promise<RegisterResult> {
+    let response: Response;
+    try {
+      response = await fetch(buildApiUrl("/api/register"), {
+        body: JSON.stringify({ email, password }),
+        headers: {
+          accept: "application/json",
+          "content-type": "application/json"
+        },
+        method: "POST"
+      });
+    } catch {
+      return {
+        message: this.loc.t("app.registrationRequestFailed"),
+        status: "error"
+      };
+    }
+
+    if (!response.ok) {
+      return {
+        message: await readApiErrorMessage(
+          response,
+          response.status === 503
+            ? this.loc.t("app.registrationNotConfigured")
+            : this.loc.t("app.registrationFailure"),
+          (messageKey) => this.loc.t(messageKey as TranslationKey)
+        ),
+        status: "error"
+      };
+    }
+
+    const payload = (await response.json().catch(() => null)) as unknown;
+    if (!isLoginResponse(payload)) {
+      return {
+        message: this.loc.t("app.registrationFailure"),
+        status: "error"
+      };
+    }
     this.storeToken(payload.token);
     this.user.set(this.normalizeUser(payload.user));
 
@@ -132,7 +192,10 @@ export class AuthService {
     this.clearToken();
   }
 
-  async updateUserPreferences(preferences: { language?: LanguagePreference; theme?: ThemePreference }): Promise<void> {
+  async updateUserPreferences(preferences: {
+    language?: LanguagePreference;
+    theme?: ThemePreference;
+  }): Promise<void> {
     let response: Response;
     try {
       response = await fetch(buildApiUrl("/api/admin/preferences"), {
@@ -152,8 +215,8 @@ export class AuthService {
       return;
     }
 
-    const payload = (await response.json()) as UserPreferencesResponse;
-    this.user.set(this.normalizeUser(payload.user));
+    const payload = (await response.json().catch(() => null)) as unknown;
+    if (isUserPreferencesResponse(payload)) this.user.set(this.normalizeUser(payload.user));
   }
 
   async updateThemePreference(theme: ThemePreference): Promise<void> {
@@ -179,14 +242,41 @@ export class AuthService {
     return {
       email: user.email,
       profile: {
-        language: isLanguagePreference(user.profile?.language)
-          ? user.profile.language
-          : undefined,
-        theme: isThemePreference(user.profile?.theme)
-          ? user.profile.theme
-          : undefined
+        language: isLanguagePreference(user.profile?.language) ? user.profile.language : undefined,
+        theme: isThemePreference(user.profile?.theme) ? user.profile.theme : undefined
       },
       role: user.role
     };
   }
+}
+
+function isCurrentUserResponse(value: unknown): value is CurrentUserResponse {
+  return isRecord(value) && isAuthenticatedUser(value["user"]);
+}
+
+function isLoginResponse(value: unknown): value is LoginResponse {
+  return (
+    isRecord(value) &&
+    typeof value["token"] === "string" &&
+    value["token"].length > 0 &&
+    value["tokenType"] === "Bearer" &&
+    isAuthenticatedUser(value["user"])
+  );
+}
+
+function isUserPreferencesResponse(value: unknown): value is UserPreferencesResponse {
+  return isRecord(value) && isAuthenticatedUser(value["user"]);
+}
+
+function isAuthenticatedUser(value: unknown): value is AuthenticatedUser {
+  return (
+    isRecord(value) &&
+    typeof value["email"] === "string" &&
+    (value["role"] === "admin" || value["role"] === "user") &&
+    isRecord(value["profile"])
+  );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

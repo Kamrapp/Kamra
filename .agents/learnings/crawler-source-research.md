@@ -8,7 +8,7 @@ This note complements:
 
 - `docs/crawler-policy.md` for source safety and operational guardrails.
 - `.agents/learnings/crawler-pipeline-patterns.md` for reusable pipeline architecture lessons.
-- `.agents/plans/2026-06-23-stage-4-synthetic-crawler-intake-plan.md` for the current Stage 4 implementation plan.
+- `.agents/plans/mvp/2026-06-23-stage-4-synthetic-crawler-intake-plan.md` for the current Stage 4 implementation plan.
 
 ## Acquisition Preference
 

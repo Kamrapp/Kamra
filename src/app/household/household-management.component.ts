@@ -1,14 +1,23 @@
 import { CommonModule } from "@angular/common";
 import { Component, inject, signal } from "@angular/core";
-import { ActivatedRoute, RouterLink } from "@angular/router";
+import { FormsModule } from "@angular/forms";
+import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 
 import { HouseholdStockService, type HouseholdListItem } from "./household-stock.service";
+import { AuthService } from "../auth.service";
+import {
+  HouseholdInvitationService,
+  type HouseholdInvitation,
+  type HouseholdMember
+} from "./household-invitation.service";
+import { HouseholdV2Service } from "./household-v2.service";
 import { LocalizationService } from "../shared/localization.service";
+import { ToastService } from "../shared/toast.service";
 
 @Component({
   selector: "app-household-management",
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <section class="page-shell management-shell">
       <div class="ui-panel-card management-card">
@@ -34,21 +43,247 @@ import { LocalizationService } from "../shared/localization.service";
         <article class="ui-panel-card management-panel">
           <p class="ui-kicker">{{ loc.t("household.managementIdentityKicker") }}</p>
           <h2 class="ui-card-title">{{ loc.t("household.managementIdentityTitle") }}</h2>
-          <p>{{ loc.t("household.managementIdentityDescription") }}</p>
+          <p class="ui-copy-muted">{{ loc.t("household.managementIdentityDescription") }}</p>
+          @if (household()) {
+            @if (canManageHousehold()) {
+              <label>
+                <span>{{ loc.t("household.householdName") }}</span>
+                <input class="ui-form-control" [(ngModel)]="nameDraft" />
+              </label>
+              <button class="ui-button ui-button-sm" type="button" (click)="saveSettings()">
+                {{ loc.t("household.saveHousehold") }}
+              </button>
+            } @else {
+              <p class="static-management-value">
+                <strong>{{ loc.t("household.householdName") }}</strong>
+                <span>{{ household()?.name }}</span>
+              </p>
+            }
+          }
         </article>
 
         <article class="ui-panel-card management-panel">
           <p class="ui-kicker">{{ loc.t("household.managementInviteKicker") }}</p>
           <h2 class="ui-card-title">{{ loc.t("household.managementInviteTitle") }}</h2>
-          <p>{{ loc.t("household.managementInviteDescription") }}</p>
+          <p class="ui-copy-muted">{{ loc.t("household.managementInviteDescription") }}</p>
+          @if (household(); as currentHousehold) {
+            @if (canManageHousehold()) {
+              <form class="invite-form" (ngSubmit)="invite(currentHousehold.id)">
+                <label>
+                  <span>{{ loc.t("household.inviteEmail") }}</span>
+                  <input
+                    class="ui-form-control"
+                    name="inviteEmail"
+                    type="email"
+                    [(ngModel)]="inviteEmailDraft"
+                  />
+                </label>
+                <button class="ui-button ui-button-sm" type="submit" [disabled]="inviting()">
+                  {{ inviting() ? loc.t("household.inviting") : loc.t("household.invite") }}
+                </button>
+              </form>
+            } @else {
+              <p class="owner-only-note">{{ loc.t("household.ownerOnlyManagement") }}</p>
+            }
+            @if (invitations().length > 0) {
+              <div class="invitation-list">
+                <strong>{{ loc.t("household.pendingInvitations") }}</strong>
+                @for (invitation of invitations(); track invitation.id) {
+                  <div class="invitation-row">
+                    <span>{{ invitation.email }}</span>
+                    <time [attr.datetime]="invitation.createdAt">
+                      {{ invitation.createdAt | date: "shortDate" }}
+                    </time>
+                    <button
+                      class="ui-button ui-button-danger ui-button-sm"
+                      type="button"
+                      (click)="revokeInvitation(invitation.id)"
+                      [disabled]="busyMemberId() === invitation.id"
+                    >
+                      {{ loc.t("household.invitationCancel") }}
+                    </button>
+                  </div>
+                }
+              </div>
+            }
+            @if (members().length > 0) {
+              <div class="member-list">
+                <strong>{{ loc.t("household.members") }}</strong>
+                @for (member of members(); track member.userId) {
+                  <div class="member-row">
+                    <span>{{ member.userId }}</span>
+                    <span class="member-role">{{ member.role }}</span>
+                    @if (canManageHousehold() && member.role !== "owner") {
+                      <button
+                        class="ui-button ui-button-quiet ui-button-sm"
+                        type="button"
+                        [disabled]="busyMemberId() === member.userId"
+                        (click)="transferOwnership(member.userId)"
+                      >
+                        {{ loc.t("household.memberTransfer") }}
+                      </button>
+                      <button
+                        class="ui-button ui-button-danger ui-button-sm"
+                        type="button"
+                        [disabled]="busyMemberId() === member.userId"
+                        (click)="removeMember(member.userId)"
+                      >
+                        {{ loc.t("household.memberRemove") }}
+                      </button>
+                    } @else if (member.userId === currentUserId()) {
+                      <button
+                        class="ui-button ui-button-danger ui-button-sm"
+                        type="button"
+                        [disabled]="busyMemberId() === member.userId"
+                        (click)="leaveHousehold()"
+                      >
+                        {{ loc.t("household.memberLeave") }}
+                      </button>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          }
         </article>
 
         <article class="ui-panel-card management-panel">
           <p class="ui-kicker">{{ loc.t("household.managementLimitsKicker") }}</p>
           <h2 class="ui-card-title">{{ loc.t("household.managementLimitsTitle") }}</h2>
-          <p>{{ loc.t("household.managementLimitsDescription") }}</p>
+          <p class="ui-copy-muted">{{ loc.t("household.managementLimitsDescription") }}</p>
+          @if (household()) {
+            @if (canManageHousehold()) {
+              <label>
+                <span>{{ loc.t("household.defaultCalculatedMaxLimitMultiplier") }}</span>
+                <input
+                  class="ui-form-control"
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  [(ngModel)]="maxLimitMultiplierDraft"
+                />
+              </label>
+              <label class="checkbox-row">
+                <input type="checkbox" [(ngModel)]="allowExpiredItemsDraft" />
+                {{ loc.t("household.allowExpiredItems") }}
+              </label>
+              <label>
+                <span>{{ loc.t("household.groupTargetShoppingMode") }}</span>
+                <select class="ui-form-control" [(ngModel)]="groupTargetShoppingModeDraft">
+                  <option value="add_products_and_group_item">
+                    {{ loc.t("household.groupTargetShoppingModeProductsAndGroupItem") }}
+                  </option>
+                  <option value="add_products_only">
+                    {{ loc.t("household.groupTargetShoppingModeProductsOnly") }}
+                  </option>
+                  <option value="ignore_group_targets">
+                    {{ loc.t("household.groupTargetShoppingModeIgnore") }}
+                  </option>
+                </select>
+              </label>
+              <label>
+                <span>{{ loc.t("household.groupTargetShoppingDistributionMode") }}</span>
+                <select
+                  class="ui-form-control"
+                  [(ngModel)]="groupTargetShoppingDistributionModeDraft"
+                >
+                  <option value="dont_split">
+                    {{ loc.t("household.groupTargetShoppingDistributionDontSplit") }}
+                  </option>
+                  <option value="split_evenly">
+                    {{ loc.t("household.groupTargetShoppingDistributionSplitEvenly") }}
+                  </option>
+                  <option value="least_amount">
+                    {{ loc.t("household.groupTargetShoppingDistributionLeastAmount") }}
+                  </option>
+                  <option value="latest">
+                    {{ loc.t("household.groupTargetShoppingDistributionLatest") }}
+                  </option>
+                  <option value="oldest">
+                    {{ loc.t("household.groupTargetShoppingDistributionOldest") }}
+                  </option>
+                </select>
+              </label>
+              <button class="ui-button ui-button-sm" type="button" (click)="saveSettings()">
+                {{ loc.t("household.saveSettings") }}
+              </button>
+            } @else {
+              <div class="management-static-grid">
+                <span>
+                  <strong>{{ loc.t("household.defaultCalculatedMaxLimitMultiplier") }}</strong>
+                  {{ household()?.defaultCalculatedMaxLimitMultiplier ?? 2 }}
+                </span>
+                <span>
+                  <strong>{{ loc.t("household.groupTargetShoppingDistributionMode") }}</strong>
+                  {{ groupTargetShoppingDistributionModeLabel() }}
+                </span>
+                <span>
+                  <strong>{{ loc.t("household.allowExpiredItems") }}</strong>
+                  {{ allowExpiredItemsDraft ? loc.t("common.yes") : loc.t("common.no") }}
+                </span>
+                <span>
+                  <strong>{{ loc.t("household.groupTargetShoppingMode") }}</strong>
+                  {{ groupTargetShoppingModeLabel() }}
+                </span>
+              </div>
+              <p class="owner-only-note">{{ loc.t("household.ownerOnlyManagement") }}</p>
+            }
+          }
+          @if (errorMessage()) {
+            <p class="ui-copy-error">{{ errorMessage() }}</p>
+          }
         </article>
       </div>
+
+      <article class="ui-panel-card management-panel management-reset-panel">
+        <p class="ui-kicker">{{ loc.t("household.resetHouseholdKicker") }}</p>
+        <h2 class="ui-card-title">{{ loc.t("household.resetHouseholdTitle") }}</h2>
+        <p class="ui-copy-muted">{{ loc.t("household.resetHouseholdDescription") }}</p>
+        @if (household() && canManageHousehold()) {
+          <div class="reset-form">
+            <label>
+              <span>{{ loc.t("household.resetScopeLabel") }}</span>
+              <select
+                class="ui-form-control"
+                [(ngModel)]="resetScope"
+                (ngModelChange)="resetConfirmed = false"
+              >
+                <option value="shopping_list">
+                  {{ loc.t("household.resetScopeShoppingList") }}
+                </option>
+                <option value="batches">{{ loc.t("household.resetScopeBatches") }}</option>
+                <option value="products_and_batches">
+                  {{ loc.t("household.resetScopeProductsAndBatches") }}
+                </option>
+                <option value="groups_products_and_batches">
+                  {{ loc.t("household.resetScopeGroupsProductsAndBatches") }}
+                </option>
+                <option value="all_household_data">
+                  {{ loc.t("household.resetScopeAllData") }}
+                </option>
+                <option value="delete_household">
+                  {{ loc.t("household.resetScopeDeleteHousehold") }}
+                </option>
+              </select>
+            </label>
+            <p class="reset-scope-description">{{ resetScopeDescription() }}</p>
+            <label class="checkbox-row">
+              <input type="checkbox" [(ngModel)]="resetConfirmed" />
+              {{ loc.t("household.resetConfirmLabel") }}
+            </label>
+            <button
+              class="ui-button ui-button-danger ui-button-sm"
+              type="button"
+              [disabled]="resetting() || !resetConfirmed"
+              (click)="resetHousehold()"
+            >
+              {{ loc.t("household.resetButton") }}
+            </button>
+          </div>
+        } @else if (household()) {
+          <p class="owner-only-note">{{ loc.t("household.ownerOnlyManagement") }}</p>
+        }
+      </article>
     </section>
   `,
   styles: [
@@ -72,9 +307,161 @@ import { LocalizationService } from "../shared/localization.service";
         margin: 0;
       }
 
+      .owner-only-note,
+      .static-management-value,
+      .management-static-grid {
+        color: var(--color-text-muted);
+        font-size: 0.84rem;
+        line-height: 1.45;
+        margin: 0;
+      }
+
+      .static-management-value,
+      .management-static-grid {
+        display: grid;
+        gap: var(--space-2);
+      }
+
+      .static-management-value strong,
+      .management-static-grid strong {
+        color: var(--color-text-muted);
+        display: block;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+      }
+
+      .management-static-grid {
+        gap: var(--space-3);
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .invite-form {
+        display: grid;
+        gap: var(--space-2);
+      }
+
+      .management-panel label {
+        align-items: center;
+        color: var(--color-text-muted);
+        display: grid;
+        font-size: 0.78rem;
+        font-weight: 700;
+        gap: var(--space-2);
+        grid-template-columns: minmax(9rem, 0.72fr) minmax(0, 1.28fr);
+      }
+
+      .checkbox-row {
+        align-items: center;
+        display: flex !important;
+        font-size: 0.9rem !important;
+        grid-template-columns: auto minmax(0, 1fr) !important;
+      }
+
       .management-actions {
         display: flex;
         gap: var(--space-3);
+      }
+
+      .management-actions .ui-button {
+        align-items: center;
+        display: inline-flex;
+        font-size: 0.84rem;
+        min-height: 2.15rem;
+        padding: 0.35rem 0.7rem;
+      }
+
+      .management-panel > .ui-button {
+        justify-self: start;
+      }
+
+      .management-panel .ui-button {
+        align-items: center;
+        display: inline-flex;
+        font-size: 0.84rem;
+        min-height: 2.15rem;
+        padding: 0.35rem 0.7rem;
+      }
+
+      .management-reset-panel {
+        border-color: color-mix(in srgb, var(--color-status-danger) 42%, var(--line-panel));
+      }
+
+      .reset-form {
+        display: grid;
+        gap: var(--space-3);
+        max-width: 52rem;
+      }
+
+      .reset-form label:not(.checkbox-row) {
+        align-items: center;
+        display: grid;
+        gap: var(--space-2);
+        grid-template-columns: minmax(11rem, 0.6fr) minmax(0, 1.4fr);
+      }
+
+      .reset-scope-description {
+        border-left: 3px solid var(--color-status-danger);
+        color: var(--color-text-muted);
+        margin: 0;
+        padding-left: var(--space-3);
+      }
+
+      .reset-form .ui-button-danger {
+        justify-self: start;
+      }
+
+      .invitation-list {
+        border-top: 1px solid var(--line-subtle);
+        display: grid;
+        gap: 0.25rem;
+        padding-top: var(--space-2);
+      }
+
+      .invitation-list > strong {
+        color: var(--color-text-muted);
+        font-size: 0.7rem;
+        text-transform: uppercase;
+      }
+
+      .invitation-row {
+        align-items: center;
+        color: var(--color-text);
+        display: grid;
+        font-size: 0.78rem;
+        gap: var(--space-2);
+        grid-template-columns: minmax(0, 1fr) auto auto;
+      }
+
+      .invitation-row time {
+        color: var(--color-text-muted);
+        font-size: 0.7rem;
+      }
+
+      .member-list {
+        border-top: 1px solid var(--line-subtle);
+        display: grid;
+        gap: 0.35rem;
+        padding-top: var(--space-2);
+      }
+
+      .member-list > strong {
+        color: var(--color-text-muted);
+        font-size: 0.7rem;
+        text-transform: uppercase;
+      }
+
+      .member-row {
+        align-items: center;
+        display: grid;
+        font-size: 0.78rem;
+        gap: var(--space-2);
+        grid-template-columns: minmax(0, 1fr) auto auto auto;
+      }
+
+      .member-role {
+        color: var(--color-text-muted);
+        font-size: 0.7rem;
+        text-transform: uppercase;
       }
 
       @media (min-width: 900px) {
@@ -87,13 +474,67 @@ import { LocalizationService } from "../shared/localization.service";
 })
 export class HouseholdManagementComponent {
   readonly loc = inject(LocalizationService);
+  private readonly auth = inject(AuthService);
   private readonly householdService = inject(HouseholdStockService);
+  private readonly invitationService = inject(HouseholdInvitationService);
+  private readonly householdV2Service = inject(HouseholdV2Service);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly toast = inject(ToastService);
 
   readonly household = signal<HouseholdListItem | null>(null);
+  readonly errorMessage = signal("");
+  readonly invitations = signal<HouseholdInvitation[]>([]);
+  readonly members = signal<HouseholdMember[]>([]);
+  readonly busyMemberId = signal("");
+  readonly inviting = signal(false);
+  readonly resetting = signal(false);
+  allowExpiredItemsDraft = true;
+  maxLimitMultiplierDraft = 2;
+  groupTargetShoppingModeDraft:
+    "add_products_and_group_item" | "add_products_only" | "ignore_group_targets" =
+    "add_products_and_group_item";
+  groupTargetShoppingDistributionModeDraft:
+    "dont_split" | "split_evenly" | "least_amount" | "latest" | "oldest" = "split_evenly";
+  nameDraft = "";
+  inviteEmailDraft = "";
+  resetConfirmed = false;
+  resetScope:
+    | "shopping_list"
+    | "batches"
+    | "products_and_batches"
+    | "groups_products_and_batches"
+    | "all_household_data"
+    | "delete_household" = "shopping_list";
 
   constructor() {
     void this.loadHousehold();
+  }
+
+  canManageHousehold(): boolean {
+    return this.household()?.membershipRole === "owner";
+  }
+
+  groupTargetShoppingModeLabel(): string {
+    switch (this.groupTargetShoppingModeDraft) {
+      case "add_products_only":
+        return this.loc.t("household.groupTargetShoppingModeProductsOnly");
+      case "ignore_group_targets":
+        return this.loc.t("household.groupTargetShoppingModeIgnore");
+      case "add_products_and_group_item":
+        return this.loc.t("household.groupTargetShoppingModeProductsAndGroupItem");
+    }
+  }
+
+  groupTargetShoppingDistributionModeLabel(): string {
+    const keys = {
+      dont_split: "household.groupTargetShoppingDistributionDontSplit",
+      split_evenly: "household.groupTargetShoppingDistributionSplitEvenly",
+      least_amount: "household.groupTargetShoppingDistributionLeastAmount",
+      latest: "household.groupTargetShoppingDistributionLatest",
+      oldest: "household.groupTargetShoppingDistributionOldest"
+    } as const;
+    return this.loc.t(keys[this.groupTargetShoppingDistributionModeDraft]);
   }
 
   private async loadHousehold(): Promise<void> {
@@ -110,5 +551,174 @@ export class HouseholdManagementComponent {
     }
 
     this.household.set(result.households.find((entry) => entry.id === householdId) ?? null);
+    const household = this.household();
+    this.allowExpiredItemsDraft = household?.allowExpiredItems ?? true;
+    this.maxLimitMultiplierDraft = household?.defaultCalculatedMaxLimitMultiplier ?? 2;
+    this.groupTargetShoppingModeDraft =
+      household?.groupTargetShoppingMode ?? "add_products_and_group_item";
+    this.groupTargetShoppingDistributionModeDraft =
+      household?.groupTargetShoppingDistributionMode ?? "split_evenly";
+    this.nameDraft = household?.name ?? "";
+    this.invitations.set(
+      household ? await this.invitationService.listForHousehold(household.id) : []
+    );
+    this.members.set(household ? await this.invitationService.listMembers(household.id) : []);
+  }
+
+  currentUserId(): string {
+    return this.auth.user()?.email ?? "";
+  }
+
+  async invite(householdId: string): Promise<void> {
+    const email = this.inviteEmailDraft.trim();
+    if (!email) return;
+
+    this.inviting.set(true);
+    const result = await this.invitationService.invite(householdId, email);
+    this.inviting.set(false);
+    if (result.status === "error") {
+      this.toast.push(result.message ?? this.loc.t("household.invitationFailure"), "error");
+      return;
+    }
+
+    this.inviteEmailDraft = "";
+    this.invitations.set(await this.invitationService.listForHousehold(householdId));
+    this.toast.push(this.loc.t("household.invitationSent"), "success");
+  }
+
+  async revokeInvitation(invitationId: string): Promise<void> {
+    const household = this.household();
+    if (!household || !window.confirm(this.loc.t("household.confirmMemberAction"))) return;
+    this.busyMemberId.set(invitationId);
+    const result = await this.invitationService.revoke(household.id, invitationId);
+    this.busyMemberId.set("");
+    if (result.status === "error") {
+      this.toast.push(result.message ?? this.loc.t("household.invitationFailure"), "error");
+      return;
+    }
+    this.invitations.set(await this.invitationService.listForHousehold(household.id));
+    this.toast.push(this.loc.t("household.invitationCancelled"), "success");
+  }
+
+  async removeMember(userId: string): Promise<void> {
+    const household = this.household();
+    if (!household || !window.confirm(this.loc.t("household.confirmMemberAction"))) return;
+    this.busyMemberId.set(userId);
+    const result = await this.invitationService.removeMember(household.id, userId);
+    this.busyMemberId.set("");
+    if (result.status === "error") {
+      this.toast.push(result.message ?? this.loc.t("household.memberRemoveFailure"), "error");
+      return;
+    }
+    this.members.set(await this.invitationService.listMembers(household.id));
+    this.toast.push(this.loc.t("household.memberRemoved"), "success");
+  }
+
+  async leaveHousehold(): Promise<void> {
+    const household = this.household();
+    if (!household || !window.confirm(this.loc.t("household.confirmMemberAction"))) return;
+    const result = await this.invitationService.leave(household.id);
+    if (result.status === "error") {
+      this.toast.push(result.message ?? this.loc.t("household.memberRemoveFailure"), "error");
+      return;
+    }
+    this.toast.push(this.loc.t("household.memberLeft"), "success");
+    await this.router.navigateByUrl("/");
+  }
+
+  async transferOwnership(userId: string): Promise<void> {
+    const household = this.household();
+    if (!household || !window.confirm(this.loc.t("household.confirmMemberAction"))) return;
+    this.busyMemberId.set(userId);
+    const result = await this.invitationService.transferOwnership(household.id, userId);
+    this.busyMemberId.set("");
+    if (result.status === "error") {
+      this.toast.push(result.message ?? this.loc.t("household.memberTransferFailure"), "error");
+      return;
+    }
+    await this.loadHousehold();
+    this.toast.push(this.loc.t("household.memberTransferred"), "success");
+  }
+
+  async saveSettings(): Promise<void> {
+    const household = this.household();
+    if (
+      !household ||
+      !this.nameDraft.trim() ||
+      !Number.isFinite(this.maxLimitMultiplierDraft) ||
+      this.maxLimitMultiplierDraft < 0
+    )
+      return;
+    this.errorMessage.set("");
+    const result = await this.householdV2Service.updateHouseholdSettings({
+      allowExpiredItems: this.allowExpiredItemsDraft,
+      defaultCalculatedMaxLimitMultiplier: this.maxLimitMultiplierDraft,
+      groupTargetShoppingMode: this.groupTargetShoppingModeDraft,
+      groupTargetShoppingDistributionMode: this.groupTargetShoppingDistributionModeDraft,
+      householdId: household.id,
+      name: this.nameDraft.trim()
+    });
+    if (result.status === "error") {
+      const message = result.message ?? this.loc.t("household.settingsSaveFailure");
+      this.errorMessage.set(message);
+      this.toast.push(message, "error");
+      return;
+    }
+    await this.loadHousehold();
+    this.toast.push(this.loc.t("household.settingsSaved"), "success");
+  }
+
+  resetScopeDescription(): string {
+    return this.loc.t(`household.resetScope${this.resetScopeSuffix()}Description`);
+  }
+
+  async resetHousehold(): Promise<void> {
+    const household = this.household();
+    if (!household || !this.resetConfirmed || this.resetting()) return;
+    const scopeLabel = this.loc.t(`household.resetScope${this.resetScopeSuffix()}`);
+    if (!window.confirm(this.loc.t("household.resetConfirmDialog", { scope: scopeLabel }))) return;
+
+    this.resetting.set(true);
+    const result = await this.householdV2Service.resetHouseholdContent({
+      householdId: household.id,
+      scope: this.resetScope
+    });
+    this.resetting.set(false);
+    this.resetConfirmed = false;
+    if (result.status === "error") {
+      const message = result.message ?? this.loc.t("household.resetFailure");
+      this.errorMessage.set(message);
+      this.toast.push(message, "error");
+      return;
+    }
+
+    this.errorMessage.set("");
+    this.toast.push(this.loc.t("household.resetSuccess"), "success");
+    if (this.resetScope === "delete_household") {
+      await this.router.navigateByUrl("/");
+    }
+  }
+
+  private resetScopeSuffix():
+    | "ShoppingList"
+    | "Batches"
+    | "ProductsAndBatches"
+    | "GroupsProductsAndBatches"
+    | "AllData"
+    | "DeleteHousehold" {
+    switch (this.resetScope) {
+      case "shopping_list":
+        return "ShoppingList";
+      case "batches":
+        return "Batches";
+      case "products_and_batches":
+        return "ProductsAndBatches";
+      case "groups_products_and_batches":
+        return "GroupsProductsAndBatches";
+      case "all_household_data":
+        return "AllData";
+      case "delete_household":
+        return "DeleteHousehold";
+    }
   }
 }

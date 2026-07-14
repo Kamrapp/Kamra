@@ -28,7 +28,9 @@ export interface HouseholdStockDraft {
   imports: [FormsModule],
   template: `
     <section class="editor-panel" [attr.aria-label]="loc.t('household.selectedItem')">
-      <p class="card-kicker">{{ mode() === "create" ? loc.t("household.addNewItem") : loc.t("household.selectedItem") }}</p>
+      <p class="card-kicker">
+        {{ mode() === "create" ? loc.t("household.addNewItem") : loc.t("household.selectedItem") }}
+      </p>
       <h2>{{ editorTitle() }}</h2>
 
       <form class="stock-form" (ngSubmit)="saveRequested.emit(draft())">
@@ -57,7 +59,14 @@ export interface HouseholdStockDraft {
           <label>
             <span>{{ loc.t("household.minLimit") }}</span>
             <span class="amount-stepper">
-              <button type="button" [attr.aria-label]="loc.t('household.decreaseMinLimit')" (click)="adjustMinLimit(-1)">−</button>
+              <button
+                class="stepper-button"
+                type="button"
+                [attr.aria-label]="loc.t('household.decreaseMinLimit')"
+                (click)="adjustMinLimit(-1)"
+              >
+                −
+              </button>
               <input
                 type="number"
                 step="0.01"
@@ -65,7 +74,14 @@ export interface HouseholdStockDraft {
                 [ngModel]="draft().minLimit"
                 (ngModelChange)="patchDraft({ minLimit: coerceNumber($event) })"
               />
-              <button type="button" [attr.aria-label]="loc.t('household.increaseMinLimit')" (click)="adjustMinLimit(1)">+</button>
+              <button
+                class="stepper-button"
+                type="button"
+                [attr.aria-label]="loc.t('household.increaseMinLimit')"
+                (click)="adjustMinLimit(1)"
+              >
+                +
+              </button>
             </span>
           </label>
         </div>
@@ -95,10 +111,24 @@ export interface HouseholdStockDraft {
           class="details-toggle icon-button"
           type="button"
           (click)="detailsOpen.update((open) => !open)"
-          [attr.aria-label]="detailsOpen() ? loc.t('household.hideAdditionalDetails') : loc.t('household.showAdditionalDetails')"
-          [attr.title]="detailsOpen() ? loc.t('household.hideAdditionalDetails') : loc.t('household.showAdditionalDetails')"
+          [attr.aria-label]="
+            detailsOpen()
+              ? loc.t('household.hideAdditionalDetails')
+              : loc.t('household.showAdditionalDetails')
+          "
+          [attr.title]="
+            detailsOpen()
+              ? loc.t('household.hideAdditionalDetails')
+              : loc.t('household.showAdditionalDetails')
+          "
         >
-          <span aria-hidden="true">{{ detailsOpen() ? loc.t('household.hideAdditionalDetails') : loc.t('household.showAdditionalDetails') }}</span>
+          <span aria-hidden="true">
+            {{
+              detailsOpen()
+                ? loc.t("household.hideAdditionalDetails")
+                : loc.t("household.showAdditionalDetails")
+            }}
+          </span>
         </button>
 
         @if (detailsOpen()) {
@@ -192,14 +222,24 @@ export interface HouseholdStockDraft {
         }
 
         <div class="editor-actions">
-          <button class="ui-button ui-button-warm add-new-button" type="button" (click)="startCreateRequested.emit()" [disabled]="saving()">
+          <button
+            class="ui-button ui-button-warm add-new-button"
+            type="button"
+            (click)="startCreateRequested.emit()"
+            [disabled]="saving()"
+          >
             {{ loc.t("household.addNewItem") }}
           </button>
           <button class="ui-button ui-button-primary" type="submit" [disabled]="saving()">
             {{ saving() ? loc.t("common.loading") : loc.t("common.save") }}
           </button>
           @if (mode() === "edit") {
-            <button class="ui-button ui-button-quiet" type="button" (click)="archiveRequested.emit()" [disabled]="saving()">
+            <button
+              class="ui-button ui-button-quiet"
+              type="button"
+              (click)="archiveRequested.emit()"
+              [disabled]="saving()"
+            >
               {{ loc.t("common.delete") }}
             </button>
           }
@@ -280,7 +320,7 @@ export interface HouseholdStockDraft {
         grid-template-columns: 2.35rem minmax(0, 1fr) 2.35rem;
       }
 
-      .amount-stepper button {
+      .amount-stepper .stepper-button {
         background: var(--control-quiet-background);
         border: 1px solid var(--control-quiet-border);
         border-radius: var(--radius-ui);
@@ -293,8 +333,8 @@ export interface HouseholdStockDraft {
         padding: 0;
       }
 
-      .amount-stepper button:hover,
-      .amount-stepper button:focus-visible {
+      .amount-stepper .stepper-button:hover,
+      .amount-stepper .stepper-button:focus-visible {
         border-color: var(--line-strong);
       }
 
@@ -377,9 +417,10 @@ export class HouseholdStockEditorComponent {
     const previousSlug = normalizeStockGroupKey(current.displayName);
     this.patchDraft({
       displayName: value,
-      stockGroupKey: !current.stockGroupKey || current.stockGroupKey === previousSlug
-        ? normalizeStockGroupKey(value)
-        : current.stockGroupKey
+      stockGroupKey:
+        !current.stockGroupKey || current.stockGroupKey === previousSlug
+          ? normalizeStockGroupKey(value)
+          : current.stockGroupKey
     });
   }
 

@@ -10,7 +10,7 @@ vi.mock("node:fs", () => ({
 
 import { appendFileSync, mkdirSync } from "node:fs";
 
-import { writeServerLog } from "./kamra-logger.js";
+import { writeServerLog, writeStructuredServerLog } from "./kamra-logger.js";
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -35,5 +35,17 @@ describe("kamra logger", () => {
 
     expect(mkdirSync).toHaveBeenCalled();
     expect(appendFileSync).toHaveBeenCalled();
+  });
+
+  it("redacts sensitive structured details and bounds long values", () => {
+    vi.stubEnv("VERCEL", "1");
+    writeStructuredServerLog({
+      category: "audit",
+      details: { password: "secret", note: "x".repeat(600) },
+      eventName: "flag.changed",
+      level: "info",
+      message: "Feature flag changed"
+    });
+    expect(appendFileSync).not.toHaveBeenCalled();
   });
 });

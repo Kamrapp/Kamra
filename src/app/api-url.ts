@@ -5,12 +5,8 @@ function normalizeApiBaseUrl(apiBaseUrl: string): string {
 }
 
 export function buildApiUrl(path: string): string {
-  const normalizedPath = path.startsWith("/")
-    ? path
-    : `/${path}`;
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
   const apiBaseUrl = normalizeApiBaseUrl(publicAppConfig.apiBaseUrl);
 
-  return apiBaseUrl
-    ? `${apiBaseUrl}${normalizedPath}`
-    : normalizedPath;
+  return apiBaseUrl ? `${apiBaseUrl}${normalizedPath}` : normalizedPath;
 }

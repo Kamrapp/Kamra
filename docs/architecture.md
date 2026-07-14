@@ -202,6 +202,72 @@ Responsibilities:
 Early optimization may be intentionally simple.
 The current household shopping loop should remain understandable before it becomes a full optimizer: `Start fresh` creates an empty list, `Business as usual` includes below-limit and at-limit stock, `Keep it chill` also includes low-soon stock, and `Stock 'em up!` includes all tracked stock rows as a broad restock view.
 
+Stage 8 completes the basic user-side loop on Home: generated lines remain editable, can be
+marked purchased, and can be finalized into reusable Household Products and Product-owned
+Stock Batches. Stage 9 adds the concrete shop/trip/price context and submits finalized-trip
+unknowns or changed facts for admin-reviewed Purchase Ingestion; it must not make catalogue
+data a prerequisite for household stock management.
+
+## Phase 1 household-to-catalogue direction
+
+The MVP closed with the household loop accepted. Phase 1 makes the existing shopping and evidence
+features one coherent journey:
+
+- the Shopping list remains the primary household UI;
+- choosing a shop starts a lightweight session around that list, and bought marks automatically
+  become session/purchase evidence;
+- receipt reconciliation may enrich the session with Products, identifiers, amounts, and prices;
+- confirmed household evidence creates Stock Batches and traceable Price Observations while
+  uncertain shared-catalogue facts enter review;
+- high-throughput review handles both source-level and extracted-entry decisions without discarding
+  provenance;
+- crawl retention and deduplication bound storage only through explicit evidence-lifecycle rules.
+
+Existing Shopping Trip documents may remain a transaction and evidence boundary. They must not force
+a second list-shaped user workflow. The schema should follow the approved state-transition contract,
+with validator updates and existing-data migrations registered independently.
+
+### Post-Phase 1 pricing direction
+
+Phase 1 produces the reliable household Product links, shop context, and Price Observations needed by
+the next core product goal: Shopping-list cost anticipation and configurable price optimization. The
+query/optimization boundary should calculate an explainable expected cost with explicit missing,
+stale, future, conditional, and incompatible-price states, then compare bounded alternatives.
+
+Alternative-Product or alternative-shop suggestions must retain the original household need, expose
+compatibility and offer conditions, show observation freshness and expected savings, and require the
+member to accept any list change. Household preferences such as preferred shops, acceptable
+substitutions, discount sensitivity, convenience versus savings, and maximum additional shops belong
+in household-owned configuration. Sponsored ranking remains outside the architecture.
+
+## Vertical-slice locality and integration testing
+
+The completed Stage 11 locality direction is documented in the archived
+[vertical-slice map](./mvp/vertical-slice-map.md). Existing domain directories are treated
+as real ownership boundaries; the work does not authorize a repository-wide folder rewrite.
+
+Each capability should make its contracts, pure policy, persistence adapter, HTTP adapter, UI
+adapter, and integration tests discoverable from a bounded set of paths. HTTP and hosting glue
+remain thin, while cross-capability workflows are tested through the real app handler and explicit
+fixtures. Deterministic local integration tests complement unit tests; configured disposable
+MongoDB smokes remain necessary for validators, indexes, transactions, maintenance actions, and
+recovery behavior. The normal `npm test` command includes the deterministic integration tests;
+`npm run test:integration` selects only those cross-layer tests for focused work. The configured
+`catalog-smoke.yml` and `transaction-smoke.yml` workflows provide the private-environment signal
+only when their narrow catalog/schema or household transaction/persistence/maintenance path filters
+match. Ordinary pull requests do not require MongoDB credentials.
+
+The local harness lives under `packages/kamra-api-server/src/test-support/integration/`. It runs
+the shared app handler with explicit authenticated fixtures and a named fake database. Its session
+lifecycle is intentionally limited: it proves route/auth/repository wiring and persisted side
+effects, but it does not claim to emulate MongoDB rollback or isolation. Those claims belong to the
+configured transaction smoke and the final operator runbook.
+
+Pattern-based UI and API lists should be registry-driven. In particular, the checked-in feature-flag
+registry owns definitions and defaults, while MongoDB stores overrides/audits and the admin UI
+renders ordinary flags from returned metadata. A database row alone must not create an executable
+flag with unknown defaults or authorization behavior.
+
 ## Data Lifecycle
 
 ```text
@@ -214,12 +280,16 @@ External source
   -> query model
   -> API route
   -> frontend
-  -> shopping decision or generated list
+  -> household Product discovery or generated list
+  -> shop-session and receipt evidence
+  -> reviewed price/catalogue observations
 ```
 
 ## Data Modeling Principles
 
-- raw crawled/fetched snapshots are preserved before processing
+- raw crawled/fetched snapshots are preserved before processing; Phase 1 must define explicit
+  terminal-state retention, compaction/archive, and duplicate-grouping rules rather than assuming
+  indefinite storage
 - processed products are optimized for common product queries
 - price history is stored separately from product query documents
 - store-specific products stay separate from canonical product identity
@@ -230,9 +300,11 @@ External source
 - uncertain matches should be represented explicitly, not hidden as confident canonical products
 - uncertain store-product identity should remain unlinked until verified by stronger evidence or explicit review
 - accepting crawled product candidates should make create-versus-merge behavior explicit to the operator before writing catalog data
+- receipt- or household-derived catalogue facts require confirmed identifiers or explicit review;
+  low-confidence evidence must not mutate shared Products automatically
 - household inventory concepts should stay separate from store-offer observations even if they share some fields
 - household-local products are the first-class user-owned path for pantry tracking; catalog links are optional enrichment and should not block manual household stock entry
-- household stock group keys should remain stable because future list generation, limits, and consumption estimates need to reason about needs that may span multiple concrete products
+- household Product Groups are stable household-owned containers for Products; their optional target policies and Product-owned target policies drive later list generation without treating Product Concepts as stock hierarchy
 - shared contracts should be designed for reuse by frontend and API first, with generated compatibility for workflow runtimes where needed
 - composition should be modeled explicitly so compound products or household items can reference their parts
 - composition should support quantity plus unit, with ratio represented through the same model instead of a special unrelated relation shape

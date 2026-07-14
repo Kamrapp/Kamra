@@ -6,12 +6,12 @@ The cluster is shared, but the databases and credentials are separated by purpos
 
 ## Current Layout
 
-| Purpose | Database | Primary Users | Typical Platform Binding |
-| --- | --- | --- | --- |
-| Production app data | `kamra_prod` | `github`, `vercel` | Vercel production, GitHub production workflows |
-| Preview / test data | `kamra_test` | `github_test`, `vercel_test` | Vercel preview deployments and preview-oriented checks |
-| Dev / release-testing data | `kamra_dev` | `vercel_dev` | Dev testing and `master_dev` style release validation |
-| Smoke / proofbuild data | `kamra_smoke` | `github_smoke` | GitHub smoke and proofbuild validation |
+| Purpose                    | Database      | Primary Users                | Typical Platform Binding                               |
+| -------------------------- | ------------- | ---------------------------- | ------------------------------------------------------ |
+| Production app data        | `kamra_prod`  | `github`, `vercel`           | Vercel production, GitHub production workflows         |
+| Preview / test data        | `kamra_test`  | `github_test`, `vercel_test` | Vercel preview deployments and preview-oriented checks |
+| Dev / release-testing data | `kamra_dev`   | `vercel_dev`                 | Dev testing and `master_dev` style release validation  |
+| Smoke / proofbuild data    | `kamra_smoke` | `github_smoke`               | GitHub smoke and proofbuild validation                 |
 
 ## Secret Handling
 

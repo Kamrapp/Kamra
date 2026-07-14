@@ -6,7 +6,7 @@ import type {
   ProductSourceIdentifierRecord,
   RecordOrigin,
   SourceRecordProcessingStateRecord,
-  StockLocationReference,
+  StockLocationReference
 } from "../../catalog/v1/contracts.js";
 import type {
   IngestionRawSnapshotRecord,
@@ -36,11 +36,13 @@ export function createFailedSourceOfferProcessingDataset(
   error: { code: string; message: string }
 ): CatalogV1SeedDataset {
   const dataset = createEmptyDataset();
-  dataset.sourceRecordProcessingStates.push(createProcessingState(snapshot, processedAt, {
-    lastErrorCode: error.code,
-    lastErrorMessage: error.message,
-    state: "failed"
-  }));
+  dataset.sourceRecordProcessingStates.push(
+    createProcessingState(snapshot, processedAt, {
+      lastErrorCode: error.code,
+      lastErrorMessage: error.message,
+      state: "failed"
+    })
+  );
 
   return dataset;
 }
@@ -61,17 +63,17 @@ const sourceConfigs: Record<string, SourceProcessingConfig> = {
     locationLabel: "Lidl Hungary",
     locationKey: "availability:lidl-hu"
   },
-  "penny_hu_offers": {
+  penny_hu_offers: {
     defaultStoreBrandKey: "penny-hu",
     locationLabel: "PENNY Hungary",
     locationKey: "availability:penny-hu"
   },
-  "simple_html_table_shop": {
+  simple_html_table_shop: {
     defaultStoreBrandKey: "simple-html-table-shop",
     locationLabel: "SimpleHtmlTableShop",
     locationKey: "availability:simple-html-table-shop"
   },
-  "simple_pdf_shop": {
+  simple_pdf_shop: {
     defaultStoreBrandKey: "simple-pdf-shop",
     locationLabel: "SimplePdfShop",
     locationKey: "availability:simple-pdf-shop"
@@ -132,7 +134,8 @@ export function processSourceOfferSnapshot(
       currentCategoryLabel: row.categoryLabel ?? null,
       id: productSourceId,
       origin,
-      priceLastCheckedAt: latestObservedAt(priceObservations) ?? row.observedAt ?? snapshot.capturedAt,
+      priceLastCheckedAt:
+        latestObservedAt(priceObservations) ?? row.observedAt ?? snapshot.capturedAt,
       productId,
       productPageUrl: sourceUrl ?? `urn:kamra:source:${sourceName}`,
       sourceName,
@@ -143,13 +146,26 @@ export function processSourceOfferSnapshot(
     });
 
     dataset.productSourceIdentifiers.push(
-      ...createProductSourceIdentifiers(row, sourceName, sourceProductKey, productSourceId, origin, processedAt)
+      ...createProductSourceIdentifiers(
+        row,
+        sourceName,
+        sourceProductKey,
+        productSourceId,
+        origin,
+        processedAt
+      )
     );
 
     dataset.priceObservations.push(
       ...priceObservations.map((observation, observationIndex) => ({
         createdAt: processedAt,
-        id: createPriceObservationId(snapshot, sourceName, sourceProductKey, observationIndex, observation),
+        id: createPriceObservationId(
+          snapshot,
+          sourceName,
+          sourceProductKey,
+          observationIndex,
+          observation
+        ),
         location,
         observedAt: observation.observedAt,
         origin,
@@ -189,11 +205,13 @@ export function processSourceOfferSnapshot(
     processedRowCount += 1;
   }
 
-  dataset.sourceRecordProcessingStates.push(createProcessingState(snapshot, processedAt, {
-    lastErrorCode: null,
-    lastErrorMessage: null,
-    state: "processed"
-  }));
+  dataset.sourceRecordProcessingStates.push(
+    createProcessingState(snapshot, processedAt, {
+      lastErrorCode: null,
+      lastErrorMessage: null,
+      state: "processed"
+    })
+  );
 
   return {
     dataset,
@@ -237,11 +255,13 @@ function upsertDatasetProduct(
 }
 
 function sameOrigin(left: RecordOrigin, right: RecordOrigin): boolean {
-  return left.capturedAt === right.capturedAt
-    && left.producer === right.producer
-    && left.sourceName === right.sourceName
-    && left.sourceRecordId === right.sourceRecordId
-    && left.sourceUrl === right.sourceUrl;
+  return (
+    left.capturedAt === right.capturedAt &&
+    left.producer === right.producer &&
+    left.sourceName === right.sourceName &&
+    left.sourceRecordId === right.sourceRecordId &&
+    left.sourceUrl === right.sourceUrl
+  );
 }
 
 function createProcessorOrigin(
@@ -273,16 +293,18 @@ function createLocation(sourceName: string, storeBrandKey: string): StockLocatio
 }
 
 function configFor(sourceName: string): SourceProcessingConfig {
-  return sourceConfigs[sourceName] ?? {
-    defaultStoreBrandKey: sourceName,
-    locationLabel: sourceName,
-    locationKey: `availability:${stableSlug(sourceName)}`
-  };
+  return (
+    sourceConfigs[sourceName] ?? {
+      defaultStoreBrandKey: sourceName,
+      locationLabel: sourceName,
+      locationKey: `availability:${stableSlug(sourceName)}`
+    }
+  );
 }
 
 function createProductId(row: ParsedShopProductRow, normalizedName: string): string {
-  const commonIdentifier = row.productIdentifiers?.find((identifier) =>
-    identifier.kind === "gtin" || identifier.kind === "national_code"
+  const commonIdentifier = row.productIdentifiers?.find(
+    (identifier) => identifier.kind === "gtin" || identifier.kind === "national_code"
   );
 
   if (commonIdentifier) {
@@ -352,7 +374,10 @@ function collectProductIdentifiers(
     },
     ...identifiers,
     ...itemNumbers
-      .filter((itemNumber): itemNumber is string => typeof itemNumber === "string" && itemNumber.trim().length > 0)
+      .filter(
+        (itemNumber): itemNumber is string =>
+          typeof itemNumber === "string" && itemNumber.trim().length > 0
+      )
       .map((itemNumber) => ({
         issuer: null,
         kind: "retailer_item_number" as const,
@@ -366,9 +391,11 @@ function uniqueIdentifier(
   index: number,
   identifiers: ParsedShopProductIdentifier[]
 ): boolean {
-  return identifiers.findIndex((candidate) =>
-    candidate.kind === identifier.kind && candidate.value === identifier.value
-  ) === index;
+  return (
+    identifiers.findIndex(
+      (candidate) => candidate.kind === identifier.kind && candidate.value === identifier.value
+    ) === index
+  );
 }
 
 function createPriceObservations(row: ParsedShopProductRow): ParsedShopPriceObservation[] {
@@ -394,10 +421,12 @@ function createPriceObservations(row: ParsedShopProductRow): ParsedShopPriceObse
 }
 
 function latestObservedAt(priceObservations: ParsedShopPriceObservation[]): string | null {
-  return priceObservations
-    .map((observation) => observation.observedAt)
-    .sort()
-    .at(-1) ?? null;
+  return (
+    priceObservations
+      .map((observation) => observation.observedAt)
+      .sort()
+      .at(-1) ?? null
+  );
 }
 
 function createPriceObservationId(

@@ -10,23 +10,32 @@ import { MongoUserRepository } from "../../auth/mongo-user-repository.js";
 import { hashPassword } from "../../auth/password-hash.js";
 import { createUserToken } from "../../auth/user-token.js";
 import { createDefaultHouseholdRepository } from "../app-route-context.js";
+import { MongoHouseholdInvitationRepository } from "../../household/current/mongo-household-invitation-repository.js";
 import { writeServerLog } from "../../logging/kamra-logger.js";
-import { describeRequest, empty, json, unauthorized, type AppRequest, type AppRoute } from "../app-route-context.js";
+import {
+  describeRequest,
+  empty,
+  json,
+  unauthorized,
+  type AppRequest,
+  type AppRoute
+} from "../app-route-context.js";
 
-function readLoginPayload(bodyText: string | undefined):
-  | { email: string; password: string }
-  | null {
+function readLoginPayload(
+  bodyText: string | undefined
+): { email: string; password: string } | null {
   try {
     const payload = JSON.parse(bodyText ?? "{}") as {
       email?: unknown;
       password?: unknown;
       username?: unknown;
     };
-    const email = typeof payload.email === "string"
-      ? payload.email
-      : typeof payload.username === "string"
-        ? payload.username
-        : null;
+    const email =
+      typeof payload.email === "string"
+        ? payload.email
+        : typeof payload.username === "string"
+          ? payload.username
+          : null;
 
     if (!email || typeof payload.password !== "string") {
       return null;
@@ -76,7 +85,9 @@ function readProfilePayload(bodyText: string | undefined): UserProfile | null {
   }
 }
 
-function readAlphaUserPayload(bodyText: string | undefined): { email: string; password: string } | null {
+function readAlphaUserPayload(
+  bodyText: string | undefined
+): { email: string; password: string } | null {
   try {
     const payload = JSON.parse(bodyText ?? "{}") as {
       email?: unknown;
@@ -87,12 +98,17 @@ function readAlphaUserPayload(bodyText: string | undefined): { email: string; pa
     }
 
     const email = payload.email.trim().toLowerCase();
-    return email && payload.password.length >= 8
-      ? { email, password: payload.password }
-      : null;
+    return email && payload.password.length >= 8 ? { email, password: payload.password } : null;
   } catch {
     return null;
   }
+}
+
+function readRegistrationPayload(
+  bodyText: string | undefined
+): { email: string; password: string } | null {
+  const payload = readAlphaUserPayload(bodyText);
+  return payload;
 }
 
 async function createUserRepository(
@@ -103,10 +119,7 @@ async function createUserRepository(
     return null;
   }
 
-  const client = await context.getMongoClient(
-    config.mongodb.uri,
-    config.mongodb.dnsServers
-  );
+  const client = await context.getMongoClient(config.mongodb.uri, config.mongodb.dnsServers);
 
   return context.dependencies.createUserRepository
     ? context.dependencies.createUserRepository(client.db(config.mongodb.databaseName))
@@ -121,15 +134,22 @@ async function createHouseholdRepository(
     return null;
   }
 
-  const client = await context.getMongoClient(
-    config.mongodb.uri,
-    config.mongodb.dnsServers
-  );
+  const client = await context.getMongoClient(config.mongodb.uri, config.mongodb.dnsServers);
   const database = client.db(config.mongodb.databaseName);
 
   return context.dependencies.createHouseholdRepository
     ? context.dependencies.createHouseholdRepository(database)
     : createDefaultHouseholdRepository(database);
+}
+
+async function createInvitationRepository(
+  context: Parameters<AppRoute["handle"]>[1]
+): Promise<MongoHouseholdInvitationRepository | null> {
+  const config = context.config;
+  if (!config.mongodb.uri || !config.mongodb.databaseName) return null;
+
+  const client = await context.getMongoClient(config.mongodb.uri, config.mongodb.dnsServers);
+  return new MongoHouseholdInvitationRepository(client.db(config.mongodb.databaseName));
 }
 
 export const loginRoute: AppRoute = {
@@ -184,6 +204,75 @@ export const loginRoute: AppRoute = {
   }
 };
 
+export const registerInvitedUserRoute: AppRoute = {
+  match: (request) => request.method === "POST" && request.path === "/api/register",
+  handle: async (request, context) => {
+    const payload = readRegistrationPayload(request.bodyText);
+    if (!payload) {
+      return json(400, {
+        error: "invalid_registration_payload",
+        message: "An email and a password of at least 8 characters are required."
+      });
+    }
+
+    const userRepository = await createUserRepository(context);
+    const invitationRepository = await createInvitationRepository(context);
+    const config = context.config;
+    if (!userRepository || !invitationRepository || !config.auth.tokenSecret) {
+      return json(503, { error: "registration_not_configured" });
+    }
+
+    const pendingInvitations = await invitationRepository.listPendingForEmail(payload.email);
+    if (pendingInvitations.length === 0) {
+      return json(409, {
+        error: "registration_invitation_required",
+        messageKey: "app.registrationInvitationRequired"
+      });
+    }
+
+    if (await userRepository.findUserByEmail(payload.email)) {
+      return json(409, {
+        error: "user_already_exists",
+        messageKey: "app.registrationAlreadyExists"
+      });
+    }
+
+    if (!userRepository.createRegisteredUser) {
+      return json(503, { error: "registration_not_supported" });
+    }
+
+    const createdUser = await userRepository.createRegisteredUser({
+      email: payload.email,
+      passwordHash: await hashPassword(payload.password),
+      role: "user",
+      status: "active"
+    });
+    const acceptedCount = await invitationRepository.acceptAllForEmail({
+      email: createdUser.email,
+      now: new Date().toISOString()
+    });
+    const authenticatedUser = toAuthenticatedUser(createdUser);
+    const token = createUserToken({
+      email: authenticatedUser.email,
+      maxAgeSeconds: config.auth.tokenMaxAgeSeconds,
+      role: authenticatedUser.role,
+      secret: config.auth.tokenSecret
+    });
+
+    writeServerLog("info", "Invited user registered", {
+      acceptedInvitationCount: acceptedCount,
+      ...describeRequest(request),
+      username: authenticatedUser.email
+    });
+
+    return json(201, {
+      token,
+      tokenType: "Bearer",
+      user: authenticatedUser
+    });
+  }
+};
+
 export const createAlphaUserRoute: AppRoute = {
   match: (request) => request.method === "POST" && request.path === "/api/admin/alpha-users",
   handle: async (request, context) => {
@@ -206,10 +295,9 @@ export const createAlphaUserRoute: AppRoute = {
       return json(503, { error: "alpha_access_not_configured" });
     }
 
-    const alphaAccessEnabled = (await householdRepository.readFeatureFlag(
-      "allowControlledAlphaAccess",
-      false
-    )).enabled;
+    const alphaAccessEnabled = (
+      await householdRepository.readFeatureFlag("allowControlledAlphaAccess", false)
+    ).enabled;
     if (!alphaAccessEnabled) {
       return json(409, { error: "alpha_access_disabled" });
     }
@@ -220,7 +308,9 @@ export const createAlphaUserRoute: AppRoute = {
         return json(409, { error: "user_already_exists" });
       }
 
-      const existingHouseholds = await householdRepository.listHouseholdsForUser(existingUser.email);
+      const existingHouseholds = await householdRepository.listHouseholdsForUser(
+        existingUser.email
+      );
       if (existingHouseholds.length > 0) {
         return json(409, { error: "user_already_exists" });
       }
@@ -290,9 +380,7 @@ export const currentUserRoute: AppRoute = {
     const profileUser = await repository.findActiveUserByEmail(user.email);
 
     return json(200, {
-      user: profileUser
-        ? toAuthenticatedUser(profileUser)
-        : user
+      user: profileUser ? toAuthenticatedUser(profileUser) : user
     });
   }
 };

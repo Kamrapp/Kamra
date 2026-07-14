@@ -102,8 +102,12 @@ describe("MongoCurrentCatalogRepository", () => {
       deletedStockCount: 1,
       deletedTagAssignmentCount: 1
     });
-    expect(db.__collections["products"]!.docs.map((doc: Record<string, unknown>) => doc["id"])).toEqual(["product_other"]);
-    expect(db.__collections["product_sources"]!.docs.map((doc: Record<string, unknown>) => doc["id"])).toEqual(["source_other"]);
+    expect(
+      db.__collections["products"]!.docs.map((doc: Record<string, unknown>) => doc["id"])
+    ).toEqual(["product_other"]);
+    expect(
+      db.__collections["product_sources"]!.docs.map((doc: Record<string, unknown>) => doc["id"])
+    ).toEqual(["source_other"]);
   });
 
   it("creates a validated catalog product from a review candidate", async () => {
@@ -379,11 +383,13 @@ describe("MongoCurrentCatalogRepository", () => {
     const repository = new MongoCurrentCatalogRepository(db as never);
     const result = await repository.upgradeCatalogValidators();
 
-    expect(commands).toContainEqual(expect.objectContaining({
-      collMod: "products",
-      validationAction: "error",
-      validationLevel: "strict"
-    }));
+    expect(commands).toContainEqual(
+      expect.objectContaining({
+        collMod: "products",
+        validationAction: "error",
+        validationLevel: "strict"
+      })
+    );
     expect(createdCollections).toContain("price_observations");
     expect(result).toMatchObject({
       databaseName: "kamra_test",

@@ -32,7 +32,7 @@ Implementation is intentionally stricter. Once a plan is approved, agents should
 
 Prefer global agent settings, reusable skills, and shared conventions for practices that should apply across many repositories. Use repository docs for domain-specific decisions, local constraints, and deviations from the global baseline.
 
-Clean code should reduce cognitive load. Favor guardrails such as guard clauses, feature flags, explicit boundaries, allowlists, safe default paths, and Result-style expected failure handling when they make behavior easier to scan, review, and change. Prefer dependency injection for genuinely swappable strategies, but avoid abstracting one-off logic just to look flexible.
+Clean code should reduce cognitive load. Favor guard clauses, explicit boundaries, allowlists, safe defaults, and Result-style expected failure handling when they make behavior easier to scan, review, and change. Use feature flags only for current staged or operationally sensitive behavior. Prefer repository, native, platform, and existing dependency capabilities before custom code; use dependency injection for genuinely swappable strategies, but avoid abstracting one-off logic just to look flexible.
 
 Platform choices should stay as thin and replaceable as practical. Prefer locally runnable application modules, scripts, and testable core logic behind small hosting, deployment, or workflow adapters so repositories can move between platforms later without rewriting the business core.
 
@@ -92,7 +92,7 @@ Typical contents:
 - main workflows
 - boundaries of the project
 - explicit non-goals
-- known future extensions
+- future extensions only when they help distinguish current scope from deliberately deferred work
 - authentication and user identity expectations
 - role and permission expectations
 - admin or operator workflows
@@ -135,7 +135,7 @@ Typical contents:
 - query or access model
 - derived outputs
 - external integration boundaries
-- extensibility points
+- current integration or variation points, plus only the extension seams needed to avoid a clear near-term dead end
 - user boundary model
 - role boundary model
 - administrative surface
@@ -242,7 +242,7 @@ Rules:
 - agents must avoid autonomous workflows that bypass user review
 - agents should prefer simple guard clauses, feature flags, and explicit safe defaults over clever or deeply nested control flow
 - agents should prefer Result-style handling for expected failures over exceptions as ordinary control flow
-- agents should use dependency-injected strategies where behavior is intentionally replaceable
+- agents should use dependency-injected strategies where behavior is intentionally replaceable and the current system benefits from the boundary
 
 ### Phase 6: Codebase Analysis
 

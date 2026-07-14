@@ -9,11 +9,23 @@ export interface LogDetails {
 }
 
 export interface LogRecord {
+  category?: "application" | "audit" | "diagnostic";
+  correlationId?: string;
   details?: LogDetails;
+  eventName?: string;
   level: LogLevel;
   message: string;
   scope: LogScope;
   timestamp: string;
+}
+
+export interface StructuredLogInput {
+  category: "application" | "audit" | "diagnostic";
+  correlationId?: string;
+  details?: LogDetails;
+  eventName: string;
+  level: LogLevel;
+  message: string;
 }
 
 const logRetentionDays = 10;
@@ -56,7 +68,22 @@ function normalizeDetails(details: unknown): unknown {
     };
   }
 
-  return details;
+  if (!details || typeof details !== "object" || Array.isArray(details)) return details;
+  const result: LogDetails = {};
+  for (const [key, value] of Object.entries(details)) {
+    if (
+      ["password", "token", "authorization", "credential", "rawBody"].some((sensitive) =>
+        key.toLowerCase().includes(sensitive)
+      )
+    ) {
+      result[key] = "[REDACTED]";
+    } else if (typeof value === "string" && value.length > 500) {
+      result[key] = `${value.slice(0, 500)}…`;
+    } else {
+      result[key] = value;
+    }
+  }
+  return result;
 }
 
 function purgeExpiredLogs(scope: LogScope, logDirectory: string): void {
@@ -104,20 +131,12 @@ function writeRecord(record: LogRecord): void {
   } catch (error) {
     if (!logFileWriteWarningEmitted) {
       logFileWriteWarningEmitted = true;
-      console.warn(
-        `${new Date().toISOString()} [kamra:server] File logging disabled`,
-        error
-      );
+      console.warn(`${new Date().toISOString()} [kamra:server] File logging disabled`, error);
     }
   }
 }
 
-function logToConsole(
-  scope: LogScope,
-  level: LogLevel,
-  message: string,
-  details?: unknown
-): void {
+function logToConsole(scope: LogScope, level: LogLevel, message: string, details?: unknown): void {
   const prefix = `${new Date().toISOString()} [kamra:${scope}] ${message}`;
 
   if (level === "error") {
@@ -133,11 +152,7 @@ function logToConsole(
   console.log(prefix, details ?? "");
 }
 
-export function writeServerLog(
-  level: LogLevel,
-  message: string,
-  details?: unknown
-): void {
+export function writeServerLog(level: LogLevel, message: string, details?: unknown): void {
   const record: LogRecord = {
     details: normalizeDetails(details) as LogDetails | undefined,
     level,
@@ -150,11 +165,22 @@ export function writeServerLog(
   logToConsole("server", level, message, details);
 }
 
-export function writeBrowserLog(
-  level: LogLevel,
-  message: string,
-  details?: unknown
-): void {
+export function writeStructuredServerLog(input: StructuredLogInput): void {
+  const record: LogRecord = {
+    category: input.category,
+    correlationId: input.correlationId,
+    details: normalizeDetails(input.details) as LogDetails | undefined,
+    eventName: input.eventName,
+    level: input.level,
+    message: input.message,
+    scope: "server",
+    timestamp: new Date().toISOString()
+  };
+  writeRecord(record);
+  logToConsole("server", input.level, input.message, record.details);
+}
+
+export function writeBrowserLog(level: LogLevel, message: string, details?: unknown): void {
   const record: LogRecord = {
     details: normalizeDetails(details) as LogDetails | undefined,
     level,

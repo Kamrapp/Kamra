@@ -1,6 +1,24 @@
+import { featureFlagKeys, type FeatureFlagKey } from "../../feature-toggles/contracts.js";
+export {
+  groupTargetShoppingDistributionModes,
+  groupTargetShoppingDistributionModeOverrides,
+  groupTargetShoppingModeOverrides,
+  groupTargetShoppingModes,
+  type GroupTargetShoppingDistributionMode,
+  type GroupTargetShoppingDistributionModeOverride,
+  type GroupTargetShoppingMode,
+  type GroupTargetShoppingModeOverride,
+  normalizeGroupTargetShoppingDistributionMode
+} from "../shopping-policy.js";
+import type {
+  GroupTargetShoppingDistributionMode,
+  GroupTargetShoppingMode
+} from "../shopping-policy.js";
+
 export const householdV1CollectionNames = [
   "households",
   "household_memberships",
+  "household_invitations",
   "household_local_products",
   "household_stock_items",
   "household_feature_flags",
@@ -20,6 +38,9 @@ export type HouseholdMembershipRole = (typeof householdMembershipRoles)[number];
 export const householdMembershipStatuses = ["active", "removed"] as const;
 export type HouseholdMembershipStatus = (typeof householdMembershipStatuses)[number];
 
+export const householdInvitationStatuses = ["pending", "accepted", "revoked"] as const;
+export type HouseholdInvitationStatus = (typeof householdInvitationStatuses)[number];
+
 export const householdLocalProductStatuses = ["active", "archived"] as const;
 export type HouseholdLocalProductStatus = (typeof householdLocalProductStatuses)[number];
 
@@ -29,7 +50,12 @@ export type HouseholdStockItemStatus = (typeof householdStockItemStatuses)[numbe
 export const householdStockStatuses = ["below_limit", "at_limit", "low_soon", "steady"] as const;
 export type HouseholdStockStatus = (typeof householdStockStatuses)[number];
 
-export const householdShoppingScales = ["business_as_usual", "keep_it_chill", "stock_em_up", "start_fresh"] as const;
+export const householdShoppingScales = [
+  "business_as_usual",
+  "keep_it_chill",
+  "stock_em_up",
+  "start_fresh"
+] as const;
 export type HouseholdShoppingScale = (typeof householdShoppingScales)[number];
 
 export const householdShoppingListReasonCodes = [
@@ -44,10 +70,12 @@ export const householdShoppingListItemUncertaintyFlags = [
   "missing_catalog_product",
   "missing_product_source"
 ] as const;
-export type HouseholdShoppingListItemUncertaintyFlag = (typeof householdShoppingListItemUncertaintyFlags)[number];
+export type HouseholdShoppingListItemUncertaintyFlag =
+  (typeof householdShoppingListItemUncertaintyFlags)[number];
 
 export const householdShoppingListLineSourceKinds = ["generated", "manual"] as const;
-export type HouseholdShoppingListLineSourceKind = (typeof householdShoppingListLineSourceKinds)[number];
+export type HouseholdShoppingListLineSourceKind =
+  (typeof householdShoppingListLineSourceKinds)[number];
 
 export const householdShoppingListStatuses = ["active", "completed", "archived"] as const;
 export type HouseholdShoppingListStatus = (typeof householdShoppingListStatuses)[number];
@@ -59,19 +87,22 @@ export type HouseholdShoppingListStockApplicationStatus =
 export const householdShopStatuses = ["active", "archived"] as const;
 export type HouseholdShopStatus = (typeof householdShopStatuses)[number];
 
-export const householdShoppingListUpdateScopes = ["update_ticked_only", "tick_all_and_update"] as const;
+export const householdShoppingListUpdateScopes = [
+  "update_ticked_only",
+  "tick_all_and_update"
+] as const;
 export type HouseholdShoppingListUpdateScope = (typeof householdShoppingListUpdateScopes)[number];
 
-export const householdFeatureFlagKeys = [
-  "allowAutoTickingAllShoppingListEntries",
-  "allowControlledAlphaAccess"
-] as const;
-export type HouseholdFeatureFlagKey = (typeof householdFeatureFlagKeys)[number];
+export const householdFeatureFlagKeys = featureFlagKeys;
+export type HouseholdFeatureFlagKey = FeatureFlagKey;
 
 export interface HouseholdRecord {
+  allowExpiredItems?: boolean | null;
   createdAt: string;
   createdByUserId: string;
   defaultCalculatedMaxLimitMultiplier?: number | null;
+  groupTargetShoppingDistributionMode?: GroupTargetShoppingDistributionMode | null;
+  groupTargetShoppingMode?: GroupTargetShoppingMode | null;
   favouriteShopId?: string | null;
   id: string;
   name: string;
@@ -87,6 +118,28 @@ export interface HouseholdMembershipRecord {
   status: HouseholdMembershipStatus;
   updatedAt: string;
   userId: string;
+}
+
+export interface HouseholdInvitationRecord {
+  acceptedAt?: string | null;
+  acceptedByUserId?: string | null;
+  createdAt: string;
+  email: string;
+  householdId: string;
+  id: string;
+  invitedByUserId: string;
+  status: HouseholdInvitationStatus;
+  updatedAt: string;
+}
+
+export interface HouseholdInvitationListItem {
+  createdAt: string;
+  email: string;
+  householdId: string;
+  householdName?: string;
+  id: string;
+  status: HouseholdInvitationStatus;
+  updatedAt: string;
 }
 
 export interface HouseholdFeatureFlagRecord {
@@ -143,8 +196,11 @@ export interface HouseholdStockItemRecord {
 }
 
 export interface HouseholdListItem {
+  allowExpiredItems?: boolean;
   createdAt: string;
   defaultCalculatedMaxLimitMultiplier?: number | null;
+  groupTargetShoppingDistributionMode?: GroupTargetShoppingDistributionMode;
+  groupTargetShoppingMode?: GroupTargetShoppingMode;
   favouriteShopId?: string | null;
   id: string;
   membershipRole: HouseholdMembershipRole;
@@ -268,6 +324,7 @@ export interface HouseholdShoppingListItemReference {
   householdProductId?: string | null;
   householdStockItemId?: string | null;
   productSourceId?: string | null;
+  productGroupId?: string | null;
   sourceName?: string | null;
   sourceProductUrl?: string | null;
   stockGroupKey?: string | null;
@@ -344,6 +401,8 @@ export interface HouseholdShoppingListRecord {
 
 export interface CreateHouseholdShoppingListRequest {
   householdId: string;
+  selectedOwnerIds?: string[];
+  selectedStockItemIds?: string[];
   scale: HouseholdShoppingScale;
   shopId?: string | null;
 }

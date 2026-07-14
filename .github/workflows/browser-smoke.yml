@@ -1,0 +1,62 @@
+name: Browser Smoke
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+    paths:
+      - ".github/workflows/browser-smoke.yml"
+      - "angular.json"
+      - "package.json"
+      - "package-lock.json"
+      - "playwright.config.ts"
+      - "proxy.conf.json"
+      - "src/**"
+      - "tests/browser/**"
+      - "tsconfig*.json"
+  push:
+    branches:
+      - "master"
+      - "master_dev"
+    paths:
+      - ".github/workflows/browser-smoke.yml"
+      - "angular.json"
+      - "package.json"
+      - "package-lock.json"
+      - "playwright.config.ts"
+      - "proxy.conf.json"
+      - "src/**"
+      - "tests/browser/**"
+      - "tsconfig*.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser-smoke:
+    name: Chromium app smoke
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run browser smoke
+        run: npm run test:browser

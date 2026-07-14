@@ -1,5 +1,8 @@
 import { readAppConfig } from "../packages/kamra-api-server/src/config/app-config.js";
-import { closeMongoClient, getMongoClient } from "../packages/kamra-api-server/src/db/mongo-client.js";
+import {
+  closeMongoClient,
+  getMongoClient
+} from "../packages/kamra-api-server/src/db/mongo-client.js";
 import { writeServerLog } from "../packages/kamra-api-server/src/logging/kamra-logger.js";
 import { createAdminUserSeed } from "../packages/kamra-api-server/src/seeds/admin-identity-seed.js";
 import { MongoAdminIdentitySeedRepository } from "../packages/kamra-api-server/src/seeds/mongo-admin-identity-seed-repository.js";

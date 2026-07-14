@@ -1,9 +1,141 @@
 import { describe, expect, it } from "vitest";
 
 import { createFakeDb, FakeCollection } from "../../test-support/fake-mongo.js";
+import type { HouseholdRecord } from "../v1/contracts.js";
 import { MongoHouseholdRepository } from "./mongo-household-repository.js";
 
+class FailingBulkWriteCollection extends FakeCollection {
+  override async bulkWrite(): Promise<unknown> {
+    throw {
+      code: 121,
+      writeErrors: [
+        {
+          err: {
+            code: 121,
+            errmsg: "Document failed validation"
+          },
+          index: 0
+        }
+      ]
+    };
+  }
+}
+
 describe("MongoHouseholdRepository", () => {
+  it("adds collection and record context to seeded validation failures", async () => {
+    const household: HouseholdRecord = {
+      allowExpiredItems: true,
+      createdAt: "2026-07-09T10:00:00.000Z",
+      createdByUserId: "usera",
+      defaultCalculatedMaxLimitMultiplier: 2,
+      favouriteShopId: null,
+      groupTargetShoppingDistributionMode: "split_evenly",
+      groupTargetShoppingMode: "add_products_and_group_item",
+      id: "household1",
+      name: "Demo household",
+      status: "active",
+      updatedAt: "2026-07-09T10:00:00.000Z"
+    };
+    const db = createFakeDb({ households: new FailingBulkWriteCollection("households") });
+    const repository = new MongoHouseholdRepository(db);
+
+    await expect(
+      repository.upsertSeedDataset({
+        households: [household],
+        householdLocalProducts: [],
+        householdMemberships: [],
+        householdPurchasePriceObservations: [],
+        householdShops: [],
+        householdShoppingLists: [],
+        householdStockItems: []
+      })
+    ).rejects.toThrow(
+      "Household seed write failed for 'households' record 'household1': Document failed validation"
+    );
+  });
+
+  it("resets only the requested household content scope and keeps identity intact", async () => {
+    const db = createFakeDb();
+    const repository = new MongoHouseholdRepository(db);
+    await repository.setupCollections();
+    await repository.createHousehold({
+      createdAt: "2026-07-09T10:00:00.000Z",
+      createdByUserId: "usera",
+      id: "household1",
+      name: "Demo household"
+    });
+    await db.collection("household_product_groups").insertOne({
+      householdId: "household1",
+      id: "group1"
+    });
+    await db.collection("household_products").insertOne({
+      householdId: "household1",
+      id: "product1"
+    });
+    await db.collection("household_stock_batches").insertOne({
+      householdId: "household1",
+      id: "batch1"
+    });
+    await db.collection("household_shopping_lists").insertOne({
+      householdId: "household1",
+      id: "list1"
+    });
+
+    const transactionClient = {
+      startSession: () => ({
+        abortTransaction: async () => undefined,
+        commitTransaction: async () => undefined,
+        endSession: async () => undefined,
+        startTransaction: () => undefined
+      })
+    };
+    const batchesResult = await repository.resetHouseholdContent({
+      householdId: "household1",
+      scope: "batches",
+      transactionClient,
+      userId: "usera"
+    });
+
+    expect(batchesResult.deleted).toMatchObject({
+      household_stock_batches: 1
+    });
+    expect(db.__collections["household_stock_batches"]!.docs).toHaveLength(0);
+    expect(db.__collections["household_products"]!.docs).toHaveLength(1);
+    expect(db.__collections["household_product_groups"]!.docs).toHaveLength(1);
+    expect(db.__collections["household_shopping_lists"]!.docs).toHaveLength(1);
+    expect(db.__collections["households"]!.docs).toHaveLength(1);
+    expect(db.__collections["household_memberships"]!.docs).toHaveLength(1);
+
+    const allResult = await repository.resetHouseholdContent({
+      householdId: "household1",
+      scope: "all_household_data",
+      transactionClient,
+      userId: "usera"
+    });
+
+    expect(allResult.deleted).toMatchObject({
+      household_product_groups: 1,
+      household_products: 1,
+      household_shopping_lists: 1
+    });
+    expect(db.__collections["households"]!.docs).toHaveLength(1);
+    expect(db.__collections["household_memberships"]!.docs).toHaveLength(1);
+
+    const deletedResult = await repository.resetHouseholdContent({
+      householdId: "household1",
+      scope: "delete_household",
+      transactionClient,
+      userId: "usera"
+    });
+
+    expect(deletedResult.deleted).toMatchObject({
+      household_memberships: 1,
+      households: 1
+    });
+    expect(db.__collections["households"]!.docs).toHaveLength(0);
+    expect(db.__collections["household_memberships"]!.docs).toHaveLength(0);
+  });
+
   it("skips validator updates for existing non-empty household collections", async () => {
     const db = createFakeDb({
       households: new FakeCollection("households", [

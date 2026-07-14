@@ -12,3 +12,5 @@ Each registry entry must have:
 The developer-admin API exposes the registry and runs only known code-owned actions. Successful actions are recorded in `database_maintenance_runs`; failed actions are not marked complete. `Mark as complete` is an audited operator acknowledgement for work performed outside the app, not a substitute for execution. `Run all` is sequential and stops at the first failure. Run validator updates before data migrations when the current live validator would reject the new fields.
 
 Do not add arbitrary executable actions from MongoDB documents. Update `registry.ts`, implement the corresponding repository action, add focused tests, and document data-preservation behavior when adding a new entry.
+
+The `alpha-domain-language-v1` action composes the existing stock, Household Product, and Product Group migrations in that order. It is intentionally idempotent and preserves the legacy household collections as migration evidence. It must only be run after a verified raw Crawl Snapshot archive exists; it does not rename or delete raw ingestion records.

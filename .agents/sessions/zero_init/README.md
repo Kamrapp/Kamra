@@ -17,7 +17,7 @@ Active references:
 - `docs/skill-candidates.md`
 - `.agents/planning-workflow.md`
 - `.agents/coding-guidelines.md`
-- `.agents/plans/initial-mvp-roadmap.md`
+- `.agents/plans/mvp/initial-mvp-roadmap.md`
 
 Archived drafts:
 

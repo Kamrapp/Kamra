@@ -21,7 +21,8 @@ describe("SimplePdfShop source", () => {
     expect(rows).toHaveLength(3);
     expect(rows[0]).toMatchObject({
       countryCode: "HU",
-      crawlContext: "SPS-MILK-15 | Kamra tej 1,5% | 1 l | tejtermek | 329 | 329 Ft/l | 2026-06-23 | 2026-06-29",
+      crawlContext:
+        "SPS-MILK-15 | Kamra tej 1,5% | 1 l | tejtermek | 329 | 329 Ft/l | 2026-06-23 | 2026-06-29",
       displayName: "Kamra tej 1,5%",
       packageLabel: "1 l",
       sourceProductKey: "SPS-MILK-15",
@@ -66,12 +67,14 @@ describe("SimplePdfShop source", () => {
     const lines = await extractPdfTextLines(await generateSimplePdfShopFixturePdf());
 
     expect(lines).toContain("SimplePdfShop weekly prices");
-    expect(lines).toContain("sourceProductKey | displayName | packageLabel | categoryLabel | priceHuf | unitPriceLabel | validFrom | validTo");
+    expect(lines).toContain(
+      "sourceProductKey | displayName | packageLabel | categoryLabel | priceHuf | unitPriceLabel | validFrom | validTo"
+    );
   });
 
   it("fails when the PDF does not contain the expected table header", async () => {
-    await expect(parseSimplePdfShop(new Uint8Array([1, 2, 3]), "2026-06-23T08:00:00.000Z"))
-      .rejects
-      .toThrow();
+    await expect(
+      parseSimplePdfShop(new Uint8Array([1, 2, 3]), "2026-06-23T08:00:00.000Z")
+    ).rejects.toThrow();
   });
 });

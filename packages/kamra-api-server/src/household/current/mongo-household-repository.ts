@@ -1,6 +1,11 @@
 import type { AnyBulkWriteOperation, Filter } from "mongodb";
 
-import type { MongoCollectionLike, MongoDatabaseLike } from "../../db/mongo-like.js";
+import type {
+  MongoCollectionLike,
+  MongoDatabaseLike,
+  MongoTransactionClientLike
+} from "../../db/mongo-like.js";
+import { runMongoTransaction } from "../../db/mongo-transaction.js";
 import type {
   CreateHouseholdRequest,
   CreateHouseholdStockItemRequest,
@@ -22,6 +27,7 @@ import type {
   UpdateHouseholdStockItemRequest
 } from "../v1/contracts.js";
 import { householdV1CollectionSchemas } from "../v1/schemas.js";
+import { normalizeGroupTargetShoppingDistributionMode } from "../shopping-policy.js";
 import { classifyHouseholdStockStatus } from "./stock-status.js";
 
 interface CollectionIndexPlan {
@@ -31,6 +37,42 @@ interface CollectionIndexPlan {
   }[];
   name: keyof typeof householdV1CollectionSchemas;
 }
+
+export const householdResetScopes = [
+  "shopping_list",
+  "batches",
+  "products_and_batches",
+  "groups_products_and_batches",
+  "all_household_data",
+  "delete_household"
+] as const;
+export type HouseholdResetScope = (typeof householdResetScopes)[number];
+
+const shoppingListResetCollections = [
+  "household_shopping_lists",
+  "household_shopping_need_lists",
+  "household_shopping_trips"
+] as const;
+const batchResetCollections = [
+  "household_stock_items",
+  "household_stock_batches",
+  "household_stock_allocations",
+  "household_stock_movements",
+  "household_domain_operations"
+] as const;
+const productResetCollections = [
+  "household_local_products",
+  "household_products",
+  "household_purchase_price_observations"
+] as const;
+const groupResetCollections = ["household_product_groups", "household_stock_targets"] as const;
+const allHouseholdContentCollections = [
+  ...shoppingListResetCollections,
+  ...batchResetCollections,
+  ...productResetCollections,
+  ...groupResetCollections,
+  "household_invitations"
+] as const;
 
 const collectionPlans: CollectionIndexPlan[] = [
   {
@@ -66,6 +108,23 @@ const collectionPlans: CollectionIndexPlan[] = [
       }
     ],
     name: "household_memberships"
+  },
+  {
+    indexes: [
+      {
+        key: { id: 1 },
+        options: { name: "household_invitations_id_unique", unique: true }
+      },
+      {
+        key: { householdId: 1, email: 1, status: 1 },
+        options: { name: "household_invitations_household_email_status" }
+      },
+      {
+        key: { email: 1, status: 1, createdAt: -1 },
+        options: { name: "household_invitations_email_status_created_at" }
+      }
+    ],
+    name: "household_invitations"
   },
   {
     indexes: [
@@ -217,27 +276,40 @@ export class MongoHouseholdRepository {
   private readonly householdStockItemsCollection: MongoCollectionLike<HouseholdStockItemRecord>;
 
   constructor(private readonly database: MongoDatabaseLike) {
-    this.householdFeatureFlagsCollection = database.collection<HouseholdFeatureFlagRecord>("household_feature_flags");
+    this.householdFeatureFlagsCollection =
+      database.collection<HouseholdFeatureFlagRecord>("household_feature_flags");
     this.householdsCollection = database.collection<HouseholdRecord>("households");
-    this.householdMembershipsCollection = database.collection<HouseholdMembershipRecord>("household_memberships");
-    this.householdLocalProductsCollection = database.collection<HouseholdLocalProductRecord>("household_local_products");
-    this.householdPurchasePriceObservationsCollection = database.collection<HouseholdPurchasePriceObservationRecord>(
-      "household_purchase_price_observations"
+    this.householdMembershipsCollection =
+      database.collection<HouseholdMembershipRecord>("household_memberships");
+    this.householdLocalProductsCollection = database.collection<HouseholdLocalProductRecord>(
+      "household_local_products"
     );
-    this.householdShoppingListsCollection = database.collection<HouseholdShoppingListRecord>("household_shopping_lists");
+    this.householdPurchasePriceObservationsCollection =
+      database.collection<HouseholdPurchasePriceObservationRecord>(
+        "household_purchase_price_observations"
+      );
+    this.householdShoppingListsCollection = database.collection<HouseholdShoppingListRecord>(
+      "household_shopping_lists"
+    );
     this.householdShopsCollection = database.collection<HouseholdShopRecord>("household_shops");
-    this.householdStockItemsCollection = database.collection<HouseholdStockItemRecord>("household_stock_items");
+    this.householdStockItemsCollection =
+      database.collection<HouseholdStockItemRecord>("household_stock_items");
   }
 
   async setupCollections(): Promise<HouseholdSetupSummary> {
     const existingCollections = new Set(
-      (await this.database.listCollections({}, { nameOnly: true }).toArray()).map((entry) => entry.name)
+      (await this.database.listCollections({}, { nameOnly: true }).toArray()).map(
+        (entry) => entry.name
+      )
     );
     const createdCollections: string[] = [];
     const existingHouseholdCollections: string[] = [];
 
     for (const [collectionName, schema] of Object.entries(householdV1CollectionSchemas) as Array<
-      [keyof typeof householdV1CollectionSchemas, typeof householdV1CollectionSchemas[keyof typeof householdV1CollectionSchemas]]
+      [
+        keyof typeof householdV1CollectionSchemas,
+        (typeof householdV1CollectionSchemas)[keyof typeof householdV1CollectionSchemas]
+      ]
     >) {
       if (!existingCollections.has(collectionName)) {
         await this.database.createCollection(collectionName, {
@@ -288,7 +360,9 @@ export class MongoHouseholdRepository {
 
   async upgradeHouseholdValidators(): Promise<HouseholdValidatorUpgradeResult> {
     const existingCollections = new Set(
-      (await this.database.listCollections({}, { nameOnly: true }).toArray()).map((entry) => entry.name)
+      (await this.database.listCollections({}, { nameOnly: true }).toArray()).map(
+        (entry) => entry.name
+      )
     );
     const createdCollections: string[] = [];
     const upgradedCollections: string[] = [];
@@ -330,12 +404,21 @@ export class MongoHouseholdRepository {
     const households = await this.householdsCollection.find({}).toArray();
 
     for (const household of households) {
-      const fieldsToSet: Record<string, number | null> = {};
+      const fieldsToSet: Record<string, number | boolean | null | string> = {};
       if (household.defaultCalculatedMaxLimitMultiplier === undefined) {
         fieldsToSet["defaultCalculatedMaxLimitMultiplier"] = 2;
       }
+      if (household.allowExpiredItems === undefined) {
+        fieldsToSet["allowExpiredItems"] = true;
+      }
       if (household.favouriteShopId === undefined) {
         fieldsToSet["favouriteShopId"] = null;
+      }
+      if (household.groupTargetShoppingMode === undefined) {
+        fieldsToSet["groupTargetShoppingMode"] = "add_products_and_group_item";
+      }
+      if (household.groupTargetShoppingDistributionMode === undefined) {
+        fieldsToSet["groupTargetShoppingDistributionMode"] = "split_evenly";
       }
       if (Object.keys(fieldsToSet).length === 0) {
         continue;
@@ -361,6 +444,9 @@ export class MongoHouseholdRepository {
     const household: HouseholdRecord = {
       createdAt,
       createdByUserId: input.createdByUserId,
+      allowExpiredItems: true,
+      groupTargetShoppingMode: "add_products_and_group_item",
+      groupTargetShoppingDistributionMode: "split_evenly",
       id: input.id,
       name: input.name,
       status: "active",
@@ -384,25 +470,200 @@ export class MongoHouseholdRepository {
     };
   }
 
-  async listHouseholdsForUser(userId: string): Promise<HouseholdListItem[]> {
-    const memberships = await this.householdMembershipsCollection.find({
+  async migrateExpiredItemPolicy(): Promise<HouseholdFieldsMigrationResult> {
+    let updatedCount = 0;
+    const households = await this.householdsCollection.find({}).toArray();
+    for (const household of households) {
+      if (household.allowExpiredItems !== undefined) continue;
+      await this.householdsCollection.updateOne(
+        { id: household.id },
+        { $set: { allowExpiredItems: true, updatedAt: household.updatedAt } }
+      );
+      updatedCount += 1;
+    }
+    return { updatedCount };
+  }
+
+  async migrateGroupTargetShoppingMode(): Promise<HouseholdFieldsMigrationResult> {
+    let updatedCount = 0;
+    const households = await this.householdsCollection.find({}).toArray();
+    for (const household of households) {
+      if (household.groupTargetShoppingMode !== undefined) continue;
+      await this.householdsCollection.updateOne(
+        { id: household.id },
+        {
+          $set: {
+            groupTargetShoppingMode: "add_products_and_group_item",
+            updatedAt: household.updatedAt
+          }
+        }
+      );
+      updatedCount += 1;
+    }
+    return { updatedCount };
+  }
+
+  async migrateGroupTargetShoppingDistribution(): Promise<HouseholdFieldsMigrationResult> {
+    let updatedCount = 0;
+    const households = await this.householdsCollection.find({}).toArray();
+    for (const household of households) {
+      const nextMode = normalizeGroupTargetShoppingDistributionMode(
+        household.groupTargetShoppingDistributionMode
+      );
+      if (household.groupTargetShoppingDistributionMode === nextMode) continue;
+      await this.householdsCollection.updateOne(
+        { id: household.id },
+        {
+          $set: {
+            groupTargetShoppingDistributionMode: nextMode,
+            updatedAt: household.updatedAt
+          }
+        }
+      );
+      updatedCount += 1;
+    }
+    return { updatedCount };
+  }
+
+  async updateHouseholdSettings(input: {
+    allowExpiredItems?: boolean;
+    defaultCalculatedMaxLimitMultiplier?: number;
+    groupTargetShoppingDistributionMode?: HouseholdRecord["groupTargetShoppingDistributionMode"];
+    groupTargetShoppingMode?: HouseholdRecord["groupTargetShoppingMode"];
+    householdId: string;
+    name?: string;
+    updatedAt: string;
+    userId: string;
+  }): Promise<{
+    allowExpiredItems: boolean;
+    defaultCalculatedMaxLimitMultiplier: number;
+    groupTargetShoppingMode: NonNullable<HouseholdRecord["groupTargetShoppingMode"]>;
+    groupTargetShoppingDistributionMode: NonNullable<
+      HouseholdRecord["groupTargetShoppingDistributionMode"]
+    >;
+    name: string;
+  }> {
+    const household = await this.householdsCollection.findOne({ id: input.householdId });
+    if (!household) throw new Error("household_not_found");
+    const membership = await this.householdMembershipsCollection.findOne({
+      householdId: input.householdId,
+      role: "owner",
       status: "active",
-      userId
-    }).toArray();
+      userId: input.userId
+    });
+    if (!membership) throw new Error("household_owner_required");
+    const changes = {
+      ...(input.allowExpiredItems === undefined
+        ? {}
+        : { allowExpiredItems: input.allowExpiredItems }),
+      ...(input.defaultCalculatedMaxLimitMultiplier === undefined
+        ? {}
+        : { defaultCalculatedMaxLimitMultiplier: input.defaultCalculatedMaxLimitMultiplier }),
+      ...(input.groupTargetShoppingMode === undefined
+        ? {}
+        : { groupTargetShoppingMode: input.groupTargetShoppingMode }),
+      ...(input.groupTargetShoppingDistributionMode === undefined
+        ? {}
+        : { groupTargetShoppingDistributionMode: input.groupTargetShoppingDistributionMode }),
+      ...(input.name === undefined ? {} : { name: input.name }),
+      updatedAt: input.updatedAt
+    };
+    await this.householdsCollection.updateOne({ id: input.householdId }, { $set: changes });
+    return {
+      allowExpiredItems: input.allowExpiredItems ?? household.allowExpiredItems ?? true,
+      defaultCalculatedMaxLimitMultiplier:
+        input.defaultCalculatedMaxLimitMultiplier ??
+        household.defaultCalculatedMaxLimitMultiplier ??
+        2,
+      groupTargetShoppingMode:
+        input.groupTargetShoppingMode ??
+        household.groupTargetShoppingMode ??
+        "add_products_and_group_item",
+      groupTargetShoppingDistributionMode:
+        input.groupTargetShoppingDistributionMode ??
+        household.groupTargetShoppingDistributionMode ??
+        "split_evenly",
+      name: input.name ?? household.name
+    };
+  }
+
+  async resetHouseholdContent(input: {
+    householdId: string;
+    scope: HouseholdResetScope;
+    transactionClient: MongoTransactionClientLike;
+    userId: string;
+  }): Promise<{ deleted: Record<string, number>; scope: HouseholdResetScope }> {
+    const household = await this.householdsCollection.findOne({ id: input.householdId });
+    if (!household) throw new Error("household_not_found");
+    const membership = await this.householdMembershipsCollection.findOne({
+      householdId: input.householdId,
+      role: "owner",
+      status: "active",
+      userId: input.userId
+    });
+    if (!membership) throw new Error("household_owner_required");
+
+    const collections: readonly string[] =
+      input.scope === "shopping_list"
+        ? shoppingListResetCollections
+        : input.scope === "batches"
+          ? batchResetCollections
+          : input.scope === "products_and_batches"
+            ? [...batchResetCollections, ...productResetCollections]
+            : input.scope === "groups_products_and_batches"
+              ? [...batchResetCollections, ...productResetCollections, ...groupResetCollections]
+              : allHouseholdContentCollections;
+
+    return await runMongoTransaction(input.transactionClient, async (session) => {
+      const deleted: Record<string, number> = {};
+      for (const collectionName of collections) {
+        const result = await this.database
+          .collection(collectionName)
+          .deleteMany({ householdId: input.householdId }, { session });
+        deleted[collectionName] = result.deletedCount ?? 0;
+      }
+      if (input.scope === "delete_household") {
+        const memberships = await this.householdMembershipsCollection.deleteMany(
+          { householdId: input.householdId },
+          { session }
+        );
+        const households = await this.householdsCollection.deleteMany(
+          { id: input.householdId },
+          { session }
+        );
+        deleted["household_memberships"] = memberships.deletedCount ?? 0;
+        deleted["households"] = households.deletedCount ?? 0;
+      }
+      return { deleted, scope: input.scope };
+    });
+  }
+
+  async listHouseholdsForUser(userId: string): Promise<HouseholdListItem[]> {
+    const memberships = await this.householdMembershipsCollection
+      .find({
+        status: "active",
+        userId
+      })
+      .toArray();
     if (memberships.length === 0) {
       return [];
     }
 
     const householdIds = memberships.map((membership) => membership.householdId);
     const [households, allMemberships] = await Promise.all([
-      this.householdsCollection.find({
-        id: { $in: householdIds },
-        status: "active"
-      }).sort({ name: 1 }).toArray(),
-      this.householdMembershipsCollection.find({
-        householdId: { $in: householdIds },
-        status: "active"
-      }).toArray()
+      this.householdsCollection
+        .find({
+          id: { $in: householdIds },
+          status: "active"
+        })
+        .sort({ name: 1 })
+        .toArray(),
+      this.householdMembershipsCollection
+        .find({
+          householdId: { $in: householdIds },
+          status: "active"
+        })
+        .toArray()
     ]);
 
     const membershipByHouseholdId = new Map<string, HouseholdMembershipRecord>();
@@ -427,7 +688,9 @@ export class MongoHouseholdRepository {
     );
   }
 
-  async getHouseholdStockPage(input: HouseholdStockPageRequest & { userId: string }): Promise<HouseholdStockPageResponse | null> {
+  async getHouseholdStockPage(
+    input: HouseholdStockPageRequest & { userId: string }
+  ): Promise<HouseholdStockPageResponse | null> {
     const household = await this.findAccessibleHousehold(input.userId, input.householdId);
     if (!household) {
       return null;
@@ -439,14 +702,20 @@ export class MongoHouseholdRepository {
       userId: input.userId
     });
     const [localProducts, stockItems, memberCount] = await Promise.all([
-      this.householdLocalProductsCollection.find({
-        householdId: household.id,
-        status: "active"
-      }).sort({ displayName: 1 }).toArray(),
-      this.householdStockItemsCollection.find({
-        householdId: household.id,
-        status: "active"
-      }).sort({ displayName: 1 }).toArray(),
+      this.householdLocalProductsCollection
+        .find({
+          householdId: household.id,
+          status: "active"
+        })
+        .sort({ displayName: 1 })
+        .toArray(),
+      this.householdStockItemsCollection
+        .find({
+          householdId: household.id,
+          status: "active"
+        })
+        .sort({ displayName: 1 })
+        .toArray(),
       this.householdMembershipsCollection.countDocuments({
         householdId: household.id,
         status: "active"
@@ -454,11 +723,7 @@ export class MongoHouseholdRepository {
     ]);
 
     return {
-      household: this.toHouseholdListItem(
-        household,
-        memberCount,
-        membership?.role ?? "member"
-      ),
+      household: this.toHouseholdListItem(household, memberCount, membership?.role ?? "member"),
       localProducts: localProducts.map(toHouseholdLocalProductListItem),
       stockItems: stockItems.map(toHouseholdStockItemListItem)
     };
@@ -476,11 +741,9 @@ export class MongoHouseholdRepository {
       return null;
     }
 
-    const householdProductId = input.householdProductId?.trim() || createHouseholdProductId(
-      input.householdId,
-      input.stockGroupKey,
-      input.displayName
-    );
+    const householdProductId =
+      input.householdProductId?.trim() ||
+      createHouseholdProductId(input.householdId, input.stockGroupKey, input.displayName);
     const localProduct = await this.resolveLocalProductForStockCreate(input, householdProductId);
     if (!localProduct) {
       return null;
@@ -556,27 +819,35 @@ export class MongoHouseholdRepository {
 
     const nextDisplayName = input.displayName ?? localProduct.displayName;
     const nextStockGroupKey = input.stockGroupKey ?? localProduct.stockGroupKey;
-    const nextGtin = input.gtin !== undefined ? input.gtin ?? null : localProduct.gtin ?? null;
-    const nextSourceName = input.sourceName !== undefined ? input.sourceName ?? null : localProduct.sourceName ?? null;
-    const nextSourceProductUrl = input.sourceProductUrl !== undefined
-      ? input.sourceProductUrl ?? null
-      : localProduct.sourceProductUrl ?? null;
-    const nextCatalogProductId = input.catalogProductId !== undefined
-      ? input.catalogProductId ?? null
-      : localProduct.catalogProductId ?? null;
-    const nextCatalogProductNameSnapshot = input.catalogProductNameSnapshot !== undefined
-      ? input.catalogProductNameSnapshot ?? null
-      : localProduct.catalogProductNameSnapshot ?? null;
-    const nextProductSourceId = input.productSourceId !== undefined
-      ? input.productSourceId ?? null
-      : localProduct.productSourceId ?? null;
+    const nextGtin = input.gtin !== undefined ? (input.gtin ?? null) : (localProduct.gtin ?? null);
+    const nextSourceName =
+      input.sourceName !== undefined
+        ? (input.sourceName ?? null)
+        : (localProduct.sourceName ?? null);
+    const nextSourceProductUrl =
+      input.sourceProductUrl !== undefined
+        ? (input.sourceProductUrl ?? null)
+        : (localProduct.sourceProductUrl ?? null);
+    const nextCatalogProductId =
+      input.catalogProductId !== undefined
+        ? (input.catalogProductId ?? null)
+        : (localProduct.catalogProductId ?? null);
+    const nextCatalogProductNameSnapshot =
+      input.catalogProductNameSnapshot !== undefined
+        ? (input.catalogProductNameSnapshot ?? null)
+        : (localProduct.catalogProductNameSnapshot ?? null);
+    const nextProductSourceId =
+      input.productSourceId !== undefined
+        ? (input.productSourceId ?? null)
+        : (localProduct.productSourceId ?? null);
     const nextCurrentAmount = input.currentAmount ?? stockItem.currentAmount;
-    const nextIdealMaxLimit = input.idealMaxLimit !== undefined
-      ? input.idealMaxLimit ?? null
-      : stockItem.idealMaxLimit ?? null;
+    const nextIdealMaxLimit =
+      input.idealMaxLimit !== undefined
+        ? (input.idealMaxLimit ?? null)
+        : (stockItem.idealMaxLimit ?? null);
     const nextInitialAmount = input.initialAmount ?? stockItem.initialAmount;
     const nextMinLimit = input.minLimit ?? stockItem.minLimit;
-    const nextNote = input.note !== undefined ? input.note ?? null : stockItem.note ?? null;
+    const nextNote = input.note !== undefined ? (input.note ?? null) : (stockItem.note ?? null);
     const nextStockedAt = input.stockedAt ?? stockItem.stockedAt;
     const nextUnit = input.unit ?? stockItem.unit;
 
@@ -759,22 +1030,41 @@ export class MongoHouseholdRepository {
   }
 
   async upsertSeedDataset(dataset: HouseholdSeedDataset): Promise<void> {
-    await this.upsertMany(this.householdFeatureFlagsCollection, dataset.householdFeatureFlags ?? []);
-    await this.upsertMany(this.householdsCollection, dataset.households);
-    await this.upsertMany(this.householdMembershipsCollection, dataset.householdMemberships);
-    await this.upsertMany(this.householdLocalProductsCollection, dataset.householdLocalProducts);
+    await this.upsertMany(
+      this.householdFeatureFlagsCollection,
+      dataset.householdFeatureFlags ?? [],
+      "household_feature_flags"
+    );
+    await this.upsertMany(this.householdsCollection, dataset.households, "households");
+    await this.upsertMany(
+      this.householdMembershipsCollection,
+      dataset.householdMemberships,
+      "household_memberships"
+    );
+    await this.upsertMany(
+      this.householdLocalProductsCollection,
+      dataset.householdLocalProducts,
+      "household_local_products"
+    );
     await this.upsertMany(
       this.householdPurchasePriceObservationsCollection,
-      dataset.householdPurchasePriceObservations
+      dataset.householdPurchasePriceObservations,
+      "household_purchase_price_observations"
     );
-    await this.upsertMany(this.householdShoppingListsCollection, dataset.householdShoppingLists);
-    await this.upsertMany(this.householdShopsCollection, dataset.householdShops);
-    await this.upsertMany(this.householdStockItemsCollection, dataset.householdStockItems);
+    await this.upsertMany(
+      this.householdShoppingListsCollection,
+      dataset.householdShoppingLists,
+      "household_shopping_lists"
+    );
+    await this.upsertMany(this.householdShopsCollection, dataset.householdShops, "household_shops");
+    await this.upsertMany(
+      this.householdStockItemsCollection,
+      dataset.householdStockItems,
+      "household_stock_items"
+    );
   }
 
-  async clearSeedHouseholdData(ids: {
-    householdIds: string[];
-  }): Promise<{
+  async clearSeedHouseholdData(ids: { householdIds: string[] }): Promise<{
     deletedHouseholds: number;
     deletedLocalProducts: number;
     deletedMemberships: number;
@@ -782,6 +1072,9 @@ export class MongoHouseholdRepository {
     deletedShoppingLists: number;
     deletedStockItems: number;
   }> {
+    await this.database.collection("household_invitations").deleteMany({
+      householdId: { $in: ids.householdIds }
+    });
     const [
       deletedMemberships,
       deletedLocalProducts,
@@ -821,9 +1114,12 @@ export class MongoHouseholdRepository {
   }
 
   async listShops(): Promise<HouseholdShopRecord[]> {
-    return await this.householdShopsCollection.find({
-      status: "active"
-    }).sort({ label: 1 }).toArray();
+    return await this.householdShopsCollection
+      .find({
+        status: "active"
+      })
+      .sort({ label: 1 })
+      .toArray();
   }
 
   async listFeatureFlags(): Promise<HouseholdFeatureFlagRecord[]> {
@@ -868,7 +1164,9 @@ export class MongoHouseholdRepository {
       }
     );
 
-    return await this.householdFeatureFlagsCollection.findOne({ key: input.key }) as HouseholdFeatureFlagRecord;
+    return (await this.householdFeatureFlagsCollection.findOne({
+      key: input.key
+    })) as HouseholdFeatureFlagRecord;
   }
 
   async findShopById(id: string): Promise<HouseholdShopRecord | null> {
@@ -878,7 +1176,9 @@ export class MongoHouseholdRepository {
     });
   }
 
-  async createShoppingList(input: HouseholdShoppingListRecord & { userId: string }): Promise<HouseholdShoppingListRecord | null> {
+  async createShoppingList(
+    input: HouseholdShoppingListRecord & { userId: string }
+  ): Promise<HouseholdShoppingListRecord | null> {
     const accessibleHousehold = await this.findAccessibleHousehold(input.userId, input.householdId);
     if (!accessibleHousehold) {
       return null;
@@ -912,10 +1212,15 @@ export class MongoHouseholdRepository {
       return null;
     }
 
-    return await this.householdShoppingListsCollection.find({
-      householdId: input.householdId,
-      status: { $in: ["active", "completed"] }
-    }).sort({ createdAt: -1 }).limit(1).toArray().then((items) => items[0] ?? null);
+    return await this.householdShoppingListsCollection
+      .find({
+        householdId: input.householdId,
+        status: { $in: ["active", "completed"] }
+      })
+      .sort({ createdAt: -1 })
+      .limit(1)
+      .toArray()
+      .then((items) => items[0] ?? null);
   }
 
   async getShoppingList(input: {
@@ -986,10 +1291,17 @@ export class MongoHouseholdRepository {
   async upsertHouseholdPurchasePriceObservations(
     records: readonly HouseholdPurchasePriceObservationRecord[]
   ): Promise<void> {
-    await this.upsertMany(this.householdPurchasePriceObservationsCollection, records);
+    await this.upsertMany(
+      this.householdPurchasePriceObservationsCollection,
+      records,
+      "household_purchase_price_observations"
+    );
   }
 
-  private async findAccessibleHousehold(userId: string, householdId: string): Promise<HouseholdRecord | null> {
+  private async findAccessibleHousehold(
+    userId: string,
+    householdId: string
+  ): Promise<HouseholdRecord | null> {
     const membership = await this.householdMembershipsCollection.findOne({
       householdId,
       status: "active",
@@ -1046,7 +1358,11 @@ export class MongoHouseholdRepository {
   ): HouseholdListItem {
     return {
       createdAt: household.createdAt,
+      allowExpiredItems: household.allowExpiredItems ?? true,
       defaultCalculatedMaxLimitMultiplier: household.defaultCalculatedMaxLimitMultiplier ?? 2,
+      groupTargetShoppingMode: household.groupTargetShoppingMode ?? "add_products_and_group_item",
+      groupTargetShoppingDistributionMode:
+        household.groupTargetShoppingDistributionMode ?? "split_evenly",
       favouriteShopId: household.favouriteShopId ?? null,
       id: household.id,
       membershipRole,
@@ -1059,7 +1375,8 @@ export class MongoHouseholdRepository {
 
   private async upsertMany<T extends { id: string }>(
     collection: MongoCollectionLike<T>,
-    records: readonly T[]
+    records: readonly T[],
+    collectionName: string
   ): Promise<void> {
     if (records.length === 0) {
       return;
@@ -1073,8 +1390,57 @@ export class MongoHouseholdRepository {
       }
     }));
 
-    await collection.bulkWrite(operations);
+    try {
+      await collection.bulkWrite(operations);
+    } catch (error: unknown) {
+      const writeError = readFirstBulkWriteError(error);
+      const failedRecord = writeError?.index !== undefined ? records[writeError.index] : undefined;
+      const recordId = failedRecord?.id ?? null;
+      const detail = formatBulkWriteError(writeError?.error ?? error);
+      throw new Error(
+        `Household seed write failed for '${collectionName}'${recordId ? ` record '${recordId}'` : ""}: ${detail}`,
+        { cause: error }
+      );
+    }
   }
+}
+
+function readFirstBulkWriteError(error: unknown): { error: unknown; index?: number } | null {
+  if (!isRecord(error) || !Array.isArray(error["writeErrors"])) {
+    return null;
+  }
+
+  const first = error["writeErrors"][0];
+  if (!isRecord(first)) {
+    return null;
+  }
+
+  return {
+    error: first["err"] ?? first,
+    index: typeof first["index"] === "number" ? first["index"] : undefined
+  };
+}
+
+function formatBulkWriteError(error: unknown): string {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+  if (isRecord(error)) {
+    const message = error["errmsg"] ?? error["message"];
+    if (typeof message === "string") {
+      return message;
+    }
+  }
+
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error);
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function toHouseholdLocalProductListItem(
@@ -1129,7 +1495,11 @@ function toHouseholdStockItemListItem(
   };
 }
 
-function createHouseholdProductId(householdId: string, stockGroupKey: string, displayName: string): string {
+function createHouseholdProductId(
+  householdId: string,
+  stockGroupKey: string,
+  displayName: string
+): string {
   return `household_product_${stableSlug(householdId)}_${stableSlug(stockGroupKey)}_${stableSlug(displayName)}`;
 }
 

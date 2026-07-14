@@ -1,6 +1,6 @@
 # Standardization Plan
 
-Status: Superseded by `.agents/plans/initial-mvp-roadmap.md`.
+Status: Superseded by `.agents/plans/mvp/initial-mvp-roadmap.md`.
 
 This file is the first draft created during bootstrap. Keep it as historical planning context, but use the newer roadmap for active next steps.
 
