@@ -150,6 +150,7 @@ test("Home household rows share grid tracks and show child counts", async ({ pag
   const header = page.locator(".stock-grid-header");
   const groupRow = page.locator(".stock-group-row").filter({ hasText: "Milk" });
   const productRow = page.locator(".stock-product-row").filter({ hasText: "Pilos 1.5% milk" });
+  const emptyProductRow = page.locator(".stock-product-row").filter({ hasText: "Banana" });
   const unassignedRow = page.locator(".stock-unassigned-separator");
 
   await expect(groupRow.locator(".group-product-count")).toHaveText("(1)");
@@ -159,6 +160,16 @@ test("Home household rows share grid tracks and show child counts", async ({ pag
   await expect(groupDetails).toContainText("Tracking unit");
   await expect(groupDetails).toContainText("When a Product Group is below target");
   await expect(page.getByText("Calculated from Products and batches")).toHaveCount(0);
+  const gridStarts = await Promise.all(
+    [header, groupRow, productRow, emptyProductRow].map((row) =>
+      row
+        .locator(":scope > *")
+        .evaluateAll((cells) => cells.map((cell) => Math.round(cell.getBoundingClientRect().left)))
+    )
+  );
+  expect(gridStarts.slice(1)).toEqual([gridStarts[0], gridStarts[0], gridStarts[0]]);
+  await expect(productRow.locator(".workspace-expansion-slot")).toHaveText("▸");
+  await expect(emptyProductRow.locator(".workspace-expansion-slot")).toHaveText("");
   await productRow.locator(".row-name").click();
   const batchRow = page.locator(".stock-batch-row").first();
   await expect(batchRow).toBeVisible();

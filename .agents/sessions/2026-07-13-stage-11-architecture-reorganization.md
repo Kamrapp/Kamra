@@ -511,3 +511,12 @@ the approved disposable database, then run `npm run seed:demo-household` and
   selection, completion, Trip, and admin checks now live only in the covered ledger.
 - The full Chromium browser suite passes with 9 tests; typecheck, lint, Prettier, and diff checks
   also pass for this slice.
+
+## Household grid alignment follow-up (2026-07-14)
+
+- Fixed the shared Product Group workspace tracks so the header reserves the same four-button
+  action width as data rows; this prevents fractional tracks from shifting the header labels.
+- Moved Product disclosure controls into the dedicated leading grid cell, leaving an empty slot for
+  Products without Batches so all Product names start at the same position.
+- Added browser assertions for shared cell starts and expandable versus empty Product rows. The
+  focused and full Chromium suites pass after this correction.

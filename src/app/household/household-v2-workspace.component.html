@@ -437,7 +437,19 @@
         />
       </span>
     }
-    <span class="workspace-expansion-slot" aria-hidden="true"></span>
+    @if (productHasBatches(row)) {
+      <button
+        class="workspace-expansion-slot expansion-slot-button"
+        type="button"
+        (click)="toggleProduct(row.product.id)"
+        [attr.aria-expanded]="isProductExpanded(row.product.id)"
+        [attr.aria-label]="row.product.displayName"
+      >
+        <span aria-hidden="true">{{ isProductExpanded(row.product.id) ? "▾" : "▸" }}</span>
+      </button>
+    } @else {
+      <span class="workspace-expansion-slot" aria-hidden="true"></span>
+    }
     @if (editingProductId() === row.product.id) {
       <span class="row-name product-name">
         <span>{{ icons.product }}</span>
@@ -455,7 +467,6 @@
         (click)="toggleProduct(row.product.id)"
         [attr.aria-expanded]="isProductExpanded(row.product.id)"
       >
-        <span aria-hidden="true">{{ isProductExpanded(row.product.id) ? "▾" : "▸" }}</span>
         <strong>{{ icons.product }} {{ row.product.displayName }}</strong>
         <small>
           {{ identityLabel(row.product.identityKind) }} ({{ row.aggregate.batchCount }})
