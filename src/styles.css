@@ -447,6 +447,13 @@ samp {
   margin: 0;
 }
 
+.details-icon {
+  display: block;
+  fill: currentColor;
+  height: 1rem;
+  width: 1rem;
+}
+
 .ui-shell-card {
   backdrop-filter: blur(14px);
   background: var(--surface-shell-background);

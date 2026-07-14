@@ -50,12 +50,6 @@
 .stock-grid > * {
   min-width: 0;
 }
-.details-icon {
-  display: block;
-  fill: currentColor;
-  height: 1rem;
-  width: 1rem;
-}
 .stock-grid-header > span {
   overflow: hidden;
   text-overflow: ellipsis;

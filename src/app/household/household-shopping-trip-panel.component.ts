@@ -146,7 +146,7 @@ interface TripResultDraft {
                               [titleText]="loc.t('household.shoppingTripItemDetails')"
                               (press)="toggleItemDetails(item.id)"
                             >
-                              <svg class="trip-details-icon" aria-hidden="true" viewBox="0 0 24 24">
+                              <svg class="details-icon" aria-hidden="true" viewBox="0 0 24 24">
                                 <path
                                   d="M10.5 4a6.5 6.5 0 0 1 5.18 10.43l3.45 3.44-1.42 1.42-3.44-3.45A6.5 6.5 0 1 1 10.5 4Zm0 2A4.5 4.5 0 1 0 10.5 15 4.5 4.5 0 0 0 10.5 6Z"
                                 ></path>
@@ -545,12 +545,6 @@ interface TripResultDraft {
         display: grid;
         gap: var(--space-2);
         padding: 0.65rem 0.75rem;
-      }
-      .trip-details-icon {
-        display: block;
-        fill: currentColor;
-        height: 1rem;
-        width: 1rem;
       }
       .trip-item-meta {
         align-items: start;
@@ -1026,10 +1020,6 @@ export class HouseholdShoppingTripPanelComponent implements OnChanges {
       this.setTrip(result.trip);
       if (resultStatus === "bought") {
         this.openItemDetails(itemId);
-      }
-      if (resultStatus === "bought" && !this.drafts[itemId]) {
-        const item = result.trip.items.find((candidate) => candidate.id === itemId);
-        if (item) this.setTrip(result.trip);
       }
     } else this.message.set(result.message ?? "");
   }

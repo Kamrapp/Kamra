@@ -683,3 +683,13 @@ the approved disposable database, then run `npm run seed:demo-household` and
   the anonymous preview and retained the authenticated Home browser contract as a regression check.
 - Validation: app/API typecheck, lint, formatting, and anonymous plus authenticated Home Chromium
   tests pass.
+
+## Final low-risk cleanup pass (2026-07-14)
+
+- Extracted the identical SVG details-icon styling used by the Product Group workspace and Shopping
+  Trip panel into the shared stylesheet, reducing component-local CSS duplication without changing
+  the rendered rule values.
+- Removed an unreachable redundant `setTrip` branch after marking a Trip item purchased; the first
+  `setTrip` call already creates the missing result draft and refreshes the Trip state.
+- Validation: lint, app/API typecheck, targeted Prettier, diff checks, and anonymous/authenticated
+  Home Chromium contracts pass. No business-model or database behavior was changed.
