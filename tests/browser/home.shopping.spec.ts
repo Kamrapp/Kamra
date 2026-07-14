@@ -118,3 +118,27 @@ test("Home generates the shopping list from the final manual selection", async (
   await expect(page.getByText("Banana", { exact: true })).toBeVisible();
   expect(fixture.unexpectedRequests).toEqual([]);
 });
+
+test("Home finishes shopping with the household workspace reopened", async ({ page }) => {
+  const fixture = await installBrowserApiFixture(page);
+  await page.goto("/");
+
+  const householdWorkspace = page.locator("app-household-v2-workspace");
+  await page.getByRole("button", { name: "Build shopping list" }).click();
+  await page.getByRole("button", { name: "Generate shopping list" }).click();
+
+  await expect(page.getByText("Alma", { exact: true })).toBeVisible();
+  await expect(householdWorkspace.locator(".stock-grid-shell")).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Finalize shopping and save stocks" }).click();
+
+  await expect(page.locator("app-household-shopping-list .shopping-layout")).toHaveCount(0);
+  await expect(householdWorkspace.locator(".stock-grid-shell")).toBeVisible();
+  expect(
+    fixture.requests.some(
+      (request) =>
+        request.method === "POST" && request.path === "/api/household/shopping-lists/update-stocks"
+    )
+  ).toBeTruthy();
+  expect(fixture.unexpectedRequests).toEqual([]);
+});

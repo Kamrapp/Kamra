@@ -360,6 +360,30 @@ function findResponse(
     return jsonResponse(200, { shoppingList: state.shoppingList });
   }
 
+  if (request.method === "POST" && request.path === "/api/household/shopping-lists/update-stocks") {
+    if (!state.shoppingList) {
+      return jsonResponse(404, { error: "shopping_list_not_found" });
+    }
+
+    const body = isRecord(request.body) ? request.body : {};
+    state.shoppingList = {
+      ...state.shoppingList,
+      status: "archived",
+      stockAppliedAt: typeof body["stockAppliedAt"] === "string" ? body["stockAppliedAt"] : null
+    };
+    return jsonResponse(200, {
+      appliedLineCount: Array.isArray(state.shoppingList.items)
+        ? state.shoppingList.items.length
+        : 0,
+      householdStockPage: {
+        household: state.household,
+        localProducts: [],
+        stockItems: []
+      },
+      shoppingList: state.shoppingList
+    });
+  }
+
   if (request.method === "PATCH" && request.path === "/api/household/shopping-lists") {
     const body = isRecord(request.body) ? request.body : {};
     if (body["status"] === "archived") {

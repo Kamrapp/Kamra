@@ -482,3 +482,10 @@ the approved disposable database, then run `npm run seed:demo-household` and
   enabled, so the newly shown checkboxes are immediately visible.
 - The Chromium Home contract now collapses the workspace first, starts building, and verifies that
   the household table reopens with selection controls.
+
+## Shopping completion visibility (2026-07-14)
+
+- Completing shopping already collapses the Shopping List panel; Home now reopens the Product Group
+  workspace when the refreshed stock page arrives, making the applied stock visible immediately.
+- The browser fixture covers the finish request and verifies the shopping panel is collapsed while
+  the household workspace is expanded afterward.
