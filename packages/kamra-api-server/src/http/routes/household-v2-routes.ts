@@ -1413,10 +1413,23 @@ export const householdV2ShoppingTripRoute: AppRoute = {
             });
           }
         }
-        const result = await repository.update({
+        const result = {
+          ...updated,
+          updatedAt: new Date().toISOString(),
+          updatedByUserId: user.email
+        };
+        if (body["transition"] === "cancelled") {
+          await repository.deleteCancelled({
+            expectedRevision: body["expectedRevision"] as number,
+            householdId,
+            id: tripId
+          });
+          return json(200, { result, schemaVersion });
+        }
+        await repository.update({
           expectedRevision: body["expectedRevision"] as number,
           householdId,
-          trip: { ...updated, updatedAt: new Date().toISOString(), updatedByUserId: user.email }
+          trip: result
         });
         return json(200, { result, schemaVersion });
       } catch (error) {

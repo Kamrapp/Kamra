@@ -1,6 +1,8 @@
 import {
   Component,
+  EventEmitter,
   Input,
+  Output,
   inject,
   signal,
   type OnChanges,
@@ -61,34 +63,54 @@ interface TripResultDraft {
       @if (!sectionCollapsed()) {
         <div class="trip-content">
           @if (!trip()) {
-            <div class="trip-start-form">
-              <label>
-                <span>{{ loc.t("household.shoppingTripMarket") }}</span>
-                <select [ngModel]="marketId" (ngModelChange)="selectMarket($event)">
-                  <option value="">{{ loc.t("household.shoppingTripChooseMarket") }}</option>
-                  <option value="__custom__">
-                    {{ loc.t("household.shoppingTripCustomMarket") }}
-                  </option>
-                  @for (market of markets(); track market.id) {
-                    <option [value]="market.id">
-                      {{ market.displayName }} · {{ market.countryCode }}
-                    </option>
+            <div class="trip-layout trip-before-layout">
+              <div class="trip-items trip-before-empty">
+                <p class="ui-copy-muted">{{ loc.t("household.shoppingTripBeforeHint") }}</p>
+              </div>
+              <aside class="trip-after trip-before">
+                <div>
+                  <p class="ui-kicker">{{ loc.t("household.shoppingTripBeforeKicker") }}</p>
+                  <h3 class="trip-after-title">
+                    {{ loc.t("household.shoppingTripBeforeTitle") }}
+                  </h3>
+                </div>
+                <div class="trip-start-form">
+                  <label>
+                    <span>{{ loc.t("household.shoppingTripMarket") }}</span>
+                    <select
+                      class="ui-form-control"
+                      [ngModel]="marketId"
+                      (ngModelChange)="selectMarket($event)"
+                    >
+                      <option value="">{{ loc.t("household.shoppingTripChooseMarket") }}</option>
+                      <option value="__custom__">
+                        {{ loc.t("household.shoppingTripCustomMarket") }}
+                      </option>
+                      @for (market of markets(); track market.id) {
+                        <option [value]="market.id">
+                          {{ market.displayName }} · {{ market.countryCode }}
+                        </option>
+                      }
+                    </select>
+                  </label>
+                  @if (marketId === "__custom__") {
+                    <label>
+                      <span>{{ loc.t("household.shoppingTripCustomMarketName") }}</span>
+                      <input class="ui-form-control" [(ngModel)]="customShopName" />
+                    </label>
                   }
-                </select>
-              </label>
-              @if (marketId === "__custom__") {
-                <label>
-                  <span>{{ loc.t("household.shoppingTripCustomMarketName") }}</span>
-                  <input [(ngModel)]="customShopName" />
-                </label>
-              }
-              <label>
-                <span>{{ loc.t("household.shoppingTripDate") }}</span>
-                <input type="date" [(ngModel)]="plannedDate" />
-              </label>
-              <button class="ui-button ui-button-primary" type="button" (click)="start()">
-                {{ loc.t("household.shoppingTripStart") }}
-              </button>
+                  <label>
+                    <span>{{ loc.t("household.shoppingTripDate") }}</span>
+                    <input class="ui-form-control" type="date" [(ngModel)]="plannedDate" />
+                  </label>
+                </div>
+                <button class="ui-button ui-button-primary" type="button" (click)="start()">
+                  {{ loc.t("household.shoppingTripStart") }}
+                </button>
+                @if (message()) {
+                  <p class="trip-message">{{ message() }}</p>
+                }
+              </aside>
             </div>
           } @else {
             <div class="trip-layout">
@@ -148,7 +170,8 @@ interface TripResultDraft {
                             }
                             @if (
                               item.resultStatus === "pending" &&
-                              ["in_progress", "partially_processed"].includes(trip()!.status)
+                              (trip()!.status === "in_progress" ||
+                                trip()!.status === "partially_processed")
                             ) {
                               <button
                                 class="ui-button ui-button-quiet ui-button-sm"
@@ -217,7 +240,8 @@ interface TripResultDraft {
                               </small>
                             }
                             @if (
-                              ["in_progress", "partially_processed"].includes(trip()!.status) &&
+                              (trip()!.status === "in_progress" ||
+                                trip()!.status === "partially_processed") &&
                               item.resultStatus !== "not_bought"
                             ) {
                               <label class="trip-match-picker">
@@ -421,13 +445,17 @@ interface TripResultDraft {
       .trip-items {
         display: grid;
         gap: var(--space-3);
+        grid-template-rows: minmax(0, 1fr) auto;
         min-height: 0;
         overflow: auto;
       }
       .trip-start-form {
         display: grid;
         gap: var(--space-2);
-        grid-template-columns: 1fr 1fr auto;
+      }
+      .trip-before-empty {
+        align-content: start;
+        padding: var(--space-2);
       }
       .trip-start-form label,
       .trip-unplanned label,
@@ -435,12 +463,21 @@ interface TripResultDraft {
         display: grid;
         gap: 0.2rem;
       }
+      .trip-start-form label > span,
+      .trip-unplanned label > span,
+      .trip-result-editor label > span {
+        color: var(--color-text-muted);
+        font-size: 0.68rem;
+        font-weight: 900;
+        text-transform: uppercase;
+      }
       .trip-table {
         background: var(--household-batch-row-background);
         border: 1px solid var(--line-panel);
         border-radius: var(--radius-ui);
         display: grid;
         grid-template-rows: auto minmax(0, 1fr);
+        height: 100%;
         min-height: 0;
         overflow: hidden;
       }
@@ -467,7 +504,7 @@ interface TripResultDraft {
         align-content: start;
         display: grid;
         grid-auto-rows: max-content;
-        min-height: 0;
+        min-height: 8rem;
         overflow: auto;
       }
       .trip-item {
@@ -612,6 +649,16 @@ interface TripResultDraft {
         .trip-table-body {
           overflow: visible;
         }
+        .trip-table-body {
+          min-height: 0;
+        }
+        .trip-items {
+          grid-template-rows: auto auto;
+        }
+        .trip-table {
+          grid-template-rows: auto auto;
+          height: auto;
+        }
         .trip-start-form,
         .trip-result-editor,
         .trip-unplanned {
@@ -637,6 +684,7 @@ interface TripResultDraft {
 })
 export class HouseholdShoppingTripPanelComponent implements OnChanges {
   @Input({ required: true }) householdId = "";
+  @Output() shoppingTripCancelled = new EventEmitter<void>();
   readonly loc = inject(LocalizationService);
   private readonly api = inject(HouseholdV2Service);
   private readonly toast = inject(ToastService);
@@ -665,6 +713,7 @@ export class HouseholdShoppingTripPanelComponent implements OnChanges {
     this.trip.set(next);
     if (!next) {
       this.expandedItemIds.set(new Set());
+      this.resetStartForm();
       return;
     }
     if (next.shopMarketId) this.marketId = next.shopMarketId;
@@ -718,6 +767,15 @@ export class HouseholdShoppingTripPanelComponent implements OnChanges {
   }
   collapsePanel(): void {
     this.sectionCollapsed.set(true);
+  }
+  private resetStartForm(): void {
+    this.marketId = "";
+    this.customShopName = "";
+    this.plannedDate = new Date().toISOString().slice(0, 10);
+    this.unplannedName = "";
+    this.unplannedQuantity = 1;
+    this.unplannedUnit = "count";
+    for (const key of Object.keys(this.drafts)) delete this.drafts[key];
   }
   async loadMarkets(): Promise<void> {
     if (!this.householdId) return;
@@ -927,6 +985,8 @@ export class HouseholdShoppingTripPanelComponent implements OnChanges {
     });
     if (result.status === "ok" && result.trip) {
       this.setTrip(null);
+      this.sectionCollapsed.set(true);
+      this.shoppingTripCancelled.emit();
       this.toast.push(this.loc.t("household.shoppingTripCancelled"), "success");
     } else this.message.set(result.message ?? "");
   }

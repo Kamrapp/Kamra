@@ -705,9 +705,11 @@ export class HouseholdV2Service {
                         ? this.loc.t("household.shoppingTripNotFound")
                         : payload?.error === "shopping_need_list_not_found"
                           ? this.loc.t("household.shoppingNeedListNotFound")
-                          : payload?.error === "stale_revision"
-                            ? this.loc.t("household.shoppingTripConflict")
-                            : this.loc.t("household.saveFailure");
+                          : payload?.error === "shopping_trip_is_terminal"
+                            ? this.loc.t("household.shoppingTripTerminal")
+                            : payload?.error === "stale_revision"
+                              ? this.loc.t("household.shoppingTripConflict")
+                              : this.loc.t("household.saveFailure");
         return { message, status: "error" };
       }
       return { status: "ok" };

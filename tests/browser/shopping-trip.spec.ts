@@ -24,7 +24,6 @@ test("standard users can run a custom-market Shopping Trip through completion", 
   await expect(page.getByText("preferred Product")).toBeVisible();
   await expect(page.getByRole("button", { name: "Skip line" })).toBeVisible();
   await page.getByRole("button", { name: "Skip line" }).click();
-
   await page.getByRole("button", { name: "Not bought", exact: true }).last().click();
   await expect(page.getByRole("button", { name: "Not bought", exact: true })).toHaveCount(1);
   await page.getByRole("button", { name: "Bought", exact: true }).click();
@@ -65,7 +64,20 @@ test("Shopping Trip keeps trip actions beside the compact item table and can be 
   await expect(page.getByRole("button", { name: "Cancel trip" })).toBeVisible();
   await page.getByRole("button", { name: "Cancel trip" }).click();
 
+  await expect(page.locator("app-household-shopping-trip-panel .trip-panel")).toHaveClass(
+    /trip-collapsed/
+  );
+  await expect(page.locator("app-household-v2-workspace .v2-workspace")).not.toHaveClass(
+    /workspace-collapsed/
+  );
+  await page.locator("app-household-shopping-trip-panel .section-toggle").click();
   await expect(page.getByRole("button", { name: "Start trip" })).toBeVisible();
+  await expect(page.getByLabel("Shop market id")).toHaveValue("");
+  await expect(page.getByLabel("Planned date")).toHaveValue(/\d{4}-\d{2}-\d{2}/);
+  await page.getByLabel("Shop market id").selectOption("__custom__");
+  await page.getByLabel("Custom shop name").fill("Weekend market");
+  await page.getByRole("button", { name: "Start trip" }).click();
+  await expect(page.locator(".trip-table-header")).toBeVisible();
   expect(
     fixture.requests.some(
       (request) =>

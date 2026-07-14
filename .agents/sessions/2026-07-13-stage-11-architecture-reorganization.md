@@ -652,3 +652,19 @@ the approved disposable database, then run `npm run seed:demo-household` and
 - Added focused unit coverage for the exact above-target split case and an application integration
   check for target/current/reason metadata on a manually selected Group line. API typecheck, lint,
   formatting, and 34 focused tests pass.
+
+## Shopping Trip cancellation and pre-trip management follow-up (2026-07-14)
+
+- Moved the initial market/custom-shop/date form into the Trip panel's right-side `Before trip`
+  management block. Once a trip starts, that block becomes the existing `After trip` management
+  block; the left side remains the compact item table.
+- Cancelling now deletes the cancelled Trip record after the revision-checked API transition,
+  clears the local market, custom shop, planned-trip, and draft state, collapses the Trip panel,
+  and reopens the Household workspace. A new Trip can therefore reuse the same date and properties.
+- Added localized handling for `shopping_trip_is_terminal` and browser coverage for cancellation,
+  cleared start fields, same-date restart, and completion. The Trip table reserves a compact body
+  height so its result controls remain scrollable and clickable instead of collapsing beneath the
+  fixed header.
+- Validation: API integration/domain/repository tests (17), app/API typecheck, lint, Prettier,
+  and both Shopping Trip Chromium tests pass. A known orphaned test server on port 4200 was stopped
+  before the fresh-server browser run; the harness itself was unchanged.

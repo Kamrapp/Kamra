@@ -315,7 +315,34 @@ describe("Stage 11 application integration harness", () => {
       path: `/api/households/${harness.householdId}/shopping-trips`
     });
     expect(customTrip.status).toBe(201);
-    expect(JSON.parse(customTrip.body).result.shopNameSnapshot).toBe("Custom");
+    const customTripResult = JSON.parse(customTrip.body).result as {
+      id: string;
+      revision: number;
+      shopNameSnapshot: string;
+    };
+    expect(customTripResult.shopNameSnapshot).toBe("Custom");
+
+    const cancelledTrip = await harness.send({
+      bodyText: JSON.stringify({
+        expectedRevision: customTripResult.revision,
+        transition: "cancelled"
+      }),
+      method: "PATCH",
+      path: `/api/households/${harness.householdId}/shopping-trips/${encodeURIComponent(customTripResult.id)}`
+    });
+    expect(cancelledTrip.status).toBe(200);
+    expect(
+      await harness.database
+        .collection("household_shopping_trips")
+        .findOne({ id: customTripResult.id })
+    ).toBeNull();
+
+    const replacementTrip = await harness.send({
+      bodyText: JSON.stringify({ plannedDate: "2026-07-15" }),
+      method: "POST",
+      path: `/api/households/${harness.householdId}/shopping-trips`
+    });
+    expect(replacementTrip.status).toBe(201);
   });
 
   it("keeps a manually selected above-target Group line tied to its configured target", async () => {

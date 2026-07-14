@@ -73,4 +73,17 @@ export class MongoShoppingTripRepository {
     if (result.matchedCount !== 1) throw new Error("shopping_trip_revision_conflict");
     return input.trip;
   }
+
+  async deleteCancelled(input: {
+    expectedRevision: number;
+    householdId: string;
+    id: string;
+  }): Promise<void> {
+    const result = await this.trips.deleteMany({
+      householdId: input.householdId,
+      id: input.id,
+      revision: input.expectedRevision
+    });
+    if (result.deletedCount !== 1) throw new Error("shopping_trip_revision_conflict");
+  }
 }

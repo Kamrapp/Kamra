@@ -573,6 +573,10 @@ export class HomeComponent implements OnDestroy {
   onShoppingListCancelled(): void {
     this.v2Workspace?.setSectionExpanded(true);
   }
+  onShoppingTripCancelled(): void {
+    this.shoppingTripPanel?.collapsePanel();
+    this.v2Workspace?.setSectionExpanded(true);
+  }
   private resetShoppingSelection(): void {
     this.shoppingSelectionDirty.set(false);
     this.selectedShoppingItemIds.set(new Set(this.shoppingSelectionDefaults()));
