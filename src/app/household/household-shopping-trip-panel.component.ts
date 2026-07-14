@@ -40,18 +40,15 @@ interface TripResultDraft {
     >
       <div class="trip-heading">
         <button
-          class="trip-section-toggle"
+          class="section-toggle"
           type="button"
           (click)="sectionCollapsed.set(!sectionCollapsed())"
           [attr.aria-expanded]="!sectionCollapsed()"
         >
           <span aria-hidden="true">{{ sectionCollapsed() ? "▸" : "▾" }}</span>
-          <span>
-            <p class="ui-kicker">{{ loc.t("household.shoppingTripKicker") }}</p>
-            <h2 class="ui-card-title" id="shopping-trip-title">
-              {{ loc.t("household.shoppingTripTitle") }}
-            </h2>
-          </span>
+          <h2 class="ui-card-title" id="shopping-trip-title">
+            {{ loc.t("household.shoppingTripTitle") }}
+          </h2>
         </button>
         <app-table-icon-button
           [ariaLabel]="loc.t('common.refresh')"
@@ -401,26 +398,6 @@ interface TripResultDraft {
         padding-block: var(--space-3);
         grid-template-rows: auto;
       }
-      .trip-section-toggle {
-        align-items: center;
-        background: transparent;
-        border: 0;
-        color: inherit;
-        cursor: pointer;
-        display: flex;
-        font: inherit;
-        gap: var(--space-2);
-        padding: 0;
-        text-align: left;
-      }
-      .trip-section-toggle > span:last-child {
-        display: grid;
-        gap: var(--space-1);
-      }
-      .trip-section-toggle .ui-kicker,
-      .trip-section-toggle .ui-card-title {
-        margin: 0;
-      }
       .trip-content {
         align-content: start;
         display: grid;
@@ -487,6 +464,9 @@ interface TripResultDraft {
         text-align: right;
       }
       .trip-table-body {
+        align-content: start;
+        display: grid;
+        grid-auto-rows: max-content;
         min-height: 0;
         overflow: auto;
       }
@@ -735,6 +715,9 @@ export class HouseholdShoppingTripPanelComponent implements OnChanges {
           null
       );
     else this.message.set(result.message ?? "");
+  }
+  collapsePanel(): void {
+    this.sectionCollapsed.set(true);
   }
   async loadMarkets(): Promise<void> {
     if (!this.householdId) return;

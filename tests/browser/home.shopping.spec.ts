@@ -9,14 +9,20 @@ test("Home builds, retries, generates, and cancels a shopping list", async ({ pa
   await page.goto("/");
 
   const householdWorkspace = page.locator("app-household-v2-workspace");
+  const shoppingListPanel = page.locator("app-household-shopping-list");
+  const shoppingTripPanel = page.locator("app-household-shopping-trip-panel");
   await householdWorkspace.locator(".section-toggle").click();
   await expect(householdWorkspace.locator(".stock-grid-shell")).toHaveCount(0);
+  await shoppingListPanel.locator(".section-toggle").click();
+  await shoppingTripPanel.locator(".section-toggle").click();
 
   const buildButton = page.getByRole("button", { name: "Build shopping list" });
   await expect(buildButton).toBeEnabled();
   await buildButton.click();
   await expect(page.getByRole("button", { name: "Generate shopping list" })).toBeVisible();
   await expect(householdWorkspace.locator(".stock-grid-shell")).toBeVisible();
+  await expect(shoppingListPanel.locator(".shopping-collapsed")).toHaveCount(1);
+  await expect(shoppingTripPanel.locator(".trip-collapsed")).toHaveCount(1);
   await expect(page.locator('app-household-v2-workspace input[type="checkbox"]')).not.toHaveCount(
     0
   );

@@ -424,6 +424,29 @@ samp {
   padding: clamp(1rem, 2.5vw, 1.5rem);
 }
 
+.section-toggle {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  gap: var(--space-2);
+  padding: 0;
+  text-align: left;
+}
+
+.section-toggle > .ui-card-title,
+.section-toggle > span:last-child {
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: clamp(1.05rem, 2vw, 1.25rem);
+  font-weight: 800;
+  line-height: 1.08;
+  margin: 0;
+}
+
 .ui-shell-card {
   backdrop-filter: blur(14px);
   background: var(--surface-shell-background);

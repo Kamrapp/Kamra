@@ -615,3 +615,16 @@ the approved disposable database, then run `npm run seed:demo-household` and
 - Added localized labels and Chromium coverage for the compact layout, details interaction, and
   cancellation. Typecheck, lint, Prettier, diff checks, Home auth, and Shopping Trip browser tests
   pass.
+
+## Home section and row sizing follow-up (2026-07-14)
+
+- Added the global `section-toggle` style and applied it consistently to Household stocks, Shopping
+  list, and Shopping trip. Removed duplicate kicker/title blocks so each panel has one compact
+  header line.
+- Shopping List and Shopping Trip table bodies now use content-sized rows aligned to the top rather
+  than stretching rows into spare panel height. Purchased items now use a leading disclosure marker
+  and the same italic, stronger separator treatment as Unassigned Products.
+- Building a shopping list collapses both lower panels before opening household selection. Browser
+  coverage verifies the shared toggle class, simplified Household stocks heading, and both panels
+  collapsing on Build. Typecheck, lint, Prettier, diff checks, and combined Home/Trip browser tests
+  pass.

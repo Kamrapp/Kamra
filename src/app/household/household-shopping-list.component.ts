@@ -356,6 +356,10 @@ export class HouseholdShoppingListComponent implements OnChanges, OnDestroy {
     this.sectionCollapsed.set(false);
   }
 
+  collapsePanel(): void {
+    this.sectionCollapsed.set(true);
+  }
+
   async cancelShoppingList(): Promise<void> {
     if (this.isReadOnly()) {
       return;

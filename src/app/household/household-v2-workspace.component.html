@@ -12,12 +12,9 @@
       [attr.aria-expanded]="sectionExpanded()"
     >
       <span aria-hidden="true">{{ sectionExpanded() ? "▾" : "▸" }}</span>
-      <span>
-        <p class="ui-kicker">{{ loc.t("household.householdStock") }}</p>
-        <h2 class="ui-card-title" id="v2-workspace-title">
-          {{ loc.t("household.productGroups") }}
-        </h2>
-      </span>
+      <h2 class="ui-card-title" id="v2-workspace-title">
+        {{ loc.t("household.householdStocksTitle") }}
+      </h2>
     </button>
     <app-table-icon-button
       [ariaLabel]="loc.t('common.refresh')"

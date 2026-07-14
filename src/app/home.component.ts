@@ -144,6 +144,9 @@ export class HomeComponent implements OnDestroy {
   @ViewChild(HouseholdV2WorkspaceComponent)
   v2Workspace?: HouseholdV2WorkspaceComponent;
 
+  @ViewChild(HouseholdShoppingTripPanelComponent)
+  shoppingTripPanel?: HouseholdShoppingTripPanelComponent;
+
   readonly stockItems = computed(() => this.householdPage()?.stockItems ?? []);
   readonly stockItemsByPriority = computed(() =>
     [...this.stockItems()].sort(
@@ -552,6 +555,8 @@ export class HomeComponent implements OnDestroy {
   }
 
   private beginShoppingSelection(): void {
+    this.shoppingListPanel()?.collapsePanel();
+    this.shoppingTripPanel?.collapsePanel();
     this.v2Workspace?.setSectionExpanded(true);
     this.shoppingSelectionMode.set(true);
     this.resetShoppingSelection();

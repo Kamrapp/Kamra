@@ -4,7 +4,7 @@
   [attr.aria-label]="loc.t('household.shoppingListPanelTitle')"
 >
   <button
-    class="shopping-section-toggle"
+    class="section-toggle"
     type="button"
     (click)="sectionCollapsed.set(!sectionCollapsed())"
     [attr.aria-expanded]="!sectionCollapsed()"
@@ -15,13 +15,6 @@
   @if (!sectionCollapsed()) {
     <div class="shopping-layout">
       <section class="shopping-overview" [class.shopping-overview-active]="!!shoppingList()">
-        <div class="shopping-card-topline">
-          <div>
-            <p class="ui-kicker">{{ loc.t("household.shoppingListKicker") }}</p>
-            <h2 class="ui-card-title">{{ loc.t("household.shoppingListPanelTitle") }}</h2>
-          </div>
-        </div>
-
         @if (loadState() === "loading" && !shoppingList()) {
           <p class="shopping-note">{{ loc.t("household.shoppingListLoading") }}</p>
         } @else if (errorMessage()) {
@@ -128,15 +121,15 @@
                     (click)="togglePurchasedSection()"
                     [disabled]="isReadOnly()"
                   >
-                    <span>
+                    <span class="purchased-toggle-expander" aria-hidden="true">
+                      {{ purchasedSectionCollapsed() ? "▸" : "▾" }}
+                    </span>
+                    <strong class="purchased-toggle-label">
                       {{
                         loc.t("household.shoppingListPurchasedGroup", {
                           count: purchasedItems().length
                         })
                       }}
-                    </span>
-                    <strong aria-hidden="true">
-                      {{ purchasedSectionCollapsed() ? "▸" : "▾" }}
                     </strong>
                   </button>
 

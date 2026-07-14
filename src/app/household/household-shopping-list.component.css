@@ -12,21 +12,6 @@
     minmax(4.2rem, 5rem) 1.8rem 1.8rem;
 }
 
-.shopping-section-toggle {
-  align-items: center;
-  background: transparent;
-  border: 0;
-  color: var(--color-text);
-  cursor: pointer;
-  display: flex;
-  font: inherit;
-  font-size: 1.05rem;
-  font-weight: 800;
-  gap: var(--space-2);
-  padding: 0;
-  text-align: left;
-}
-
 .shopping-collapsed {
   height: auto;
   min-height: 0;
@@ -34,7 +19,6 @@
   grid-template-rows: auto;
 }
 
-.shopping-card-topline,
 .quick-add-row,
 .shopping-line-row,
 .shopping-amounts {
@@ -80,7 +64,7 @@
 }
 
 .shopping-overview-active {
-  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
 }
 
 .shopping-finalize {
@@ -150,16 +134,22 @@
 }
 
 .shopping-list-shell {
+  align-content: start;
   display: grid;
   gap: 0;
+  grid-auto-rows: max-content;
   min-height: 0;
   overflow: auto;
 }
 
 .purchased-group,
 .purchased-shell {
+  align-content: start;
   display: grid;
   gap: 0;
+}
+.purchased-shell {
+  grid-auto-rows: max-content;
 }
 
 .shopping-line {
@@ -190,21 +180,28 @@
 
 .purchased-toggle {
   align-items: center;
-  background: var(--pulse-row-background);
-  border: 0;
-  border-bottom: 1px solid var(--line-strong);
-  color: var(--color-text);
+  background: color-mix(in srgb, var(--pulse-row-background) 46%, var(--surface-soft-background));
+  border: 2px solid color-mix(in srgb, var(--line-strong) 72%, var(--pulse-row-border));
+  color: var(--pulse-row-text);
   cursor: pointer;
   display: flex;
   font: inherit;
-  font-weight: 800;
-  justify-content: space-between;
-  min-height: 2.65rem;
-  padding: 0.55rem 0.8rem;
+  gap: var(--space-2);
+  justify-content: flex-start;
+  min-height: 2rem;
+  padding: 0.25rem var(--space-2);
+  text-align: left;
 }
-.purchased-toggle strong {
-  font-size: 1.15rem;
-  line-height: 1;
+.purchased-toggle-expander {
+  align-items: center;
+  display: inline-flex;
+  justify-content: center;
+  width: 1.25rem;
+}
+.purchased-toggle-label {
+  font-size: 0.76rem;
+  font-style: italic;
+  font-weight: 700;
 }
 
 .shopping-line-row {

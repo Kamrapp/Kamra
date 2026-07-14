@@ -8,7 +8,7 @@ test("standard users can run a custom-market Shopping Trip through completion", 
   const fixture = await installBrowserApiFixture(page);
 
   await page.goto("/");
-  await page.locator("app-household-shopping-trip-panel .trip-section-toggle").click();
+  await page.locator("app-household-shopping-trip-panel .section-toggle").click();
 
   const marketSelect = page.getByLabel("Shop market id");
   await marketSelect.selectOption("__custom__");
@@ -55,7 +55,7 @@ test("Shopping Trip keeps trip actions beside the compact item table and can be 
   const fixture = await installBrowserApiFixture(page);
 
   await page.goto("/");
-  await page.locator("app-household-shopping-trip-panel .trip-section-toggle").click();
+  await page.locator("app-household-shopping-trip-panel .section-toggle").click();
   await page.getByLabel("Shop market id").selectOption("__custom__");
   await page.getByLabel("Custom shop name").fill("Weekend market");
   await page.getByRole("button", { name: "Start trip" }).click();
