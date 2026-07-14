@@ -628,3 +628,15 @@ the approved disposable database, then run `npm run seed:demo-household` and
   coverage verifies the shared toggle class, simplified Household stocks heading, and both panels
   collapsing on Build. Typecheck, lint, Prettier, diff checks, and combined Home/Trip browser tests
   pass.
+
+## Catalog schema artifact generation follow-up (2026-07-14)
+
+- The catalog smoke workflow exposed formatting-only drift: the checked-in v1 artifact had been
+  reformatted by the repository-wide Prettier change while the generator still wrote raw
+  `JSON.stringify` output.
+- `scripts/generate-catalog-schemas.ts` now resolves the repository Prettier configuration for the
+  generated artifact before writing it. This keeps regeneration deterministic and makes the workflow
+  diff check detect actual schema changes rather than formatter differences.
+- Validation: regeneration plus `git diff --exit-code` passes, targeted Prettier passes, API
+  typecheck passes, and all 18 catalog/seed tests pass. No schema or database migration change was
+  required.
