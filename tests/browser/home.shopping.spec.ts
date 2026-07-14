@@ -63,6 +63,7 @@ test("Home builds, retries, generates, and cancels a shopping list", async ({ pa
   await page.getByRole("button", { name: "Cancel shopping" }).click();
   await expect(buildButton).toBeEnabled();
   await expect(page.getByText("Alma", { exact: true })).toHaveCount(0);
+  await expect(householdWorkspace.locator(".stock-grid-shell")).toBeVisible();
   expect(fixture.unexpectedRequests).toEqual([]);
 });
 
