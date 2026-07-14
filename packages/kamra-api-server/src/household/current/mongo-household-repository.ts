@@ -27,6 +27,7 @@ import type {
   UpdateHouseholdStockItemRequest
 } from "../v1/contracts.js";
 import { householdV1CollectionSchemas } from "../v1/schemas.js";
+import { normalizeGroupTargetShoppingDistributionMode } from "../shopping-policy.js";
 import { classifyHouseholdStockStatus } from "./stock-status.js";
 
 interface CollectionIndexPlan {
@@ -506,12 +507,15 @@ export class MongoHouseholdRepository {
     let updatedCount = 0;
     const households = await this.householdsCollection.find({}).toArray();
     for (const household of households) {
-      if (household.groupTargetShoppingDistributionMode !== undefined) continue;
+      const nextMode = normalizeGroupTargetShoppingDistributionMode(
+        household.groupTargetShoppingDistributionMode
+      );
+      if (household.groupTargetShoppingDistributionMode === nextMode) continue;
       await this.householdsCollection.updateOne(
         { id: household.id },
         {
           $set: {
-            groupTargetShoppingDistributionMode: "split_evenly",
+            groupTargetShoppingDistributionMode: nextMode,
             updatedAt: household.updatedAt
           }
         }

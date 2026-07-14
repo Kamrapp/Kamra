@@ -87,6 +87,50 @@ const allocation = (id: string, batchId: string, targetId: string): StockAllocat
 });
 
 describe("MongoProductGroupRepository", () => {
+  it("backfills explicit inherited shopping-policy overrides without changing group identity", async () => {
+    const groups = new FakeCollection<Record<string, unknown>>("household_product_groups", [
+      {
+        createdAt: time,
+        createdByUserId: "u",
+        displayName: "Fruit",
+        householdId: "h",
+        id: "group:fruit",
+        revision: 0,
+        status: "active",
+        trackingUnit: "count",
+        updatedAt: time,
+        updatedByUserId: "u"
+      }
+    ]);
+    const db = createFakeDb({
+      household_product_groups: groups,
+      household_stock_targets: new FakeCollection("household_stock_targets"),
+      household_stock_allocations: new FakeCollection("household_stock_allocations"),
+      household_stock_batches: new FakeCollection("household_stock_batches"),
+      household_products: new FakeCollection("household_products")
+    });
+
+    const report = await new MongoProductGroupRepository(db).migrateLegacy();
+
+    expect(report.overridesBackfilled).toBe(1);
+    await expect(groups.findOne({ id: "group:fruit" })).resolves.toMatchObject({
+      displayName: "Fruit",
+      groupTargetShoppingDistributionModeOverride: "default",
+      groupTargetShoppingModeOverride: "default"
+    });
+  });
+
+  it("exposes the Product Group validator as a separate maintenance action", async () => {
+    const db = createFakeDb({
+      household_product_groups: new FakeCollection("household_product_groups")
+    });
+
+    await expect(new MongoProductGroupRepository(db).upgradeValidator()).resolves.toEqual({
+      collection: "household_product_groups",
+      status: "ready"
+    });
+  });
+
   it("converts one-target Product history and wraps anonymous Batches in a generic Product", async () => {
     const products = new FakeCollection<Record<string, unknown>>("household_products", [
       product("p1", "White bread") as unknown as Record<string, unknown>

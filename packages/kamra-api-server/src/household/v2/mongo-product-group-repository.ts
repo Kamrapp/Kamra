@@ -16,8 +16,36 @@ export interface ProductGroupMigrationReport {
   anonymousBatchesLinked: number;
   conflicts: number;
   groupsCreated: number;
+  overridesBackfilled: number;
   productsLinked: number;
 }
+
+export const productGroupValidator = {
+  bsonType: "object",
+  required: [
+    "createdAt",
+    "createdByUserId",
+    "displayName",
+    "householdId",
+    "id",
+    "revision",
+    "status",
+    "trackingUnit",
+    "updatedAt",
+    "updatedByUserId"
+  ],
+  properties: {
+    groupTargetShoppingDistributionModeOverride: {
+      enum: ["default", "dont_split", "split_evenly", "least_amount", "latest", "oldest"]
+    },
+    groupTargetShoppingModeOverride: {
+      enum: ["default", "add_products_and_group_item", "add_products_only", "ignore_group_targets"]
+    },
+    revision: { bsonType: "int", minimum: 0 },
+    status: { enum: ["active", "archived"] },
+    trackingUnit: { bsonType: "string" }
+  }
+} as const;
 
 export class MongoProductGroupRepository {
   private readonly groups: MongoCollectionLike<ProductGroup>;
@@ -37,6 +65,16 @@ export class MongoProductGroupRepository {
         { name: "household_product_groups_household_parent_status_display" }
       )
     ]);
+  }
+
+  async upgradeValidator(): Promise<{ status: "ready"; collection: string }> {
+    await this.database.command({
+      collMod: "household_product_groups",
+      validationAction: "error",
+      validationLevel: "strict",
+      validator: { $jsonSchema: productGroupValidator }
+    });
+    return { collection: "household_product_groups", status: "ready" };
   }
 
   async create(group: ProductGroup): Promise<ProductGroup> {
@@ -171,6 +209,7 @@ export class MongoProductGroupRepository {
       .toArray();
     const groups = targets.map(toProductGroup);
     await this.upsertGroups(groups);
+    const overridesBackfilled = await this.backfillShoppingPolicyOverrides();
     const targetIds = new Set(targets.map((target) => target.id));
     const batchesById = new Map(batches.map((batch) => [batch.id, batch]));
     const targetIdsByProduct = new Map<string, Set<string>>();
@@ -247,7 +286,32 @@ export class MongoProductGroupRepository {
       );
       anonymousBatchesLinked += 1;
     }
-    return { anonymousBatchesLinked, conflicts, groupsCreated: groups.length, productsLinked };
+    return {
+      anonymousBatchesLinked,
+      conflicts,
+      groupsCreated: groups.length,
+      overridesBackfilled,
+      productsLinked
+    };
+  }
+
+  private async backfillShoppingPolicyOverrides(): Promise<number> {
+    let updatedCount = 0;
+    const groups = await this.groups.find({ status: "active" }).toArray();
+    for (const group of groups) {
+      const changes: Record<string, string> = {};
+      if (group.groupTargetShoppingModeOverride === undefined)
+        changes["groupTargetShoppingModeOverride"] = "default";
+      if (group.groupTargetShoppingDistributionModeOverride === undefined)
+        changes["groupTargetShoppingDistributionModeOverride"] = "default";
+      if (Object.keys(changes).length === 0) continue;
+      await this.groups.updateOne(
+        { householdId: group.householdId, id: group.id },
+        { $set: changes }
+      );
+      updatedCount += 1;
+    }
+    return updatedCount;
   }
 
   private async upsertGroups(groups: readonly ProductGroup[]): Promise<void> {

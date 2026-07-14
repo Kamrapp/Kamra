@@ -177,7 +177,7 @@ export const householdV1CollectionSchemas: Record<HouseholdV1CollectionName, Jso
       },
       defaultCalculatedMaxLimitMultiplier: optionalNonNegativeNumberSchema,
       groupTargetShoppingDistributionMode: {
-        enum: ["even", "proportional"]
+        enum: ["dont_split", "split_evenly", "least_amount", "latest", "oldest"]
       },
       groupTargetShoppingMode: {
         enum: ["add_products_and_group_item", "add_products_only", "ignore_group_targets"]

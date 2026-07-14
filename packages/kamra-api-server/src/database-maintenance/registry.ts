@@ -37,7 +37,7 @@ export const databaseMaintenanceEntries: readonly DatabaseMaintenanceEntry[] = [
   },
   {
     details:
-      "Adds the group-target quantity distribution policy to the household validator and backfills existing households to deterministic even distribution. The migration is separate from the validator update and does not rewrite shopping history.",
+      "Replaces legacy group-target distribution values with deterministic household strategies (Don't split, Split evenly, least amount, latest, or oldest). The validator and existing-data migration are separate actions and do not rewrite shopping history.",
     id: "household-group-shopping-distribution-v1",
     title: "Household grouped-target distribution policy"
   },

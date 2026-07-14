@@ -248,7 +248,7 @@ async function runValidatorAction(
   }
   if (entryId === "household-product-groups-v1") {
     await new MongoProductGroupRepository(database).setupCollections();
-    return { status: "ready" };
+    return await new MongoProductGroupRepository(database).upgradeValidator();
   }
   if (entryId === "household-local-classification-v1") {
     return await new MongoHouseholdProductConceptRepository(database).setupCollections();
