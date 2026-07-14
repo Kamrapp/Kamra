@@ -15,6 +15,7 @@ import type {
   HouseholdShoppingListRecord,
   HouseholdStockItemRecord
 } from "../v1/contracts.js";
+import { householdV1CollectionSchemas } from "../v1/schemas.js";
 import { MongoHouseholdRepository } from "./mongo-household-repository.js";
 import type {
   HouseholdProduct,
@@ -326,31 +327,77 @@ async function assertCurrentHouseholdValidator(database: MongoDatabaseLike): Pro
   const result = await database.command({ listCollections: 1 });
   const cursor = isRecord(result["cursor"]) ? result["cursor"] : null;
   const firstBatch = Array.isArray(cursor?.["firstBatch"]) ? cursor["firstBatch"] : [];
-  const householdCollection = firstBatch.find(
-    (entry) => isRecord(entry) && entry["name"] === "households"
-  );
-  if (!isRecord(householdCollection)) {
-    return;
+  const validatorProblems: string[] = [];
+
+  for (const [collectionName, expectedSchema] of Object.entries(householdV1CollectionSchemas)) {
+    const collection = firstBatch.find(
+      (entry) => isRecord(entry) && entry["name"] === collectionName
+    );
+    if (!isRecord(collection)) {
+      continue;
+    }
+
+    const options = isRecord(collection["options"]) ? collection["options"] : null;
+    const validator = options && isRecord(options["validator"]) ? options["validator"] : null;
+    const jsonSchema =
+      validator && isRecord(validator["$jsonSchema"]) ? validator["$jsonSchema"] : null;
+    if (!jsonSchema) {
+      continue;
+    }
+
+    const actualProperties = isRecord(jsonSchema["properties"]) ? jsonSchema["properties"] : {};
+    const expectedProperties = isRecord(expectedSchema["properties"])
+      ? expectedSchema["properties"]
+      : {};
+    const actualRequired = Array.isArray(jsonSchema["required"])
+      ? jsonSchema["required"].filter((value): value is string => typeof value === "string")
+      : [];
+    const expectedRequired = Array.isArray(expectedSchema["required"])
+      ? expectedSchema["required"].filter((value): value is string => typeof value === "string")
+      : [];
+    const missingProperties = Object.keys(expectedProperties).filter(
+      (property) => !(property in actualProperties)
+    );
+    const missingRequired = expectedRequired.filter(
+      (property) => !actualRequired.includes(property)
+    );
+    const enumMismatches = Object.entries(expectedProperties)
+      .filter(([property, propertySchema]) => {
+        const expectedEnum =
+          isRecord(propertySchema) && Array.isArray(propertySchema["enum"])
+            ? propertySchema["enum"]
+            : null;
+        if (!expectedEnum) {
+          return false;
+        }
+
+        const actualEnum = isRecord(actualProperties[property])
+          ? actualProperties[property]["enum"]
+          : null;
+        return (
+          !Array.isArray(actualEnum) || expectedEnum.some((value) => !actualEnum.includes(value))
+        );
+      })
+      .map(([property]) => property);
+
+    if (missingProperties.length || missingRequired.length || enumMismatches.length) {
+      const details = [
+        missingProperties.length ? `missing properties: ${missingProperties.join(", ")}` : null,
+        missingRequired.length ? `missing required fields: ${missingRequired.join(", ")}` : null,
+        enumMismatches.length ? `outdated enum fields: ${enumMismatches.join(", ")}` : null
+      ]
+        .filter((detail): detail is string => detail !== null)
+        .join("; ");
+      validatorProblems.push(`${collectionName} (${details})`);
+    }
   }
 
-  const options = isRecord(householdCollection["options"]) ? householdCollection["options"] : null;
-  const validator = options && isRecord(options["validator"]) ? options["validator"] : null;
-  const jsonSchema =
-    validator && isRecord(validator["$jsonSchema"]) ? validator["$jsonSchema"] : null;
-  const properties =
-    jsonSchema && isRecord(jsonSchema["properties"]) ? jsonSchema["properties"] : null;
-  if (!properties) {
-    return;
-  }
-
-  const requiredProperties = ["allowExpiredItems", "groupTargetShoppingMode"];
-  const missingProperties = requiredProperties.filter((property) => !(property in properties));
-  if (missingProperties.length === 0) {
+  if (validatorProblems.length === 0) {
     return;
   }
 
   throw new Error(
-    `Demo household seed requires the current households validator in database '${database.databaseName}'. Missing validator properties: ${missingProperties.join(", ")}. Run the database-maintenance validator action for household-group-shopping-policy-v1 (do not only mark it complete), then retry npm run seed:demo-household.`
+    `Demo household seed requires current household validators in database '${database.databaseName}'. ${validatorProblems.join(" | ")} Run the database-maintenance validator actions, including household-group-shopping-policy-v1 and household-group-shopping-distribution-v1 (Run all; do not only mark them complete), then retry npm run seed:demo-household.`
   );
 }
 

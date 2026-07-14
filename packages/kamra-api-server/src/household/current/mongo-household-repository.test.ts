@@ -1,9 +1,59 @@
 import { describe, expect, it } from "vitest";
 
 import { createFakeDb, FakeCollection } from "../../test-support/fake-mongo.js";
+import type { HouseholdRecord } from "../v1/contracts.js";
 import { MongoHouseholdRepository } from "./mongo-household-repository.js";
 
+class FailingBulkWriteCollection extends FakeCollection {
+  override async bulkWrite(): Promise<unknown> {
+    throw {
+      code: 121,
+      writeErrors: [
+        {
+          err: {
+            code: 121,
+            errmsg: "Document failed validation"
+          },
+          index: 0
+        }
+      ]
+    };
+  }
+}
+
 describe("MongoHouseholdRepository", () => {
+  it("adds collection and record context to seeded validation failures", async () => {
+    const household: HouseholdRecord = {
+      allowExpiredItems: true,
+      createdAt: "2026-07-09T10:00:00.000Z",
+      createdByUserId: "usera",
+      defaultCalculatedMaxLimitMultiplier: 2,
+      favouriteShopId: null,
+      groupTargetShoppingDistributionMode: "split_evenly",
+      groupTargetShoppingMode: "add_products_and_group_item",
+      id: "household1",
+      name: "Demo household",
+      status: "active",
+      updatedAt: "2026-07-09T10:00:00.000Z"
+    };
+    const db = createFakeDb({ households: new FailingBulkWriteCollection("households") });
+    const repository = new MongoHouseholdRepository(db);
+
+    await expect(
+      repository.upsertSeedDataset({
+        households: [household],
+        householdLocalProducts: [],
+        householdMemberships: [],
+        householdPurchasePriceObservations: [],
+        householdShops: [],
+        householdShoppingLists: [],
+        householdStockItems: []
+      })
+    ).rejects.toThrow(
+      "Household seed write failed for 'households' record 'household1': Document failed validation"
+    );
+  });
+
   it("resets only the requested household content scope and keeps identity intact", async () => {
     const db = createFakeDb();
     const repository = new MongoHouseholdRepository(db);

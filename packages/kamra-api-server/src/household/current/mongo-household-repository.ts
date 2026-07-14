@@ -1032,18 +1032,36 @@ export class MongoHouseholdRepository {
   async upsertSeedDataset(dataset: HouseholdSeedDataset): Promise<void> {
     await this.upsertMany(
       this.householdFeatureFlagsCollection,
-      dataset.householdFeatureFlags ?? []
+      dataset.householdFeatureFlags ?? [],
+      "household_feature_flags"
     );
-    await this.upsertMany(this.householdsCollection, dataset.households);
-    await this.upsertMany(this.householdMembershipsCollection, dataset.householdMemberships);
-    await this.upsertMany(this.householdLocalProductsCollection, dataset.householdLocalProducts);
+    await this.upsertMany(this.householdsCollection, dataset.households, "households");
+    await this.upsertMany(
+      this.householdMembershipsCollection,
+      dataset.householdMemberships,
+      "household_memberships"
+    );
+    await this.upsertMany(
+      this.householdLocalProductsCollection,
+      dataset.householdLocalProducts,
+      "household_local_products"
+    );
     await this.upsertMany(
       this.householdPurchasePriceObservationsCollection,
-      dataset.householdPurchasePriceObservations
+      dataset.householdPurchasePriceObservations,
+      "household_purchase_price_observations"
     );
-    await this.upsertMany(this.householdShoppingListsCollection, dataset.householdShoppingLists);
-    await this.upsertMany(this.householdShopsCollection, dataset.householdShops);
-    await this.upsertMany(this.householdStockItemsCollection, dataset.householdStockItems);
+    await this.upsertMany(
+      this.householdShoppingListsCollection,
+      dataset.householdShoppingLists,
+      "household_shopping_lists"
+    );
+    await this.upsertMany(this.householdShopsCollection, dataset.householdShops, "household_shops");
+    await this.upsertMany(
+      this.householdStockItemsCollection,
+      dataset.householdStockItems,
+      "household_stock_items"
+    );
   }
 
   async clearSeedHouseholdData(ids: { householdIds: string[] }): Promise<{
@@ -1273,7 +1291,11 @@ export class MongoHouseholdRepository {
   async upsertHouseholdPurchasePriceObservations(
     records: readonly HouseholdPurchasePriceObservationRecord[]
   ): Promise<void> {
-    await this.upsertMany(this.householdPurchasePriceObservationsCollection, records);
+    await this.upsertMany(
+      this.householdPurchasePriceObservationsCollection,
+      records,
+      "household_purchase_price_observations"
+    );
   }
 
   private async findAccessibleHousehold(
@@ -1353,7 +1375,8 @@ export class MongoHouseholdRepository {
 
   private async upsertMany<T extends { id: string }>(
     collection: MongoCollectionLike<T>,
-    records: readonly T[]
+    records: readonly T[],
+    collectionName: string
   ): Promise<void> {
     if (records.length === 0) {
       return;
@@ -1367,8 +1390,57 @@ export class MongoHouseholdRepository {
       }
     }));
 
-    await collection.bulkWrite(operations);
+    try {
+      await collection.bulkWrite(operations);
+    } catch (error: unknown) {
+      const writeError = readFirstBulkWriteError(error);
+      const failedRecord = writeError?.index !== undefined ? records[writeError.index] : undefined;
+      const recordId = failedRecord?.id ?? null;
+      const detail = formatBulkWriteError(writeError?.error ?? error);
+      throw new Error(
+        `Household seed write failed for '${collectionName}'${recordId ? ` record '${recordId}'` : ""}: ${detail}`,
+        { cause: error }
+      );
+    }
   }
+}
+
+function readFirstBulkWriteError(error: unknown): { error: unknown; index?: number } | null {
+  if (!isRecord(error) || !Array.isArray(error["writeErrors"])) {
+    return null;
+  }
+
+  const first = error["writeErrors"][0];
+  if (!isRecord(first)) {
+    return null;
+  }
+
+  return {
+    error: first["err"] ?? first,
+    index: typeof first["index"] === "number" ? first["index"] : undefined
+  };
+}
+
+function formatBulkWriteError(error: unknown): string {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+  if (isRecord(error)) {
+    const message = error["errmsg"] ?? error["message"];
+    if (typeof message === "string") {
+      return message;
+    }
+  }
+
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error);
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function toHouseholdLocalProductListItem(
