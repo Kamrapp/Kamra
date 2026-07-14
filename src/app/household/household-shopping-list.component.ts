@@ -1,5 +1,16 @@
 import { FormsModule } from "@angular/forms";
-import { Component, EventEmitter, Input, Output, computed, inject, signal, type OnChanges, type SimpleChanges } from "@angular/core";
+import {
+  Component,
+  EventEmitter,
+  Input,
+  Output,
+  computed,
+  inject,
+  signal,
+  type OnChanges,
+  type OnDestroy,
+  type SimpleChanges
+} from "@angular/core";
 
 import {
   HouseholdStockService,
@@ -13,13 +24,37 @@ import {
   ShoppingListCompletionPanelComponent,
   type ShoppingListCompletionMode
 } from "./shopping-list-completion-panel.component";
-import { ShoppingListLineComponent, type ShoppingListLineChange } from "./shopping-list-line.component";
+import {
+  ShoppingListLineComponent,
+  type ShoppingListLineChange
+} from "./shopping-list-line.component";
 import { LocalizationService } from "../shared/localization.service";
 import { ToastService } from "../shared/toast.service";
+import { BrowserLoggerService } from "../browser-logger.service";
+import {
+  composeTrackingUnit,
+  householdTrackingUnitOptions,
+  splitTrackingUnit,
+  type HouseholdTrackingUnitOption
+} from "./household-tracking-units";
+import {
+  findShoppingQuickAddMatch,
+  normalizeShoppingQuickAddName
+} from "./shopping-quick-add-matching";
 
 interface QuickAddDraft {
   displayName: string;
   purchasedAmount: number;
+  unit: string;
+}
+
+export interface HouseholdKnownProduct {
+  currentAmount?: number | null;
+  displayName: string;
+  householdProductId: string;
+  idealMaxLimit?: number | null;
+  minLimit?: number | null;
+  stockGroupKey?: string | null;
   unit: string;
 }
 
@@ -34,15 +69,19 @@ interface PendingConfirmation {
   templateUrl: "./household-shopping-list.component.html",
   styleUrl: "./household-shopping-list.component.css"
 })
-export class HouseholdShoppingListComponent implements OnChanges {
+export class HouseholdShoppingListComponent implements OnChanges, OnDestroy {
   @Input({ required: true }) householdId = "";
   @Input() demoShoppingList: HouseholdShoppingList | null = null;
+  @Input() knownProducts: readonly HouseholdKnownProduct[] = [];
   @Input() shoppingScale: HouseholdShoppingList["scale"] = "keep_it_chill";
+  @Input() selectedOwnerIds: readonly string[] | null = null;
   @Output() stockPageUpdated = new EventEmitter<HouseholdStockPage>();
+  @Output() shoppingListCancelled = new EventEmitter<void>();
 
   readonly loc = inject(LocalizationService);
   private readonly household = inject(HouseholdStockService);
   private readonly toast = inject(ToastService);
+  private readonly logger = inject(BrowserLoggerService);
 
   readonly defaultCurrencyCode = "HUF";
   readonly errorMessage = signal("");
@@ -50,23 +89,26 @@ export class HouseholdShoppingListComponent implements OnChanges {
   readonly mutationState = signal<"idle" | "saving">("idle");
   readonly pendingConfirmation = signal<PendingConfirmation | null>(null);
   readonly purchasedSectionCollapsed = signal(true);
+  readonly sectionCollapsed = signal(true);
   readonly quickAddDraft = signal<QuickAddDraft>({
     displayName: "",
     purchasedAmount: 1,
     unit: "db"
   });
   readonly shoppingScaleValue = signal<HouseholdShoppingList["scale"]>("keep_it_chill");
+  readonly trackingUnitOptions = householdTrackingUnitOptions;
   readonly shoppingList = signal<HouseholdShoppingList | null>(null);
   readonly shops = signal<HouseholdShop[]>([]);
   readonly statusMessage = signal("");
   readonly shoppingScaleLabel = computed(() => {
-    const key = this.shoppingScaleValue() === "business_as_usual"
-      ? "household.shoppingScaleUsual"
-      : this.shoppingScaleValue() === "keep_it_chill"
-        ? "household.shoppingScaleChill"
-        : this.shoppingScaleValue() === "start_fresh"
-          ? "household.shoppingScaleStartFresh"
-          : "household.shoppingScaleStockUp";
+    const key =
+      this.shoppingScaleValue() === "business_as_usual"
+        ? "household.shoppingScaleUsual"
+        : this.shoppingScaleValue() === "keep_it_chill"
+          ? "household.shoppingScaleChill"
+          : this.shoppingScaleValue() === "start_fresh"
+            ? "household.shoppingScaleStartFresh"
+            : "household.shoppingScaleStockUp";
 
     return this.loc.t(key);
   });
@@ -76,11 +118,10 @@ export class HouseholdShoppingListComponent implements OnChanges {
       .sort(compareShoppingLines)
   );
   readonly purchasedItems = computed(() =>
-    [...(this.shoppingList()?.items ?? [])]
-      .filter((item) => item.ticked)
-      .sort(compareShoppingLines)
+    [...(this.shoppingList()?.items ?? [])].filter((item) => item.ticked).sort(compareShoppingLines)
   );
   readonly stockAppliedAt = signal(todayDateInputValue());
+  private quickAddMatchTimer: ReturnType<typeof setTimeout> | null = null;
   private loadSerial = 0;
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -102,8 +143,25 @@ export class HouseholdShoppingListComponent implements OnChanges {
     }
   }
 
+  ngOnDestroy(): void {
+    if (this.quickAddMatchTimer) clearTimeout(this.quickAddMatchTimer);
+  }
+
   isReadOnly(): boolean {
     return this.demoShoppingList !== null;
+  }
+  isGroupShoppingLine(item: HouseholdShoppingListLine): boolean {
+    return !item.householdProductId && Boolean(item.productGroupId);
+  }
+  isImpulseShoppingLine(item: HouseholdShoppingListLine): boolean {
+    return item.sourceKind === "manual" && !item.householdProductId;
+  }
+  isProductShoppingLine(item: HouseholdShoppingListLine): boolean {
+    return !this.isGroupShoppingLine(item) && !this.isImpulseShoppingLine(item);
+  }
+
+  quickAddMatchesHouseholdProduct(): boolean {
+    return Boolean(this.findKnownProduct(this.quickAddDraft().displayName));
   }
 
   async addManualLine(): Promise<void> {
@@ -112,7 +170,7 @@ export class HouseholdShoppingListComponent implements OnChanges {
     }
 
     const list = this.shoppingList();
-    const draft = this.quickAddDraft();
+    let draft = this.quickAddDraft();
     if (!list) {
       this.toast.push(this.loc.t("household.generateShoppingList"), "info");
       return;
@@ -123,42 +181,79 @@ export class HouseholdShoppingListComponent implements OnChanges {
       return;
     }
 
+    const displayName = draft.displayName.trim();
+    const stockGroupKey = normalizeShoppingQuickAddName(displayName);
+    const knownProduct = this.findKnownProduct(displayName);
+    if (knownProduct && normalizeUnit(knownProduct.unit) !== normalizeUnit(draft.unit)) {
+      draft = { ...draft, unit: knownProduct.unit };
+      this.quickAddDraft.update((current) => ({ ...current, unit: knownProduct.unit }));
+      this.logger.log(
+        "debug",
+        "Shopping list impulse unit matched household Product",
+        { displayName: knownProduct.displayName, unit: knownProduct.unit },
+        { sendToServer: false }
+      );
+    }
+    const existing = list.items.find(
+      (item) => normalizeShoppingQuickAddName(item.displayName) === stockGroupKey
+    );
+    if (existing) {
+      if (normalizeUnit(existing.unit) !== normalizeUnit(draft.unit)) {
+        this.logger.log("warn", "Shopping list item unit conflict", {
+          displayName,
+          existingUnit: existing.unit,
+          requestedUnit: draft.unit.trim()
+        });
+        this.toast.push(this.loc.t("household.quickAddUnitConflict"), "warning");
+        return;
+      }
+      this.logger.log("info", "Shopping list item already added", {
+        displayName,
+        lineId: existing.id
+      });
+      this.toast.push(this.loc.t("household.quickAddAlreadyAdded", { name: displayName }), "info");
+      return;
+    }
+
     const manualLine: HouseholdShoppingListLine = {
-      currentAmount: 0,
-      displayName: draft.displayName.trim(),
-      id: `manual_${Date.now()}_${normalizeStockGroupKey(draft.displayName)}`,
-      idealMaxLimit: null,
-      minLimit: 0,
+      currentAmount: knownProduct?.currentAmount ?? 0,
+      displayName,
+      id: `manual_${Date.now()}_${stockGroupKey}`,
+      idealMaxLimit: knownProduct?.idealMaxLimit ?? null,
+      minLimit: knownProduct?.minLimit ?? 0,
       observedPrice: null,
       plannedAmount: coerceNumber(draft.purchasedAmount, 1),
+      householdProductId: knownProduct?.householdProductId ?? null,
       purchasedAmount: coerceNumber(draft.purchasedAmount, 1),
       reasonCode: null,
       sourceKind: "manual",
       status: "not_applied",
-      stockGroupKey: normalizeStockGroupKey(draft.displayName),
+      stockGroupKey: knownProduct?.stockGroupKey ?? stockGroupKey,
       suggestedBuyAmount: coerceNumber(draft.purchasedAmount, 1),
       targetAmount: coerceNumber(draft.purchasedAmount, 1),
       ticked: false,
-      uncertaintyFlags: ["missing_catalog_product", "missing_product_source"],
+      uncertaintyFlags: knownProduct ? [] : ["missing_catalog_product", "missing_product_source"],
       unit: draft.unit.trim()
     };
-    const nextItems = [
-      ...list.items,
-      manualLine
-    ];
+    const nextItems = [...list.items, manualLine];
 
     this.quickAddDraft.set({
       displayName: "",
       purchasedAmount: 1,
       unit: draft.unit.trim()
     });
-    await this.persistShoppingList({
-      ...list,
-      items: nextItems
-    }, this.loc.t("household.quickAddSaved"));
+    await this.persistShoppingList(
+      {
+        ...list,
+        items: nextItems
+      },
+      this.loc.t("household.quickAddSaved")
+    );
   }
 
-  async applyPurchasedItems(confirmationMode?: "tick_all_and_update" | "update_ticked_only"): Promise<void> {
+  async applyPurchasedItems(
+    confirmationMode?: "tick_all_and_update" | "update_ticked_only"
+  ): Promise<void> {
     if (this.isReadOnly()) {
       return;
     }
@@ -192,9 +287,20 @@ export class HouseholdShoppingListComponent implements OnChanges {
     }
 
     this.pendingConfirmation.set(null);
-    this.shoppingList.set(result.shoppingList);
+    this.shoppingList.set(null);
+    this.sectionCollapsed.set(true);
+    this.stockAppliedAt.set(todayDateInputValue());
     this.stockPageUpdated.emit(result.householdStockPage);
-    this.statusMessage.set(this.loc.t("household.shoppingListApplySuccess", { count: result.appliedLineCount }));
+    const message = this.loc.t("household.shoppingListFinished", {
+      count: result.appliedLineCount
+    });
+    this.statusMessage.set(message);
+    this.logger.log("info", "Shopping list finalized and household stock updated", {
+      appliedLineCount: result.appliedLineCount,
+      householdId: list.householdId,
+      shoppingListId: list.id
+    });
+    this.toast.push(message, "success");
   }
 
   async changeShop(shopId: string): Promise<void> {
@@ -226,6 +332,7 @@ export class HouseholdShoppingListComponent implements OnChanges {
     this.errorMessage.set("");
     const result = await this.household.createShoppingList({
       householdId: this.householdId,
+      selectedOwnerIds: this.selectedOwnerIds ? [...this.selectedOwnerIds] : undefined,
       scale: this.shoppingScaleValue(),
       shopId: this.shoppingList()?.shopId ?? null
     });
@@ -238,8 +345,19 @@ export class HouseholdShoppingListComponent implements OnChanges {
 
     this.pendingConfirmation.set(null);
     this.shoppingList.set(result.shoppingList);
+    this.expandPanel();
     this.stockAppliedAt.set(readPreferredStockAppliedAt(result.shoppingList.stockAppliedAt));
-    this.statusMessage.set(this.loc.t("household.shoppingListGenerated", { count: result.shoppingList.items.length }));
+    this.statusMessage.set(
+      this.loc.t("household.shoppingListGenerated", { count: result.shoppingList.items.length })
+    );
+  }
+
+  expandPanel(): void {
+    this.sectionCollapsed.set(false);
+  }
+
+  collapsePanel(): void {
+    this.sectionCollapsed.set(true);
   }
 
   async cancelShoppingList(): Promise<void> {
@@ -267,8 +385,10 @@ export class HouseholdShoppingListComponent implements OnChanges {
     }
 
     this.shoppingList.set(null);
+    this.sectionCollapsed.set(true);
     this.stockAppliedAt.set(todayDateInputValue());
     this.statusMessage.set(this.loc.t("household.shoppingListCancelled"));
+    this.shoppingListCancelled.emit();
   }
 
   async reloadShoppingList(): Promise<void> {
@@ -280,13 +400,19 @@ export class HouseholdShoppingListComponent implements OnChanges {
     await this.loadPanelState();
   }
 
-  async handleLineChange(item: HouseholdShoppingListLine, change: ShoppingListLineChange): Promise<void> {
+  async handleLineChange(
+    item: HouseholdShoppingListLine,
+    change: ShoppingListLineChange
+  ): Promise<void> {
     switch (change.kind) {
       case "observedPriceAmount":
         await this.updateObservedPriceAmount(item.id, change.value);
         return;
       case "observedPriceCurrency":
         await this.updateObservedPriceCurrency(item.id, change.value);
+        return;
+      case "displayName":
+        await this.updateLineText(item.id, "displayName", change.value);
         return;
       case "plannedAmount":
         await this.updateLineNumber(item.id, "plannedAmount", change.value);
@@ -314,7 +440,8 @@ export class HouseholdShoppingListComponent implements OnChanges {
 
     await this.updateLine(id, (item) => ({
       ...item,
-      purchasedAmount: ticked && item.purchasedAmount === 0 ? item.plannedAmount : item.purchasedAmount,
+      purchasedAmount:
+        ticked && item.purchasedAmount === 0 ? item.plannedAmount : item.purchasedAmount,
       ticked
     }));
   }
@@ -324,7 +451,9 @@ export class HouseholdShoppingListComponent implements OnChanges {
   }
 
   hasShoppingLineForStockItem(stockItemId: string): boolean {
-    return (this.shoppingList()?.items ?? []).some((item) => item.householdStockItemId === stockItemId);
+    return (this.shoppingList()?.items ?? []).some(
+      (item) => item.householdStockItemId === stockItemId
+    );
   }
 
   notifyReceiptUploadComingSoon(): void {
@@ -361,7 +490,7 @@ export class HouseholdShoppingListComponent implements OnChanges {
       gtin: item.gtin ?? null,
       householdProductId: item.householdProductId,
       householdStockItemId: item.id,
-      id: `manual_stock_${Date.now()}_${normalizeStockGroupKey(item.displayName)}`,
+      id: `manual_stock_${Date.now()}_${normalizeShoppingQuickAddName(item.displayName)}`,
       idealMaxLimit: item.idealMaxLimit ?? null,
       minLimit: item.minLimit,
       observedPrice: null,
@@ -385,10 +514,13 @@ export class HouseholdShoppingListComponent implements OnChanges {
       unit: item.unit
     };
 
-    await this.persistShoppingList({
-      ...list,
-      items: [...list.items, manualLine]
-    }, this.loc.t("household.shoppingListAddItemSuccess", { name: item.displayName }));
+    await this.persistShoppingList(
+      {
+        ...list,
+        items: [...list.items, manualLine]
+      },
+      this.loc.t("household.shoppingListAddItemSuccess", { name: item.displayName })
+    );
   }
 
   async updateLineNumber(
@@ -406,19 +538,49 @@ export class HouseholdShoppingListComponent implements OnChanges {
     }));
   }
 
-  async updateLineText(
-    id: string,
-    field: "unit",
-    value: string
-  ): Promise<void> {
+  async updateLineText(id: string, field: "displayName" | "unit", value: string): Promise<void> {
     if (this.isReadOnly()) {
+      return;
+    }
+
+    const nextValue = field === "displayName" ? value.trim() : value;
+    if (!nextValue) {
       return;
     }
 
     await this.updateLine(id, (item) => ({
       ...item,
-      [field]: value
+      [field]: nextValue
     }));
+  }
+
+  async discardShoppingLine(id: string): Promise<void> {
+    if (this.isReadOnly()) {
+      return;
+    }
+
+    const list = this.shoppingList();
+    if (!list) {
+      return;
+    }
+
+    const item = list.items.find((candidate) => candidate.id === id);
+    if (!item) {
+      return;
+    }
+
+    await this.persistShoppingList(
+      {
+        ...list,
+        items: list.items.filter((candidate) => candidate.id !== id)
+      },
+      this.loc.t("household.shoppingListItemDiscarded", { name: item.displayName })
+    );
+    this.logger.log("info", "Shopping list item discarded", {
+      displayName: item.displayName,
+      lineId: item.id,
+      shoppingListId: list.id
+    });
   }
 
   async updateObservedPriceAmount(id: string, value: number | string): Promise<void> {
@@ -428,13 +590,14 @@ export class HouseholdShoppingListComponent implements OnChanges {
 
     await this.updateLine(id, (item) => ({
       ...item,
-      observedPrice: value === "" || value === null
-        ? null
-        : {
-            amount: Math.max(0, Math.round(coerceNumber(value, item.observedPrice?.amount ?? 0))),
-            currencyCode: item.observedPrice?.currencyCode ?? this.defaultCurrencyCode,
-            observedAt: item.observedPrice?.observedAt ?? toObservedAt(this.stockAppliedAt())
-          }
+      observedPrice:
+        value === "" || value === null
+          ? null
+          : {
+              amount: Math.max(0, Math.round(coerceNumber(value, item.observedPrice?.amount ?? 0))),
+              currencyCode: item.observedPrice?.currencyCode ?? this.defaultCurrencyCode,
+              observedAt: item.observedPrice?.observedAt ?? toObservedAt(this.stockAppliedAt())
+            }
     }));
   }
 
@@ -465,12 +628,59 @@ export class HouseholdShoppingListComponent implements OnChanges {
       ...draft,
       displayName: value
     }));
+    if (this.quickAddMatchTimer) clearTimeout(this.quickAddMatchTimer);
+    this.quickAddMatchTimer = setTimeout(() => {
+      this.quickAddMatchTimer = null;
+      const existing = this.shoppingList()?.items.find(
+        (item) =>
+          normalizeShoppingQuickAddName(item.displayName) === normalizeShoppingQuickAddName(value)
+      );
+      const knownProduct = this.findKnownProduct(value);
+      const matched = existing ?? knownProduct;
+      if (matched && normalizeUnit(matched.unit) !== normalizeUnit(this.quickAddDraft().unit)) {
+        this.quickAddDraft.update((draft) => ({ ...draft, unit: matched.unit }));
+        this.logger.log(
+          "debug",
+          existing
+            ? "Shopping list impulse unit matched existing line"
+            : "Shopping list impulse unit matched household Product",
+          { displayName: matched.displayName, unit: matched.unit },
+          { sendToServer: false }
+        );
+      }
+    }, 150);
+  }
+
+  private findKnownProduct(displayName: string): HouseholdKnownProduct | null {
+    return findShoppingQuickAddMatch(displayName, this.knownProducts);
   }
 
   updateQuickAddUnit(value: string): void {
     this.quickAddDraft.update((draft) => ({
       ...draft,
       unit: value
+    }));
+  }
+
+  quickAddUnitOption(): HouseholdTrackingUnitOption {
+    return splitTrackingUnit(this.quickAddDraft().unit).option;
+  }
+
+  quickAddCustomUnit(): string {
+    return splitTrackingUnit(this.quickAddDraft().unit).customSuffix;
+  }
+
+  setQuickAddUnitOption(option: HouseholdTrackingUnitOption): void {
+    this.quickAddDraft.update((draft) => ({
+      ...draft,
+      unit: composeTrackingUnit(option, this.quickAddCustomUnit()) ?? ""
+    }));
+  }
+
+  setQuickAddCustomUnit(value: string): void {
+    this.quickAddDraft.update((draft) => ({
+      ...draft,
+      unit: composeTrackingUnit("custom", value) ?? ""
     }));
   }
 
@@ -503,6 +713,7 @@ export class HouseholdShoppingListComponent implements OnChanges {
 
     if (!this.householdId) {
       this.shoppingList.set(null);
+      this.sectionCollapsed.set(true);
       this.shops.set([]);
       return;
     }
@@ -527,6 +738,7 @@ export class HouseholdShoppingListComponent implements OnChanges {
 
     if (listResult.status === "ok") {
       this.shoppingList.set(listResult.shoppingList);
+      if (listResult.shoppingList) this.sectionCollapsed.set(false);
       this.purchasedSectionCollapsed.set(true);
       this.stockAppliedAt.set(readPreferredStockAppliedAt(listResult.shoppingList.stockAppliedAt));
       this.loadState.set("ready");
@@ -544,7 +756,10 @@ export class HouseholdShoppingListComponent implements OnChanges {
     this.errorMessage.set(listResult.message);
   }
 
-  private async persistShoppingList(nextList: HouseholdShoppingList, successMessage?: string): Promise<void> {
+  private async persistShoppingList(
+    nextList: HouseholdShoppingList,
+    successMessage?: string
+  ): Promise<void> {
     if (this.isReadOnly()) {
       return;
     }
@@ -580,7 +795,7 @@ export class HouseholdShoppingListComponent implements OnChanges {
 
     const nextList: HouseholdShoppingList = {
       ...list,
-      items: list.items.map((item) => item.id === id ? updater(item) : item)
+      items: list.items.map((item) => (item.id === id ? updater(item) : item))
     };
     await this.persistShoppingList(nextList);
   }
@@ -588,21 +803,11 @@ export class HouseholdShoppingListComponent implements OnChanges {
 
 function coerceNumber(value: number | string, fallback: number): number {
   const numericValue = typeof value === "number" ? value : Number(value);
-  return Number.isFinite(numericValue)
-    ? numericValue
-    : fallback;
+  return Number.isFinite(numericValue) ? numericValue : fallback;
 }
 
-function normalizeStockGroupKey(value: string): string {
-  const slug = value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "")
-    .slice(0, 80);
-
-  return slug || "item";
+function normalizeUnit(value: string): string {
+  return value.trim().toLocaleLowerCase("hu-HU");
 }
 
 function readPreferredStockAppliedAt(stockAppliedAt: string | null | undefined): string {
@@ -615,11 +820,12 @@ function todayDateInputValue(): string {
 
 function toObservedAt(dateInput: string): string {
   const trimmed = dateInput.trim();
-  return trimmed
-    ? new Date(`${trimmed}T12:00:00.000Z`).toISOString()
-    : new Date().toISOString();
+  return trimmed ? new Date(`${trimmed}T12:00:00.000Z`).toISOString() : new Date().toISOString();
 }
 
-function compareShoppingLines(left: HouseholdShoppingListLine, right: HouseholdShoppingListLine): number {
+function compareShoppingLines(
+  left: HouseholdShoppingListLine,
+  right: HouseholdShoppingListLine
+): number {
   return left.displayName.localeCompare(right.displayName, "hu-HU");
 }

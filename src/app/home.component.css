@@ -2,22 +2,107 @@
   display: grid;
   gap: var(--space-7);
   min-height: 100%;
+  min-width: 0;
 }
 
 .stock-workspace {
   align-items: stretch;
   display: grid;
   gap: var(--space-5);
+  height: 100%;
   grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) auto;
+  min-height: 0;
+}
+
+.stock-workspace:has(.shopping-collapsed) {
+  grid-template-rows: minmax(0, 1fr) auto auto;
+}
+.stock-workspace:has(.workspace-collapsed) {
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+.stock-workspace:has(.workspace-collapsed):has(.shopping-collapsed) {
+  grid-template-rows: auto auto auto;
+}
+
+.stock-workspace:has(.trip-panel:not(.trip-collapsed)) {
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+}
+.stock-workspace:has(.trip-panel:not(.trip-collapsed)):has(.shopping-collapsed) {
+  grid-template-rows: minmax(0, 1fr) auto minmax(0, 1fr);
+}
+.stock-workspace:has(.trip-panel:not(.trip-collapsed)):has(.workspace-collapsed) {
+  grid-template-rows: auto minmax(0, 1fr) minmax(0, 1fr);
+}
+.stock-workspace:has(.trip-panel:not(.trip-collapsed)):has(.workspace-collapsed):has(
+    .shopping-collapsed
+  ) {
+  grid-template-rows: auto auto minmax(0, 1fr);
 }
 
 .shopping-bottom-row {
   grid-column: 1 / -1;
 }
 
+.household-stock-layout {
+  align-items: stretch;
+  display: grid;
+  gap: var(--space-5);
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(0, 1.45fr) minmax(19rem, 0.75fr);
+  min-height: 0;
+}
+
+.household-editor-side {
+  align-content: start;
+  display: grid;
+  gap: var(--space-3);
+  max-height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+.household-stock-layout app-household-v2-workspace {
+  height: 100%;
+  min-width: 0;
+}
+
+.shopping-bottom-row {
+  min-height: 0;
+}
+
 @media (min-width: 900px) {
   .stock-workspace {
     grid-template-columns: minmax(26rem, 1.2fr) minmax(20rem, 0.8fr);
-    grid-template-rows: auto auto auto;
+  }
+
+  app-household-stock-editor {
+    grid-column: 2;
+  }
+}
+
+@media (max-width: 900px) {
+  .stock-workspace {
+    height: auto;
+    grid-template-rows: none;
+  }
+
+  .household-stock-layout {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 24rem;
+  }
+
+  .household-stock-layout:has(.workspace-collapsed) {
+    min-height: 0;
+  }
+
+  .shopping-bottom-row {
+    min-height: 24rem;
+  }
+
+  .shopping-bottom-row:has(.shopping-collapsed),
+  .shopping-bottom-row:has(.trip-collapsed) {
+    min-height: 0;
   }
 }

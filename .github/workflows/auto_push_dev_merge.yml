@@ -4,8 +4,8 @@ on:
   push:
     branches:
       - master_dev_*
-      - '!master_dev_gb'
-      - '!master_dev_gyr'
+      - "!master_dev_gb"
+      - "!master_dev_gyr"
 
 permissions:
   contents: write

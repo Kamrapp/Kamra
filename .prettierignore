@@ -1,0 +1,12 @@
+.git
+.agents
+.angular
+coverage
+dist
+node_modules
+src/app/generated-public-config.ts
+Dockerfile
+.dockerignore
+.env.docker.example
+compose.yaml
+docker

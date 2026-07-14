@@ -25,18 +25,19 @@ export interface AppConfig {
   nodeEnv: string;
 }
 
-export function readAppConfig(
-  env: NodeJS.ProcessEnv = process.env
-): AppConfig {
+export function readAppConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const authTokenSecret = env["AUTH_TOKEN_SECRET"]?.trim() || null;
   const corsAllowedOrigins = readConfiguredOrigins(env["CORS_ALLOWED_ORIGINS"]);
-  const corsAllowedOriginPatterns = readConfiguredOriginPatterns(env["CORS_ALLOWED_ORIGIN_PATTERNS"]);
+  const corsAllowedOriginPatterns = readConfiguredOriginPatterns(
+    env["CORS_ALLOWED_ORIGIN_PATTERNS"]
+  );
   const mongodbUri = env["MONGODB_URI"]?.trim() || null;
   const mongodbDatabaseName = env["MONGODB_DB_NAME"]?.trim() || null;
-  const configuredMongoDnsServers = env["MONGODB_DNS_SERVERS"]
-    ?.split(",")
-    .map((server) => server.trim())
-    .filter((server) => server.length > 0) ?? null;
+  const configuredMongoDnsServers =
+    env["MONGODB_DNS_SERVERS"]
+      ?.split(",")
+      .map((server) => server.trim())
+      .filter((server) => server.length > 0) ?? null;
   const mongodbDnsServers = configuredMongoDnsServers?.length
     ? configuredMongoDnsServers
     : mongodbUri
@@ -75,23 +76,29 @@ export function findAllowedCorsOrigin(config: AppConfig, origin: string): string
     return normalizedOrigin;
   }
 
-  return config.cors.allowedOriginPatterns.some((pattern) => matchesOriginPattern(normalizedOrigin, pattern))
+  return config.cors.allowedOriginPatterns.some((pattern) =>
+    matchesOriginPattern(normalizedOrigin, pattern)
+  )
     ? normalizedOrigin
     : null;
 }
 
 function readConfiguredOrigins(value: string | undefined): string[] {
-  return value
-    ?.split(",")
-    .map((entry) => normalizeConfiguredOrigin(entry))
-    .filter((entry): entry is string => entry !== null) ?? [];
+  return (
+    value
+      ?.split(",")
+      .map((entry) => normalizeConfiguredOrigin(entry))
+      .filter((entry): entry is string => entry !== null) ?? []
+  );
 }
 
 function readConfiguredOriginPatterns(value: string | undefined): string[] {
-  return value
-    ?.split(",")
-    .map((entry) => normalizeConfiguredOriginPattern(entry))
-    .filter((entry): entry is string => entry !== null) ?? [];
+  return (
+    value
+      ?.split(",")
+      .map((entry) => normalizeConfiguredOriginPattern(entry))
+      .filter((entry): entry is string => entry !== null) ?? []
+  );
 }
 
 function normalizeConfiguredOrigin(value: string | undefined): string | null {

@@ -56,7 +56,7 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-      - name: Test
+      - name: Unit and deterministic integration tests
         run: npm run test
 
       - name: Build

@@ -62,11 +62,7 @@ import { LocalizationService } from "../shared/localization.service";
           <p>{{ loc.t("about.techBodyOne") }}</p>
           <p>{{ loc.t("about.techBodyTwo") }}</p>
           <p class="supporting-link">
-            <a
-              href="https://github.com/Kamrapp/Kamra"
-              target="_blank"
-              rel="noreferrer"
-            >
+            <a href="https://github.com/Kamrapp/Kamra" target="_blank" rel="noreferrer">
               github.com/Kamrapp/Kamra
             </a>
           </p>
@@ -78,8 +74,12 @@ import { LocalizationService } from "../shared/localization.service";
           <p>{{ loc.t("about.accessBody") }}</p>
           <div class="access-links">
             <a href="https://kamrapp.hu" target="_blank" rel="noreferrer">kamrapp.hu</a>
-            <a href="https://api-kamrapp.vercel.com" target="_blank" rel="noreferrer">api-kamrapp.vercel.com</a>
-            <a href="https://project-qn32z.vercel.app/" target="_blank" rel="noreferrer">project-qn32z.vercel.app</a>
+            <a href="https://api-kamrapp.vercel.com" target="_blank" rel="noreferrer">
+              api-kamrapp.vercel.com
+            </a>
+            <a href="https://project-qn32z.vercel.app/" target="_blank" rel="noreferrer">
+              project-qn32z.vercel.app
+            </a>
           </div>
         </article>
       </div>
@@ -93,19 +93,34 @@ import { LocalizationService } from "../shared/localization.service";
       }
 
       .about-hero {
+        align-content: start;
         align-items: stretch;
         background:
-          radial-gradient(circle at top right, color-mix(in srgb, var(--color-accent-sky) 22%, transparent) 0, transparent 44%),
-          linear-gradient(145deg, color-mix(in srgb, var(--color-accent-leaf) 10%, var(--surface-shell-background)) 0%, var(--surface-shell-background) 54%, color-mix(in srgb, var(--color-accent-sand) 18%, var(--surface-shell-background)) 100%);
+          radial-gradient(
+            circle at top right,
+            color-mix(in srgb, var(--color-accent-sky) 22%, transparent) 0,
+            transparent 44%
+          ),
+          linear-gradient(
+            145deg,
+            color-mix(in srgb, var(--color-accent-leaf) 10%, var(--surface-shell-background)) 0%,
+            var(--surface-shell-background) 54%,
+            color-mix(in srgb, var(--color-accent-sand) 18%, var(--surface-shell-background)) 100%
+          );
         display: grid;
         gap: var(--space-4);
         overflow: hidden;
-        padding: clamp(1.15rem, 3vw, 1.8rem);
+        padding: clamp(0.85rem, 2vw, 1.2rem);
         position: relative;
       }
 
       .about-hero::after {
-        background: linear-gradient(90deg, transparent, color-mix(in srgb, white 22%, transparent), transparent);
+        background: linear-gradient(
+          90deg,
+          transparent,
+          color-mix(in srgb, white 22%, transparent),
+          transparent
+        );
         content: "";
         inset: 0 auto 0 -28%;
         position: absolute;
@@ -136,7 +151,7 @@ import { LocalizationService } from "../shared/localization.service";
       }
 
       .about-title {
-        font-size: clamp(2.2rem, 5vw, 3.6rem);
+        font-size: clamp(1.8rem, 3.5vw, 2.7rem);
         max-width: 13ch;
       }
 
@@ -145,6 +160,7 @@ import { LocalizationService } from "../shared/localization.service";
       }
 
       .hero-actions {
+        align-items: center;
         display: flex;
         flex-wrap: wrap;
         gap: var(--space-3);
@@ -152,7 +168,11 @@ import { LocalizationService } from "../shared/localization.service";
 
       .hero-mark-card {
         align-content: center;
-        background: color-mix(in srgb, var(--color-card-tint) 78%, white 22%);
+        background: color-mix(
+          in srgb,
+          var(--color-card-tint) 18%,
+          var(--surface-panel-background) 82%
+        );
         border: 1px solid color-mix(in srgb, var(--line-panel) 72%, white 28%);
         border-radius: calc(var(--radius-ui) - 0.2rem);
         display: grid;
@@ -183,23 +203,35 @@ import { LocalizationService } from "../shared/localization.service";
       }
 
       .promise-card {
-        background:
-          linear-gradient(180deg, color-mix(in srgb, var(--color-accent-leaf) 10%, var(--surface-shell-background)) 0%, var(--surface-shell-background) 100%);
+        background: linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--color-accent-leaf) 10%, var(--surface-shell-background)) 0%,
+          var(--surface-shell-background) 100%
+        );
       }
 
       .story-card {
-        background:
-          linear-gradient(180deg, color-mix(in srgb, var(--color-accent-sand) 16%, var(--surface-shell-background)) 0%, var(--surface-shell-background) 100%);
+        background: linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--color-accent-sand) 16%, var(--surface-shell-background)) 0%,
+          var(--surface-shell-background) 100%
+        );
       }
 
       .tech-card {
-        background:
-          linear-gradient(180deg, color-mix(in srgb, var(--color-accent-sky) 14%, var(--surface-shell-background)) 0%, var(--surface-shell-background) 100%);
+        background: linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--color-accent-sky) 14%, var(--surface-shell-background)) 0%,
+          var(--surface-shell-background) 100%
+        );
       }
 
       .access-card {
-        background:
-          linear-gradient(180deg, color-mix(in srgb, var(--color-wood-soft) 11%, var(--surface-shell-background)) 0%, var(--surface-shell-background) 100%);
+        background: linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--color-wood-soft) 11%, var(--surface-shell-background)) 0%,
+          var(--surface-shell-background) 100%
+        );
       }
 
       .access-links {
@@ -226,7 +258,7 @@ import { LocalizationService } from "../shared/localization.service";
 
         .about-hero {
           grid-template-columns: minmax(0, 1.4fr) minmax(18rem, 0.8fr);
-          min-height: min(23rem, 100%);
+          min-height: 0;
         }
 
         .about-grid {

@@ -56,7 +56,10 @@ export function serializeAldiHuOffersPayload(payload: AldiHuOffersPayload): stri
  * in stable text. The primary shelf price is not always text-exposed; when absent, priceText and
  * priceValueHuf intentionally stay null instead of copying the unit price into the product price.
  */
-export function parseAldiHuOffersText(visibleText: string, observedAt: string): ParsedShopProductRow[] {
+export function parseAldiHuOffersText(
+  visibleText: string,
+  observedAt: string
+): ParsedShopProductRow[] {
   const lines = normalizeVisibleTextLines(visibleText);
   const rows: ParsedAldiOfferDraft[] = [];
   let activeValidity: AldiValidityWindow | null = null;
@@ -152,7 +155,10 @@ function parseValidityWindow(line: string): AldiValidityWindow | null {
 }
 
 function cleanupLabel(label: string): string {
-  return label.replace(/^#+\s*/, "").replace(/[,\s]+$/g, "").trim();
+  return label
+    .replace(/^#+\s*/, "")
+    .replace(/[,\s]+$/g, "")
+    .trim();
 }
 
 function toIsoDate(value: string): string {
@@ -178,14 +184,18 @@ function inferProductName(lines: string[], itemNumberLineIndex: number): string 
   const sameLineCandidate = cleanupProductName(itemNumberLine.split("Cikkszám:")[0] ?? "");
 
   if (
-    isLikelyProductName(sameLineCandidate)
-    && !sameLineCandidate.includes("Ft/")
-    && !isLikelyProductDetailLine(sameLineCandidate)
+    isLikelyProductName(sameLineCandidate) &&
+    !sameLineCandidate.includes("Ft/") &&
+    !isLikelyProductDetailLine(sameLineCandidate)
   ) {
     return sameLineCandidate;
   }
 
-  for (let index = itemNumberLineIndex - 1; index >= Math.max(0, itemNumberLineIndex - 6); index -= 1) {
+  for (
+    let index = itemNumberLineIndex - 1;
+    index >= Math.max(0, itemNumberLineIndex - 6);
+    index -= 1
+  ) {
     const line = lines[index];
 
     if (!line) {
@@ -216,7 +226,9 @@ function isLikelyProductName(value: string): boolean {
     return false;
   }
 
-  if (/^(Akciók|Frissesség|Spórolj|Tekintsd|Az itt feltüntetett|Csütörtöktől|Hétfőtől)/i.test(value)) {
+  if (
+    /^(Akciók|Frissesség|Spórolj|Tekintsd|Az itt feltüntetett|Csütörtöktől|Hétfőtől)/i.test(value)
+  ) {
     return false;
   }
 
@@ -244,7 +256,11 @@ function isLikelyProductDetailLine(value: string): boolean {
     return true;
   }
 
-  if (/%|\bvagy\b|ízű|ízesítésű|zsírtartalom|alkoholtartalom|többféle|szeletelt|hámozott|frissen/iu.test(value)) {
+  if (
+    /%|\bvagy\b|ízű|ízesítésű|zsírtartalom|alkoholtartalom|többféle|szeletelt|hámozott|frissen/iu.test(
+      value
+    )
+  ) {
     return true;
   }
 
@@ -279,7 +295,9 @@ function extractUnitPriceText(line: string): string | null {
 
 function extractPrimaryPriceText(line: string): string | null {
   const withoutParentheses = line.replace(/\([^)]*\)/g, " ");
-  const priceMatch = withoutParentheses.match(/(?<![\d/])(?<price>\d[\d\s]*(?:,\d{1,2})?)\s*Ft(?!\/)/i);
+  const priceMatch = withoutParentheses.match(
+    /(?<![\d/])(?<price>\d[\d\s]*(?:,\d{1,2})?)\s*Ft(?!\/)/i
+  );
   const price = priceMatch?.groups?.["price"];
 
   if (!price) {
@@ -330,19 +348,20 @@ function createSourceRecordId(
 }
 
 function toParsedShopProductRow(draft: ParsedAldiOfferDraft): ParsedShopProductRow {
-  const priceObservations = draft.priceValueHuf === null
-    ? []
-    : [
-        {
-          currencyCode: "HUF" as const,
-          observedAt: draft.observedAt,
-          price: draft.priceValueHuf,
-          priceKind: "offer" as const,
-          unitPriceLabel: draft.unitPriceText,
-          validFrom: draft.validFrom,
-          validTo: draft.validTo
-        }
-      ];
+  const priceObservations =
+    draft.priceValueHuf === null
+      ? []
+      : [
+          {
+            currencyCode: "HUF" as const,
+            observedAt: draft.observedAt,
+            price: draft.priceValueHuf,
+            priceKind: "offer" as const,
+            unitPriceLabel: draft.unitPriceText,
+            validFrom: draft.validFrom,
+            validTo: draft.validTo
+          }
+        ];
 
   return {
     sourceName: aldiHuOffersSourceName,
@@ -371,7 +390,9 @@ function toParsedShopProductRow(draft: ParsedAldiOfferDraft): ParsedShopProductR
       itemNumbers: draft.itemNumbers,
       parserName: aldiHuOffersParserName,
       parserVersion: aldiHuOffersParserVersion,
-      priceCaptureStatus: draft.priceText ? "primary-price-text-found" : "primary-price-text-not-found",
+      priceCaptureStatus: draft.priceText
+        ? "primary-price-text-found"
+        : "primary-price-text-not-found",
       validityLabel: draft.validityLabel
     }
   };

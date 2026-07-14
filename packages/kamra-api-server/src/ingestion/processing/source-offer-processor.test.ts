@@ -55,7 +55,10 @@ describe("Source offer catalog processor", () => {
       skippedRowCount: 0
     });
     expect(result.dataset.priceObservations).toHaveLength(2);
-    expect(result.dataset.priceObservations.map((price) => price.priceKind)).toEqual(["offer", "coupon"]);
+    expect(result.dataset.priceObservations.map((price) => price.priceKind)).toEqual([
+      "offer",
+      "coupon"
+    ]);
     expect(result.dataset.stocks).toMatchObject([
       {
         location: {
@@ -95,23 +98,25 @@ describe("Source offer catalog processor", () => {
     expect(() => assertCatalogV1SeedDataset(result.dataset)).not.toThrow();
     expect(result.dataset.priceObservations).toEqual([]);
     expect(result.dataset.products[0]?.id).toBe("product_name_magyar_trappista_sajt");
-    expect(result.dataset.productSourceIdentifiers).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        kind: "retailer_product_id",
-        sourceName: "aldi-hu-offers",
-        value: "aldi-record-1"
-      }),
-      expect.objectContaining({
-        kind: "retailer_item_number",
-        sourceName: "aldi-hu-offers",
-        value: "123456"
-      }),
-      expect.objectContaining({
-        kind: "retailer_item_number",
-        sourceName: "aldi-hu-offers",
-        value: "789012"
-      })
-    ]));
+    expect(result.dataset.productSourceIdentifiers).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "retailer_product_id",
+          sourceName: "aldi-hu-offers",
+          value: "aldi-record-1"
+        }),
+        expect.objectContaining({
+          kind: "retailer_item_number",
+          sourceName: "aldi-hu-offers",
+          value: "123456"
+        }),
+        expect.objectContaining({
+          kind: "retailer_item_number",
+          sourceName: "aldi-hu-offers",
+          value: "789012"
+        })
+      ])
+    );
   });
 
   it("keeps package-different same-name rows as separate fallback products", () => {
@@ -354,7 +359,9 @@ describe("Source offer catalog processor", () => {
       contentHash: first.contentHash
     };
 
-    expect(createSourceOfferRecordFingerprint(first)).not.toBe(createSourceOfferRecordFingerprint(second));
+    expect(createSourceOfferRecordFingerprint(first)).not.toBe(
+      createSourceOfferRecordFingerprint(second)
+    );
   });
 
   it("creates failed processing states for bad snapshots", () => {

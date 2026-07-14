@@ -1,6 +1,7 @@
 import { Component, inject, input, output } from "@angular/core";
 
 import { LocalizationService } from "../shared/localization.service";
+import type { AdminFeatureFlagViewModel } from "./admin-feature-flags-card.component";
 
 @Component({
   selector: "app-admin-alpha-access-card",
@@ -12,16 +13,21 @@ import { LocalizationService } from "../shared/localization.service";
         <p class="status-summary">{{ loc.t("health.alphaAccessTitle") }}</p>
       </div>
       <p class="status-message">{{ loc.t("health.alphaAccessDescription") }}</p>
-      <label class="placeholder-row" for="controlled-alpha-access-flag">
-        <span>{{ loc.t("health.alphaAccessEnabled") }}</span>
-        <input
-          id="controlled-alpha-access-flag"
-          type="checkbox"
-          [checked]="enabled()"
-          [disabled]="featureFlagsLoading() || !admin()"
-          (change)="enabledChanged.emit($any($event.target).checked)"
-        >
-      </label>
+      @if (flag(); as alphaFlag) {
+        <label class="placeholder-row" [attr.for]="'feature-flag-' + alphaFlag.key">
+          <span class="flag-copy">
+            <strong>{{ loc.t(alphaFlag.labelKey) }}</strong>
+            <small>{{ loc.t(alphaFlag.descriptionKey) }}</small>
+          </span>
+          <input
+            [id]="'feature-flag-' + alphaFlag.key"
+            type="checkbox"
+            [checked]="enabled()"
+            [disabled]="featureFlagsLoading() || !admin()"
+            (change)="enabledChanged.emit($any($event.target).checked)"
+          />
+        </label>
+      }
       <div class="alpha-form">
         <label for="alpha-user-email">{{ loc.t("health.alphaUserEmail") }}</label>
         <input
@@ -30,7 +36,7 @@ import { LocalizationService } from "../shared/localization.service";
           autocomplete="off"
           [value]="email()"
           (input)="emailChanged.emit($any($event.target).value)"
-        >
+        />
         <label for="alpha-user-password">{{ loc.t("health.alphaUserPassword") }}</label>
         <input
           id="alpha-user-password"
@@ -38,13 +44,15 @@ import { LocalizationService } from "../shared/localization.service";
           autocomplete="new-password"
           [value]="password()"
           (input)="passwordChanged.emit($any($event.target).value)"
-        >
+        />
       </div>
       <div class="button-row">
-        <button class="run-button ui-button" type="button" (click)="saveRequested.emit()" [disabled]="busy()">
-          {{ featureFlagsLoading() ? loc.t("health.updating") : loc.t("health.saveAlphaAccess") }}
-        </button>
-        <button class="run-button ui-button" type="button" (click)="createRequested.emit()" [disabled]="busy() || !enabled()">
+        <button
+          class="run-button ui-button"
+          type="button"
+          (click)="createRequested.emit()"
+          [disabled]="busy() || !enabled()"
+        >
           {{ userLoading() ? loc.t("health.creatingAlphaUser") : loc.t("health.createAlphaUser") }}
         </button>
       </div>
@@ -96,6 +104,22 @@ import { LocalizationService } from "../shared/localization.service";
         padding: 0.85rem 0.95rem;
       }
 
+      .flag-copy {
+        display: grid;
+        gap: 0.2rem;
+      }
+
+      .flag-copy strong {
+        font-size: 0.92rem;
+      }
+
+      .flag-copy small {
+        color: var(--color-text-muted);
+        font-size: 0.78rem;
+        line-height: 1.35;
+        max-width: 42rem;
+      }
+
       .alpha-form {
         display: grid;
         gap: 0.35rem;
@@ -144,6 +168,7 @@ export class AdminAlphaAccessCardComponent {
   readonly busy = input.required<boolean>();
   readonly email = input.required<string>();
   readonly enabled = input.required<boolean>();
+  readonly flag = input<AdminFeatureFlagViewModel | null>(null);
   readonly featureFlagsLoading = input.required<boolean>();
   readonly message = input.required<string>();
   readonly password = input.required<string>();
@@ -152,5 +177,4 @@ export class AdminAlphaAccessCardComponent {
   readonly emailChanged = output<string>();
   readonly enabledChanged = output<boolean>();
   readonly passwordChanged = output<string>();
-  readonly saveRequested = output<void>();
 }

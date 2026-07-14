@@ -1,6 +1,6 @@
 # Frontend UI Notes
 
-Kamra currently uses Angular standalone components with small shared UI helpers instead of a broad component framework.
+Kamra currently uses Angular standalone components with small shared UI helpers instead of a broad component framework. Reuse existing helpers and native CSS/Angular capabilities before adding a UI dependency or custom layout machinery.
 
 ## Data Tables
 
@@ -25,7 +25,7 @@ The product catalog uses this pattern:
 
 Do not add a general UI framework just for basic layout or one-off controls.
 
-If admin/review tables need built-in column reordering, richer header filters, persisted column state, row selection, virtualized infinite row models, or better keyboard behavior across multiple pages, prefer evaluating AG Grid Community for table-heavy views. It has an Angular package, community modules, column sizing/moving/filtering, and infinite row model documentation.
+Evaluate AG Grid Community only if several real admin/review pages need capabilities such as column reordering, richer header filters, persisted column state, selection, virtualized infinite rows, or advanced keyboard behavior that the existing table helper cannot meet cheaply. Do not add it for a one-off table or basic layout.
 
 Keep framework adoption scoped:
 
@@ -36,7 +36,7 @@ Keep framework adoption scoped:
 
 ## Split Views
 
-Future desktop-style split views should be implemented as reusable layout primitives, not page-local drag math. The target shape is:
+For a real second split-view page, extract the shared layout behavior rather than duplicating page-local drag math. Until then, use a small page-local implementation or native CSS layout when that is clearer. A future desktop-style split view may use:
 
 - left rail with two stacked blocks for navigation/header context
 - center main work area

@@ -1,0 +1,986 @@
+<section
+  class="v2-workspace ui-panel-card"
+  [class.workspace-collapsed]="!sectionExpanded()"
+  [class.shopping-selection-active]="shoppingSelectionMode()"
+  [class.preview-mode]="preview()"
+  [attr.inert]="preview() ? '' : null"
+  aria-labelledby="v2-workspace-title"
+>
+  <div class="workspace-heading">
+    <button
+      class="section-toggle"
+      type="button"
+      (click)="toggleSectionExpanded()"
+      [attr.aria-expanded]="sectionExpanded()"
+    >
+      <span aria-hidden="true">{{ sectionExpanded() ? "▾" : "▸" }}</span>
+      <h2 class="ui-card-title" id="v2-workspace-title">
+        {{ loc.t("household.householdStocksTitle") }}
+      </h2>
+    </button>
+    <app-table-icon-button
+      [ariaLabel]="loc.t('common.refresh')"
+      [titleText]="loc.t('common.refresh')"
+      (press)="refresh()"
+    >
+      ⟳
+    </app-table-icon-button>
+  </div>
+
+  @if (sectionExpanded()) {
+    @if (loadState() === "loading") {
+      <p class="ui-copy-muted state">{{ loc.t("household.loadingProductGroups") }}</p>
+    }
+    @if (errorMessage()) {
+      <p class="ui-copy-error state">{{ errorMessage() }}</p>
+    }
+    @if (workspace(); as current) {
+      <div class="stock-grid-shell">
+        <div class="stock-grid stock-grid-header">
+          @if (shoppingSelectionMode()) {
+            <span class="selection-cell"></span>
+          }
+          <span class="workspace-expansion-slot">
+            <button
+              class="expansion-cycle-button"
+              type="button"
+              (click)="cycleExpansionLevel()"
+              [attr.aria-label]="loc.t('household.cycleWorkspaceExpansion')"
+              [attr.title]="loc.t('household.cycleWorkspaceExpansion')"
+            >
+              {{ expansionLabel() }}
+            </button>
+          </span>
+          <span class="name-header">
+            {{ loc.t("common.name") }}
+          </span>
+          <span>{{ loc.t("household.minShort") }}</span>
+          <span class="comparison-column">&lt;</span>
+          <span>{{ loc.t("household.currentShort") }}</span>
+          <span class="comparison-column">&lt;</span>
+          <span>{{ loc.t("household.target") }}</span>
+          <span>{{ loc.t("household.unit") }}</span>
+          <span>{{ loc.t("common.state") }}</span>
+          <span>{{ loc.t("household.actions") }}</span>
+          <span class="stock-grid-scrollbar-space" aria-hidden="true"></span>
+        </div>
+        <div class="stock-grid-body">
+          @for (row of groupRows(); track row.group.group.id) {
+            <div
+              class="stock-grid stock-group-row"
+              [class.shopping-selection-selected]="isShoppingOwnerSelected(row.group.group.id)"
+              [style.--row-depth]="row.depth"
+            >
+              @if (shoppingSelectionMode()) {
+                <span class="selection-cell">
+                  <input
+                    type="checkbox"
+                    [checked]="isShoppingOwnerSelected(row.group.group.id)"
+                    (change)="toggleShoppingOwner(row.group.group.id)"
+                    [attr.aria-label]="row.group.group.displayName"
+                  />
+                </span>
+              }
+              @if (groupHasChildren(row.group)) {
+                <button
+                  class="workspace-expansion-slot expansion-slot-button"
+                  type="button"
+                  (click)="toggleGroup(row.group.group.id)"
+                  [attr.aria-expanded]="isGroupExpanded(row.group.group.id)"
+                  [attr.aria-label]="row.group.group.displayName"
+                >
+                  <span aria-hidden="true">
+                    {{ isGroupExpanded(row.group.group.id) ? "▾" : "▸" }}
+                  </span>
+                </button>
+              } @else {
+                <span class="workspace-expansion-slot" aria-hidden="true"></span>
+              }
+              @if (editingGroupId() === row.group.group.id) {
+                <span class="row-name group-name">
+                  <span>{{ icons.group }}</span>
+                  <input
+                    class="inline-name-input"
+                    [value]="editingGroupName()"
+                    (input)="editingGroupName.set($any($event.target).value)"
+                    [attr.aria-label]="loc.t('household.productGroupName')"
+                  />
+                  <small class="group-product-count">({{ groupProductCount(row.group) }})</small>
+                </span>
+              } @else {
+                <span class="row-name group-name">
+                  <strong>{{ icons.group }} {{ row.group.group.displayName }}</strong>
+                  <small class="group-product-count">({{ groupProductCount(row.group) }})</small>
+                </span>
+              }
+              <span>
+                @if (editingGroupId() === row.group.group.id) {
+                  <input
+                    class="inline-amount-input"
+                    type="number"
+                    min="0"
+                    [ngModel]="editingGroupMinimum()"
+                    (ngModelChange)="setGroupMinimum($event)"
+                    [attr.aria-label]="loc.t('household.minimum')"
+                  />
+                } @else {
+                  {{ row.group.group.targetPolicy?.minimumQuantity ?? "—" }}
+                }
+              </span>
+              <span
+                class="comparison-column"
+                [class.comparison-good]="
+                  comparisonIs(
+                    row.group.aggregate.availableQuantity,
+                    row.group.group.targetPolicy?.minimumQuantity,
+                    'minimum',
+                    'good'
+                  )
+                "
+                [class.comparison-error]="
+                  comparisonIs(
+                    row.group.aggregate.availableQuantity,
+                    row.group.group.targetPolicy?.minimumQuantity,
+                    'minimum',
+                    'error'
+                  )
+                "
+              >
+                {{
+                  comparisonMarker(
+                    row.group.aggregate.availableQuantity,
+                    row.group.group.targetPolicy?.minimumQuantity,
+                    "minimum"
+                  )
+                }}
+              </span>
+              <span class="current-value">
+                {{ row.group.aggregate.availableQuantity }}
+              </span>
+              <span
+                class="comparison-column"
+                [class.comparison-good]="
+                  comparisonIs(
+                    row.group.aggregate.availableQuantity,
+                    row.group.group.targetPolicy?.desiredQuantity,
+                    'target',
+                    'good'
+                  )
+                "
+                [class.comparison-info]="
+                  comparisonIs(
+                    row.group.aggregate.availableQuantity,
+                    row.group.group.targetPolicy?.desiredQuantity,
+                    'target',
+                    'info'
+                  )
+                "
+                [class.comparison-strong-good]="
+                  comparisonIs(
+                    row.group.aggregate.availableQuantity,
+                    row.group.group.targetPolicy?.desiredQuantity,
+                    'target',
+                    'strong-good'
+                  )
+                "
+              >
+                {{
+                  comparisonMarker(
+                    row.group.aggregate.availableQuantity,
+                    row.group.group.targetPolicy?.desiredQuantity,
+                    "target"
+                  )
+                }}
+              </span>
+              <span>
+                @if (editingGroupId() === row.group.group.id) {
+                  <input
+                    class="inline-amount-input"
+                    type="number"
+                    min="0"
+                    [ngModel]="editingGroupDesired()"
+                    (ngModelChange)="setGroupDesired($event)"
+                    [attr.aria-label]="loc.t('household.target')"
+                  />
+                } @else {
+                  {{ row.group.group.targetPolicy?.desiredQuantity ?? "—" }}
+                }
+              </span>
+              <span
+                [class.custom-unit]="
+                  isCustomTrackingUnit(
+                    row.group.aggregate.trackingUnit || row.group.group.trackingUnit
+                  )
+                "
+              >
+                {{
+                  displayTrackingUnit(
+                    row.group.aggregate.trackingUnit || row.group.group.trackingUnit
+                  )
+                }}
+              </span>
+              <span
+                class="ui-token ui-token-muted stock-state"
+                [class.stock-state-good]="stateClass(row.group.aggregate.state) === 'good'"
+                [class.stock-state-info]="stateClass(row.group.aggregate.state) === 'info'"
+                [class.stock-state-strong-good]="
+                  stateClass(row.group.aggregate.state) === 'strong-good'
+                "
+                [class.stock-state-danger]="stateClass(row.group.aggregate.state) === 'danger'"
+              >
+                {{ stateLabel(row.group.aggregate.state) }}
+              </span>
+              <span class="row-actions">
+                @if (editingGroupId() === row.group.group.id) {
+                  <app-table-icon-button
+                    [ariaLabel]="loc.t('household.saveProductGroup')"
+                    [titleText]="loc.t('household.saveProductGroup')"
+                    [tone]="'info'"
+                    (press)="saveGroup(row.group.group)"
+                  >
+                    ▣
+                  </app-table-icon-button>
+                  <app-table-icon-button
+                    [ariaLabel]="loc.t('household.discardProductGroupChanges')"
+                    [titleText]="loc.t('household.discardProductGroupChanges')"
+                    [tone]="'danger'"
+                    (press)="cancelGroupEdit()"
+                  >
+                    ×
+                  </app-table-icon-button>
+                } @else {
+                  <app-table-icon-button
+                    [ariaLabel]="loc.t('household.showProductGroupDetails')"
+                    [titleText]="loc.t('household.showProductGroupDetails')"
+                    (press)="toggleGroupDetails(row.group.group.id)"
+                  >
+                    <svg class="details-icon" aria-hidden="true" viewBox="0 0 24 24">
+                      <path
+                        d="M10.5 4a6.5 6.5 0 0 1 5.18 10.43l3.45 3.44-1.42 1.42-3.44-3.45A6.5 6.5 0 1 1 10.5 4Zm0 2A4.5 4.5 0 1 0 10.5 15 4.5 4.5 0 0 0 10.5 6Z"
+                      ></path>
+                      @if (isGroupDetailsOpen(row.group.group.id)) {
+                        <path d="M7.5 10h6v1.6h-6V10Z"></path>
+                      } @else {
+                        <path d="M9.7 7.8h1.6V10h2.2v1.6h-2.2v2.2H9.7v-2.2H7.5V10h2.2V7.8Z"></path>
+                      }
+                    </svg>
+                  </app-table-icon-button>
+                  <app-table-icon-button
+                    [ariaLabel]="loc.t('household.editProductGroup')"
+                    [titleText]="loc.t('household.editProductGroup')"
+                    [tone]="'warning'"
+                    (press)="editGroup(row.group)"
+                  >
+                    ✎
+                  </app-table-icon-button>
+                }
+                <app-table-icon-button
+                  [ariaLabel]="loc.t('household.addProductToProductGroup')"
+                  [titleText]="loc.t('household.addProductToProductGroup')"
+                  [tone]="'info'"
+                  (press)="newProductRequested.emit(row.group)"
+                >
+                  {{ icons.product }}+
+                </app-table-icon-button>
+                <app-table-icon-button
+                  [ariaLabel]="loc.t('household.deleteProductGroup')"
+                  [titleText]="loc.t('household.deleteProductGroup')"
+                  [tone]="'danger'"
+                  (press)="deleteGroup(row.group.group)"
+                >
+                  ⌫
+                </app-table-icon-button>
+              </span>
+            </div>
+            @if (isGroupDetailsOpen(row.group.group.id)) {
+              <div class="details-row group-details" [style.--row-depth]="row.depth">
+                <span>
+                  <small>{{ loc.t("household.trackingUnit") }}</small>
+                  @if (editingGroupId() === row.group.group.id) {
+                    <span class="group-unit-editor">
+                      <select
+                        class="inline-group-select"
+                        [ngModel]="editingGroupUnitOption()"
+                        (ngModelChange)="editingGroupUnitOption.set($event)"
+                        [attr.aria-label]="loc.t('household.trackingUnit')"
+                      >
+                        @for (unit of trackingUnitOptions; track unit) {
+                          <option [ngValue]="unit">{{ unit }}</option>
+                        }
+                        <option [ngValue]="'custom'">{{ loc.t("household.customUnit") }}</option>
+                      </select>
+                      <span
+                        class="custom-unit-slot"
+                        [class.custom-unit-slot-empty]="editingGroupUnitOption() !== 'custom'"
+                      >
+                        @if (editingGroupUnitOption() === "custom") {
+                          <input
+                            class="inline-name-input custom-unit-input"
+                            [ngModel]="editingGroupCustomUnit()"
+                            (ngModelChange)="editingGroupCustomUnit.set($event)"
+                            [attr.aria-label]="loc.t('household.customUnitSuffix')"
+                            [placeholder]="loc.t('household.customUnitSuffix')"
+                          />
+                        }
+                      </span>
+                    </span>
+                  } @else {
+                    <strong
+                      [class.custom-unit]="isCustomTrackingUnit(row.group.group.trackingUnit)"
+                    >
+                      {{ displayTrackingUnit(row.group.group.trackingUnit) }}
+                    </strong>
+                  }
+                </span>
+                <span>
+                  <small>{{ loc.t("household.groupTargetShoppingMode") }}</small>
+                  @if (editingGroupId() === row.group.group.id) {
+                    <select
+                      class="inline-group-select"
+                      [ngModel]="editingGroupShoppingMode()"
+                      (ngModelChange)="editingGroupShoppingMode.set($event)"
+                      [attr.aria-label]="loc.t('household.groupTargetShoppingMode')"
+                    >
+                      @for (mode of groupShoppingModeOptions; track mode) {
+                        <option [ngValue]="mode">{{ groupShoppingModeLabel(mode) }}</option>
+                      }
+                    </select>
+                  } @else {
+                    <strong>
+                      {{ groupShoppingModeLabel(row.group.group.groupTargetShoppingModeOverride) }}
+                    </strong>
+                  }
+                </span>
+                <span>
+                  <small>{{ loc.t("household.groupTargetShoppingDistributionMode") }}</small>
+                  @if (editingGroupId() === row.group.group.id) {
+                    <select
+                      class="inline-group-select"
+                      [ngModel]="editingGroupShoppingDistributionMode()"
+                      (ngModelChange)="editingGroupShoppingDistributionMode.set($event)"
+                      [attr.aria-label]="loc.t('household.groupTargetShoppingDistributionMode')"
+                    >
+                      @for (mode of groupShoppingDistributionModeOptions; track mode) {
+                        <option [ngValue]="mode">
+                          {{ groupShoppingDistributionLabel(mode) }}
+                        </option>
+                      }
+                    </select>
+                  } @else {
+                    <strong>
+                      {{
+                        groupShoppingDistributionLabel(
+                          row.group.group.groupTargetShoppingDistributionModeOverride
+                        )
+                      }}
+                    </strong>
+                  }
+                </span>
+              </div>
+            }
+            @if (isGroupExpanded(row.group.group.id)) {
+              @for (productRow of row.group.products; track productRow.product.id) {
+                <ng-container
+                  *ngTemplateOutlet="
+                    productTemplate;
+                    context: { row: productRow, depth: row.depth + 1 }
+                  "
+                />
+              }
+            }
+          }
+          <div class="stock-grid stock-unassigned-separator">
+            @if (shoppingSelectionMode()) {
+              <span class="selection-cell" aria-hidden="true"></span>
+            }
+            @if (current.unassignedProducts.length > 0) {
+              <button
+                class="workspace-expansion-slot expansion-slot-button"
+                type="button"
+                (click)="unassignedExpanded.set(!unassignedExpanded())"
+                [attr.aria-expanded]="unassignedExpanded()"
+                [attr.aria-label]="loc.t('household.unassignedProducts')"
+              >
+                <span aria-hidden="true">{{ unassignedExpanded() ? "▾" : "▸" }}</span>
+              </button>
+            } @else {
+              <span class="workspace-expansion-slot" aria-hidden="true"></span>
+            }
+            <span class="row-name group-name">
+              <strong>{{ icons.group }} {{ loc.t("household.unassignedProducts") }}</strong>
+              <small class="group-product-count">({{ current.unassignedProducts.length }})</small>
+            </span>
+            <span class="row-actions">
+              <span class="batch-action-gap" aria-hidden="true"></span>
+              <span class="batch-action-gap" aria-hidden="true"></span>
+              <app-table-icon-button
+                [ariaLabel]="loc.t('household.addUnassignedProduct')"
+                [titleText]="loc.t('household.addUnassignedProduct')"
+                [tone]="'info'"
+                (press)="newProductRequested.emit(null)"
+              >
+                {{ icons.product }}+
+              </app-table-icon-button>
+            </span>
+          </div>
+          @if (unassignedExpanded()) {
+            @for (productRow of current.unassignedProducts; track productRow.product.id) {
+              <ng-container
+                *ngTemplateOutlet="productTemplate; context: { row: productRow, depth: 1 }"
+              />
+            }
+          }
+        </div>
+      </div>
+    }
+  }
+</section>
+
+<ng-template #productTemplate let-row="row" let-depth="depth">
+  <div
+    class="stock-grid stock-product-row"
+    [class.shopping-selection-selected]="isShoppingOwnerSelected(row.product.id)"
+    [style.--row-depth]="depth"
+  >
+    @if (shoppingSelectionMode()) {
+      <span class="selection-cell">
+        <input
+          type="checkbox"
+          [checked]="isShoppingOwnerSelected(row.product.id)"
+          (change)="toggleShoppingOwner(row.product.id)"
+          [attr.aria-label]="row.product.displayName"
+        />
+      </span>
+    }
+    @if (productHasBatches(row)) {
+      <button
+        class="workspace-expansion-slot expansion-slot-button"
+        type="button"
+        (click)="toggleProduct(row.product.id)"
+        [attr.aria-expanded]="isProductExpanded(row.product.id)"
+        [attr.aria-label]="row.product.displayName"
+      >
+        <span aria-hidden="true">{{ isProductExpanded(row.product.id) ? "▾" : "▸" }}</span>
+      </button>
+    } @else {
+      <span class="workspace-expansion-slot" aria-hidden="true"></span>
+    }
+    @if (editingProductId() === row.product.id) {
+      <span class="row-name product-name">
+        <span>{{ icons.product }}</span>
+        <input
+          class="inline-name-input"
+          [value]="editingProductName()"
+          (input)="editingProductName.set($any($event.target).value)"
+          [attr.aria-label]="loc.t('household.productName')"
+        />
+      </span>
+    } @else if (productHasBatches(row)) {
+      <button
+        class="row-name product-name"
+        type="button"
+        (click)="toggleProduct(row.product.id)"
+        [attr.aria-expanded]="isProductExpanded(row.product.id)"
+      >
+        <strong>{{ icons.product }} {{ row.product.displayName }}</strong>
+        <small>
+          {{ identityLabel(row.product.identityKind) }} ({{ row.aggregate.batchCount }})
+        </small>
+      </button>
+    } @else {
+      <span class="row-name product-name">
+        <strong>{{ icons.product }} {{ row.product.displayName }}</strong>
+        <small>
+          {{ identityLabel(row.product.identityKind) }} ({{ row.aggregate.batchCount }})
+        </small>
+      </span>
+    }
+    <span>
+      @if (editingProductId() === row.product.id) {
+        <input
+          class="inline-amount-input"
+          type="number"
+          min="0"
+          [ngModel]="editingProductMinimum()"
+          (ngModelChange)="setProductMinimum($event)"
+          [attr.aria-label]="loc.t('household.minimum')"
+        />
+      } @else {
+        {{ row.product.targetPolicy?.minimumQuantity ?? "—" }}
+      }
+    </span>
+    <span
+      class="comparison-column"
+      [class.comparison-good]="
+        comparisonIs(
+          row.aggregate.availableQuantity,
+          row.product.targetPolicy?.minimumQuantity,
+          'minimum',
+          'good'
+        )
+      "
+      [class.comparison-error]="
+        comparisonIs(
+          row.aggregate.availableQuantity,
+          row.product.targetPolicy?.minimumQuantity,
+          'minimum',
+          'error'
+        )
+      "
+    >
+      {{
+        comparisonMarker(
+          row.aggregate.availableQuantity,
+          row.product.targetPolicy?.minimumQuantity,
+          "minimum"
+        )
+      }}
+    </span>
+    <span class="current-value">
+      {{ row.aggregate.availableQuantity }}
+    </span>
+    <span
+      class="comparison-column"
+      [class.comparison-good]="
+        comparisonIs(
+          row.aggregate.availableQuantity,
+          row.product.targetPolicy?.desiredQuantity,
+          'target',
+          'good'
+        )
+      "
+      [class.comparison-info]="
+        comparisonIs(
+          row.aggregate.availableQuantity,
+          row.product.targetPolicy?.desiredQuantity,
+          'target',
+          'info'
+        )
+      "
+      [class.comparison-strong-good]="
+        comparisonIs(
+          row.aggregate.availableQuantity,
+          row.product.targetPolicy?.desiredQuantity,
+          'target',
+          'strong-good'
+        )
+      "
+    >
+      {{
+        comparisonMarker(
+          row.aggregate.availableQuantity,
+          row.product.targetPolicy?.desiredQuantity,
+          "target"
+        )
+      }}
+    </span>
+    <span>
+      @if (editingProductId() === row.product.id) {
+        <input
+          class="inline-amount-input"
+          type="number"
+          min="0"
+          [ngModel]="editingProductDesired()"
+          (ngModelChange)="setProductDesired($event)"
+          [attr.aria-label]="loc.t('household.target')"
+        />
+      } @else {
+        {{ row.product.targetPolicy?.desiredQuantity ?? "—" }}
+      }
+    </span>
+    <span>
+      <span
+        [class.custom-unit]="
+          isCustomTrackingUnit(row.aggregate.trackingUnit ?? row.product.defaultTrackingUnit)
+        "
+      >
+        {{ displayTrackingUnit(row.aggregate.trackingUnit ?? row.product.defaultTrackingUnit) }}
+      </span>
+    </span>
+    <span
+      class="ui-token ui-token-muted stock-state"
+      [class.stock-state-good]="stateClass(row.aggregate.state) === 'good'"
+      [class.stock-state-info]="stateClass(row.aggregate.state) === 'info'"
+      [class.stock-state-strong-good]="stateClass(row.aggregate.state) === 'strong-good'"
+      [class.stock-state-danger]="stateClass(row.aggregate.state) === 'danger'"
+    >
+      {{ stateLabel(row.aggregate.state) }}
+    </span>
+    <span class="row-actions">
+      @if (editingProductId() === row.product.id) {
+        <app-table-icon-button
+          [ariaLabel]="loc.t('household.saveHouseholdProduct')"
+          [titleText]="loc.t('household.saveHouseholdProduct')"
+          [tone]="'info'"
+          (press)="
+            saveProductRow(
+              row.product,
+              editingProductName(),
+              editingProductGroupId(),
+              editingProductGtin(),
+              editingProductNote(),
+              editingProductMinimum(),
+              editingProductDesired()
+            )
+          "
+        >
+          ▣
+        </app-table-icon-button>
+        <app-table-icon-button
+          [ariaLabel]="loc.t('household.discardHouseholdProductChanges')"
+          [titleText]="loc.t('household.discardHouseholdProductChanges')"
+          [tone]="'danger'"
+          (press)="cancelProductEdit()"
+        >
+          ×
+        </app-table-icon-button>
+      } @else {
+        <app-table-icon-button
+          [ariaLabel]="loc.t('household.showProductDetails')"
+          [titleText]="loc.t('household.showProductDetails')"
+          (press)="toggleProductDetails(row.product.id)"
+        >
+          <svg class="details-icon" aria-hidden="true" viewBox="0 0 24 24">
+            <path
+              d="M10.5 4a6.5 6.5 0 0 1 5.18 10.43l3.45 3.44-1.42 1.42-3.44-3.45A6.5 6.5 0 1 1 10.5 4Zm0 2A4.5 4.5 0 1 0 10.5 15 4.5 4.5 0 0 0 10.5 6Z"
+            ></path>
+            @if (isProductDetailsOpen(row.product.id)) {
+              <path d="M7.5 10h6v1.6h-6V10Z"></path>
+            } @else {
+              <path d="M9.7 7.8h1.6V10h2.2v1.6h-2.2v2.2H9.7v-2.2H7.5V10h2.2V7.8Z"></path>
+            }
+          </svg>
+        </app-table-icon-button>
+        <app-table-icon-button
+          [ariaLabel]="loc.t('household.editProduct')"
+          [titleText]="loc.t('household.editProduct')"
+          [tone]="'warning'"
+          (press)="editProduct(row.product)"
+        >
+          ✎
+        </app-table-icon-button>
+      }
+      <app-table-icon-button
+        [ariaLabel]="loc.t('household.addStockToProduct')"
+        [titleText]="loc.t('household.addStockToProduct')"
+        [tone]="'info'"
+        (press)="newBatchRequested.emit(row.product)"
+      >
+        {{ icons.batch }}+
+      </app-table-icon-button>
+      <app-table-icon-button
+        [ariaLabel]="loc.t('household.deleteHouseholdProduct')"
+        [titleText]="loc.t('household.deleteHouseholdProduct')"
+        [tone]="'danger'"
+        (press)="deleteProduct(row.product)"
+      >
+        ⌫
+      </app-table-icon-button>
+    </span>
+  </div>
+  @if (isProductDetailsOpen(row.product.id)) {
+    <div class="details-row product-details" [style.--row-depth]="depth">
+      <span class="product-unit-detail">
+        <small>{{ loc.t("household.trackingUnit") }}</small>
+        @if (editingProductId() === row.product.id) {
+          <span class="tracking-unit-editor">
+            <select
+              class="inline-group-select"
+              [ngModel]="editingProductUnitSelection()"
+              (ngModelChange)="setProductUnitSelection($event)"
+              [attr.aria-label]="loc.t('household.trackingUnit')"
+            >
+              @for (unit of trackingUnitOptions; track unit) {
+                <option [ngValue]="unit">{{ unit }}</option>
+              }
+              <option [ngValue]="'custom'">{{ loc.t("household.customUnit") }}</option>
+              @if (editingProductGroupId()) {
+                <option [ngValue]="'match-group'">
+                  {{ loc.t("household.matchGroupUnit") }}
+                </option>
+              }
+            </select>
+            <span
+              class="custom-unit-slot"
+              [class.custom-unit-slot-empty]="editingProductUnitOption() !== 'custom'"
+            >
+              @if (editingProductUnitOption() === "custom") {
+                <input
+                  class="inline-name-input custom-unit-input"
+                  [ngModel]="editingProductCustomUnit()"
+                  (ngModelChange)="editingProductCustomUnit.set($event)"
+                  [attr.aria-label]="loc.t('household.customUnitSuffix')"
+                  [placeholder]="loc.t('household.customUnitSuffix')"
+                />
+              }
+            </span>
+          </span>
+        } @else {
+          <strong
+            [class.custom-unit]="
+              isCustomTrackingUnit(
+                row.product.targetPolicy?.trackingUnit ?? row.product.defaultTrackingUnit
+              )
+            "
+          >
+            {{
+              displayTrackingUnit(
+                row.product.targetPolicy?.trackingUnit ?? row.product.defaultTrackingUnit
+              )
+            }}
+          </strong>
+        }
+      </span>
+      <span class="product-id-detail">
+        <small>{{ loc.t("household.productId") }}</small>
+        <strong>{{ row.product.id }}</strong>
+      </span>
+      <span class="product-gtin-detail">
+        <small>{{ loc.t("household.gtin") }}</small>
+        @if (editingProductId() === row.product.id) {
+          <input
+            class="inline-name-input"
+            [ngModel]="editingProductGtin()"
+            (ngModelChange)="editingProductGtin.set($event)"
+            [attr.aria-label]="loc.t('household.gtin')"
+          />
+        } @else {
+          <strong>{{ row.product.identitySnapshot?.["gtin"] ?? "—" }}</strong>
+        }
+      </span>
+      <span class="product-note-detail">
+        <small>{{ loc.t("household.note") }}</small>
+        @if (editingProductId() === row.product.id) {
+          <textarea
+            class="inline-note-input"
+            [ngModel]="editingProductNote()"
+            (ngModelChange)="editingProductNote.set($event)"
+            [attr.aria-label]="loc.t('household.note')"
+          ></textarea>
+        } @else {
+          <strong>{{ row.product.note ?? "—" }}</strong>
+        }
+      </span>
+      <span class="product-group-detail">
+        <small>{{ loc.t("household.productGroup") }}</small>
+        @if (editingProductId() === row.product.id) {
+          <select
+            class="inline-group-select"
+            [ngModel]="editingProductGroupId()"
+            (ngModelChange)="setProductGroupId($event)"
+            [attr.aria-label]="loc.t('household.productGroup')"
+          >
+            <option [ngValue]="''">{{ loc.t("household.unassigned") }}</option>
+            @for (group of availableGroups(); track group.id) {
+              <option [ngValue]="group.id">{{ group.displayName }}</option>
+            }
+          </select>
+        } @else {
+          <strong>{{ productGroupLabel(row.product.productGroupId) }}</strong>
+        }
+      </span>
+      <span class="product-target-detail">
+        <small>{{ loc.t("household.targetPolicy") }}</small>
+        @if (editingProductId() === row.product.id) {
+          <label class="inline-checkbox">
+            <input
+              type="checkbox"
+              [ngModel]="editingProductHasTarget()"
+              (ngModelChange)="setProductTargetEnabled($event)"
+            />
+            {{ loc.t("household.setTarget") }}
+          </label>
+        } @else {
+          <strong>
+            {{
+              row.product.targetPolicy ? loc.t("household.configured") : loc.t("household.notSet")
+            }}
+          </strong>
+        }
+      </span>
+    </div>
+  }
+  @if (isProductExpanded(row.product.id)) {
+    @for (batch of row.batches; track batch.id) {
+      <div class="stock-grid stock-batch-row" [style.--row-depth]="depth + 1">
+        @if (shoppingSelectionMode()) {
+          <span class="selection-cell"></span>
+        }
+        <span class="workspace-expansion-slot" aria-hidden="true"></span>
+        <span class="row-name batch-name">
+          @if (editingBatchId() === batch.id) {
+            <strong>
+              {{ icons.batch }}
+              <span [class.manual-source]="isManualBatch(batch)">
+                {{ batchSourceLabel(batch) }}
+              </span>
+            </strong>
+            <input
+              class="inline-date-input batch-title-date"
+              type="date"
+              [ngModel]="editingBatchAcquiredOn()"
+              (ngModelChange)="editingBatchAcquiredOn.set($event)"
+              [attr.aria-label]="loc.t('household.stockedAt')"
+            />
+          } @else {
+            <strong>
+              {{ icons.batch }}
+              <span [class.manual-source]="isManualBatch(batch)">
+                {{ batchSourceLabel(batch) }}
+              </span>
+              ({{ batch.acquiredOn }})
+            </strong>
+          }
+        </span>
+        @if (editingBatchId() === batch.id) {
+          <span></span>
+          <span></span>
+          <input
+            #quantity
+            class="inline-amount-input"
+            type="number"
+            min="0"
+            [value]="batch.remainingQuantity"
+            [attr.aria-label]="loc.t('household.quantity')"
+          />
+          <span></span>
+          <span></span>
+          <input
+            #expiry
+            class="inline-date-input batch-edit-expiry"
+            type="date"
+            [value]="batch.expiryOn ?? ''"
+            [attr.aria-label]="loc.t('household.expiry')"
+          />
+          <span class="row-actions">
+            <app-table-icon-button
+              [ariaLabel]="loc.t('household.saveStockBatch')"
+              [titleText]="loc.t('household.saveStockBatch')"
+              [tone]="'info'"
+              (press)="
+                correctBatch(
+                  batch,
+                  quantity.valueAsNumber,
+                  editingBatchAcquiredOn(),
+                  expiry.value,
+                  editingBatchUnitValue() ?? ''
+                )
+              "
+            >
+              ▣
+            </app-table-icon-button>
+            <app-table-icon-button
+              [ariaLabel]="loc.t('household.cancelStockBatchEdit')"
+              [titleText]="loc.t('household.cancelStockBatchEdit')"
+              [tone]="'danger'"
+              (press)="cancelBatchEdit()"
+            >
+              ×
+            </app-table-icon-button>
+            <span class="batch-action-gap" aria-hidden="true"></span>
+            <app-table-icon-button
+              [ariaLabel]="loc.t('household.discardStockBatch')"
+              [titleText]="loc.t('household.discardStockBatch')"
+              [tone]="'danger'"
+              (press)="discardBatch(batch)"
+            >
+              ⌫
+            </app-table-icon-button>
+          </span>
+        } @else {
+          <span></span>
+          <span></span>
+          <span class="current-value">{{ batch.remainingQuantity }}</span>
+          <span></span>
+          <span class="batch-expiry" [class.expired-date]="isExpired(batch.expiryOn)">
+            {{ batch.expiryOn ?? loc.t("household.noExpiry") }}
+          </span>
+          <span class="row-actions">
+            <app-table-icon-button
+              [ariaLabel]="loc.t('household.showStockBatchDetails')"
+              [titleText]="loc.t('household.showStockBatchDetails')"
+              (press)="toggleBatchDetails(batch.id)"
+            >
+              <svg class="details-icon" aria-hidden="true" viewBox="0 0 24 24">
+                <path
+                  d="M10.5 4a6.5 6.5 0 0 1 5.18 10.43l3.45 3.44-1.42 1.42-3.44-3.45A6.5 6.5 0 1 1 10.5 4Zm0 2A4.5 4.5 0 1 0 10.5 15 4.5 4.5 0 0 0 10.5 6Z"
+                ></path>
+                @if (isBatchDetailsOpen(batch.id)) {
+                  <path d="M7.5 10h6v1.6h-6V10Z"></path>
+                } @else {
+                  <path d="M9.7 7.8h1.6V10h2.2v1.6h-2.2v2.2H9.7v-2.2H7.5V10h2.2V7.8Z"></path>
+                }
+              </svg>
+            </app-table-icon-button>
+            <app-table-icon-button
+              [ariaLabel]="loc.t('household.editStockBatch')"
+              [titleText]="loc.t('household.editStockBatch')"
+              [tone]="'warning'"
+              (press)="editBatch(batch, workspaceGroup(row.product.productGroupId), row.product)"
+            >
+              ✎
+            </app-table-icon-button>
+            <span class="batch-action-gap" aria-hidden="true"></span>
+            <app-table-icon-button
+              [ariaLabel]="loc.t('household.discardStockBatch')"
+              [titleText]="loc.t('household.discardStockBatch')"
+              [tone]="'danger'"
+              (press)="discardBatch(batch)"
+            >
+              ⌫
+            </app-table-icon-button>
+          </span>
+        }
+      </div>
+      @if (isBatchDetailsOpen(batch.id)) {
+        <div class="details-row batch-details" [style.--row-depth]="depth + 1">
+          <span>
+            <small>{{ loc.t("household.stockedAt") }}</small>
+            <strong>{{ batch.acquiredOn }}</strong>
+          </span>
+          <span>
+            <small>{{ loc.t("household.unit") }}</small>
+            @if (editingBatchId() === batch.id) {
+              <span class="tracking-unit-editor">
+                <select
+                  class="inline-group-select"
+                  [ngModel]="editingBatchUnitSelection()"
+                  (ngModelChange)="setBatchUnitSelection($event)"
+                  [attr.aria-label]="loc.t('household.unit')"
+                >
+                  @for (unit of trackingUnitOptions; track unit) {
+                    <option [ngValue]="unit">{{ unit }}</option>
+                  }
+                  <option [ngValue]="'custom'">{{ loc.t("household.customUnit") }}</option>
+                  <option [ngValue]="'match-product'">
+                    {{ loc.t("household.matchProductUnit") }}
+                  </option>
+                </select>
+                <span
+                  class="custom-unit-slot"
+                  [class.custom-unit-slot-empty]="editingBatchUnitSelection() !== 'custom'"
+                >
+                  @if (editingBatchUnitSelection() === "custom") {
+                    <input
+                      class="inline-name-input custom-unit-input"
+                      [ngModel]="editingBatchCustomUnit()"
+                      (ngModelChange)="
+                        editingBatchCustomUnit.set($event); editingBatchUnitSelection.set('custom')
+                      "
+                      [attr.aria-label]="loc.t('household.customUnitSuffix')"
+                      [placeholder]="loc.t('household.customUnitSuffix')"
+                    />
+                  }
+                </span>
+              </span>
+            } @else {
+              <strong [class.custom-unit]="isCustomTrackingUnit(batch.unit)">
+                {{ displayTrackingUnit(batch.unit) }}
+              </strong>
+            }
+          </span>
+        </div>
+      }
+    }
+  }
+</ng-template>

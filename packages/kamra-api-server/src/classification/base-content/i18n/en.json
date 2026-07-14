@@ -1,0 +1,17 @@
+{
+  "food": "Food",
+  "food.milk": "Milk",
+  "food.pasta": "Pasta",
+  "food.pasta.penne": "Penne",
+  "food.pasta.spaghetti": "Spaghetti",
+  "food.pasta.tagliatelle": "Tagliatelle",
+  "food.bread": "Bread",
+  "food.eggs": "Eggs",
+  "household.cleaning": "Cleaning",
+  "diet.gluten_free": "Gluten-free",
+  "fat.1_5_percent": "1.5% fat",
+  "package.recyclable": "Recyclable package",
+  "template.milk": "Milk",
+  "template.gluten-free-pasta": "Gluten-free pasta",
+  "template.bread": "Bread"
+}

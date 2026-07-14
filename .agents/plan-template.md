@@ -40,11 +40,19 @@ How the change should move the project toward the desired architecture or workfl
 
 ## Scope
 
-Included work.
+Required current work. Prefer the smallest solution that satisfies it.
+
+## Optional Work
+
+Useful additions that are safe to omit unless the user approves them.
+
+## Deferred Work
+
+Foreseeable followups that should be recorded rather than implemented now.
 
 ## Non-Goals
 
-Explicitly excluded work.
+Explicitly excluded or speculative work.
 
 ## Assumptions
 
@@ -64,6 +72,8 @@ How the plan changed during discussion, and which earlier assumptions were revis
 
 ## Implementation Steps
 
+For each step, use existing repository code and native/platform capabilities before proposing a dependency, abstraction, or extension layer. Note the justification when one is necessary.
+
 ### Step 1
 
 - Goal:
@@ -81,6 +91,14 @@ How the plan changed during discussion, and which earlier assumptions were revis
 ## Validation Plan
 
 Commands, tests, manual checks, and documentation checks.
+
+Name the owning manual acceptance script for behavior-changing work. Separate:
+
+- expected-outcome logic/coordination specs written before evaluating current behavior
+- route/repository and configured `npm run smoke:*` evidence
+- genuinely manual browser, visual, localization, real-data, or operator-safety evidence
+- the point when the integrated manual pass should run, especially when later approved steps will
+  replace an outgoing interaction
 
 ## Risks
 

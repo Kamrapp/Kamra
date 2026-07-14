@@ -7,11 +7,28 @@ import { ToastService } from "./toast.service";
   selector: "app-toast-host",
   standalone: true,
   template: `
-    <section class="toast-stack" aria-live="assertive" [attr.aria-label]="loc.t('common.notifications')">
+    <section
+      class="toast-stack"
+      aria-live="assertive"
+      [attr.aria-label]="loc.t('common.notifications')"
+    >
       @for (toast of toastService.toasts(); track toast.id) {
-        <article class="toast" [class.toast-error]="toast.tone === 'error'" [class.toast-info]="toast.tone === 'info'" [class.toast-success]="toast.tone === 'success'" [class.toast-warning]="toast.tone === 'warning'">
+        <article
+          class="toast"
+          [class.toast-error]="toast.tone === 'error'"
+          [class.toast-info]="toast.tone === 'info'"
+          [class.toast-success]="toast.tone === 'success'"
+          [class.toast-warning]="toast.tone === 'warning'"
+        >
           <p>{{ toast.message }}</p>
-          <button type="button" [attr.aria-label]="loc.t('common.dismissNotification')" (click)="toastService.dismiss(toast.id)">×</button>
+          <button
+            class="toast-dismiss-button"
+            type="button"
+            [attr.aria-label]="loc.t('common.dismissNotification')"
+            (click)="toastService.dismiss(toast.id)"
+          >
+            ×
+          </button>
         </article>
       }
     </section>
@@ -53,7 +70,7 @@ import { ToastService } from "./toast.service";
         overflow-wrap: anywhere;
       }
 
-      .toast button {
+      .toast-dismiss-button {
         background: transparent;
         border: 0;
         color: var(--toast-text-muted);

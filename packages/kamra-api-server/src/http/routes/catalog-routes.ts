@@ -24,10 +24,7 @@ export const catalogProductsRoute: AppRoute = {
       return json(503, { error: "catalog_not_configured" });
     }
 
-    const client = await context.getMongoClient(
-      config.mongodb.uri,
-      config.mongodb.dnsServers
-    );
+    const client = await context.getMongoClient(config.mongodb.uri, config.mongodb.dnsServers);
     const repository = context.dependencies.createCatalogRepository
       ? context.dependencies.createCatalogRepository(client.db(config.mongodb.databaseName))
       : createDefaultCatalogRepository(client.db(config.mongodb.databaseName));
@@ -72,10 +69,7 @@ export const catalogSourcesRoute: AppRoute = {
       return json(503, { error: "catalog_not_configured" });
     }
 
-    const client = await context.getMongoClient(
-      config.mongodb.uri,
-      config.mongodb.dnsServers
-    );
+    const client = await context.getMongoClient(config.mongodb.uri, config.mongodb.dnsServers);
     const repository = context.dependencies.createCatalogRepository
       ? context.dependencies.createCatalogRepository(client.db(config.mongodb.databaseName))
       : createDefaultCatalogRepository(client.db(config.mongodb.databaseName));
@@ -88,7 +82,8 @@ export const catalogSourcesRoute: AppRoute = {
 };
 
 export const catalogProductRoute: AppRoute = {
-  match: (request) => ["DELETE", "GET", "PATCH"].includes(request.method) && request.path === "/api/catalog/product",
+  match: (request) =>
+    ["DELETE", "GET", "PATCH"].includes(request.method) && request.path === "/api/catalog/product",
   handle: async (request, context) => {
     const repositoryResult = await createCatalogRepositoryForAdminRequest(request, context);
     if ("response" in repositoryResult) {
@@ -105,9 +100,7 @@ export const catalogProductRoute: AppRoute = {
         ? await repositoryResult.repository.findCatalogProductForReview(id)
         : null;
 
-      return product
-        ? json(200, { product })
-        : json(404, { error: "product_not_found" });
+      return product ? json(200, { product }) : json(404, { error: "product_not_found" });
     }
 
     if (request.method === "DELETE") {
@@ -148,18 +141,15 @@ export const catalogProductRoute: AppRoute = {
         })
       : null;
 
-    return product
-      ? json(200, { product })
-      : json(404, { error: "product_not_found" });
+    return product ? json(200, { product }) : json(404, { error: "product_not_found" });
   }
 };
 
 export const catalogProductValidationRoute: AppRoute = {
-  match: (request) => request.method === "POST"
-    && (
-      request.path === "/api/catalog/product/validate"
-      || request.path === "/api/catalog/product/invalidate"
-    ),
+  match: (request) =>
+    request.method === "POST" &&
+    (request.path === "/api/catalog/product/validate" ||
+      request.path === "/api/catalog/product/invalidate"),
   handle: async (request, context) => {
     const repositoryResult = await createCatalogRepositoryForAdminRequest(request, context);
     if ("response" in repositoryResult) {
@@ -187,9 +177,7 @@ export const catalogProductValidationRoute: AppRoute = {
         })
       : null;
 
-    return product
-      ? json(200, { product })
-      : json(404, { error: "product_not_found" });
+    return product ? json(200, { product }) : json(404, { error: "product_not_found" });
   }
 };
 
@@ -226,10 +214,7 @@ async function createCatalogRepositoryForAdminRequest(
     };
   }
 
-  const client = await context.getMongoClient(
-    config.mongodb.uri,
-    config.mongodb.dnsServers
-  );
+  const client = await context.getMongoClient(config.mongodb.uri, config.mongodb.dnsServers);
   const repository = context.dependencies.createCatalogRepository
     ? context.dependencies.createCatalogRepository(client.db(config.mongodb.databaseName))
     : createDefaultCatalogRepository(client.db(config.mongodb.databaseName));
@@ -245,7 +230,7 @@ function parseJsonObject(bodyText: string | undefined): Record<string, unknown> 
   try {
     const parsed: unknown = JSON.parse(bodyText);
     return parsed && typeof parsed === "object" && !Array.isArray(parsed)
-      ? parsed as Record<string, unknown>
+      ? (parsed as Record<string, unknown>)
       : null;
   } catch {
     return null;
@@ -306,18 +291,22 @@ function isProductMeasurement(value: unknown): value is ProductMeasurement {
   const normalizedUnit = candidate["normalizedUnit"];
   const normalizedValue = candidate["normalizedValue"];
 
-  return typeof candidate["unit"] === "string"
-    && candidate["unit"].trim().length > 0
-    && typeof candidate["value"] === "number"
-    && Number.isFinite(candidate["value"])
-    && (normalizedUnit === undefined || normalizedUnit === null || typeof normalizedUnit === "string")
-    && (normalizedValue === undefined || normalizedValue === null || typeof normalizedValue === "number");
+  return (
+    typeof candidate["unit"] === "string" &&
+    candidate["unit"].trim().length > 0 &&
+    typeof candidate["value"] === "number" &&
+    Number.isFinite(candidate["value"]) &&
+    (normalizedUnit === undefined ||
+      normalizedUnit === null ||
+      typeof normalizedUnit === "string") &&
+    (normalizedValue === undefined ||
+      normalizedValue === null ||
+      typeof normalizedValue === "number")
+  );
 }
 
 function readBodyString(value: unknown): string | null {
-  return typeof value === "string" && value.trim().length > 0
-    ? value.trim()
-    : null;
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
 }
 
 function readNullableBodyString(value: unknown): string | null {
@@ -325,9 +314,7 @@ function readNullableBodyString(value: unknown): string | null {
     return null;
   }
 
-  return typeof value === "string" && value.trim().length > 0
-    ? value.trim()
-    : null;
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
 }
 
 function readOptionalBodyString(value: unknown): string | null {
@@ -336,15 +323,10 @@ function readOptionalBodyString(value: unknown): string | null {
 
 function readSingleString(value: string | string[] | undefined): string | null {
   const candidate = Array.isArray(value) ? value[0] : value;
-  return candidate && candidate.trim().length > 0
-    ? candidate.trim()
-    : null;
+  return candidate && candidate.trim().length > 0 ? candidate.trim() : null;
 }
 
-function readPositiveInteger(
-  value: string | string[] | undefined,
-  fallback: number
-): number {
+function readPositiveInteger(value: string | string[] | undefined, fallback: number): number {
   const candidateValue = Array.isArray(value) ? value[0] : value;
 
   if (!candidateValue) {

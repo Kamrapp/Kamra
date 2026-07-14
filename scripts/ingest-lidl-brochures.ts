@@ -1,5 +1,8 @@
 import { readAppConfig } from "../packages/kamra-api-server/src/config/app-config.js";
-import { closeMongoClient, getMongoClient } from "../packages/kamra-api-server/src/db/mongo-client.js";
+import {
+  closeMongoClient,
+  getMongoClient
+} from "../packages/kamra-api-server/src/db/mongo-client.js";
 import { MongoIngestionRepository } from "../packages/kamra-api-server/src/ingestion/current/mongo-ingestion-repository.js";
 import {
   discoverLidlHuBrochureSlugs,
@@ -30,7 +33,11 @@ async function ingestLidlBrochures(): Promise<void> {
 
   const now = new Date();
   const observedAt = now.toISOString();
-  const identity = createCrawlRunIdentity(lidlHuBrochureSourceName, lidlHuBrochureWorkflowName, now);
+  const identity = createCrawlRunIdentity(
+    lidlHuBrochureSourceName,
+    lidlHuBrochureWorkflowName,
+    now
+  );
 
   writeServerLog("info", "Fetching Lidl brochure index", {
     crawlRunId: identity.crawlRunId,
@@ -112,7 +119,9 @@ async function discoverFoodBrochures(slugs: string[]): Promise<LidlHuBrochureSum
   const summaries: LidlHuBrochureSummary[] = [];
 
   for (const slug of slugs) {
-    const apiText = await fetchText(`${lidlHuLeafletApiBaseUrl}?flyer_identifier=${encodeURIComponent(slug)}`);
+    const apiText = await fetchText(
+      `${lidlHuLeafletApiBaseUrl}?flyer_identifier=${encodeURIComponent(slug)}`
+    );
     const summary = parseLidlHuBrochureSummary(apiText, slug);
 
     if (summary) {
@@ -151,7 +160,9 @@ async function fetchBytes(url: string): Promise<Uint8Array> {
   const contentType = response.headers.get("content-type") ?? "";
 
   if (!contentType.toLowerCase().includes("application/pdf")) {
-    throw new Error(`Expected Lidl brochure PDF but received content type ${contentType || "unknown"}.`);
+    throw new Error(
+      `Expected Lidl brochure PDF but received content type ${contentType || "unknown"}.`
+    );
   }
 
   return new Uint8Array(await response.arrayBuffer());

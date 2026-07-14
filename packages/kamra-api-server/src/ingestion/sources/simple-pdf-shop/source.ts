@@ -108,9 +108,14 @@ export function hashPdfContent(content: Uint8Array): string {
   return createHash("sha256").update(content).digest("hex");
 }
 
-export async function parseSimplePdfShop(pdfBytes: Uint8Array, observedAt: string): Promise<ParsedShopProductRow[]> {
+export async function parseSimplePdfShop(
+  pdfBytes: Uint8Array,
+  observedAt: string
+): Promise<ParsedShopProductRow[]> {
   const lines = await extractPdfTextLines(pdfBytes);
-  const headerIndex = lines.findIndex((line) => line === formatSimplePdfShopLine([...simplePdfShopColumns]));
+  const headerIndex = lines.findIndex(
+    (line) => line === formatSimplePdfShopLine([...simplePdfShopColumns])
+  );
 
   if (headerIndex < 0) {
     throw new Error("SimplePdfShop PDF is missing the expected column header.");
@@ -159,7 +164,9 @@ function parseSimplePdfShopProductLine(line: string, observedAt: string): Parsed
   const cells = line.split("|").map((cell) => cell.trim());
 
   if (cells.length !== simplePdfShopColumns.length) {
-    throw new Error(`SimplePdfShop row expected ${simplePdfShopColumns.length} cells but found ${cells.length}.`);
+    throw new Error(
+      `SimplePdfShop row expected ${simplePdfShopColumns.length} cells but found ${cells.length}.`
+    );
   }
 
   const [
@@ -206,16 +213,18 @@ function parseSimplePdfShopProductLine(line: string, observedAt: string): Parsed
 function serializeSimplePdfShopFixtureRows(): string[] {
   return [
     formatSimplePdfShopLine([...simplePdfShopColumns]),
-    ...simplePdfShopFixtureRows.map((row) => formatSimplePdfShopLine([
-      row.sourceProductKey,
-      row.displayName,
-      row.packageLabel,
-      row.categoryLabel,
-      String(row.price),
-      row.unitPriceLabel,
-      row.validFrom,
-      row.validTo
-    ]))
+    ...simplePdfShopFixtureRows.map((row) =>
+      formatSimplePdfShopLine([
+        row.sourceProductKey,
+        row.displayName,
+        row.packageLabel,
+        row.categoryLabel,
+        String(row.price),
+        row.unitPriceLabel,
+        row.validFrom,
+        row.validTo
+      ])
+    )
   ];
 }
 

@@ -1,0 +1,52 @@
+name: Transaction Smoke
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/transaction-smoke.yml"
+      - "package.json"
+      - "package-lock.json"
+      - "packages/kamra-api-server/src/db/**"
+      - "packages/kamra-api-server/src/database-maintenance/**"
+      - "packages/kamra-api-server/src/household/current/**"
+      - "packages/kamra-api-server/src/household/v1/**"
+      - "packages/kamra-api-server/src/household/v2/**"
+      - "packages/kamra-api-server/src/http/routes/household/**"
+      - "packages/kamra-api-server/src/http/routes/household-v2-routes.ts"
+      - "packages/kamra-api-server/src/http/routes/stage9-admin-routes.ts"
+      - "packages/kamra-api-server/src/http/app-handler.ts"
+      - "packages/kamra-api-server/src/http/app-route-context.ts"
+      - "packages/kamra-api-server/src/auth/user-token.ts"
+      - "packages/kamra-api-server/src/config/app-config.ts"
+      - "packages/kamra-api-server/src/db/mongo-transaction.ts"
+      - "packages/kamra-api-server/src/db/mongo-client.ts"
+      - "scripts/transaction-smoke.ts"
+      - "scripts/shopping-trip-smoke.ts"
+      - "tsconfig*.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  transaction-smoke:
+    runs-on: ubuntu-latest
+    environment: Smoke
+    env:
+      MONGODB_URI: ${{ vars.MONGODB_URI || secrets.MONGODB_URI }}
+      MONGODB_DB_NAME: ${{ vars.MONGODB_DB_NAME || secrets.MONGODB_DB_NAME }}
+      MONGODB_DNS_SERVERS: ${{ vars.MONGODB_DNS_SERVERS || secrets.MONGODB_DNS_SERVERS }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Verify MongoDB transaction behavior
+        run: npm run smoke:transactions
+      - name: Verify Shopping Trip persistence behavior
+        run: npm run smoke:shopping-trip

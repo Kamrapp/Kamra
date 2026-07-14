@@ -1,0 +1,94 @@
+:host {
+  display: block;
+  min-height: 100%;
+}
+
+.admin-users-page {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.admin-users-intro {
+  align-items: start;
+}
+
+.back-link {
+  justify-self: start;
+}
+
+.users-card {
+  min-height: 0;
+}
+
+.users-heading {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.users-heading .ui-card-title {
+  margin: 0;
+}
+
+.users-table-shell {
+  min-width: 0;
+  overflow: auto;
+}
+
+.users-table {
+  border-collapse: collapse;
+  min-width: 60rem;
+  width: 100%;
+}
+
+.users-table th,
+.users-table td {
+  border-bottom: 1px solid var(--line-subtle);
+  padding: 0.7rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.users-table th {
+  color: var(--color-text-muted);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+}
+
+.users-table td > strong,
+.users-table td > small {
+  display: block;
+}
+
+.users-table td > small {
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+  margin-top: 0.2rem;
+}
+
+.users-table ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.users-table input {
+  background: var(--form-field-background);
+  border: 1px solid var(--line-subtle);
+  border-radius: var(--radius-ui);
+  color: var(--color-text);
+  font: inherit;
+  min-width: 11rem;
+  padding: 0.45rem 0.55rem;
+}
+
+.user-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.user-actions .ui-button {
+  font-size: 0.78rem;
+  min-height: 2rem;
+  padding: 0.35rem 0.6rem;
+}

@@ -18,15 +18,33 @@ type EditorMode = "catalog" | "review";
   standalone: true,
   template: `
     @if (open) {
-      <section class="dialog-backdrop" role="presentation" (click)="close.emit()">
-        <article class="editor-dialog" role="dialog" aria-modal="true" [attr.aria-label]="title" (click)="$event.stopPropagation()">
+      <section class="dialog-backdrop" role="presentation">
+        <article
+          class="editor-dialog"
+          role="dialog"
+          aria-modal="true"
+          [attr.aria-label]="title"
+          (click)="$event.stopPropagation()"
+        >
           <header class="editor-header">
             <div>
-              <p class="kicker">{{ mode === "review" ? loc.t("common.crawlReview") : loc.t("common.catalogProduct") }}</p>
+              <p class="kicker">
+                {{
+                  mode === "review" ? loc.t("common.crawlReview") : loc.t("common.catalogProduct")
+                }}
+              </p>
               <h2>{{ title }}</h2>
               <p class="muted">{{ subtitle }}</p>
             </div>
-            <button class="icon-button" type="button" [title]="loc.t('common.close')" [attr.aria-label]="loc.t('common.closeEditor')" (click)="close.emit()">x</button>
+            <button
+              class="icon-button"
+              type="button"
+              [title]="loc.t('common.close')"
+              [attr.aria-label]="loc.t('common.closeEditor')"
+              (click)="close.emit()"
+            >
+              x
+            </button>
           </header>
 
           <div class="editor-body">
@@ -37,11 +55,19 @@ type EditorMode = "catalog" | "review";
               </label>
               <label>
                 {{ loc.t("editor.brand") }}
-                <input name="brand" [(ngModel)]="draftBrandName" [placeholder]="loc.t('common.unbranded')" />
+                <input
+                  name="brand"
+                  [(ngModel)]="draftBrandName"
+                  [placeholder]="loc.t('common.unbranded')"
+                />
               </label>
               <label>
                 {{ loc.t("editor.categoryKey") }}
-                <input name="category" [(ngModel)]="draftCategoryKey" [placeholder]="loc.t('common.uncategorized')" />
+                <input
+                  name="category"
+                  [(ngModel)]="draftCategoryKey"
+                  [placeholder]="loc.t('common.uncategorized')"
+                />
               </label>
               <label>
                 {{ loc.t("editor.note") }}
@@ -58,8 +84,14 @@ type EditorMode = "catalog" | "review";
               @if (mode === "catalog" && product) {
                 <section class="context-panel" [attr.aria-label]="loc.t('editor.catalogContext')">
                   <p class="kicker">{{ loc.t("editor.catalogContext") }}</p>
-                  <p class="muted">{{ validationStatusLabel(product.validationStatus) }} · {{ product.sourceNames.join(", ") || loc.t("common.noSource") }}</p>
-                  <p class="muted">{{ product.offers.length }} {{ loc.t("common.offers") }} · {{ product.tagKeys.length }} {{ loc.t("common.tags") }}</p>
+                  <p class="muted">
+                    {{ validationStatusLabel(product.validationStatus) }} ·
+                    {{ product.sourceNames.join(", ") || loc.t("common.noSource") }}
+                  </p>
+                  <p class="muted">
+                    {{ product.offers.length }} {{ loc.t("common.offers") }} ·
+                    {{ product.tagKeys.length }} {{ loc.t("common.tags") }}
+                  </p>
                 </section>
               }
             </form>
@@ -94,7 +126,9 @@ type EditorMode = "catalog" | "review";
               @if (jsonError()) {
                 <p class="error-text">{{ jsonError() }}</p>
               }
-              <button class="secondary-button" type="button" (click)="applyJson()">{{ loc.t("common.applyJson") }}</button>
+              <button class="secondary-button" type="button" (click)="applyJson()">
+                {{ loc.t("common.applyJson") }}
+              </button>
             </aside>
           </div>
 
@@ -105,14 +139,50 @@ type EditorMode = "catalog" | "review";
                   <option [ngValue]="reason">{{ declineReasonLabel(reason) }}</option>
                 }
               </select>
-              <button class="secondary-button" type="button" (click)="emitReviewPatch()">{{ loc.t("common.saveDraft") }}</button>
-              <button class="danger-button" type="button" (click)="declineReview.emit({ id: reviewItem.id, note: draftNote || null, reason: declineReason })">{{ loc.t("common.decline") }}</button>
-              <button class="primary-button" type="button" (click)="acceptReview.emit({ id: reviewItem.id, note: draftNote || null })">{{ loc.t("common.accept") }}</button>
+              <button class="secondary-button" type="button" (click)="emitReviewPatch()">
+                {{ loc.t("common.saveDraft") }}
+              </button>
+              <button
+                class="danger-button"
+                type="button"
+                (click)="
+                  declineReview.emit({
+                    id: reviewItem.id,
+                    note: draftNote || null,
+                    reason: declineReason
+                  })
+                "
+              >
+                {{ loc.t("common.decline") }}
+              </button>
+              <button
+                class="primary-button"
+                type="button"
+                (click)="acceptReview.emit({ id: reviewItem.id, note: draftNote || null })"
+              >
+                {{ loc.t("common.accept") }}
+              </button>
             } @else if (mode === "catalog" && product) {
-              <button class="danger-button" type="button" (click)="deleteProduct.emit(product.id)">{{ loc.t("common.delete") }}</button>
-              <button class="secondary-button" type="button" (click)="invalidateProduct.emit({ id: product.id, note: draftNote || null })">{{ loc.t("common.invalidate") }}</button>
-              <button class="secondary-button" type="button" (click)="validateProduct.emit({ id: product.id, note: draftNote || null })">{{ loc.t("common.validate") }}</button>
-              <button class="primary-button" type="button" (click)="emitProductSave()">{{ loc.t("common.save") }}</button>
+              <button class="danger-button" type="button" (click)="deleteProduct.emit(product.id)">
+                {{ loc.t("common.delete") }}
+              </button>
+              <button
+                class="secondary-button"
+                type="button"
+                (click)="invalidateProduct.emit({ id: product.id, note: draftNote || null })"
+              >
+                {{ loc.t("common.invalidate") }}
+              </button>
+              <button
+                class="secondary-button"
+                type="button"
+                (click)="validateProduct.emit({ id: product.id, note: draftNote || null })"
+              >
+                {{ loc.t("common.validate") }}
+              </button>
+              <button class="primary-button" type="button" (click)="emitProductSave()">
+                {{ loc.t("common.save") }}
+              </button>
             }
           </footer>
         </article>
@@ -139,8 +209,8 @@ type EditorMode = "catalog" | "review";
         box-shadow: 0 1.4rem 4rem color-mix(in srgb, black 24%, transparent);
         display: grid;
         gap: var(--space-4);
-        max-height: min(92vh, 58rem);
-        max-width: min(94vw, 74rem);
+        max-height: min(94vh, 70rem);
+        max-width: min(96vw, 92rem);
         overflow: auto;
         padding: 1rem;
         width: 100%;
@@ -198,8 +268,8 @@ type EditorMode = "catalog" | "review";
       input,
       select,
       textarea {
-        background: color-mix(in srgb, var(--color-background-soft) 74%, white 26%);
-        border: 1px solid color-mix(in srgb, var(--color-wood) 26%, transparent);
+        background: var(--form-field-background);
+        border: 1px solid var(--line-subtle);
         border-radius: var(--radius-ui);
         color: var(--color-text);
         font: inherit;
@@ -213,7 +283,7 @@ type EditorMode = "catalog" | "review";
       }
 
       pre {
-        background: color-mix(in srgb, var(--color-background-soft) 68%, white 32%);
+        background: var(--surface-soft-background);
         border-radius: var(--radius-ui);
         color: var(--color-text-muted);
         margin: 0;
@@ -265,7 +335,9 @@ type EditorMode = "catalog" | "review";
 
       .icon-button {
         aspect-ratio: 1;
-        background: color-mix(in srgb, var(--color-background-soft) 78%, white 22%);
+        background: var(--control-quiet-background);
+        border: 1px solid var(--control-quiet-border);
+        color: var(--control-quiet-text);
         padding: 0;
         width: 2.25rem;
       }
@@ -276,8 +348,9 @@ type EditorMode = "catalog" | "review";
       }
 
       .secondary-button {
-        background: color-mix(in srgb, var(--color-accent-sky) 22%, white 78%);
-        color: var(--color-text);
+        background: var(--control-quiet-background);
+        border: 1px solid var(--control-quiet-border);
+        color: var(--control-quiet-text);
       }
 
       .danger-button {
@@ -309,11 +382,18 @@ export class ProductEditorDialogComponent {
   @Input() open = false;
   @Output() readonly acceptReview = new EventEmitter<{ id: string; note: string | null }>();
   @Output() readonly close = new EventEmitter<void>();
-  @Output() readonly declineReview = new EventEmitter<{ id: string; note: string | null; reason: ProductReviewDecisionReason }>();
+  @Output() readonly declineReview = new EventEmitter<{
+    id: string;
+    note: string | null;
+    reason: ProductReviewDecisionReason;
+  }>();
   @Output() readonly deleteProduct = new EventEmitter<string>();
   @Output() readonly invalidateProduct = new EventEmitter<{ id: string; note: string | null }>();
   @Output() readonly saveProduct = new EventEmitter<CatalogProductListItem>();
-  @Output() readonly updateReviewCandidate = new EventEmitter<{ candidate: ProductReviewCandidateDraft; id: string }>();
+  @Output() readonly updateReviewCandidate = new EventEmitter<{
+    candidate: ProductReviewCandidateDraft;
+    id: string;
+  }>();
   @Output() readonly validateProduct = new EventEmitter<{ id: string; note: string | null }>();
 
   readonly declineReasons = productReviewDecisionReasons;
@@ -359,7 +439,9 @@ export class ProductEditorDialogComponent {
   }
 
   get title(): string {
-    return this.mode === "review" ? this.draftName || this.loc.t("editor.reviewProduct") : this.draftName || this.loc.t("editor.editProduct");
+    return this.mode === "review"
+      ? this.draftName || this.loc.t("editor.reviewProduct")
+      : this.draftName || this.loc.t("editor.editProduct");
   }
 
   get subtitle(): string {
@@ -367,7 +449,9 @@ export class ProductEditorDialogComponent {
       return `${this.reviewItem.sourceName} · ${this.candidateMatchLabel(this.reviewItem.candidateMatch)} · ${this.reviewStatusLabel(this.reviewItem.status)}`;
     }
 
-    return this.product ? `${this.product.id} · ${this.validationStatusLabel(this.product.validationStatus)}` : "";
+    return this.product
+      ? `${this.product.id} · ${this.validationStatusLabel(this.product.validationStatus)}`
+      : "";
   }
 
   candidateMatchLabel(match: ProductReviewCandidateDraft["matchConfidence"]): string {
@@ -425,9 +509,10 @@ export class ProductEditorDialogComponent {
     const priceObservations = this.readArrayField(parsed, "priceObservations");
     priceObservations.push({
       currencyCode: "HUF",
-      observedAt: this.mode === "review"
-        ? this.reviewItem?.candidate.origin.capturedAt ?? ""
-        : new Date().toISOString(),
+      observedAt:
+        this.mode === "review"
+          ? (this.reviewItem?.candidate.origin.capturedAt ?? "")
+          : new Date().toISOString(),
       price: 0
     });
     parsed["priceObservations"] = priceObservations;
@@ -445,9 +530,10 @@ export class ProductEditorDialogComponent {
       return;
     }
 
-    const measurements = this.mode === "review"
-      ? this.readProductArrayField(parsed, "measurements")
-      : this.readArrayField(parsed, "measurements");
+    const measurements =
+      this.mode === "review"
+        ? this.readProductArrayField(parsed, "measurements")
+        : this.readArrayField(parsed, "measurements");
     measurements.push({
       unit: "",
       value: 0
@@ -520,7 +606,7 @@ export class ProductEditorDialogComponent {
     try {
       const parsed = JSON.parse(this.jsonText) as unknown;
       return parsed && typeof parsed === "object" && !Array.isArray(parsed)
-        ? parsed as Record<string, unknown>
+        ? (parsed as Record<string, unknown>)
         : null;
     } catch {
       return null;
@@ -532,10 +618,13 @@ export class ProductEditorDialogComponent {
     return Array.isArray(field) ? field : [];
   }
 
-  private readObjectField(value: Record<string, unknown> | null, key: string): Record<string, unknown> | null {
+  private readObjectField(
+    value: Record<string, unknown> | null,
+    key: string
+  ): Record<string, unknown> | null {
     const field = value?.[key];
     return field && typeof field === "object" && !Array.isArray(field)
-      ? field as Record<string, unknown>
+      ? (field as Record<string, unknown>)
       : null;
   }
 

@@ -11,4 +11,4 @@ This folder contains Angular application code grouped by product concern.
 - `site-admin/`: product merge review, source-product maintenance, stock staleness, and ingestion/operator screens.
 - `dev-admin/`: health checks, diagnostics, database smoke status, seed status, and developer/admin troubleshooting.
 
-Keep shared shell, routing, auth, and logging files in `src/app/` only when they are genuinely cross-cutting. New functional pages should live in the matching concern folder.
+Keep shared shell, routing, auth, and logging files in `src/app/` only when they are genuinely cross-cutting. New functional pages should live in the matching concern folder. Keep a one-off component local; extract it when responsibility or reuse is proven.

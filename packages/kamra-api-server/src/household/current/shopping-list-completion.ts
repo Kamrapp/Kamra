@@ -64,18 +64,21 @@ export function buildShoppingListStockUpdatePlan(
     };
   }
 
-  if (input.confirmationMode === "tick_all_and_update" && !input.allowAutoTickingAllShoppingListEntries) {
+  if (
+    input.confirmationMode === "tick_all_and_update" &&
+    !input.allowAutoTickingAllShoppingListEntries
+  ) {
     throw new Error("Tick-all stock updates are disabled.");
   }
 
   const itemsToApply = pendingItems.filter((item) =>
-    input.confirmationMode === "tick_all_and_update"
-      ? true
-      : item.ticked
+    input.confirmationMode === "tick_all_and_update" ? true : item.ticked
   );
 
   const stockById = new Map(input.stockPage.stockItems.map((item) => [item.id, item]));
-  const stockByProductId = new Map(input.stockPage.stockItems.map((item) => [item.householdProductId, item]));
+  const stockByProductId = new Map(
+    input.stockPage.stockItems.map((item) => [item.householdProductId, item])
+  );
 
   const stockUpdates: ShoppingListStockMutationPlan["stockUpdates"] = [];
   const stockCreates: ShoppingListStockMutationPlan["stockCreates"] = [];

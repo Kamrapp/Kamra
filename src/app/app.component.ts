@@ -1,24 +1,20 @@
 import { Component, computed, effect, inject, signal, type OnInit } from "@angular/core";
-import {
-  NavigationEnd,
-  Router,
-  RouterLink,
-  RouterLinkActive,
-  RouterOutlet
-} from "@angular/router";
+import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from "@angular/router";
 
 import { BrowserLoggerService } from "./browser-logger.service";
 import { AuthService } from "./auth.service";
 import { PageRailService } from "./shared/page-rail.service";
 import { PageRailOutletComponent } from "./shared/page-rail-outlet.component";
-import {
-  LocalizationService,
-  type LanguagePreference
-} from "./shared/localization.service";
+import { ClientConsoleWindowComponent } from "./shared/client-console-window.component";
+import { LocalizationService, type LanguagePreference } from "./shared/localization.service";
+import { NavigationHistoryService } from "./shared/navigation-history.service";
 import { ThemePreferenceService, type ThemePreference } from "./shared/theme-preference.service";
 import { ToastHostComponent } from "./shared/toast-host.component";
 import { ToastService } from "./shared/toast.service";
-import { RadialNavigationComponent, type RadialNavigationItem } from "./shared/radial-navigation.component";
+import {
+  RadialNavigationComponent,
+  type RadialNavigationItem
+} from "./shared/radial-navigation.component";
 import {
   ShellAccountPanelComponent,
   type ShellLoginCredentials
@@ -29,7 +25,16 @@ interface ShellMenuItem extends RadialNavigationItem {
 }
 
 @Component({
-  imports: [PageRailOutletComponent, RadialNavigationComponent, RouterLink, RouterLinkActive, RouterOutlet, ShellAccountPanelComponent, ToastHostComponent],
+  imports: [
+    ClientConsoleWindowComponent,
+    PageRailOutletComponent,
+    RadialNavigationComponent,
+    RouterLink,
+    RouterLinkActive,
+    RouterOutlet,
+    ShellAccountPanelComponent,
+    ToastHostComponent
+  ],
   selector: "app-root",
   standalone: true,
   template: `
@@ -37,13 +42,7 @@ interface ShellMenuItem extends RadialNavigationItem {
       <aside class="left-rail" [attr.aria-label]="loc.t('app.context')">
         <a class="brand-card" routerLink="/" [attr.aria-label]="loc.t('app.home')">
           <span class="brand-line">
-            <img
-              class="brand-mark"
-              src="/brand/kamra-basket.png"
-              alt=""
-              width="72"
-              height="72"
-            />
+            <img class="brand-mark" src="/brand/kamra-basket.png" alt="" width="72" height="72" />
             <span class="brand-name">Kamra</span>
           </span>
           <span class="brand-title">{{ loc.t("app.brandTitle") }}</span>
@@ -55,6 +54,30 @@ interface ShellMenuItem extends RadialNavigationItem {
         </section>
 
         <app-page-rail-outlet [resetToken]="railResetToken()" [sections]="pageRail.sections()" />
+        <div class="rail-bottom-tools">
+          <section class="rail-navigation" [attr.aria-label]="loc.t('app.navigation')">
+            <button
+              class="rail-navigation-button"
+              type="button"
+              [disabled]="!navigationHistory.canGoBack()"
+              [attr.aria-label]="loc.t('app.navigateBack')"
+              (click)="navigateHistory('back')"
+            >
+              ←
+            </button>
+            <span>{{ loc.t("app.navigation") }}</span>
+            <button
+              class="rail-navigation-button"
+              type="button"
+              [disabled]="!navigationHistory.canGoForward()"
+              [attr.aria-label]="loc.t('app.navigateForward')"
+              (click)="navigateHistory('forward')"
+            >
+              →
+            </button>
+          </section>
+          <app-client-console-window />
+        </div>
       </aside>
 
       <section class="page-body" [attr.aria-label]="loc.t('app.currentPage')">
@@ -73,20 +96,36 @@ interface ShellMenuItem extends RadialNavigationItem {
           (languageChanged)="setLanguage($event)"
           (loginRequested)="login($event)"
           (logoutRequested)="logout()"
+          (registerRequested)="register($event)"
+          (invitationAccepted)="invitationAccepted($event)"
           (themeChanged)="setTheme($event)"
         />
 
-        <a
-          class="about-rail-card"
-          routerLink="/about"
-          routerLinkActive="active"
-          [routerLinkActiveOptions]="{ exact: true }"
-          [attr.aria-label]="loc.t('about.railTitle')"
-        >
-          <p class="rail-kicker">{{ loc.t("about.railKicker") }}</p>
-          <p class="about-rail-title">{{ loc.t("about.railTitle") }}</p>
-          <p class="about-rail-copy">{{ loc.t("about.railBody") }}</p>
-        </a>
+        <div class="rail-reference-links">
+          <a
+            class="about-rail-card manual-rail-card"
+            routerLink="/manual"
+            routerLinkActive="active"
+            [routerLinkActiveOptions]="{ exact: true }"
+            [attr.aria-label]="loc.t('manual.railTitle')"
+          >
+            <p class="rail-kicker">{{ loc.t("manual.railKicker") }}</p>
+            <p class="about-rail-title">{{ loc.t("manual.railTitle") }}</p>
+            <p class="about-rail-copy">{{ loc.t("manual.railBody") }}</p>
+          </a>
+
+          <a
+            class="about-rail-card"
+            routerLink="/about"
+            routerLinkActive="active"
+            [routerLinkActiveOptions]="{ exact: true }"
+            [attr.aria-label]="loc.t('about.railTitle')"
+          >
+            <p class="rail-kicker">{{ loc.t("about.railKicker") }}</p>
+            <p class="about-rail-title">{{ loc.t("about.railTitle") }}</p>
+            <p class="about-rail-copy">{{ loc.t("about.railBody") }}</p>
+          </a>
+        </div>
       </aside>
 
       <app-toast-host />
@@ -117,7 +156,8 @@ interface ShellMenuItem extends RadialNavigationItem {
       .left-rail,
       .right-rail {
         align-content: start;
-        display: grid;
+        display: flex;
+        flex-direction: column;
         gap: var(--space-3);
         min-height: 0;
         min-width: 0;
@@ -128,6 +168,48 @@ interface ShellMenuItem extends RadialNavigationItem {
         overflow: auto;
         padding-right: 0.15rem;
         scrollbar-gutter: stable;
+      }
+
+      .rail-navigation {
+        align-items: center;
+        background: var(--surface-shell-background);
+        border: 1px solid var(--line-panel);
+        border-radius: var(--radius-ui);
+        box-shadow: var(--surface-shell-shadow);
+        display: grid;
+        gap: 0.45rem;
+        grid-template-columns: 2rem minmax(0, 1fr) 2rem;
+        padding: 0.3rem;
+      }
+
+      .rail-bottom-tools {
+        display: grid;
+        gap: var(--space-3);
+        margin-top: auto;
+      }
+
+      .rail-navigation-button {
+        background: var(--surface-soft-background);
+        border: 1px solid var(--line-subtle);
+        border-radius: var(--radius-ui);
+        color: var(--color-text);
+        cursor: pointer;
+        font: inherit;
+        font-weight: 900;
+        min-height: 1.8rem;
+      }
+
+      .rail-navigation button:disabled {
+        cursor: not-allowed;
+        opacity: 0.42;
+      }
+
+      .rail-navigation span {
+        color: var(--color-text-muted);
+        font-size: 0.7rem;
+        font-weight: 800;
+        text-align: center;
+        text-transform: uppercase;
       }
 
       .brand-card,
@@ -186,17 +268,25 @@ interface ShellMenuItem extends RadialNavigationItem {
       }
 
       .about-rail-card {
-        background:
-          linear-gradient(180deg, color-mix(in srgb, var(--color-accent-sky) 15%, var(--surface-shell-background)) 0%, var(--surface-shell-background) 100%);
+        background: linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--color-accent-sky) 15%, var(--surface-shell-background)) 0%,
+          var(--surface-shell-background) 100%
+        );
         color: inherit;
         display: grid;
         gap: 0.35rem;
-        margin-top: auto;
         padding: 0.85rem 0.95rem;
-        position: sticky;
         text-decoration: none;
-        top: calc(100dvh - 9.5rem);
-        transition: border-color 160ms ease, transform 180ms ease;
+        transition:
+          border-color 160ms ease,
+          transform 180ms ease;
+      }
+
+      .rail-reference-links {
+        display: grid;
+        gap: var(--space-3);
+        margin-top: auto;
       }
 
       .about-rail-card:hover,
@@ -260,6 +350,11 @@ interface ShellMenuItem extends RadialNavigationItem {
         scrollbar-gutter: stable both-edges;
       }
 
+      /* The outlet is an Angular insertion marker, not a page row of its own. */
+      .page-scroll > router-outlet {
+        display: contents;
+      }
+
       @media (max-width: 1180px) {
         .shell {
           grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -319,7 +414,6 @@ interface ShellMenuItem extends RadialNavigationItem {
         .page-body {
           grid-row: 3;
         }
-
       }
     `
   ]
@@ -328,6 +422,7 @@ export class AppComponent implements OnInit {
   readonly auth = inject(AuthService);
   readonly logger = inject(BrowserLoggerService);
   readonly loc = inject(LocalizationService);
+  readonly navigationHistory = inject(NavigationHistoryService);
   readonly pageRail = inject(PageRailService);
   readonly theme = inject(ThemePreferenceService);
   readonly toast = inject(ToastService);
@@ -351,7 +446,8 @@ export class AppComponent implements OnInit {
     {
       angle: 195,
       exact: false,
-      iconPath: "M12 2 4 5v6c0 5 3.4 9.7 8 11 4.6-1.3 8-6 8-11V5l-8-3Zm0 2.1 6 2.25v4.53c0 3.9-2.44 7.54-6 8.88-3.56-1.34-6-4.98-6-8.88V6.35L12 4.1Zm-1 3.4h2v4h-2v-4Zm0 5h2v2h-2v-2Z",
+      iconPath:
+        "M12 2 4 5v6c0 5 3.4 9.7 8 11 4.6-1.3 8-6 8-11V5l-8-3Zm0 2.1 6 2.25v4.53c0 3.9-2.44 7.54-6 8.88-3.56-1.34-6-4.98-6-8.88V6.35L12 4.1Zm-1 3.4h2v4h-2v-4Zm0 5h2v2h-2v-2Z",
       labelKey: "common.devAdmin",
       path: "/dev-admin",
       requiresAdmin: true
@@ -367,7 +463,7 @@ export class AppComponent implements OnInit {
       angle: 135,
       exact: false,
       iconPath: "M4 5H20V9H4V5ZM6 11H18V14H6V11ZM8 16H16V19H8V16Z",
-      labelKey: "common.siteAdmin",
+      labelKey: "common.ingestionManagement",
       path: "/site-admin/ingestion",
       requiresAdmin: true
     }
@@ -377,6 +473,7 @@ export class AppComponent implements OnInit {
   constructor() {
     this.router.events.subscribe((event) => {
       if (event instanceof NavigationEnd) {
+        this.navigationHistory.record(event.urlAfterRedirects);
         this.updateCurrentPageTitle(event.urlAfterRedirects);
         this.railResetToken.update((token) => token + 1);
       }
@@ -412,12 +509,41 @@ export class AppComponent implements OnInit {
       this.theme.applyUserTheme(this.auth.user()?.profile.theme);
       this.loc.applyUserLanguage(this.auth.user()?.profile.language);
       this.loginResetToken.update((token) => token + 1);
-      this.toast.push(this.loc.t("app.signedIn", { email: this.auth.user()?.email ?? email }), "success");
+      this.toast.push(
+        this.loc.t("app.signedIn", { email: this.auth.user()?.email ?? email }),
+        "success"
+      );
     } catch {
       this.toast.push(this.loc.t("app.loginFailure"), "error");
     } finally {
       this.loginState.set("idle");
     }
+  }
+
+  async register(credentials: ShellLoginCredentials): Promise<void> {
+    this.loginState.set("loading");
+    try {
+      const result = await this.auth.register(credentials.email, credentials.password);
+
+      if (result.status === "error") {
+        this.toast.push(result.message, "error");
+        return;
+      }
+
+      this.theme.applyUserTheme(this.auth.user()?.profile.theme);
+      this.loc.applyUserLanguage(this.auth.user()?.profile.language);
+      this.loginResetToken.update((token) => token + 1);
+      this.toast.push(this.loc.t("app.registrationCompleted"), "success");
+    } catch {
+      this.toast.push(this.loc.t("app.registrationFailure"), "error");
+    } finally {
+      this.loginState.set("idle");
+    }
+  }
+
+  async invitationAccepted(householdId: string): Promise<void> {
+    this.toast.push(this.loc.t("app.invitationAccepted"), "success");
+    await this.router.navigateByUrl(`/household/${encodeURIComponent(householdId)}`);
   }
 
   async logout(): Promise<void> {
@@ -427,6 +553,14 @@ export class AppComponent implements OnInit {
     this.loc.applyUserLanguage(undefined);
     await this.router.navigateByUrl("/");
     this.toast.push(this.loc.t("app.signedOut"), "success");
+  }
+
+  navigateHistory(direction: "back" | "forward"): void {
+    const target =
+      direction === "back"
+        ? this.navigationHistory.backTarget()
+        : this.navigationHistory.forwardTarget();
+    if (target) void this.router.navigateByUrl(target);
   }
 
   async setTheme(theme: ThemePreference): Promise<void> {
@@ -464,7 +598,7 @@ export class AppComponent implements OnInit {
 
   private pageTitleForUrl(url: string): string {
     if (url.startsWith("/site-admin/ingestion")) {
-      return this.loc.t("common.siteAdmin");
+      return this.loc.t("common.ingestionManagement");
     }
 
     if (url.startsWith("/product-lookup")) {
@@ -473,6 +607,10 @@ export class AppComponent implements OnInit {
 
     if (url.startsWith("/about")) {
       return this.loc.t("about.pageTitle");
+    }
+
+    if (url.startsWith("/manual")) {
+      return this.loc.t("manual.pageTitle");
     }
 
     if (url.startsWith("/dev-admin") || url.startsWith("/health")) {

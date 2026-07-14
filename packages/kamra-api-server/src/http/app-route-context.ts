@@ -1,4 +1,5 @@
 import type { Db } from "mongodb";
+import type { MongoTransactionClientLike } from "../db/mongo-like.js";
 
 import type { AuthenticatedUser, UserRepository } from "../auth/user-auth.js";
 import { verifyUserToken } from "../auth/user-token.js";
@@ -43,9 +44,7 @@ export interface AppResponse {
 }
 
 export type UnauthorizedMessageKey =
-  | "apiErrors.adminRequired"
-  | "apiErrors.preferencesSignInRequired"
-  | "apiErrors.signInRequired";
+  "apiErrors.adminRequired" | "apiErrors.preferencesSignInRequired" | "apiErrors.signInRequired";
 
 export interface RequestLogDetails {
   requestMethod: string;
@@ -121,7 +120,12 @@ export interface AppHandlerDependencies {
       candidate: ProductReviewCandidateDraft;
     }): Promise<PreviewCatalogProductFromReviewCandidateResult>;
     findCatalogProductForReview?(id: string): Promise<CatalogProductListItem | null>;
-    listCatalogProductsForReview(options?: { limit?: number; nameIncludes?: string; offset?: number; sourceNames?: string[] }): Promise<{
+    listCatalogProductsForReview(options?: {
+      limit?: number;
+      nameIncludes?: string;
+      offset?: number;
+      sourceNames?: string[];
+    }): Promise<{
       products: unknown[];
       totalCount: number;
     }>;
@@ -151,7 +155,12 @@ export interface AppHandlerDependencies {
   createIngestionRepository?: (database: Db) => {
     findRawSnapshotById(id: string): Promise<IngestionRawSnapshotRecord | null>;
     findProductReviewItemById?(id: string): Promise<IngestionProductReviewItemRecord | null>;
-    listRawSnapshots(options?: { limit?: number; offset?: number; sourceNames?: string[]; sourceName?: string }): Promise<IngestionRawSnapshotRecord[]>;
+    listRawSnapshots(options?: {
+      limit?: number;
+      offset?: number;
+      sourceNames?: string[];
+      sourceName?: string;
+    }): Promise<IngestionRawSnapshotRecord[]>;
     listRawSnapshotSourceNames?(): Promise<string[]>;
     listProductReviewItems?(options?: {
       limit?: number;
@@ -171,7 +180,9 @@ export interface AppHandlerDependencies {
       reviewerName: string;
       status: "accepted" | "declined";
     }): Promise<boolean>;
-    prepareProductReviewItems?(snapshot: IngestionRawSnapshotRecord): Promise<IngestionProductReviewItemRecord[]>;
+    prepareProductReviewItems?(
+      snapshot: IngestionRawSnapshotRecord
+    ): Promise<IngestionProductReviewItemRecord[]>;
     setupCollections?(): Promise<unknown>;
     updateProductReviewItemCandidate?(input: {
       candidate: ProductReviewCandidateDraft;
@@ -179,7 +190,10 @@ export interface AppHandlerDependencies {
       updatedAt: string;
     }): Promise<boolean>;
   };
-  createUserRepository?: (database: Db) => UserRepository;
+  createUserRepository?: (
+    database: Db,
+    transactionClient?: MongoTransactionClientLike
+  ) => UserRepository;
   getMongoClient?: typeof getMongoClient;
 }
 
@@ -227,7 +241,9 @@ export function empty(status: number): AppResponse {
   };
 }
 
-export function unauthorized(messageKey: UnauthorizedMessageKey = "apiErrors.signInRequired"): AppResponse {
+export function unauthorized(
+  messageKey: UnauthorizedMessageKey = "apiErrors.signInRequired"
+): AppResponse {
   return json(401, {
     error: "unauthorized",
     messageKey
@@ -256,9 +272,7 @@ function getHeader(headers: AppRequest["headers"], name: string): string | null 
       continue;
     }
 
-    return Array.isArray(headerValue)
-      ? headerValue[0] ?? null
-      : headerValue ?? null;
+    return Array.isArray(headerValue) ? (headerValue[0] ?? null) : (headerValue ?? null);
   }
 
   return null;
@@ -271,9 +285,8 @@ function inferRequestUrl(request: AppRequest, fallbackUrl: string | null): strin
   const queryString = toQueryString(request.query);
 
   if (host) {
-    const protocol = forwardedProto && forwardedProto.length > 0
-      ? forwardedProto.split(",")[0]!.trim()
-      : "https";
+    const protocol =
+      forwardedProto && forwardedProto.length > 0 ? forwardedProto.split(",")[0]!.trim() : "https";
 
     return `${protocol}://${host}${request.path}${queryString}`;
   }
@@ -311,9 +324,7 @@ function toQueryString(query: AppRequest["query"]): string {
   }
 
   const serialized = searchParams.toString();
-  return serialized.length > 0
-    ? `?${serialized}`
-    : "";
+  return serialized.length > 0 ? `?${serialized}` : "";
 }
 
 function getBearerToken(request: AppRequest): string | null {
@@ -330,10 +341,7 @@ function getBearerToken(request: AppRequest): string | null {
   return token;
 }
 
-function authenticateRequestUser(
-  request: AppRequest,
-  config: AppConfig
-): AuthenticatedUser | null {
+function authenticateRequestUser(request: AppRequest, config: AppConfig): AuthenticatedUser | null {
   if (!config.auth.tokenSecret) {
     return null;
   }

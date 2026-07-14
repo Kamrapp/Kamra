@@ -55,7 +55,9 @@ export async function runAdminIdentitySeed(
     : false;
 
   const outcome: AdminIdentitySeedResult["outcome"] = existingAdmin
-    ? passwordMatches ? "unchanged" : "password_rotated"
+    ? passwordMatches
+      ? "unchanged"
+      : "password_rotated"
     : "created";
 
   if (outcome !== "unchanged") {
@@ -86,9 +88,7 @@ export async function runAdminIdentitySeed(
   return result;
 }
 
-export function createAdminUserSeed(
-  repository: AdminIdentitySeedRepository
-): SeedDefinition {
+export function createAdminUserSeed(repository: AdminIdentitySeedRepository): SeedDefinition {
   return {
     configured: isAdminUserSeedConfigured,
     label: "admin user",
@@ -111,16 +111,19 @@ export function createAdminUserSeed(
 }
 
 function isAdminUserSeedConfigured(env: NodeJS.ProcessEnv): boolean {
-  return Boolean(readSeedEnvValue(env, seedAdminUserUsernameEnvName) && env[seedAdminUserPasswordEnvName]);
+  return Boolean(
+    readSeedEnvValue(env, seedAdminUserUsernameEnvName) && env[seedAdminUserPasswordEnvName]
+  );
 }
 
 async function readAdminIdentitySeedInput(
   context: SeedExecutionContext
 ): Promise<AdminIdentitySeedInput> {
-  const username = readSeedEnvValue(context.env, seedAdminUserUsernameEnvName)
-    ?? await context.prompt.text("Admin username");
-  const password = context.env[seedAdminUserPasswordEnvName]
-    ?? await context.prompt.secret("Admin password");
+  const username =
+    readSeedEnvValue(context.env, seedAdminUserUsernameEnvName) ??
+    (await context.prompt.text("Admin username"));
+  const password =
+    context.env[seedAdminUserPasswordEnvName] ?? (await context.prompt.secret("Admin password"));
 
   if (!username.trim()) {
     throw new Error(`${seedAdminUserUsernameEnvName} is required for the admin user seed.`);

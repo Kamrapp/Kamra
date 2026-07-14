@@ -78,7 +78,10 @@ function assertIsoDateString(value: unknown, label: string): asserts value is st
   }
 }
 
-export function assertRecordOrigin(value: unknown, label = "origin"): asserts value is RecordOrigin {
+export function assertRecordOrigin(
+  value: unknown,
+  label = "origin"
+): asserts value is RecordOrigin {
   assertObject(value, label);
   assertIsoDateString(value["capturedAt"], `${label}.capturedAt`);
   assertEnum(value["kind"], recordOriginKinds, `${label}.kind`);
@@ -101,7 +104,10 @@ export function assertProductMeasurement(
   assertNumber(value["value"], `${label}.value`);
 }
 
-export function assertProductRecord(value: unknown, label = "product"): asserts value is ProductRecord {
+export function assertProductRecord(
+  value: unknown,
+  label = "product"
+): asserts value is ProductRecord {
   assertObject(value, label);
   assertOptionalString(value["brandName"], `${label}.brandName`);
   assertIsoDateString(value["createdAt"], `${label}.createdAt`);
@@ -176,7 +182,10 @@ export function assertProductSourceRecord(
   assertIsoDateString(value["updatedAt"], `${label}.updatedAt`);
 }
 
-export function assertProductTagRecord(value: unknown, label = "productTag"): asserts value is ProductTagRecord {
+export function assertProductTagRecord(
+  value: unknown,
+  label = "productTag"
+): asserts value is ProductTagRecord {
   assertObject(value, label);
   assertIsoDateString(value["createdAt"], `${label}.createdAt`);
   assertNonEmptyString(value["id"], `${label}.id`);
@@ -225,7 +234,10 @@ export function assertMoneyAmount(value: unknown, label = "money"): asserts valu
   assertNonEmptyString(value["currencyCode"], `${label}.currencyCode`);
 }
 
-export function assertStockPrice(value: unknown, label = "stockPrice"): asserts value is StockPrice {
+export function assertStockPrice(
+  value: unknown,
+  label = "stockPrice"
+): asserts value is StockPrice {
   assertObject(value, label);
   assertIsoDateString(value["observedAt"], `${label}.observedAt`);
   assertMoneyAmount(value["price"], `${label}.price`);
@@ -374,7 +386,10 @@ export function assertCatalogV1SeedDataset(
 
   assertArray(value["sourceRecordProcessingStates"], `${label}.sourceRecordProcessingStates`);
   value["sourceRecordProcessingStates"].forEach((item, index) => {
-    assertSourceRecordProcessingStateRecord(item, `${label}.sourceRecordProcessingStates[${index}]`);
+    assertSourceRecordProcessingStateRecord(
+      item,
+      `${label}.sourceRecordProcessingStates[${index}]`
+    );
   });
 
   assertArray(value["stocks"], `${label}.stocks`);
@@ -382,4 +397,3 @@ export function assertCatalogV1SeedDataset(
     assertStockRecord(item, `${label}.stocks[${index}]`);
   });
 }
-

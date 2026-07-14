@@ -37,6 +37,8 @@ describe("SimpleHtmlTableShop source", () => {
 
   it("uses a stable content hash for idempotency", () => {
     expect(hashSourceContent(simpleHtmlTableShopFixture)).toHaveLength(64);
-    expect(hashSourceContent(simpleHtmlTableShopFixture)).toBe(hashSourceContent(simpleHtmlTableShopFixture));
+    expect(hashSourceContent(simpleHtmlTableShopFixture)).toBe(
+      hashSourceContent(simpleHtmlTableShopFixture)
+    );
   });
 });

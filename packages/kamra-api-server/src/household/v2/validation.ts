@@ -1,0 +1,445 @@
+import {
+  householdProductIdentityKinds,
+  trackingUnits,
+  type AcceptanceCriteria,
+  type CreateHouseholdProductRequest,
+  type CreateManualStockBatchRequest,
+  type CreateProductGroupRequest,
+  type CreateStockTargetRequest,
+  type ProductGroup,
+  type StockAllocation,
+  type StockBatch,
+  type StockTarget,
+  type TargetPolicy,
+  type TrackingUnit
+} from "./contracts.js";
+import {
+  groupTargetShoppingDistributionModeOverrides,
+  groupTargetShoppingModeOverrides
+} from "../shopping-policy.js";
+
+export function assertGroupShoppingOverrides(value: unknown, label = "productGroup"): void {
+  if (value === undefined || value === null) return;
+  assertValue(
+    groupTargetShoppingModeOverrides.includes(value as never),
+    `${label}.groupTargetShoppingModeOverride is invalid`
+  );
+}
+
+export function assertGroupShoppingDistributionOverride(
+  value: unknown,
+  label = "productGroup"
+): void {
+  if (value === undefined || value === null) return;
+  assertValue(
+    groupTargetShoppingDistributionModeOverrides.includes(value as never),
+    `${label}.groupTargetShoppingDistributionModeOverride is invalid`
+  );
+}
+
+function isDate(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    /^\d{4}-\d{2}-\d{2}$/.test(value) &&
+    !Number.isNaN(Date.parse(`${value}T00:00:00Z`))
+  );
+}
+function isTimestamp(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0 && !Number.isNaN(Date.parse(value));
+}
+function isQuantity(value: unknown): value is number {
+  return (
+    typeof value === "number" &&
+    Number.isFinite(value) &&
+    value >= 0 &&
+    Number.isInteger(value * 1_000_000)
+  );
+}
+function assertValue(condition: unknown, message: string): asserts condition {
+  if (!condition) throw new Error(message);
+}
+function assertRef(value: unknown, label: string): void {
+  assertValue(
+    !!value && typeof value === "object" && !Array.isArray(value),
+    `${label} must be a reference`
+  );
+  const ref = value as Record<string, unknown>;
+  assertValue(typeof ref["key"] === "string" && ref["key"].length > 0, `${label}.key is required`);
+  assertValue(
+    ref["scope"] === "catalog" || ref["scope"] === "household",
+    `${label}.scope is invalid`
+  );
+}
+function assertRefs(value: unknown, label: string): void {
+  assertValue(Array.isArray(value), `${label} must be an array`);
+  (value as unknown[]).forEach((item, index) => assertRef(item, `${label}[${index}]`));
+}
+
+export function assertTrackingUnit(value: unknown, label = "unit"): asserts value is TrackingUnit {
+  assertValue(
+    typeof value === "string" &&
+      (trackingUnits.includes(value as never) || value.startsWith("custom:")),
+    `${label} is invalid`
+  );
+}
+
+export function assertAcceptanceCriteria(
+  value: unknown,
+  label = "acceptanceCriteria"
+): asserts value is AcceptanceCriteria {
+  assertValue(
+    !!value && typeof value === "object" && !Array.isArray(value),
+    `${label} must be an object`
+  );
+  const criteria = value as Record<string, unknown>;
+  for (const key of [
+    "requiredConceptsAll",
+    "acceptedConceptsAny",
+    "requiredAttributesAll",
+    "acceptedAttributesAny",
+    "excludedAttributesAny"
+  ])
+    assertRefs(criteria[key], `${label}.${key}`);
+}
+
+export function assertStockTarget(
+  value: unknown,
+  label = "stockTarget"
+): asserts value is StockTarget {
+  assertValue(!!value && typeof value === "object", `${label} must be an object`);
+  const target = value as Record<string, unknown>;
+  for (const key of [
+    "id",
+    "householdId",
+    "displayName",
+    "createdByUserId",
+    "updatedByUserId",
+    "createdAt",
+    "updatedAt"
+  ])
+    assertValue(
+      typeof target[key] === "string" && Boolean(target[key]),
+      `${label}.${key} is required`
+    );
+  assertValue(
+    isTimestamp(target["createdAt"]) && isTimestamp(target["updatedAt"]),
+    `${label} timestamps are invalid`
+  );
+  assertTrackingUnit(target["trackingUnit"], `${label}.trackingUnit`);
+  assertValue(
+    isQuantity(target["minimumQuantity"]) && isQuantity(target["targetQuantity"]),
+    `${label} quantities are invalid`
+  );
+  assertValue(
+    (target["targetQuantity"] as number) >= (target["minimumQuantity"] as number),
+    `${label}.targetQuantity must not be below minimumQuantity`
+  );
+  assertValue(
+    Number.isInteger(target["expiryWarningDays"]) && (target["expiryWarningDays"] as number) >= 0,
+    `${label}.expiryWarningDays is invalid`
+  );
+  assertValue(
+    Number.isInteger(target["revision"]) && (target["revision"] as number) >= 0,
+    `${label}.revision is invalid`
+  );
+  assertValue(
+    target["status"] === "active" || target["status"] === "archived",
+    `${label}.status is invalid`
+  );
+  assertAcceptanceCriteria(target["acceptanceCriteria"]);
+}
+
+export function assertTargetPolicy(
+  value: unknown,
+  label = "targetPolicy"
+): asserts value is TargetPolicy {
+  assertValue(
+    !!value && typeof value === "object" && !Array.isArray(value),
+    `${label} must be an object`
+  );
+  const policy = value as Record<string, unknown>;
+  assertTrackingUnit(policy["trackingUnit"], `${label}.trackingUnit`);
+  assertValue(
+    isQuantity(policy["minimumQuantity"]) && isQuantity(policy["desiredQuantity"]),
+    `${label} quantities are invalid`
+  );
+  assertValue(
+    (policy["desiredQuantity"] as number) >= (policy["minimumQuantity"] as number),
+    `${label}.desiredQuantity must not be below minimumQuantity`
+  );
+  assertValue(
+    Number.isInteger(policy["expiryWarningDays"]) && (policy["expiryWarningDays"] as number) >= 0,
+    `${label}.expiryWarningDays is invalid`
+  );
+  assertValue(
+    policy["consumptionPolicy"] === "earliest_expiry_first" ||
+      policy["consumptionPolicy"] === "oldest_acquired_first",
+    `${label}.consumptionPolicy is invalid`
+  );
+}
+
+export function assertProductGroup(
+  value: unknown,
+  label = "productGroup"
+): asserts value is ProductGroup {
+  assertValue(
+    !!value && typeof value === "object" && !Array.isArray(value),
+    `${label} must be an object`
+  );
+  const group = value as Record<string, unknown>;
+  for (const key of [
+    "id",
+    "householdId",
+    "displayName",
+    "createdByUserId",
+    "updatedByUserId",
+    "createdAt",
+    "updatedAt"
+  ])
+    assertValue(
+      typeof group[key] === "string" && Boolean(group[key]),
+      `${label}.${key} is required`
+    );
+  assertValue(
+    isTimestamp(group["createdAt"]) && isTimestamp(group["updatedAt"]),
+    `${label} timestamps are invalid`
+  );
+  assertTrackingUnit(group["trackingUnit"], `${label}.trackingUnit`);
+  if (group["parentProductGroupId"] !== undefined && group["parentProductGroupId"] !== null)
+    assertValue(
+      typeof group["parentProductGroupId"] === "string" && Boolean(group["parentProductGroupId"]),
+      `${label}.parentProductGroupId is invalid`
+    );
+  if (group["targetPolicy"] !== undefined && group["targetPolicy"] !== null)
+    assertTargetPolicy(group["targetPolicy"], `${label}.targetPolicy`);
+  assertGroupShoppingOverrides(group["groupTargetShoppingModeOverride"], label);
+  assertGroupShoppingDistributionOverride(
+    group["groupTargetShoppingDistributionModeOverride"],
+    label
+  );
+  assertValue(
+    Number.isInteger(group["revision"]) && (group["revision"] as number) >= 0,
+    `${label}.revision is invalid`
+  );
+  assertValue(
+    group["status"] === "active" || group["status"] === "archived",
+    `${label}.status is invalid`
+  );
+}
+
+export function assertStockBatch(
+  value: unknown,
+  label = "stockBatch"
+): asserts value is StockBatch {
+  assertValue(!!value && typeof value === "object", `${label} must be an object`);
+  const batch = value as Record<string, unknown>;
+  assertValue(isDate(batch["acquiredOn"]), `${label}.acquiredOn must be a date`);
+  assertValue(
+    typeof batch["householdProductId"] === "string" && Boolean(batch["householdProductId"]),
+    `${label}.householdProductId is required`
+  );
+  assertValue(
+    batch["expiryOn"] === null || batch["expiryOn"] === undefined || isDate(batch["expiryOn"]),
+    `${label}.expiryOn must be a date or null`
+  );
+  assertValue(
+    isQuantity(batch["originalQuantity"]) &&
+      isQuantity(batch["remainingQuantity"]) &&
+      (batch["remainingQuantity"] as number) <= (batch["originalQuantity"] as number),
+    `${label} quantities are invalid`
+  );
+  assertTrackingUnit(batch["unit"], `${label}.unit`);
+  assertValue(
+    batch["status"] === "available" ||
+      batch["status"] === "depleted" ||
+      batch["status"] === "discarded" ||
+      batch["status"] === "voided",
+    `${label}.status is invalid`
+  );
+  const snapshot = batch["acquisitionSnapshot"] as Record<string, unknown> | undefined;
+  assertValue(
+    !!snapshot && typeof snapshot === "object" && typeof snapshot["displayName"] === "string",
+    `${label}.acquisitionSnapshot.displayName is required`
+  );
+  assertValue(
+    !!batch["classificationSnapshot"] && typeof batch["classificationSnapshot"] === "object",
+    `${label}.classificationSnapshot is required`
+  );
+}
+
+export function assertStockAllocation(
+  value: unknown,
+  label = "stockAllocation"
+): asserts value is StockAllocation {
+  assertValue(!!value && typeof value === "object", `${label} must be an object`);
+  const allocation = value as Record<string, unknown>;
+  assertValue(
+    typeof allocation["stockBatchId"] === "string" &&
+      typeof allocation["stockTargetId"] === "string",
+    `${label} references are required`
+  );
+  assertValue(
+    isQuantity(allocation["allocatedQuantity"]) && (allocation["allocatedQuantity"] as number) > 0,
+    `${label}.allocatedQuantity must be positive`
+  );
+  assertTrackingUnit(allocation["unit"], `${label}.unit`);
+  assertValue(
+    allocation["status"] === "active" || allocation["status"] === "released",
+    `${label}.status is invalid`
+  );
+  assertValue(
+    allocation["acceptanceResult"] === "accepted" ||
+      allocation["acceptanceResult"] === "overridden" ||
+      allocation["acceptanceResult"] === "criteria_changed",
+    `${label}.acceptanceResult is invalid`
+  );
+  if (allocation["acceptanceResult"] === "overridden")
+    assertValue(
+      typeof allocation["overrideReason"] === "string" &&
+        allocation["overrideReason"].trim().length > 0 &&
+        allocation["overrideReason"].length <= 300,
+      `${label}.overrideReason is required for an override`
+    );
+}
+
+export function assertCreateManualStockBatchRequest(
+  value: unknown,
+  label = "createManualStockBatchRequest"
+): asserts value is CreateManualStockBatchRequest {
+  assertValue(
+    !!value && typeof value === "object" && !Array.isArray(value),
+    `${label} must be an object`
+  );
+  const request = value as Record<string, unknown>;
+  for (const key of ["acquiredOn", "displayName", "operationId", "requestFingerprint"])
+    assertValue(
+      typeof request[key] === "string" && Boolean(request[key]),
+      `${label}.${key} is required`
+    );
+  assertValue(isDate(request["acquiredOn"]), `${label}.acquiredOn must be a date`);
+  assertValue(
+    request["expiryOn"] === null ||
+      request["expiryOn"] === undefined ||
+      isDate(request["expiryOn"]),
+    `${label}.expiryOn must be a date or null`
+  );
+  assertValue(
+    typeof request["householdProductId"] === "string" && request["householdProductId"].length > 0,
+    `${label}.householdProductId is required`
+  );
+  assertValue(
+    isQuantity(request["originalQuantity"]) && (request["originalQuantity"] as number) > 0,
+    `${label}.originalQuantity must be positive`
+  );
+  assertTrackingUnit(request["unit"], `${label}.unit`);
+  if (request["directConcepts"] !== undefined)
+    assertRefs(request["directConcepts"], `${label}.directConcepts`);
+  if (request["directAttributes"] !== undefined)
+    assertRefs(request["directAttributes"], `${label}.directAttributes`);
+}
+
+export function assertCreateStockTargetRequest(
+  value: unknown,
+  label = "createStockTargetRequest"
+): asserts value is CreateStockTargetRequest {
+  assertValue(
+    !!value && typeof value === "object" && !Array.isArray(value),
+    `${label} must be an object`
+  );
+  const request = value as Record<string, unknown>;
+  assertValue(
+    typeof request["displayName"] === "string" && request["displayName"].trim().length > 0,
+    `${label}.displayName is required`
+  );
+  assertTrackingUnit(request["trackingUnit"], `${label}.trackingUnit`);
+  assertValue(
+    isQuantity(request["minimumQuantity"]) && isQuantity(request["targetQuantity"]),
+    `${label} quantities are invalid`
+  );
+  assertValue(
+    (request["targetQuantity"] as number) >= (request["minimumQuantity"] as number),
+    `${label}.targetQuantity must not be below minimumQuantity`
+  );
+  assertValue(
+    Number.isInteger(request["expiryWarningDays"]) && (request["expiryWarningDays"] as number) >= 0,
+    `${label}.expiryWarningDays is invalid`
+  );
+  assertValue(
+    request["consumptionPolicy"] === "earliest_expiry_first" ||
+      request["consumptionPolicy"] === "oldest_acquired_first",
+    `${label}.consumptionPolicy is invalid`
+  );
+  assertAcceptanceCriteria(request["acceptanceCriteria"], `${label}.acceptanceCriteria`);
+}
+
+export function assertCreateProductGroupRequest(
+  value: unknown,
+  label = "createProductGroupRequest"
+): asserts value is CreateProductGroupRequest {
+  assertValue(
+    !!value && typeof value === "object" && !Array.isArray(value),
+    `${label} must be an object`
+  );
+  const request = value as Record<string, unknown>;
+  assertValue(
+    typeof request["displayName"] === "string" && request["displayName"].trim().length > 0,
+    `${label}.displayName is required`
+  );
+  assertTrackingUnit(request["trackingUnit"], `${label}.trackingUnit`);
+  if (request["parentProductGroupId"] !== undefined && request["parentProductGroupId"] !== null)
+    assertValue(
+      typeof request["parentProductGroupId"] === "string" &&
+        request["parentProductGroupId"].length > 0,
+      `${label}.parentProductGroupId is invalid`
+    );
+  if (request["targetPolicy"] !== undefined && request["targetPolicy"] !== null)
+    assertTargetPolicy(request["targetPolicy"], `${label}.targetPolicy`);
+  assertGroupShoppingOverrides(request["groupTargetShoppingModeOverride"], label);
+  assertGroupShoppingDistributionOverride(
+    request["groupTargetShoppingDistributionModeOverride"],
+    label
+  );
+}
+
+export function assertCreateHouseholdProductRequest(
+  value: unknown,
+  label = "createHouseholdProductRequest"
+): asserts value is CreateHouseholdProductRequest {
+  assertValue(
+    !!value && typeof value === "object" && !Array.isArray(value),
+    `${label} must be an object`
+  );
+  const request = value as Record<string, unknown>;
+  assertValue(
+    typeof request["displayName"] === "string" && request["displayName"].trim().length > 0,
+    `${label}.displayName is required`
+  );
+  assertValue(
+    typeof request["identityKind"] === "string" &&
+      householdProductIdentityKinds.includes(request["identityKind"] as never),
+    `${label}.identityKind is invalid`
+  );
+  if (request["catalogProductId"] !== undefined && request["catalogProductId"] !== null)
+    assertValue(
+      typeof request["catalogProductId"] === "string" && request["catalogProductId"].length > 0,
+      `${label}.catalogProductId is invalid`
+    );
+  if (request["directConcepts"] !== undefined)
+    assertRefs(request["directConcepts"], `${label}.directConcepts`);
+  if (request["directAttributes"] !== undefined)
+    assertRefs(request["directAttributes"], `${label}.directAttributes`);
+  if (request["defaultTrackingUnit"] !== undefined && request["defaultTrackingUnit"] !== null)
+    assertTrackingUnit(request["defaultTrackingUnit"], `${label}.defaultTrackingUnit`);
+  if (request["note"] !== undefined && request["note"] !== null)
+    assertValue(
+      typeof request["note"] === "string" && request["note"].length <= 500,
+      `${label}.note is invalid`
+    );
+  if (request["productGroupId"] !== undefined && request["productGroupId"] !== null)
+    assertValue(
+      typeof request["productGroupId"] === "string" && request["productGroupId"].length > 0,
+      `${label}.productGroupId is invalid`
+    );
+  if (request["targetPolicy"] !== undefined && request["targetPolicy"] !== null)
+    assertTargetPolicy(request["targetPolicy"], `${label}.targetPolicy`);
+}

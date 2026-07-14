@@ -17,6 +17,7 @@ It is used by both:
 - Do not put Angular frontend code here.
 - Do not put manually runnable utility scripts here; use `scripts/` unless a package-owned script is explicitly planned.
 - Keep host-specific glue small enough that another serverless adapter could call the same server handler.
+- Prefer existing repositories, native MongoDB constraints/indexes/atomic operations, and direct local functions before adding a server abstraction, dependency, or generalized strategy. Introduce one only for a current boundary that needs substitution, lifecycle handling, or multiple real implementations.
 - Keep server logs timestamped and structured enough to read in both local console output and Vercel runtime logs.
 - When a change affects logging behavior, update `docs/logging.md` and keep the file/console split consistent.
 

@@ -49,17 +49,13 @@ describe("readAppConfig", () => {
 
   it("normalizes configured CORS origins and patterns", () => {
     const result = readAppConfig({
-      CORS_ALLOWED_ORIGINS: " https://kamra.example , https://admin.example/invalid/path , http://localhost:4200/ ",
+      CORS_ALLOWED_ORIGINS:
+        " https://kamra.example , https://admin.example/invalid/path , http://localhost:4200/ ",
       CORS_ALLOWED_ORIGIN_PATTERNS: " https://*.vercel.app/ , not-a-url "
     });
 
-    expect(result.cors.allowedOrigins).toEqual([
-      "https://kamra.example",
-      "http://localhost:4200"
-    ]);
-    expect(result.cors.allowedOriginPatterns).toEqual([
-      "https://*.vercel.app"
-    ]);
+    expect(result.cors.allowedOrigins).toEqual(["https://kamra.example", "http://localhost:4200"]);
+    expect(result.cors.allowedOriginPatterns).toEqual(["https://*.vercel.app"]);
   });
 
   it("matches exact configured CORS origins", () => {
@@ -76,7 +72,9 @@ describe("readAppConfig", () => {
       CORS_ALLOWED_ORIGIN_PATTERNS: "https://*.vercel.app"
     });
 
-    expect(findAllowedCorsOrigin(config, "https://project-preview.vercel.app")).toBe("https://project-preview.vercel.app");
+    expect(findAllowedCorsOrigin(config, "https://project-preview.vercel.app")).toBe(
+      "https://project-preview.vercel.app"
+    );
     expect(findAllowedCorsOrigin(config, "https://vercel.app")).toBeNull();
     expect(findAllowedCorsOrigin(config, "https://project-preview.example.com")).toBeNull();
   });

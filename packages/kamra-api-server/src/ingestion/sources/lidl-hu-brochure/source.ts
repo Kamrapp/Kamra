@@ -7,7 +7,7 @@ import type { ParsedShopProductRow } from "../../v1/contracts.js";
 export const lidlHuBrochureSourceName = "lidl-hu-brochure";
 export const lidlHuBrochureWorkflowName = "lidl-hu-brochure-pdf";
 export const lidlHuBrochureParserName = "LidlHuBrochurePdfParser";
-export const lidlHuBrochureParserVersion = "0.1.0";
+export const lidlHuBrochureParserVersion = "0.1.1";
 export const lidlHuBrochureIndexUrl = "https://www.lidl.hu/c/szorolap/s10013623";
 export const lidlHuLeafletApiBaseUrl = "https://endpoints.leaflets.schwarz/v4/flyer";
 
@@ -56,7 +56,7 @@ export interface LidlHuBrochureSummary {
   title: string;
 }
 
-interface LidlHuPageText {
+export interface LidlHuPageText {
   lines: string[];
   pageNumber: number;
 }
@@ -67,7 +67,8 @@ export function hashLidlHuBrochureContent(content: Uint8Array): string {
 
 export function discoverLidlHuBrochureSlugs(indexHtml: string): string[] {
   const slugs = new Set<string>();
-  const hrefPattern = /href="(?<href>(?:https:\/\/www\.lidl\.hu)?\/l\/hu\/ujsag\/(?<slug>[^"/?#]+)[^"]*)"/g;
+  const hrefPattern =
+    /href="(?<href>(?:https:\/\/www\.lidl\.hu)?\/l\/hu\/ujsag\/(?<slug>[^"/?#]+)[^"]*)"/g;
 
   for (const match of indexHtml.matchAll(hrefPattern)) {
     const slug = match.groups?.["slug"];
@@ -113,7 +114,9 @@ export function parseLidlHuBrochureRows(
   observedAt: string
 ): ParsedShopProductRow[] {
   return pageTexts
-    .filter((page) => brochure.pageNumbers.length === 0 || brochure.pageNumbers.includes(page.pageNumber))
+    .filter(
+      (page) => brochure.pageNumbers.length === 0 || brochure.pageNumbers.includes(page.pageNumber)
+    )
     .flatMap((page) => parseLidlHuPageRows(brochure, page, observedAt));
 }
 
@@ -130,7 +133,7 @@ export async function extractLidlHuPdfPageTexts(pdfBytes: Uint8Array): Promise<L
       const page = await document.getPage(pageNumber);
       const textContent = await page.getTextContent();
       const lines = textContent.items
-        .map((item) => "str" in item && typeof item.str === "string" ? item.str : "")
+        .map((item) => ("str" in item && typeof item.str === "string" ? item.str : ""))
         .map(normalizeLine)
         .filter(Boolean);
 
@@ -169,13 +172,14 @@ function parseLidlHuPageRows(
   observedAt: string
 ): ParsedShopProductRow[] {
   const rows: ParsedShopProductRow[] = [];
+  const sourceRecordIds = new Set<string>();
 
   for (const [index, line] of page.lines.entries()) {
     if (
-      !isLidlItemNumberLine(line)
-      || isLidlItemNumberContinuation(page.lines, index)
-      || isSplitPackageQuantityLine(page.lines, index)
-      || isLikelyPriceAfterItemNumber(page.lines, index)
+      !isLidlItemNumberLine(line) ||
+      isLidlItemNumberContinuation(page.lines, index) ||
+      isSplitPackageQuantityLine(page.lines, index) ||
+      isLikelyPriceAfterItemNumber(page.lines, index)
     ) {
       continue;
     }
@@ -192,6 +196,13 @@ function parseLidlHuPageRows(
 
     const price = findPriceAfterItemNumber(page.lines, itemNumberGroup.endIndex);
     const rawText = collectRawContext(page.lines, index);
+    const sourceRecordId = `${brochure.slug}:page-${page.pageNumber}:item-${sourceProductKey}`;
+
+    if (sourceRecordIds.has(sourceRecordId)) {
+      continue;
+    }
+
+    sourceRecordIds.add(sourceRecordId);
 
     rows.push({
       countryCode: "HU",
@@ -209,19 +220,20 @@ function parseLidlHuPageRows(
       },
       observedAt,
       packageLabel: packageLabel.label,
-      priceObservations: price === null
-        ? []
-        : [
-            {
-              currencyCode: "HUF",
-              observedAt,
-              price,
-              priceKind: "offer",
-              unitPriceLabel: packageLabel.unitPriceLabel,
-              validFrom: brochure.startDate,
-              validTo: brochure.endDate
-            }
-          ],
+      priceObservations:
+        price === null
+          ? []
+          : [
+              {
+                currencyCode: "HUF",
+                observedAt,
+                price,
+                priceKind: "offer",
+                unitPriceLabel: packageLabel.unitPriceLabel,
+                validFrom: brochure.startDate,
+                validTo: brochure.endDate
+              }
+            ],
       productIdentifiers: [
         {
           issuer: "lidl.hu",
@@ -232,7 +244,7 @@ function parseLidlHuPageRows(
       rawName: displayName,
       sourceName: lidlHuBrochureSourceName,
       sourceProductKey,
-      sourceRecordId: `${brochure.slug}:page-${page.pageNumber}:item-${sourceProductKey}`,
+      sourceRecordId,
       sourceUrl: brochure.sourceUrl,
       stock: {
         availability: "infinite",
@@ -247,7 +259,11 @@ function parseLidlHuPageRows(
   return rows;
 }
 
-function collectNameLines(lines: string[], itemNumberIndex: number, skipIndexes: Set<number>): {
+function collectNameLines(
+  lines: string[],
+  itemNumberIndex: number,
+  skipIndexes: Set<number>
+): {
   displayName: string | null;
 } {
   const collected: string[] = [];
@@ -263,7 +279,11 @@ function collectNameLines(lines: string[], itemNumberIndex: number, skipIndexes:
       continue;
     }
 
-    if (isLidlItemNumberLine(line) || isStandaloneOfferPriceLine(line) || isHardNameBoundary(line)) {
+    if (
+      isLidlItemNumberLine(line) ||
+      isStandaloneOfferPriceLine(line) ||
+      isHardNameBoundary(line)
+    ) {
       break;
     }
 
@@ -280,7 +300,11 @@ function collectNameLines(lines: string[], itemNumberIndex: number, skipIndexes:
 }
 
 function findPriceAfterItemNumber(lines: string[], itemNumberEndIndex: number): number | null {
-  for (let index = itemNumberEndIndex + 1; index < lines.length && index <= itemNumberEndIndex + 8; index += 1) {
+  for (
+    let index = itemNumberEndIndex + 1;
+    index < lines.length && index <= itemNumberEndIndex + 8;
+    index += 1
+  ) {
     const line = lines[index];
 
     if (!line || isLidlItemNumberLine(line)) {
@@ -312,7 +336,10 @@ function collectRawContext(lines: string[], itemNumberIndex: number): string {
   return lines.slice(start, end).join("\n");
 }
 
-function collectItemNumberGroup(lines: string[], itemNumberIndex: number): {
+function collectItemNumberGroup(
+  lines: string[],
+  itemNumberIndex: number
+): {
   endIndex: number;
   lines: string[];
 } {
@@ -359,7 +386,11 @@ function isLikelyPriceAfterItemNumber(lines: string[], index: number): boolean {
     return false;
   }
 
-  for (let previousIndex = index - 1; previousIndex >= 0 && previousIndex >= index - 4; previousIndex -= 1) {
+  for (
+    let previousIndex = index - 1;
+    previousIndex >= 0 && previousIndex >= index - 4;
+    previousIndex -= 1
+  ) {
     const previousLine = lines[previousIndex];
 
     if (!previousLine) {
@@ -382,7 +413,10 @@ function normalizeItemNumberGroup(lines: string[]): string {
   return lines.join(" / ").replace(/\s+/g, "").replace(/\/+/g, "/").replace(/\/$/, "");
 }
 
-function collectPackageLabel(lines: string[], itemNumberIndex: number): {
+function collectPackageLabel(
+  lines: string[],
+  itemNumberIndex: number
+): {
   label: string | null;
   skipIndexes: Set<number>;
   unitPriceLabel: string | null;
@@ -445,11 +479,13 @@ function isLikelyPackageLine(line: string): boolean {
 }
 
 function isPackageFragmentLine(line: string): boolean {
-  return !isPurchaseDealLine(line)
-    && (isLikelyPackageLine(line)
-    || /^\d+(?:[,.]\d+)?$/.test(line)
-    || /^(?:g|kg|ml|l|db)(?:;.*)?$/i.test(line)
-    || /^\d[\d\s]*(?:,\d{1,2})?\s*Ft(?:\/(?:kg|l|db))?$/i.test(line));
+  return (
+    !isPurchaseDealLine(line) &&
+    (isLikelyPackageLine(line) ||
+      /^\d+(?:[,.]\d+)?$/.test(line) ||
+      /^(?:g|kg|ml|l|db)(?:;.*)?$/i.test(line) ||
+      /^\d[\d\s]*(?:,\d{1,2})?\s*Ft(?:\/(?:kg|l|db))?$/i.test(line))
+  );
 }
 
 function isSplitUnitPriceTail(lines: string[], index: number): boolean {
@@ -460,7 +496,10 @@ function isSplitUnitPriceTail(lines: string[], index: number): boolean {
     return false;
   }
 
-  return /^\d[\d\s]*(?:,\d{1,2})?\s*Ft$/i.test(line) && /\b1\s*(?:kg|l|db)\s*=\s*[\d\s]*$/i.test(previousLine);
+  return (
+    /^\d[\d\s]*(?:,\d{1,2})?\s*Ft$/i.test(line) &&
+    /\b1\s*(?:kg|l|db)\s*=\s*[\d\s]*$/i.test(previousLine)
+  );
 }
 
 function isSplitPackageQuantityLine(lines: string[], index: number): boolean {
@@ -491,14 +530,18 @@ function extractUnitPriceLabel(line: string): string | null {
 }
 
 function isProductAttributeLine(line: string): boolean {
-  return /^(?:Zsírtartalom|Alkoholtartalom|Energiatartalom|Méret|Anyaga|Cserép átmérője|Növény magassága):/i.test(line);
+  return /^(?:Zsírtartalom|Alkoholtartalom|Energiatartalom|Méret|Anyaga|Cserép átmérője|Növény magassága):/i.test(
+    line
+  );
 }
 
 function isPurchaseDealLine(line: string): boolean {
-  return /^\d+\s*db;\s*[\d\s]+\s*Ft\/db\b/i.test(line)
-    || /^\d+\s*db\s+vásárlása esetén:?$/i.test(line)
-    || /^[\d\s]+Ft\/db\b/i.test(line)
-    || /^Ft-(?:tól|db)$/i.test(line);
+  return (
+    /^\d+\s*db;\s*[\d\s]+\s*Ft\/db\b/i.test(line) ||
+    /^\d+\s*db\s+vásárlása esetén:?$/i.test(line) ||
+    /^[\d\s]+Ft\/db\b/i.test(line) ||
+    /^Ft-(?:tól|db)$/i.test(line)
+  );
 }
 
 function cleanDisplayName(value: string): string {
@@ -527,57 +570,67 @@ function cleanDisplayName(value: string): string {
 }
 
 function isHardNameBoundary(line: string): boolean {
-  return /^Az árak\b/i.test(line)
-    || /^Akciós termékeink\b/i.test(line)
-    || /^Nyomdai hibákért\b/i.test(line)
-    || /^A termékek nem képezik\b/i.test(line)
-    || /^EUTR technikai azonosító szám\b/i.test(line)
-    || /^Ft$/i.test(line)
-    || /^\d{1,2}\/\d{4}$/.test(line)
-    || /^\d{1,2}\.$/.test(line)
-    || /^\d{2}\.$/.test(line)
-    || /^\d{1,2}\.\d{1,2}/.test(line)
-    || /^\d{1,2}\.\s*(?:hét|pénteken|szombaton|vasárnap)/i.test(line)
-    || /^Még több ajánlat\b/i.test(line);
+  return (
+    /^Az árak\b/i.test(line) ||
+    /^Akciós termékeink\b/i.test(line) ||
+    /^Nyomdai hibákért\b/i.test(line) ||
+    /^A termékek nem képezik\b/i.test(line) ||
+    /^EUTR technikai azonosító szám\b/i.test(line) ||
+    /^Ft$/i.test(line) ||
+    /^\d{1,2}\/\d{4}$/.test(line) ||
+    /^\d{1,2}\.$/.test(line) ||
+    /^\d{2}\.$/.test(line) ||
+    /^\d{1,2}\.\d{1,2}/.test(line) ||
+    /^\d{1,2}\.\s*(?:hét|pénteken|szombaton|vasárnap)/i.test(line) ||
+    /^Még több ajánlat\b/i.test(line)
+  );
 }
 
 function isStandaloneOfferPriceLine(line: string): boolean {
-  return /^\d[\d\s]*(?:,\d{1,2})?$/.test(line)
-    || /^\d[\d\s]*(?:,\d{1,2})?\s*Ft$/i.test(line)
-    || /^\d[\d\s]*(?:,\d{1,2})?ft$/i.test(line);
+  return (
+    /^\d[\d\s]*(?:,\d{1,2})?$/.test(line) ||
+    /^\d[\d\s]*(?:,\d{1,2})?\s*Ft$/i.test(line) ||
+    /^\d[\d\s]*(?:,\d{1,2})?ft$/i.test(line)
+  );
 }
 
 function isSkippablePriceContextLine(line: string): boolean {
-  return /^-$/.test(line)
-    || /^\*+$/.test(line)
-    || /^-\d+%$/.test(line)
-    || /^%$/.test(line)
-    || /^Lidl Plus-szal$/i.test(line)
-    || /^Szuper ár!$/i.test(line)
-    || isPurchaseDealLine(line)
-    || /^Jó választás$/i.test(line)
-    || /^a hazai$/i.test(line)
-    || /^TV-$/i.test(line)
-    || /^termék$/i.test(line);
+  return (
+    /^-$/.test(line) ||
+    /^\*+$/.test(line) ||
+    /^-\d+%$/.test(line) ||
+    /^%$/.test(line) ||
+    /^Lidl Plus-szal$/i.test(line) ||
+    /^Szuper ár!$/i.test(line) ||
+    isPurchaseDealLine(line) ||
+    /^Jó választás$/i.test(line) ||
+    /^a hazai$/i.test(line) ||
+    /^TV-$/i.test(line) ||
+    /^termék$/i.test(line)
+  );
 }
 
 function isLikelyProductTextLine(line: string): boolean {
-  return /[a-záéíóöőúüű]/i.test(line)
-    && !isSkippablePriceContextLine(line)
-    && !isProductAttributeLine(line)
-    && !isHardNameBoundary(line)
-    && !isLikelyPackageLine(line);
+  return (
+    /[a-záéíóöőúüű]/i.test(line) &&
+    !isSkippablePriceContextLine(line) &&
+    !isProductAttributeLine(line) &&
+    !isHardNameBoundary(line) &&
+    !isLikelyPackageLine(line)
+  );
 }
 
 function isAcceptableProductName(name: string): boolean {
-  return /[a-záéíóöőúüű]{3,}/i.test(name)
-    && !/^[\d\s.,%/+-]+$/.test(name)
-    && !/^\/?db$/i.test(name)
-    && !/^\*+$/.test(name)
-    && !/^Szuper\s+ár!?$/i.test(name)
-    && !/^Ft-(?:tól|db)$/i.test(name)
-    && !/^Az árak\b/i.test(name)
-    && !/^Akciós termékeink\b/i.test(name);
+  return (
+    /[a-záéíóöőúüű]{3,}/i.test(name) &&
+    !/^[\d\s.,%/+-]+$/.test(name) &&
+    !/^\/?db$/i.test(name) &&
+    !/^\*+$/.test(name) &&
+    !/^Szuper\s+ár!?$/i.test(name) &&
+    !/^Ft-(?:tól|db)$/i.test(name) &&
+    !/^Az árak\b/i.test(name) &&
+    !/^Akciós termékeink\b/i.test(name)
+  );
 }
 
 function isLidlProductBoundary(line: string): boolean {
@@ -589,7 +642,11 @@ function isLidlProductBoundary(line: string): boolean {
     return true;
   }
 
-  if (/^(Lidl Plus-szal|Szuper ár!|TV-|termék|Új|Minden|Jó választás|Az árak|Akciós termékeink|Még több ajánlat|Részletek)$/i.test(line)) {
+  if (
+    /^(Lidl Plus-szal|Szuper ár!|TV-|termék|Új|Minden|Jó választás|Az árak|Akciós termékeink|Még több ajánlat|Részletek)$/i.test(
+      line
+    )
+  ) {
     return true;
   }
 
@@ -597,13 +654,15 @@ function isLidlProductBoundary(line: string): boolean {
 }
 
 function isLidlNoiseLine(line: string): boolean {
-  return isLidlProductBoundary(line)
-    || /^a hazai$/i.test(line)
-    || /^Ft$/i.test(line)
-    || /^\d{1,2}\.$/.test(line)
-    || /^\d{1,2}\.\d{1,2}/.test(line)
-    || /^csütörtöktől$/i.test(line)
-    || /^igazán megéri\.?$/i.test(line);
+  return (
+    isLidlProductBoundary(line) ||
+    /^a hazai$/i.test(line) ||
+    /^Ft$/i.test(line) ||
+    /^\d{1,2}\.$/.test(line) ||
+    /^\d{1,2}\.\d{1,2}/.test(line) ||
+    /^csütörtöktől$/i.test(line) ||
+    /^igazán megéri\.?$/i.test(line)
+  );
 }
 
 function parseStandalonePrice(line: string): number | null {
@@ -623,7 +682,10 @@ function normalizeDate(value: string | undefined): string | null {
 }
 
 function normalizeLine(value: string): string {
-  return value.replace(/\u00a0/g, " ").replace(/\s+/g, " ").trim();
+  return value
+    .replace(/\u00a0/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function requireText(value: string | undefined, label: string): string {
