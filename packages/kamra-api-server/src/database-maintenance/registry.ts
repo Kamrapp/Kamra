@@ -112,6 +112,12 @@ export const databaseMaintenanceEntries: readonly DatabaseMaintenanceEntry[] = [
       "Adds the optional revision field to the shared household feature-flag validator so revision-aware admin flag writes are accepted. Existing V1 flag documents remain valid and no data backfill is required.",
     id: "feature-flag-revision-v1",
     title: "Feature flag revision compatibility"
+  },
+  {
+    details:
+      "Refreshes the household feature-flag validator so the newly registered allowAutomaticLogin key can be persisted. Existing feature-flag documents remain valid and no data backfill is required. This is a separate entry because the earlier feature-flag revision maintenance may already be recorded as complete.",
+    id: "feature-flag-automatic-login-v1",
+    title: "Automatic-login feature flag validator"
   }
 ];
 
