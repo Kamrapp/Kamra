@@ -265,7 +265,11 @@ async function runValidatorAction(
   if (entryId === "shop-price-observations-v1") {
     return await new MongoPriceObservationRepository(database).upgradeValidator();
   }
-  if (entryId === "feature-flag-revision-v1" || entryId === "household-expired-item-policy-v1") {
+  if (
+    entryId === "feature-flag-revision-v1" ||
+    entryId === "feature-flag-automatic-login-v1" ||
+    entryId === "household-expired-item-policy-v1"
+  ) {
     const repository = context.dependencies.createHouseholdRepository
       ? context.dependencies.createHouseholdRepository(database)
       : createDefaultHouseholdRepository(database);
@@ -344,7 +348,10 @@ async function runMigrationAction(
   if (entryId === "shop-price-observations-v1") {
     return await new MongoPriceObservationRepository(database).migrateLegacy();
   }
-  if (entryId === "feature-flag-revision-v1") {
+  if (
+    entryId === "feature-flag-revision-v1" ||
+    entryId === "feature-flag-automatic-login-v1"
+  ) {
     return { status: "ready", migratedCount: 0 };
   }
   if (entryId === "household-expired-item-policy-v1") {
