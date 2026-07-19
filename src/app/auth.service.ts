@@ -46,6 +46,7 @@ export type LoginResult =
 
 export type RegisterResult = LoginResult;
 
+const authRequestTimeoutMs = 5 * 60 * 1000;
 const userTokenStorageKey = "kamra_user_token";
 
 @Injectable({
@@ -56,6 +57,12 @@ export class AuthService {
   readonly token = signal<string | null>(this.readStoredToken());
   readonly user = signal<AuthenticatedUser | null>(null);
   readonly isAuthenticated = computed(() => Boolean(this.token() && this.user()));
+  readonly startupLoginLoading = signal(false);
+  private autoLoginRequest: Promise<void> | null = null;
+
+  constructor() {
+    void this.wakeApi();
+  }
 
   getAuthorizationHeaders(): Record<string, string> {
     const token = this.token();
@@ -63,42 +70,49 @@ export class AuthService {
   }
 
   async loadCurrentUser(): Promise<void> {
-    if (!this.token()) {
-      this.user.set(null);
-      return;
-    }
+    this.startupLoginLoading.set(true);
 
-    let response: Response;
     try {
-      response = await fetch(buildApiUrl("/api/admin/me"), {
-        headers: {
-          accept: "application/json",
-          ...this.getAuthorizationHeaders()
-        },
-        method: "GET"
-      });
-    } catch {
-      this.clearToken();
-      return;
-    }
+      if (!this.token()) {
+        this.user.set(null);
+        await this.tryAutoLogin();
+        return;
+      }
 
-    if (!response.ok) {
-      this.clearToken();
-      return;
-    }
+      let response: Response;
+      try {
+        response = await fetchWithTimeout(buildApiUrl("/api/admin/me"), {
+          headers: {
+            accept: "application/json",
+            ...this.getAuthorizationHeaders()
+          },
+          method: "GET"
+        });
+      } catch {
+        this.clearToken();
+        return;
+      }
 
-    const payload = (await response.json().catch(() => null)) as unknown;
-    if (!isCurrentUserResponse(payload)) {
-      this.clearToken();
-      return;
+      if (!response.ok) {
+        this.clearToken();
+        return;
+      }
+
+      const payload = (await response.json().catch(() => null)) as unknown;
+      if (!isCurrentUserResponse(payload)) {
+        this.clearToken();
+        return;
+      }
+      this.user.set(this.normalizeUser(payload.user));
+    } finally {
+      this.startupLoginLoading.set(false);
     }
-    this.user.set(this.normalizeUser(payload.user));
   }
 
   async login(email: string, password: string): Promise<LoginResult> {
     let response: Response;
     try {
-      response = await fetch(buildApiUrl("/api/login"), {
+      response = await fetchWithTimeout(buildApiUrl("/api/login"), {
         body: JSON.stringify({ email, password }),
         headers: {
           accept: "application/json",
@@ -106,9 +120,9 @@ export class AuthService {
         },
         method: "POST"
       });
-    } catch {
+    } catch (error: unknown) {
       return {
-        message: this.loc.t("app.loginRequestFailed"),
+        message: this.loc.t(isAbortError(error) ? "app.loginTimeout" : "app.loginRequestFailed"),
         status: "error"
       };
     }
@@ -143,7 +157,7 @@ export class AuthService {
   async register(email: string, password: string): Promise<RegisterResult> {
     let response: Response;
     try {
-      response = await fetch(buildApiUrl("/api/register"), {
+      response = await fetchWithTimeout(buildApiUrl("/api/register"), {
         body: JSON.stringify({ email, password }),
         headers: {
           accept: "application/json",
@@ -151,9 +165,11 @@ export class AuthService {
         },
         method: "POST"
       });
-    } catch {
+    } catch (error: unknown) {
       return {
-        message: this.loc.t("app.registrationRequestFailed"),
+        message: this.loc.t(
+          isAbortError(error) ? "app.loginTimeout" : "app.registrationRequestFailed"
+        ),
         status: "error"
       };
     }
@@ -223,6 +239,60 @@ export class AuthService {
     await this.updateUserPreferences({ theme });
   }
 
+  private async wakeApi(): Promise<void> {
+    try {
+      await fetchWithTimeout(buildApiUrl("/api/healthz"), {
+        cache: "no-store",
+        headers: {
+          accept: "application/json"
+        },
+        method: "GET"
+      });
+    } catch {
+      // Waking a sleeping backend is best-effort. Login requests keep their own long timeout.
+    }
+  }
+
+  private async tryAutoLogin(): Promise<void> {
+    if (this.token() || this.user()) {
+      return;
+    }
+
+    if (!this.autoLoginRequest) {
+      this.autoLoginRequest = this.performAutoLogin().finally(() => {
+        this.autoLoginRequest = null;
+      });
+    }
+
+    await this.autoLoginRequest;
+  }
+
+  private async performAutoLogin(): Promise<void> {
+    let response: Response;
+    try {
+      response = await fetchWithTimeout(buildApiUrl("/api/auto-login"), {
+        headers: {
+          accept: "application/json"
+        },
+        method: "POST"
+      });
+    } catch {
+      return;
+    }
+
+    if (response.status === 204 || !response.ok) {
+      return;
+    }
+
+    const payload = (await response.json().catch(() => null)) as unknown;
+    if (!isLoginResponse(payload)) {
+      return;
+    }
+
+    this.storeToken(payload.token);
+    this.user.set(this.normalizeUser(payload.user));
+  }
+
   private clearToken(): void {
     this.token.set(null);
     this.user.set(null);
@@ -279,4 +349,25 @@ function isAuthenticatedUser(value: unknown): value is AuthenticatedUser {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+async function fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), authRequestTimeoutMs);
+
+  try {
+    return await fetch(url, {
+      ...init,
+      signal: controller.signal
+    });
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
+
+function isAbortError(error: unknown): boolean {
+  return (
+    (error instanceof DOMException && error.name === "AbortError") ||
+    (error instanceof Error && error.name === "AbortError")
+  );
 }

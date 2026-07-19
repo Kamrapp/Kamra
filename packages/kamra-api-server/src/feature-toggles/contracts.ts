@@ -25,6 +25,19 @@ export const featureFlagDefinitions = {
     removalCondition: "Remove when controlled alpha access is no longer operationally needed.",
     scope: "global"
   },
+  allowAutomaticLogin: {
+    admin: {
+      control: "boolean",
+      descriptionKey: "health.featureFlagAutomaticLoginDescription",
+      group: "access",
+      labelKey: "health.featureFlagAutomaticLogin"
+    },
+    defaultValue: false,
+    failureValue: false,
+    owner: "access",
+    removalCondition: "Remove when the dedicated automatic-login deployment is no longer needed.",
+    scope: "global"
+  },
   useAbbreviatedUiLabels: {
     admin: {
       control: "boolean",
