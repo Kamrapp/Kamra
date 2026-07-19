@@ -88,18 +88,31 @@ export interface ShellLoginCredentials {
             [disabled]="loginLoading()"
           />
           <button class="ui-button ui-button-sm" type="submit" [disabled]="loginLoading()">
-            {{
-              loginLoading()
-                ? registerMode
-                  ? loc.t("app.registering")
-                  : loc.t("app.loadingLogin")
-                : registerMode
-                  ? loc.t("app.register")
-                  : loc.t("app.login")
-            }}
+            @if (loginLoading()) {
+              <span class="auth-spinner" aria-hidden="true"></span>
+            }
+            <span>
+              {{
+                loginLoading()
+                  ? registerMode
+                    ? loc.t("app.registering")
+                    : loc.t("app.loadingLogin")
+                  : registerMode
+                    ? loc.t("app.register")
+                    : loc.t("app.login")
+              }}
+            </span>
           </button>
         </form>
-        <button class="auth-mode-button" type="button" (click)="toggleRegisterMode()">
+        @if (loginLoading()) {
+          <p class="auth-wakeup-note" role="status">{{ loc.t("app.loginWakeupNotice") }}</p>
+        }
+        <button
+          class="auth-mode-button"
+          type="button"
+          [disabled]="loginLoading()"
+          (click)="toggleRegisterMode()"
+        >
           {{ registerMode ? loc.t("app.switchToLogin") : loc.t("app.switchToRegistration") }}
         </button>
       }
@@ -172,9 +185,45 @@ export interface ShellLoginCredentials {
         text-transform: uppercase;
       }
 
+      .login-form .ui-button {
+        align-items: center;
+        display: inline-flex;
+        gap: 0.45rem;
+        justify-content: center;
+      }
+
       .login-form .ui-button:disabled {
         cursor: progress;
         opacity: 0.72;
+      }
+
+      .auth-spinner {
+        animation: auth-spin 0.8s linear infinite;
+        border: 0.16rem solid color-mix(in srgb, currentColor 30%, transparent);
+        border-radius: 50%;
+        border-top-color: currentColor;
+        flex: 0 0 auto;
+        height: 0.9rem;
+        width: 0.9rem;
+      }
+
+      .auth-wakeup-note {
+        color: var(--color-text-muted);
+        font-size: 0.76rem;
+        line-height: 1.35;
+        margin: var(--space-2) 0 0;
+      }
+
+      @keyframes auth-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .auth-spinner {
+          animation: none;
+        }
       }
 
       .auth-mode-button {
@@ -187,6 +236,11 @@ export interface ShellLoginCredentials {
         margin-top: var(--space-2);
         padding: 0.2rem 0;
         text-decoration: underline;
+      }
+
+      .auth-mode-button:disabled {
+        cursor: progress;
+        opacity: 0.58;
       }
 
       .pending-invitations {
