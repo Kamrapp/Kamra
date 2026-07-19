@@ -89,7 +89,7 @@ interface ShellMenuItem extends RadialNavigationItem {
       <aside class="right-rail" [attr.aria-label]="loc.t('app.actions')">
         <app-shell-account-panel
           [language]="loc.language()"
-          [loginLoading]="loginState() === 'loading'"
+          [loginLoading]="loginState() === 'loading' || auth.startupLoginLoading()"
           [loginResetToken]="loginResetToken()"
           [theme]="theme.theme()"
           [user]="auth.user()"
