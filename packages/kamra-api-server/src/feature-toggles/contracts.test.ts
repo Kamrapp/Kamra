@@ -35,6 +35,14 @@ describe("feature flag contracts", () => {
       },
       {
         control: "boolean",
+        descriptionKey: "health.featureFlagAutomaticLoginDescription",
+        enabled: false,
+        group: "access",
+        key: "allowAutomaticLogin",
+        labelKey: "health.featureFlagAutomaticLogin"
+      },
+      {
+        control: "boolean",
         descriptionKey: "health.featureFlagAbbreviatedUiLabelsDescription",
         enabled: false,
         group: "household",

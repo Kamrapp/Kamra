@@ -1,4 +1,5 @@
 import type { AppRoute } from "../../app-route-context.js";
+import { autoLoginRoute } from "../auto-login-route.js";
 import {
   createAlphaUserRoute,
   currentUserRoute,
@@ -9,6 +10,7 @@ import {
 } from "../auth-routes.js";
 
 export const accessRoutes: AppRoute[] = [
+  autoLoginRoute,
   loginRoute,
   createAlphaUserRoute,
   registerInvitedUserRoute,
